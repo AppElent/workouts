@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when running checks, dev servers, or test login for Foundry.
-version: 2.3.1
+version: 2.4.0
 ---
 
 # Verify Foundry
@@ -11,28 +11,36 @@ to Foundry targets and credentials.
 
 ## Checks
 
-From the repository root, `pnpm verify` runs lint (`pnpm check`), types (root,
-`@foundry/core`, and mobile), and tests (root Vitest and mobile Jest) in that
-order, and stops at the first failure. It does not run `pnpm build`. To run the
-gates one at a time:
+From the repository root, `pnpm verify` runs these commands in order and stops
+at the first failure. None needs credentials. CI's `check` job runs
+`pnpm verify`, then `pnpm build`.
 
 ```sh
-pnpm check
-pnpm typecheck
-pnpm test
-pnpm build
+# verify:lint
+pnpm check                                    # Biome and mobile folder structure
+# verify:project
+pnpm env:check                                # env manifest and .env.example
+node scripts/check-project.mjs --strict       # package, CI and Wrangler metadata
+pnpm --filter @foundry/core check:foods       # committed shipped-food files are current
+# verify:types
+pnpm typecheck                                # everything outside apps/ and packages/
+pnpm --filter @foundry/core typecheck         # core's scripts and tests, which its build skips
 pnpm --filter @foundry/mobile typecheck
-pnpm --filter @foundry/mobile test --runInBand
+# verify:tests
+pnpm test                                     # root Vitest; excludes mobile
+pnpm --filter @foundry/mobile test            # mobile Jest
 ```
 
-Root types/Vitest exclude mobile; mobile uses Jest. Each of these builds
-`@foundry/core` first where it needs the output. When core's scripts or the
-shipped-food data change, also run `pnpm --filter @foundry/core typecheck` and
-`pnpm --filter @foundry/core check:foods` (CI runs both).
+Run one group with `pnpm verify:lint`, `pnpm verify:project`,
+`pnpm verify:types` or `pnpm verify:tests`, or any line on its own. Root commands build `@foundry/core`
+first where they need its output. `pnpm verify` does not run `pnpm build`
+(Vite, source-map stripping and the service worker); run it when a change can
+affect bundling, plugins or SSR compilation. CI builds with
+`VITE_SENTRY_ENVIRONMENT=ci` and no Sentry token, so no source maps upload.
 
 `pnpm install` installs a lefthook pre-commit hook that runs
 `biome check --staged`. Skip it with `git commit --no-verify` or `LEFTHOOK=0`;
-CI still runs `pnpm check`.
+CI still runs it through `pnpm verify`.
 
 ## Backend and login
 
