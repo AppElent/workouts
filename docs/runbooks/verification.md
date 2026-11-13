@@ -32,10 +32,10 @@ pnpm --filter @foundry/mobile test            # mobile Jest
 ```
 
 Run one group with `pnpm verify:lint`, `pnpm verify:project`,
-`pnpm verify:types` or `pnpm verify:tests`, or any line on its own. Root commands build `@foundry/core`
-first where they need its output. `pnpm verify` does not run `pnpm build`
-(Vite, source-map stripping and the service worker); run it when a change can
-affect bundling, plugins or SSR compilation. CI builds with
+`pnpm verify:types` or `pnpm verify:tests`, or any line on its own. Root
+commands build `@foundry/core` first where they need its output. `pnpm verify`
+does not run `pnpm build` (Vite, source-map stripping and the service worker);
+run it when a change can affect bundling, plugins or SSR compilation. CI builds with
 `VITE_SENTRY_ENVIRONMENT=ci` and no Sentry token, so no source maps upload.
 
 `pnpm install` installs a lefthook pre-commit hook that runs
