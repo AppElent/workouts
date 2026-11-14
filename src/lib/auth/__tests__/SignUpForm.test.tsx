@@ -77,25 +77,70 @@ describe("SignUpForm", () => {
 		expect(sendEmailCode).toHaveBeenCalled();
 	});
 
-	it("mounts Clerk's CAPTCHA element before creating the account", async () => {
-		let captchaWhenCreating: Element | null = null;
+	function fillAndSubmit() {
+		fireEvent.change(screen.getByLabelText(/^(Email|E-mail)$/), {
+			target: { value: "a@b.com" },
+		});
+		fireEvent.change(screen.getByLabelText(/^(Password|Wachtwoord)$/), {
+			target: { value: "pw12345!" },
+		});
+		fireEvent.submit(
+			screen.getByRole("button", { name: /create account|account aanmaken/i }),
+		);
+	}
+
+	function captchaInForm() {
+		return document.querySelector("form #clerk-captcha");
+	}
+
+	it("keeps Clerk's CAPTCHA element in the form while creating the account", async () => {
+		let connectedAtStart = false;
+		let connectedAtEnd = false;
 		password.mockImplementation(async () => {
-			captchaWhenCreating = document.getElementById("clerk-captcha");
+			connectedAtStart = captchaInForm()?.isConnected ?? false;
+			await Promise.resolve();
+			connectedAtEnd = captchaInForm()?.isConnected ?? false;
+			return { error: null };
+		});
+		sendEmailCode.mockImplementation(async () => {
+			expect(captchaInForm()).not.toBeNull();
 			return { error: null };
 		});
 		renderForm();
-		const captcha = document.getElementById("clerk-captcha");
+		const captcha = captchaInForm();
 		expect(captcha?.getAttribute("data-cl-language")).toBe("en");
 		expect(captcha?.getAttribute("data-cl-size")).toBe("flexible");
-		fireEvent.change(screen.getByLabelText("Email"), {
-			target: { value: "a@b.com" },
-		});
-		fireEvent.change(screen.getByLabelText("Password"), {
-			target: { value: "pw12345!" },
-		});
-		fireEvent.click(screen.getByRole("button", { name: /create account/i }));
+		fillAndSubmit();
 		await screen.findByLabelText(/verification code/i);
-		expect(captchaWhenCreating).not.toBeNull();
+		expect(connectedAtStart).toBe(true);
+		expect(connectedAtEnd).toBe(true);
+		expect(sendEmailCode).toHaveBeenCalled();
+	});
+
+	it("keeps the CAPTCHA element after a rejected attempt so a retry can use it", async () => {
+		password.mockImplementationOnce(async () => ({
+			error: { message: "Try again", errors: [] },
+		}));
+		renderForm();
+		const captcha = captchaInForm();
+		fillAndSubmit();
+		await vi.waitFor(() => expect(password).toHaveBeenCalledTimes(1));
+		await vi.waitFor(() =>
+			expect(
+				screen.getByRole("button", { name: /create account/i }),
+			).toBeDefined(),
+		);
+		expect(sendEmailCode).not.toHaveBeenCalled();
+		expect(captchaInForm()).toBe(captcha);
+	});
+
+	it("asks for the CAPTCHA in Dutch when the app is in Dutch", () => {
+		rtlRender(<SignUpForm onSuccess={vi.fn()} />, {
+			wrapper: ({ children }) => (
+				<LocaleProvider initialLocale="nl">{children}</LocaleProvider>
+			),
+		});
+		expect(captchaInForm()?.getAttribute("data-cl-language")).toBe("nl");
 	});
 
 	it("verifies the code and completes sign-up", async () => {

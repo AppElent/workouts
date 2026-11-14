@@ -95,13 +95,15 @@ export function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
 				required
 			/>
 			{/*
-			 * Clerk's legacy bot sign-up protection renders its Turnstile widget
-			 * here when `signUp.password()` runs. Without this element Clerk falls
-			 * back to an invisible widget that blocks suspected bots with no way
-			 * to prove otherwise.
+			 * Clerk's legacy bot sign-up protection mounts its Turnstile widget here
+			 * when `signUp.password()` runs; it shows a checkbox only to visitors it
+			 * suspects are bots. Without this element Clerk falls back to an
+			 * invisible widget that blocks them with no way to prove otherwise.
+			 * `empty:-mt-3` cancels the form's gap while nothing is mounted.
 			 */}
 			<div
 				id="clerk-captcha"
+				className="empty:-mt-3"
 				data-cl-size="flexible"
 				data-cl-language={locale}
 			/>
