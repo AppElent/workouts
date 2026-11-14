@@ -37,8 +37,8 @@ build 27 failed against a production deployment 11 commits behind `main`).
 last successful GitHub deployment to the `production` Environment and lists the
 commits after it that change `convex/` or `packages/core/` (tests excluded;
 lockfile-only dependency bumps are not counted). A commit whose Convex files
-already match the deployed commit, such as a branch's merge of deployed `main`, is
-not counted. It reads deployment records only, never production secrets.
+already match the deployed commit is not counted, and neither is a branch's merge
+of `main` that production has already deployed or moved past. It reads deployment records only, never production secrets.
 
 | Where | What happens |
 | --- | --- |

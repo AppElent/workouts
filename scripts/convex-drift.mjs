@@ -84,7 +84,7 @@ export function report({ status, deployment, target, commits }) {
 	const deploy =
 		target === "origin/main"
 			? "Run Actions → Deploy → Run workflow on main"
-			: "Merge any of these not yet on main, run Actions → Deploy → Run workflow on main";
+			: "Merge any of these not yet on main (or merge main into this branch), run Actions → Deploy → Run workflow on main";
 	const next =
 		status === "drift"
 			? `${deploy}, then retry.`
@@ -136,16 +136,32 @@ function sameContent(a, b, paths, cwd) {
 }
 
 /**
- * Whether every Convex file `sha` changes (against its first parent) already
- * has that content in the deployed revision. A release branch that merges an
- * already-deployed main brings in only deployed changes, so the merge is not
- * drift.
+ * Whether production already has what `sha` brings. A commit counts as
+ * deployed when every Convex file it changes (against its first parent) has
+ * the same content in the deployed revision. A merge also counts as deployed
+ * when the branches it merges in hold no Convex commits production lacks: a
+ * release branch that merged `main` before production moved past it.
  */
 function alreadyDeployed(sha, deployedSha, cwd) {
-	const files = run("git", ["diff", "--name-only", `${sha}^1`, sha, "--", ...CONVEX_PATHS], cwd)
+	const files = run(
+		"git",
+		["diff", "--name-only", "--no-renames", `${sha}^1`, sha, "--", ...CONVEX_PATHS],
+		cwd,
+	)
 		.split("\n")
 		.filter(Boolean);
-	return files.length > 0 && sameContent(deployedSha, sha, files.map((file) => `:(literal)${file}`), cwd);
+	if (files.length > 0 && sameContent(deployedSha, sha, files.map((file) => `:(literal)${file}`), cwd)) {
+		return true;
+	}
+	const [, , ...merged] = run("git", ["rev-list", "--parents", "-n", "1", sha], cwd).trim().split(" ");
+	return (
+		merged.length > 0 &&
+		merged.every(
+			(parent) =>
+				run("git", ["rev-list", "--count", `${deployedSha}..${parent}`, "--", ...CONVEX_PATHS], cwd).trim() ===
+				"0",
+		)
+	);
 }
 
 /** Undeployed Convex commits in `target`, with the deployment they are measured against. */
@@ -195,6 +211,10 @@ export function main(argv = process.argv.slice(2)) {
 	const split = argv.indexOf("--");
 	const args = split === -1 ? argv : argv.slice(0, split);
 	const command = split === -1 ? [] : argv.slice(split + 1);
+	if (command[0]?.startsWith("-")) {
+		console.error(`Expected a command after --, got ${command[0]}. Options go before --.`);
+		return 2;
+	}
 	if (command.length > 0 && !needsCheck(command)) return runCommand(command);
 	const status = check(args);
 	return status === 0 && command.length > 0 ? runCommand(command) : status;

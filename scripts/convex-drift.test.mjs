@@ -6,6 +6,7 @@ import {
 	checkConvexDrift,
 	classify,
 	lastSuccessfulDeployment,
+	main,
 	needsCheck,
 	parseCommits,
 	report,
@@ -77,6 +78,7 @@ describe("Convex drift against git history", () => {
 		git("config", "user.email", "test@example.com");
 		git("config", "user.name", "Test");
 		git("config", "commit.gpgsign", "false");
+		git("config", "core.hooksPath", "/dev/null");
 		commit("convex/foods.ts", "v1", "base");
 	});
 	afterEach(() => rmSync(cwd, { recursive: true, force: true }));
@@ -109,6 +111,19 @@ describe("Convex drift against git history", () => {
 		expect(drift(deployed)).toEqual(["branch change"]);
 	});
 
+	it("does not count a merge of main that production has since moved past", () => {
+		git("checkout", "-qb", "release");
+		commit("apps/mobile/app.ts", "m", "mobile only");
+		git("checkout", "-q", "main");
+		commit("convex/foods.ts", "v2", "merged change");
+		git("checkout", "-q", "release");
+		git("merge", "-q", "--no-edit", "main");
+		git("checkout", "-q", "main");
+		const deployed = commit("convex/foods.ts", "v3", "later deployed change");
+		git("checkout", "-q", "release");
+		expect(drift(deployed)).toEqual([]);
+	});
+
 	it("lists a merge that brings in undeployed Convex changes", () => {
 		const deployed = git("rev-parse", "HEAD");
 		git("checkout", "-qb", "release");
@@ -129,6 +144,15 @@ describe("Convex drift against git history", () => {
 });
 
 describe("release guard", () => {
+	it("runs a source-map retry without checking and passes on its exit code", () => {
+		const exit = main(["--target", "HEAD", "--", "node", "-e", "process.exit(3)", "--", "--upload-only"]);
+		expect(exit).toBe(3);
+	});
+
+	it("refuses an option where the command should be", () => {
+		expect(main(["--", "--target", "HEAD"])).toBe(2);
+	});
+
 	it("skips the check only for source-map-only retries", () => {
 		expect(needsCheck(["node", "publish-update.mjs", "preview", "--message", "x"])).toBe(true);
 		expect(needsCheck(["node", "publish-update.mjs", "production", "--upload-only"])).toBe(false);
