@@ -17,18 +17,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
-      - run: pnpm run check
-      # Manifest and .env.example only; needs no credentials.
-      - run: pnpm env:check
-      - run: node scripts/check-project.mjs --strict
-      - run: pnpm run typecheck
-      # Root typecheck excludes packages/, and tsup checks only what its
-      # entries reach, so core's scripts and tests are checked here.
-      - run: pnpm --filter @foundry/core typecheck
-      - run: pnpm --filter @foundry/core check:foods
-      - run: pnpm --filter @foundry/mobile typecheck
-      - run: pnpm test
-      - run: pnpm --filter @foundry/mobile test
+      # Lint, project metadata (env manifest, check-project --strict, shipped
+      # foods), types (root, core, mobile) and tests (Vitest, mobile Jest).
+      # Needs no credentials; see docs/runbooks/verification.md.
+      - run: pnpm verify
       # Catches bundling, plugin and SSR-compile failures that types and tests
       # miss; preview.yml builds only labelled pull requests.
       # No SENTRY_AUTH_TOKEN: this artifact is never deployed, so uploading
