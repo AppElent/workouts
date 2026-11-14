@@ -83,6 +83,18 @@ overrides:
   "postcss-selector-parser@6": "^6.1.5"
   "yaml@2": "^2.8.3"
   "ajv@8": "^8.18.0"
+  # APP-58. hono (via @modelcontextprotocol/sdk, convex-helpers):
+  # GHSA-46wx-v44x-9hh2, GHSA-4m76-xfj5-7975, GHSA-3gg2-335m-rxc6,
+  # GHSA-4h7h-rv7c-7m2v, GHSA-h7mg-cq63-vhpq; fixed in 4.13.16.
+  "hono@4": "^4.13.16"
+  # APP-58. @hono/node-server (via @modelcontextprotocol/sdk):
+  # GHSA-qv5m-9pm6-hqp3, GHSA-jpvv-r467-5p4w; fixed in 2.1.6.
+  "@hono/node-server@2": "^2.1.6"
+  # APP-58. node-forge (dev only: @expo/cli, eas-cli code signing) pins 1.4.0:
+  # GHSA-6qrw-m8cv-hcxf, GHSA-jc66-7q78-782g, GHSA-8hrf-8g6f-7xwp,
+  # GHSA-5x38-2vff-x55p, GHSA-86w9-cpqp-85rv and 11 lower-severity advisories;
+  # all fixed by 1.4.3.
+  "node-forge@1": "^1.4.3"
   # convex lists the deprecated @clerk/clerk-react as an optional peer next to
   # @clerk/react, and pnpm auto-installs optional peers. The app is on
   # @clerk/react (Clerk Core 3), so keep the old package out of the graph.
