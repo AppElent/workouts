@@ -1,6 +1,6 @@
 import { useSignUp } from "@clerk/react";
 import { useState } from "react";
-import { fmt, useMessages } from "#/lib/i18n";
+import { fmt, useI18n } from "#/lib/i18n";
 import { AuthButton } from "./AuthButton";
 import { AuthError } from "./AuthError";
 import { AuthField } from "./AuthField";
@@ -10,7 +10,8 @@ import { SocialButtons } from "./SocialButtons";
 
 export function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
 	const { signUp } = useSignUp();
-	const { auth } = useMessages();
+	const { locale, messages } = useI18n();
+	const { auth } = messages;
 	const errorMessage = useClerkErrorMessage();
 	const [step, setStep] = useState<"details" | "verify">("details");
 	const [email, setEmail] = useState("");
@@ -92,6 +93,17 @@ export function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
 				value={password}
 				onChange={setPassword}
 				required
+			/>
+			{/*
+			 * Clerk's legacy bot sign-up protection renders its Turnstile widget
+			 * here when `signUp.password()` runs. Without this element Clerk falls
+			 * back to an invisible widget that blocks suspected bots with no way
+			 * to prove otherwise.
+			 */}
+			<div
+				id="clerk-captcha"
+				data-cl-size="flexible"
+				data-cl-language={locale}
 			/>
 			<AuthButton loading={loading}>{auth.signUp.submit}</AuthButton>
 			<div className="mt-1 text-center text-xs text-[var(--auth-muted)]">

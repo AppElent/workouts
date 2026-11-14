@@ -77,6 +77,27 @@ describe("SignUpForm", () => {
 		expect(sendEmailCode).toHaveBeenCalled();
 	});
 
+	it("mounts Clerk's CAPTCHA element before creating the account", async () => {
+		let captchaWhenCreating: Element | null = null;
+		password.mockImplementation(async () => {
+			captchaWhenCreating = document.getElementById("clerk-captcha");
+			return { error: null };
+		});
+		renderForm();
+		const captcha = document.getElementById("clerk-captcha");
+		expect(captcha?.getAttribute("data-cl-language")).toBe("en");
+		expect(captcha?.getAttribute("data-cl-size")).toBe("flexible");
+		fireEvent.change(screen.getByLabelText("Email"), {
+			target: { value: "a@b.com" },
+		});
+		fireEvent.change(screen.getByLabelText("Password"), {
+			target: { value: "pw12345!" },
+		});
+		fireEvent.click(screen.getByRole("button", { name: /create account/i }));
+		await screen.findByLabelText(/verification code/i);
+		expect(captchaWhenCreating).not.toBeNull();
+	});
+
 	it("verifies the code and completes sign-up", async () => {
 		verifyEmailCode.mockImplementation(ok({ status: "complete" }));
 		const onSuccess = vi.fn();
