@@ -6,6 +6,7 @@ import {
 	manifestEnvironment,
 	secretEasPlacements,
 	secretEnv,
+	usesProductionConvex,
 } from "./eas-local-build.mjs";
 import { resolveEnvironmentManifest } from "./lib/env/index.mjs";
 
@@ -20,6 +21,13 @@ describe("local EAS builds", () => {
 		expect(Object.keys(profiles)).toEqual(Object.keys(easJson.build));
 		for (const { easEnvironment } of Object.values(profiles))
 			expect(manifestEnvironment(manifest, easEnvironment)).toBeDefined();
+	});
+
+	it("checks production Convex for every profile that ships to testers or the store", () => {
+		const guarded = Object.entries(profiles)
+			.filter(([, { easEnvironment }]) => usesProductionConvex(easEnvironment))
+			.map(([name]) => name);
+		expect(guarded).toEqual(["preview", "preview-internal", "production"]);
 	});
 
 	it("resolves extends and submit profiles", () => {

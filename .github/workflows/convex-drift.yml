@@ -1,0 +1,41 @@
+name: Convex drift
+
+# Flags when production Convex lacks Convex changes that are on main.
+# Production deploys only from a manual Deploy run, and this never deploys: it
+# compares the commit of the last successful `production` deployment with main
+# (scripts/convex-drift.mjs). After every Deploy run (each merge deploys
+# staging) it warns about undeployed changes; once one has waited longer than
+# the grace period the run fails, and the daily run keeps failing until
+# production catches up. GitHub emails failed scheduled runs. See
+# docs/runbooks/deploy.md.
+on:
+  workflow_run:
+    workflows: [Deploy]
+    types: [completed]
+  schedule:
+    - cron: "0 7 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: convex-drift
+  cancel-in-progress: true
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          # The deployed commit can be far behind main.
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+      - name: Compare production Convex with main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/convex-drift.mjs --target origin/main --grace-hours 24
