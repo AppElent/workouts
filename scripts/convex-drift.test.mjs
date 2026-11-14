@@ -41,6 +41,8 @@ describe("Convex drift", () => {
 		expect(classify(fresh, { now })).toBe("drift");
 		const stale = [...fresh, commit("a", "2026-11-11T09:00:00Z")];
 		expect(classify(stale, { now, graceHours: 24 })).toBe("drift");
+		const future = [commit("c", "2026-11-12T10:05:00Z")];
+		expect(classify(future, { now })).toBe("drift");
 	});
 
 	it("names the deployed commit, the missing ones, and the fix", () => {

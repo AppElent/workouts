@@ -72,6 +72,8 @@ export function parseCommits(log) {
  */
 export function classify(commits, { now = new Date(), graceHours = 0 } = {}) {
 	if (commits.length === 0) return "ok";
+	// Without a grace period any gap blocks, even a commit dated in the future.
+	if (graceHours === 0) return "drift";
 	const oldest = Math.min(...commits.map((commit) => Date.parse(commit.committedAt)));
 	return now.getTime() - oldest >= graceHours * 3_600_000 ? "drift" : "pending";
 }
