@@ -92,7 +92,7 @@ overrides:
   "@hono/node-server@2": "^2.1.6"
   # APP-58. node-forge (dev only: @expo/cli, eas-cli code signing) pins 1.4.0:
   # GHSA-6qrw-m8cv-hcxf, GHSA-jc66-7q78-782g, GHSA-8hrf-8g6f-7xwp,
-  # GHSA-5x38-2vff-x55p, GHSA-86w9-cpqp-85rv and 12 lower-severity advisories;
+  # GHSA-5x38-2vff-x55p, GHSA-86w9-cpqp-85rv and 11 lower-severity advisories;
   # all fixed by 1.4.3.
   "node-forge@1": "^1.4.3"
   # convex lists the deprecated @clerk/clerk-react as an optional peer next to
