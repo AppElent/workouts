@@ -5,6 +5,7 @@ import { dirname, join } from "node:path";
 import {
 	checkConvexDrift,
 	classify,
+	guard,
 	lastSuccessfulDeployment,
 	main,
 	needsCheck,
@@ -124,6 +125,19 @@ describe("Convex drift against git history", () => {
 		expect(drift(deployed)).toEqual([]);
 	});
 
+	it("lists Convex code written in a merge of deployed main", () => {
+		git("checkout", "-qb", "release");
+		commit("apps/mobile/app.ts", "m", "mobile only");
+		git("checkout", "-q", "main");
+		const deployed = commit("convex/foods.ts", "v2", "deployed change");
+		git("checkout", "-q", "release");
+		git("merge", "-q", "--no-commit", "main");
+		writeFileSync(join(cwd, "convex/endpoint.ts"), "new");
+		git("add", "-A");
+		git("commit", "-qm", "merge with an extra endpoint");
+		expect(drift(deployed)).toEqual(["merge with an extra endpoint"]);
+	});
+
 	it("lists a merge that brings in undeployed Convex changes", () => {
 		const deployed = git("rev-parse", "HEAD");
 		git("checkout", "-qb", "release");
@@ -147,6 +161,20 @@ describe("release guard", () => {
 	it("runs a source-map retry without checking and passes on its exit code", () => {
 		const exit = main(["--target", "HEAD", "--", "node", "-e", "process.exit(3)", "--", "--upload-only"]);
 		expect(exit).toBe(3);
+	});
+
+	it("runs the command only after the check passes, keeping its exit code", () => {
+		const ran = [];
+		const runCommand = (command) => {
+			ran.push(command);
+			return 4;
+		};
+		expect(guard(["publish"], () => 1, runCommand)).toBe(1);
+		expect(guard(["publish"], () => 2, runCommand)).toBe(2);
+		expect(ran).toEqual([]);
+		expect(guard(["publish"], () => 0, runCommand)).toBe(4);
+		expect(ran).toEqual([["publish"]]);
+		expect(guard([], () => 1, runCommand)).toBe(1);
 	});
 
 	it("refuses an option where the command should be", () => {

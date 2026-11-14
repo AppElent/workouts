@@ -139,8 +139,10 @@ function sameContent(a, b, paths, cwd) {
  * Whether production already has what `sha` brings. A commit counts as
  * deployed when every Convex file it changes (against its first parent) has
  * the same content in the deployed revision. A merge also counts as deployed
- * when the branches it merges in hold no Convex commits production lacks: a
- * release branch that merged `main` before production moved past it.
+ * when each of those files came unchanged from a merged-in branch and those
+ * branches hold no Convex commits production lacks: a release branch that
+ * merged `main` before production moved past it. Convex code written in the
+ * merge itself never counts as deployed this way.
  */
 function alreadyDeployed(sha, deployedSha, cwd) {
 	const files = run(
@@ -156,6 +158,7 @@ function alreadyDeployed(sha, deployedSha, cwd) {
 	const [, , ...merged] = run("git", ["rev-list", "--parents", "-n", "1", sha], cwd).trim().split(" ");
 	return (
 		merged.length > 0 &&
+		files.every((file) => merged.some((parent) => sameContent(parent, sha, [`:(literal)${file}`], cwd))) &&
 		merged.every(
 			(parent) =>
 				run("git", ["rev-list", "--count", `${deployedSha}..${parent}`, "--", ...CONVEX_PATHS], cwd).trim() ===
@@ -215,8 +218,13 @@ export function main(argv = process.argv.slice(2)) {
 		console.error(`Expected a command after --, got ${command[0]}. Options go before --.`);
 		return 2;
 	}
+	return guard(command, () => check(args), runCommand);
+}
+
+/** Runs the check, then the command (if any) only when the check passed. */
+export function guard(command, checkStatus, runCommand) {
 	if (command.length > 0 && !needsCheck(command)) return runCommand(command);
-	const status = check(args);
+	const status = checkStatus();
 	return status === 0 && command.length > 0 ? runCommand(command) : status;
 }
 
