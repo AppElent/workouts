@@ -8,10 +8,12 @@
 // commits in between that change what `convex deploy` pushes. It reads only
 // deployment records, never production secrets.
 //
-// Usage: node scripts/convex-drift.mjs [--target <ref>] [--grace-hours <n>] [--deployed <sha>]
+// Usage: node scripts/convex-drift.mjs [--target <ref>] [--grace-hours <n>] [--deployed <sha>] [-- <command…>]
 //   --target       ref that is about to ship, or that should be live (default origin/main)
 //   --grace-hours  undeployed commits younger than this only warn (default 0)
 //   --deployed     compare with this commit instead of the last production deployment
+//   -- <command…>  run the command when production is in step (a release guard);
+//                  a command with --upload-only ships no JavaScript and skips the check
 // Exit codes: 0 in step (or within grace), 1 drift, 2 could not tell.
 // Needs `gh` signed in, or GH_TOKEN in CI.
 import { spawnSync } from "node:child_process";
@@ -94,8 +96,8 @@ export function report({ status, deployment, target, commits }) {
 	].join("\n");
 }
 
-function run(command, args) {
-	const result = spawnSync(command, args, { cwd: ROOT, encoding: "utf8" });
+function run(command, args, cwd = ROOT) {
+	const result = spawnSync(command, args, { cwd, encoding: "utf8" });
 	if (result.error) throw new DriftError(`${command} failed: ${result.error.message}`);
 	if (result.status !== 0) {
 		throw new DriftError(`${command} ${args.join(" ")} failed: ${result.stderr.trim()}`);
@@ -122,33 +124,66 @@ function productionDeployment() {
 	return deployment;
 }
 
-function hasCommit(sha) {
-	return spawnSync("git", ["cat-file", "-e", `${sha}^{commit}`], { cwd: ROOT }).status === 0;
+function hasCommit(sha, cwd) {
+	return spawnSync("git", ["cat-file", "-e", `${sha}^{commit}`], { cwd }).status === 0;
+}
+
+/** Whether `paths` (pathspecs) have the same content at both revisions. */
+function sameContent(a, b, paths, cwd) {
+	const result = spawnSync("git", ["diff", "--quiet", a, b, "--", ...paths], { cwd });
+	if (result.status > 1 || result.error) throw new DriftError(`git diff ${a} ${b} failed`);
+	return result.status === 0;
+}
+
+/**
+ * Whether every Convex file `sha` changes (against its first parent) already
+ * has that content in the deployed revision. A release branch that merges an
+ * already-deployed main brings in only deployed changes, so the merge is not
+ * drift.
+ */
+function alreadyDeployed(sha, deployedSha, cwd) {
+	const files = run("git", ["diff", "--name-only", `${sha}^1`, sha, "--", ...CONVEX_PATHS], cwd)
+		.split("\n")
+		.filter(Boolean);
+	return files.length > 0 && sameContent(deployedSha, sha, files.map((file) => `:(literal)${file}`), cwd);
 }
 
 /** Undeployed Convex commits in `target`, with the deployment they are measured against. */
-export function checkConvexDrift({ target = "origin/main", graceHours = 0, deployed, now } = {}) {
+export function checkConvexDrift({ target = "origin/main", graceHours = 0, deployed, now, cwd = ROOT } = {}) {
 	if (target.startsWith("origin/")) {
-		run("git", ["fetch", "--quiet", "origin", target.slice("origin/".length)]);
+		run("git", ["fetch", "--quiet", "origin", target.slice("origin/".length)], cwd);
 	}
 	const deployment = deployed
-		? { sha: run("git", ["rev-parse", deployed]).trim(), created_at: "as given" }
+		? { sha: run("git", ["rev-parse", deployed], cwd).trim(), created_at: "as given" }
 		: productionDeployment();
-	if (!hasCommit(deployment.sha)) run("git", ["fetch", "--quiet", "origin", deployment.sha]);
-	const commits = parseCommits(
-		run("git", [
-			"log",
-			// A merge counts once, at its merge time, so a branch's older
-			// commits do not skip the grace period.
-			"--first-parent",
-			"--format=%H%x09%cI%x09%s",
-			`${deployment.sha}..${target}`,
-			"--",
-			...CONVEX_PATHS,
-		]),
-	);
+	if (!hasCommit(deployment.sha, cwd)) run("git", ["fetch", "--quiet", "origin", deployment.sha], cwd);
+	// Identical Convex files mean nothing is missing, whatever the history says.
+	const listed = sameContent(deployment.sha, target, CONVEX_PATHS, cwd)
+		? []
+		: parseCommits(
+				run(
+					"git",
+					[
+						"log",
+						// A merge counts once, at its merge time, so a branch's older
+						// commits do not skip the grace period.
+						"--first-parent",
+						"--format=%H%x09%cI%x09%s",
+						`${deployment.sha}..${target}`,
+						"--",
+						...CONVEX_PATHS,
+					],
+					cwd,
+				),
+			);
+	const commits = listed.filter((commit) => !alreadyDeployed(commit.sha, deployment.sha, cwd));
 	const status = classify(commits, { now, graceHours });
 	return { status, deployment, target, commits, message: report({ status, deployment, target, commits }) };
+}
+
+/** A source-map retry (`--upload-only`) publishes no JavaScript, so it needs no check. */
+export function needsCheck(command) {
+	return !command.includes("--upload-only");
 }
 
 function option(args, name, fallback) {
@@ -156,12 +191,30 @@ function option(args, name, fallback) {
 	return index === -1 ? fallback : args[index + 1];
 }
 
-export function main(args = process.argv.slice(2)) {
+export function main(argv = process.argv.slice(2)) {
+	const split = argv.indexOf("--");
+	const args = split === -1 ? argv : argv.slice(0, split);
+	const command = split === -1 ? [] : argv.slice(split + 1);
+	if (command.length > 0 && !needsCheck(command)) return runCommand(command);
+	const status = check(args);
+	return status === 0 && command.length > 0 ? runCommand(command) : status;
+}
+
+function runCommand([command, ...args]) {
+	const result = spawnSync(command, args, { stdio: "inherit" });
+	if (result.error) {
+		console.error(`${command} failed: ${result.error.message}`);
+		return 1;
+	}
+	return result.status ?? 1;
+}
+
+function check(args) {
 	const target = option(args, "--target", "origin/main");
 	const graceHours = Number(option(args, "--grace-hours", "0"));
 	const deployed = option(args, "--deployed", undefined);
 	if (!target || !Number.isFinite(graceHours) || graceHours < 0) {
-		console.error("Usage: convex-drift.mjs [--target <ref>] [--grace-hours <n>] [--deployed <sha>]");
+		console.error("Usage: convex-drift.mjs [--target <ref>] [--grace-hours <n>] [--deployed <sha>] [-- <command…>]");
 		return 2;
 	}
 	let result;

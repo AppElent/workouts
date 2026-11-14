@@ -35,7 +35,8 @@ hand before dispatching one.
 When it stops, run **Actions → Deploy → Run workflow** on `main`, wait for it to
 finish, and retry. Append `-- --allow-convex-drift` to a local build only when the
 missing commits are known not to matter to the app. OTA updates have no override
-on purpose. The check needs `gh auth login`; see
+on purpose; an `--upload-only` source-map retry publishes no JavaScript and skips
+the check. The check needs `gh auth login`; see
 [deploy](deploy.md#production-convex-drift) for how it finds the deployed commit. A
 raw `eas build` skips it, so run `pnpm convex:drift --target HEAD` from the
 repository root before one.

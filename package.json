@@ -41,8 +41,8 @@
     "env:apply": "node scripts/env.mjs apply",
     "env:generate": "node scripts/env.mjs generate",
     "env:exec": "node scripts/env.mjs exec",
-    "mobile:update:preview": "node scripts/convex-drift.mjs --target HEAD && node scripts/env.mjs exec staging --only eas -- node apps/mobile/scripts/publish-update.mjs preview",
-    "mobile:update:production": "node scripts/convex-drift.mjs --target HEAD && node scripts/env.mjs exec production --only eas -- node apps/mobile/scripts/publish-update.mjs production",
+    "mobile:update:preview": "node scripts/convex-drift.mjs --target HEAD -- node scripts/env.mjs exec staging --only eas -- node apps/mobile/scripts/publish-update.mjs preview",
+    "mobile:update:production": "node scripts/convex-drift.mjs --target HEAD -- node scripts/env.mjs exec production --only eas -- node apps/mobile/scripts/publish-update.mjs production",
     "sentry:convex": "node scripts/convex-sentry.mjs"
   },
   "dependencies": {
