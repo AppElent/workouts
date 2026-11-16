@@ -38,7 +38,7 @@ export function NutritionCalendar({ monthLabel = "September 2026", offset = 1, d
                 justifyContent: "center",
                 borderRadius: "var(--r-pill)",
                 border: isToday && !isSelected ? "var(--border-width) solid var(--accent-ink)" : "var(--border-width) solid transparent",
-                background: isSelected ? "var(--accent)" : "transparent",
+                background: isSelected ? "var(--accent-fill)" : "transparent",
                 color: isSelected ? "var(--on-accent)" : "var(--text)",
                 fontFamily: "var(--font-system)",
                 fontSize: "var(--type-body-size)",

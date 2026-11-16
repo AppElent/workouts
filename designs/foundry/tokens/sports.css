@@ -1,4 +1,5 @@
-/* One entry per Activity type (closed set, ADR-0004). Colour + 14% tint.
+/* One entry per Activity type (closed set, ADR-0001), from tokens.ts sportMeta.
+   Colour + 14% tint, dark. The light values are in light.css.
    Strength is the only type with a backend today; the rest are shape. */
 :root{
   --sport-strength:#c8f73c;

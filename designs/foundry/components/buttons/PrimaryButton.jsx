@@ -23,7 +23,7 @@ export function PrimaryButton({ label, icon, size = "md", loading = false, disab
         borderRadius: "var(--r-pill)",
         minHeight: size === "lg" ? 52 : "var(--control-height)",
         padding: "0 var(--space-lg)",
-        background: pressed && !off ? "var(--accent-pressed)" : "var(--accent)",
+        background: pressed && !off ? "var(--accent-pressed)" : "var(--accent-fill)",
         color: "var(--on-accent)",
         fontFamily: "var(--font-system)",
         fontSize: size === "lg" ? "var(--type-heading-size)" : "var(--type-control-size)",

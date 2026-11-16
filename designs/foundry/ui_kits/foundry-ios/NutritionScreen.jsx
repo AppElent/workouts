@@ -34,7 +34,7 @@ function MealSection({ label, entries, onAdd }) {
         <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
           <button type="button" aria-label={label + ": actions"} style={{ minWidth: 44, minHeight: 44, border: "none", background: "transparent", color: "var(--text-muted)", cursor: "pointer", fontFamily: "var(--font-system)" }}>···</button>
           <button type="button" aria-label={"Add to " + label} onClick={onAdd}
-            style={{ minWidth: 44, minHeight: 44, borderRadius: "var(--r-pill)", border: "none", background: "var(--accent)", color: "var(--on-accent)", fontFamily: "var(--font-system)", fontSize: 18, fontWeight: 700, cursor: "pointer" }}>+</button>
+            style={{ minWidth: 44, minHeight: 44, borderRadius: "var(--r-pill)", border: "none", background: "var(--accent-fill)", color: "var(--on-accent)", fontFamily: "var(--font-system)", fontSize: 18, fontWeight: 700, cursor: "pointer" }}>+</button>
         </div>
       </div>
       <GroupedSurface style={{ padding: "0 var(--space-md)" }}>

@@ -1,38 +1,178 @@
-/* Foundry palette — transcribed from apps/mobile/src/theme/tokens.ts.
-   Dark-only, on purpose: app.json pins userInterfaceStyle "dark" and there is
-   no light palette on either client. Do not add one silently. */
+/* Foundry palette — transcribed from apps/mobile/src/theme/palette.ts
+   (darkColors / lightColors). Every name is the kebab-case of a palette.ts
+   key and every value is copied exactly, so the kit and the app cannot drift.
+   Change palette.ts first, then this file.
+
+   Two themes. Dark is the base (:root); light follows the OS setting
+   (prefers-color-scheme). .theme-light / .theme-dark force a mode for mocks
+   and specimens.
+
+   The accent rule:
+   - --accent is the legible accent: text, icons, strokes, chart series,
+     focus. It is the same colour as --accent-ink (#c8f73c dark, #466400
+     light). Either name is fine; both exist because the app has both keys.
+   - --accent-fill is the lime #c8f73c in both themes. Use it only as a fill
+     (primary button, selected chip or segment, the lime capsule). Content on
+     it uses --on-accent. Lime on white is ~1.4:1, so it is never ink.
+   - --accent-pressed is the pressed state of an --accent-fill surface. */
+/* Dark — the base. */
 :root{
-  /* Base */
   --bg:#0a0b09;
   --surface:#141613;
   --surface-2:#1d201b;
-
   --accent:#c8f73c;
   --accent-pressed:#d6ff5c;
-  --accent-dim:rgba(200,247,60,0.13);
+  --accent-dim:rgba(200, 247, 60, 0.13);
   --on-accent:#0a0b09;
-  /* Accented INK — text, icons, strokes, chart series. Same as --accent in
-     dark; a deep olive in light, where lime is fill-only. Components read
-     this, never --accent, for anything that is not a filled surface. */
   --accent-ink:#c8f73c;
-
   --text:#f2f4ef;
   --text-muted:#9ba095;
-  --text-faint:#5c6156;
-
-  --border:rgba(255,255,255,0.07);
-  --border-strong:rgba(255,255,255,0.14);
-
+  --swipe-neutral:#7d8478;
+  --text-faint:#919789;
+  --border:rgba(255, 255, 255, 0.07);
+  --border-strong:rgba(255, 255, 255, 0.14);
+  --separator:rgba(255, 255, 255, 0.14);
   --danger:#ff6b6b;
-  --danger-soft:rgba(255,107,107,0.12);
+  --danger-soft:rgba(255, 107, 107, 0.12);
   --success:#4ade80;
   --warn:#fbbf24;
-  --warn-soft:rgba(251,191,36,0.12);
-  --warn-border:rgba(251,191,36,0.25);
-  --separator-color:rgba(255,255,255,0.14);
+  --warn-soft:rgba(251, 191, 36, 0.12);
+  --warn-border:rgba(251, 191, 36, 0.25);
+  --accent-fill:#c8f73c;
+  --on-danger:#0a0b09;
+  --scrim:rgba(0, 0, 0, 0.6);
+  --media-scrim:rgba(10, 11, 9, 0.72);
+  --on-media:#ffffff;
+  --surface-transparent:rgba(20, 22, 19, 0);
+  --tile-indigo:#5e5ce6;
+  --tile-blue:#0a84ff;
+  --tile-orange:#ff9f0a;
+  --tile-green:#30d158;
+  --tile-purple:#bf5af2;
+  --tile-teal:#64d2ff;
   --shadow-card:none;
+}
 
-  /* Semantic aliases — screens use these names */
+@media (prefers-color-scheme: light){
+  :root{
+    --bg:#f4f5f0;
+    --surface:#ffffff;
+    --surface-2:#e9ece3;
+    --accent:#466400;
+    --accent-pressed:#b5e329;
+    --accent-dim:rgba(70, 100, 0, 0.10);
+    --on-accent:#0a0b09;
+    --accent-ink:#466400;
+    --text:#1a2015;
+    --text-muted:#535e49;
+    --swipe-neutral:#7d8478;
+    --text-faint:#606b57;
+    --border:rgba(26, 32, 21, 0.12);
+    --border-strong:rgba(26, 32, 21, 0.25);
+    --separator:rgba(60, 62, 50, 0.10);
+    --danger:#b42332;
+    --danger-soft:rgba(180, 35, 50, 0.09);
+    --success:#24723c;
+    --warn:#865500;
+    --warn-soft:rgba(134, 85, 0, 0.09);
+    --warn-border:rgba(134, 85, 0, 0.25);
+    --accent-fill:#c8f73c;
+    --on-danger:#ffffff;
+    --scrim:rgba(0, 0, 0, 0.4);
+    --media-scrim:rgba(10, 11, 9, 0.72);
+    --on-media:#ffffff;
+    --surface-transparent:rgba(255, 255, 255, 0);
+    --tile-indigo:#5856d6;
+    --tile-blue:#007aff;
+    --tile-orange:#ff9500;
+    --tile-green:#34c759;
+    --tile-purple:#af52de;
+    --tile-teal:#5ac8fa;
+    --shadow-card:0 1px 2px rgba(20,22,18,0.05);
+  }
+}
+
+.theme-light{
+  --bg:#f4f5f0;
+  --surface:#ffffff;
+  --surface-2:#e9ece3;
+  --accent:#466400;
+  --accent-pressed:#b5e329;
+  --accent-dim:rgba(70, 100, 0, 0.10);
+  --on-accent:#0a0b09;
+  --accent-ink:#466400;
+  --text:#1a2015;
+  --text-muted:#535e49;
+  --swipe-neutral:#7d8478;
+  --text-faint:#606b57;
+  --border:rgba(26, 32, 21, 0.12);
+  --border-strong:rgba(26, 32, 21, 0.25);
+  --separator:rgba(60, 62, 50, 0.10);
+  --danger:#b42332;
+  --danger-soft:rgba(180, 35, 50, 0.09);
+  --success:#24723c;
+  --warn:#865500;
+  --warn-soft:rgba(134, 85, 0, 0.09);
+  --warn-border:rgba(134, 85, 0, 0.25);
+  --accent-fill:#c8f73c;
+  --on-danger:#ffffff;
+  --scrim:rgba(0, 0, 0, 0.4);
+  --media-scrim:rgba(10, 11, 9, 0.72);
+  --on-media:#ffffff;
+  --surface-transparent:rgba(255, 255, 255, 0);
+  --tile-indigo:#5856d6;
+  --tile-blue:#007aff;
+  --tile-orange:#ff9500;
+  --tile-green:#34c759;
+  --tile-purple:#af52de;
+  --tile-teal:#5ac8fa;
+  --shadow-card:0 1px 2px rgba(20,22,18,0.05);
+}
+
+/* .theme-dark comes after the media query so it can force dark inside a light
+   page. */
+.theme-dark{
+  --bg:#0a0b09;
+  --surface:#141613;
+  --surface-2:#1d201b;
+  --accent:#c8f73c;
+  --accent-pressed:#d6ff5c;
+  --accent-dim:rgba(200, 247, 60, 0.13);
+  --on-accent:#0a0b09;
+  --accent-ink:#c8f73c;
+  --text:#f2f4ef;
+  --text-muted:#9ba095;
+  --swipe-neutral:#7d8478;
+  --text-faint:#919789;
+  --border:rgba(255, 255, 255, 0.07);
+  --border-strong:rgba(255, 255, 255, 0.14);
+  --separator:rgba(255, 255, 255, 0.14);
+  --danger:#ff6b6b;
+  --danger-soft:rgba(255, 107, 107, 0.12);
+  --success:#4ade80;
+  --warn:#fbbf24;
+  --warn-soft:rgba(251, 191, 36, 0.12);
+  --warn-border:rgba(251, 191, 36, 0.25);
+  --accent-fill:#c8f73c;
+  --on-danger:#0a0b09;
+  --scrim:rgba(0, 0, 0, 0.6);
+  --media-scrim:rgba(10, 11, 9, 0.72);
+  --on-media:#ffffff;
+  --surface-transparent:rgba(20, 22, 19, 0);
+  --tile-indigo:#5e5ce6;
+  --tile-blue:#0a84ff;
+  --tile-orange:#ff9f0a;
+  --tile-green:#30d158;
+  --tile-purple:#bf5af2;
+  --tile-teal:#64d2ff;
+  --shadow-card:none;
+}
+
+/* Semantic aliases — screens use these names. Declared on every theme scope
+   so a var() alias resolves against that scope, not the root. */
+:root,
+.theme-light,
+.theme-dark{
   --screen-bg:var(--bg);
   --surface-card:var(--surface);
   --surface-raised:var(--surface-2);
@@ -43,11 +183,10 @@
   --text-secondary:var(--text-muted);
   --text-placeholder:var(--text-faint);
   --text-on-accent:var(--on-accent);
-  --separator:var(--separator-color);
   --hairline:var(--border);
-  --action-primary:var(--accent);
-  --action-ink:var(--accent-ink);
+  --action-primary:var(--accent-fill);
   --action-primary-pressed:var(--accent-pressed);
+  --action-ink:var(--accent);
   --action-destructive:var(--danger);
   --focus-ring:var(--accent);
 }

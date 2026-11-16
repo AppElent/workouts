@@ -49,7 +49,7 @@ export function ConfirmDialog({ title, message, confirmLabel, cancelLabel = "Kee
               borderRadius: "var(--r-pill)",
               border: "none",
               padding: "0 var(--space-md)",
-              background: destructive ? "var(--danger)" : "var(--accent)",
+              background: destructive ? "var(--danger)" : "var(--accent-fill)",
               color: destructive ? "var(--text)" : "var(--on-accent)",
               fontFamily: "var(--font-system)",
               fontSize: "var(--type-body-size)",

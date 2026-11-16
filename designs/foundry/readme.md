@@ -18,7 +18,9 @@ Everything here was read from source, not reconstructed from screenshots:
 - **GitHub — <https://github.com/AppElent/workouts>** (branch `main`), primarily
   the `apps/mobile` subtree. Worth exploring further for anything this system
   does not cover: `apps/mobile/DESIGN_SYSTEM.md` (the app's own written design
-  contract), `apps/mobile/src/theme/tokens.ts` (the palette, ramp and metrics),
+  contract), `apps/mobile/src/theme/palette.ts` (both colour palettes — the source of truth for
+  `tokens/colors.css`), `apps/mobile/src/theme/tokens.ts` (sport colours, ramp and
+  metrics),
   `apps/mobile/src/ui/*` (the component seam), `apps/mobile/src/screens/*`
   (every screen), `docs/runbooks/ios-acceptance.md` (the device acceptance
   checklist), `GLOSSARY.md` (the product's vocabulary), and
@@ -82,29 +84,39 @@ The app's copy is unusually disciplined, and the discipline is the brand.
 
 ## Visual foundations
 
-**Colour — two themes.** Dark is the base and the app's origin; light was added
-here on top of it. The app follows the OS setting (`prefers-color-scheme`);
-`.theme-light` / `.theme-dark` force a mode for mocks and specimens.
+**Colour — two themes.** Dark is the base and the app's origin; the app also
+ships a light theme and follows the OS setting (`prefers-color-scheme`);
+`.theme-light` / `.theme-dark` force a mode for mocks and specimens. Every
+colour token in `tokens/colors.css` is the kebab-case of a key in
+`apps/mobile/src/theme/palette.ts` (`darkColors` / `lightColors`) with the
+exact same value. Change `palette.ts` first, then the kit.
 
 *Dark:* three grounds (`--bg` #0a0b09 warm near-black, `--surface` #141613,
-`--surface-2` #1d201b), one lime accent (`--accent` #c8f73c) with near-black ink
-on it. Elevation is colour, not shadow.
+`--surface-2` #1d201b), one lime accent #c8f73c with near-black ink on it.
+Elevation is colour, not shadow.
 
-*Light:* warm off-white ground #faf9f5, white cards, one raised step #f3f2ec,
-ink #1b1d18, and a 1px card shadow (the only place this system uses one).
+*Light:* off-white ground #f4f5f0, white cards, one raised step #e9ece3, ink
+#1a2015, and a 1px card shadow (the only place this system uses one).
 
-**The rule light mode turns on:** lime on white is ~1.4:1, so it can be a
-**fill** but never ink. `--accent` stays lime for filled controls in both
-themes; `--accent-ink` carries every accented text, icon, stroke and chart
-series — lime #c8f73c in dark, deep olive #55700c (5.6:1 on white) in light.
-Components read `--accent-ink` unconditionally; if you write `var(--accent)` on
-text, light mode breaks.
+**The accent rule.** Lime on white is ~1.3:1, so lime can be a **fill** but
+never ink.
 
-Three ink weights, no fourth. Semantics per theme: `--danger` #ff6b6b / #c0302c,
-`--success` #4ade80 / #157f45, `--warn` #fbbf24 / #9a6600, each with a soft tint
-for backgrounds. Activity types keep four fixed hues — lime, orange, cyan, pink
-in dark; darkened equivalents (#5f7a10, #c2540f, #0d7e8c, #c22b43) in light, so
-they stay legible as labels on their own tint.
+- `--accent` is the legible accent: text, icons, strokes, chart series, focus.
+  It is the same colour as `--accent-ink` — #c8f73c in dark, deep olive #466400
+  (6.8:1 on white) in light. Either name works.
+- `--accent-fill` is the lime #c8f73c in **both** themes and is used only as a
+  fill: the primary button, a selected chip or segment, the lime capsule.
+  Content on it uses `--on-accent` (#0a0b09). Pressed is `--accent-pressed`.
+- If you put `var(--accent-fill)` on text, or `var(--accent)` behind
+  `--on-accent` content, light mode breaks.
+
+Three ink weights, no fourth: `--text` #f2f4ef / #1a2015, `--text-muted`
+#9ba095 / #535e49, `--text-faint` #919789 / #606b57. Semantics per theme:
+`--danger` #ff6b6b / #b42332, `--success` #4ade80 / #24723c, `--warn` #fbbf24 /
+#865500, each with a soft tint for backgrounds. Activity types keep four fixed
+hues — lime, orange, cyan, pink in dark; darkened equivalents (#466400,
+#9d430a, #086878, #b42342) in light, so they stay legible as labels on their
+own tint.
 
 **Type.** The system face only — SF Pro on iOS, Roboto on Android. No webfonts
 are bundled. Two layers live side by side: the app's original named ramp
@@ -179,10 +191,10 @@ stepping `bg → surface → surface-2`. Shadows appear only under things that
 genuinely float — sheets (`--shadow-sheet`) and menus (`--shadow-menu`).
 An in-progress card swaps to the `--accent-dim` fill with an `--accent` border.
 
-**States.** Press is a **colour change, not a fade**: accent → `--accent-pressed`,
+**States.** Press is a **colour change, not a fade**: `--accent-fill` → `--accent-pressed`,
 rows and ghost buttons → `--surface-2`. (The reasoning in the repo: at arm's
 length mid-set, a colour change reads and a fade does not.) Disabled is opacity
-0.5. Selected is a filled accent capsule plus an announced state — colour is
+0.5. Selected is a filled `--accent-fill` capsule plus an announced state — colour is
 never the only signal. Destructive intent is always red text/fill *and* a
 confirmation. Haptics: one warning buzz on destructive confirm, one success buzz
 when rest ends, one tick at a swipe threshold. There is no hover state; this is
@@ -240,11 +252,11 @@ can be added as `@font-face`.
 | Path | What it is |
 | --- | --- |
 | `styles.css` | The entry point consumers link — `@import`s only |
-| `tokens/` | `colors.css` (dark base), `light.css` (light theme + `.theme-*` scopes), `sports.css`, `typography.css`, `spacing.css`, `radius.css`, `effects.css`, `motion.css` |
+| `tokens/` | `colors.css` (the palette, both themes, from `palette.ts`), `light.css` (light overrides for sport, glass and shadow tokens), `sports.css`, `typography.css`, `spacing.css`, `radius.css`, `effects.css`, `motion.css` |
 | `components/` | React primitives, grouped by concern (below) |
 | `ui_kits/foundry-ios/` | Click-through recreation of the phone app + its own README |
 | `guidelines/` | 23 foundation specimen cards (Colors, Type, Spacing, Brand) |
-| `explorations/` | The four light-mode accent candidates; olive was chosen |
+| `explorations/` | The four light-mode accent candidates from before light shipped; olive was chosen. Historical — their values are not the shipped palette |
 | (`../../public/muscle-icons/`) | 15 muscle-group illustrations — the repo's copy, not duplicated |
 | `thumbnail.html` | Homepage tile |
 | `github.md` | Source repo, last sync, screen → file map |
@@ -318,8 +330,9 @@ web. Use a column with a 640px max width and a footer instead.
    loading / error / long-text / keyboard states.
 6. **Cards are objects, not containers for fields.** Repeated objects are
    compact summary rows that open focused editing.
-7. **Never put `var(--accent)` on text.** Accented ink is `--accent-ink`;
-   `--accent` is a fill. Check every screen in both themes before calling it
+7. **Never put `var(--accent-fill)` on text.** Accented text and icons use
+   `--accent` (= `--accent-ink`); `--accent-fill` is only a fill, with
+   `--on-accent` content. Check every screen in both themes before calling it
    done — the device acceptance list in `docs/runbooks/ios-acceptance.md` now
    has a light-mode pass too.
 8. **Never box a field inside a group.** See "Fields are rows, not boxes".

@@ -89,7 +89,7 @@ function SessionScreen({ onCancelRequest }) {
           <Eyebrow>Per side</Eyebrow>
           <div style={{ display: "flex", gap: 3, alignItems: "center", padding: "8px 0" }}>
             {[20, 20].map((p, i) => (
-              <span key={i} style={{ width: 26, height: Math.max(18, Math.min(56, 18 + p * 1.5)), borderRadius: "var(--r-xs)", background: "var(--accent)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-system)", fontSize: 9, fontWeight: 800, color: "var(--on-accent)" }}>{p}</span>
+              <span key={i} style={{ width: 26, height: Math.max(18, Math.min(56, 18 + p * 1.5)), borderRadius: "var(--r-xs)", background: "var(--accent-fill)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-system)", fontSize: 9, fontWeight: 800, color: "var(--on-accent)" }}>{p}</span>
             ))}
           </div>
           <AppText variant="caption">20 + 20 per side, plus the 20 kg bar.</AppText>
