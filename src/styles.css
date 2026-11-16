@@ -143,28 +143,34 @@
   --text-display: 32px;
 }
 
-* {
-  box-sizing: border-box;
-}
+/*
+ * Element defaults live in the base layer so Tailwind utilities (a later
+ * layer) win: an unlayered `a { color: inherit }` beat every text-* class.
+ */
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
 
-html,
-body,
-#app {
-  min-height: 100%;
-  background-color: var(--bg);
-  color: var(--text);
-}
+  html,
+  body,
+  #app {
+    min-height: 100%;
+    background-color: var(--bg);
+    color: var(--text);
+  }
 
-body {
-  margin: 0;
-  font-family: ui-sans-serif, system-ui, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+  body {
+    margin: 0;
+    font-family: ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
-a {
-  color: inherit;
-  text-decoration: none;
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
 }
 
 /* Prevent iOS Safari from auto-zooming on input focus (triggers when font-size < 16px) */
