@@ -22,9 +22,9 @@ export function Segmented({ options = [], value, onChange, style }) {
               justifyContent: "center",
               padding: "0 var(--space-sm)",
               border: "var(--border-width) solid",
-              borderColor: selected ? "var(--accent)" : "var(--border)",
+              borderColor: selected ? "var(--accent-fill)" : "var(--border)",
               borderRadius: "var(--r-lg)",
-              background: selected ? "var(--accent)" : "var(--surface)",
+              background: selected ? "var(--accent-fill)" : "var(--surface)",
               cursor: "pointer",
             }}
           >

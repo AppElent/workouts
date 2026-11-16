@@ -5,7 +5,6 @@
   --glass-chrome:rgba(10,11,9,0.62);          /* systemUltraThinMaterialDark stand-in */
   --glass-chrome-strong:rgba(10,11,9,0.80);
   --glass-hairline:rgba(255,255,255,0.10);
-  --scrim:rgba(0,0,0,0.6);
   --shadow-sheet:0 -10px 40px rgba(0,0,0,0.55);
   --shadow-menu:0 18px 48px rgba(0,0,0,0.55);
   --grabber-w:36px; /* @kind spacing */

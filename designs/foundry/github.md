@@ -8,7 +8,15 @@ date: 2026-09-17T07:35:00Z
 
 ### Updated in this project
 
-- Built the token layer from `apps/mobile/src/theme/tokens.ts` (lime-on-warm-black, dark only).
+- Built the token layer from `apps/mobile/src/theme/tokens.ts` (lime-on-warm-black; the light theme came later).
+
+### 2026-11-16 — APP-182
+
+- `tokens/colors.css` now carries both themes, transcribed key for key from
+  `apps/mobile/src/theme/palette.ts` (main @ 1370abf). Light sport colours
+  follow `lightSportMeta` in `tokens.ts`.
+- Accent rule aligned with the app: `--accent` = `--accent-ink` (legible),
+  `--accent-fill` = lime fill in both themes.
 - Authored 35 components mirroring `apps/mobile/src/ui/*` and the `form.tsx` seam.
 - Recreated seven phone screens as the Foundry iOS UI kit.
 - Imported the muscle-group illustrations from `public/muscle-icons/`.

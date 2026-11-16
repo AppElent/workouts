@@ -13,7 +13,7 @@ export function Chip({ label, active = false, color, onClick, style }) {
         borderRadius: "var(--r-pill)",
         border: "none",
         cursor: onClick ? "pointer" : "default",
-        background: active ? "var(--accent)" : "var(--surface-2)",
+        background: active ? "var(--accent-fill)" : "var(--surface-2)",
         color: active ? "var(--on-accent)" : color || "var(--text-muted)",
         fontFamily: "var(--font-system)",
         fontSize: "var(--type-caption-size)",
