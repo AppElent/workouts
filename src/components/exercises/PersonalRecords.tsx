@@ -20,8 +20,8 @@ export function PersonalRecords({
 	const volumeReps = bestSetVolume.set.reps;
 
 	return (
-		<div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-4">
-			<p className="text-[9px] tracking-widest text-[var(--text-muted)] uppercase mb-3">
+		<div className="rounded-xl bg-surface border border-border p-4">
+			<p className="text-axis tracking-widest text-text-muted uppercase mb-3">
 				Personal records
 			</p>
 			<div className="grid grid-cols-2 gap-3">
@@ -38,16 +38,16 @@ export function PersonalRecords({
 				/>
 				{repMaxes.length > 0 && (
 					<div className="col-span-2 sm:col-span-1">
-						<p className="text-[10px] uppercase tracking-wide text-[var(--text-muted)] mb-1.5">
+						<p className="text-micro uppercase tracking-wide text-text-muted mb-1.5">
 							Rep maxes
 						</p>
 						<div className="flex flex-wrap gap-1.5">
 							{repMaxes.map((r) => (
 								<span
 									key={r.reps}
-									className="text-[11px] font-medium tabular-nums rounded-md bg-[var(--surface-2)] px-2 py-1 text-white"
+									className="text-eyebrow font-medium tabular-nums rounded-md bg-surface-2 px-2 py-1 text-text"
 								>
-									<span className="text-[var(--text-muted)]">{r.reps}RM</span>{" "}
+									<span className="text-text-muted">{r.reps}RM</span>{" "}
 									{displayLoad(r.valueKg, unit)}
 									{unit}
 								</span>
@@ -71,13 +71,13 @@ function Stat({
 }) {
 	return (
 		<div>
-			<p className="text-[10px] uppercase tracking-wide text-[var(--text-muted)] mb-1">
+			<p className="text-micro uppercase tracking-wide text-text-muted mb-1">
 				{label}
 			</p>
-			<p className="text-base font-bold text-white tabular-nums">
+			<p className="text-base font-bold text-text tabular-nums">
 				{value}
 				{sub && (
-					<span className="text-xs font-normal text-[var(--text-muted)] ml-1">
+					<span className="text-xs font-normal text-text-muted ml-1">
 						{sub}
 					</span>
 				)}

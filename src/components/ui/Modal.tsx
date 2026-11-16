@@ -29,7 +29,7 @@ export function Modal({
 		<Dialog.Root open={open} onOpenChange={onOpenChange}>
 			<Dialog.Portal>
 				<Dialog.Backdrop
-					className="fixed inset-0 z-40 bg-black/70"
+					className="fixed inset-0 z-40 bg-scrim"
 					style={backdropStyle}
 				/>
 				{/* The popup spans the screen to position the panel; clicks on its
@@ -39,7 +39,7 @@ export function Modal({
 						ref={panelRef}
 						style={panelStyle}
 						className={cn(
-							"pointer-events-auto max-h-[90vh] w-full overflow-y-auto rounded-t-2xl border border-[var(--border)] bg-[var(--surface)] shadow-[0_-20px_50px_rgba(0,0,0,0.6)] sm:max-w-md sm:rounded-2xl",
+							"pointer-events-auto max-h-[90vh] w-full overflow-y-auto rounded-t-2xl border border-border bg-surface shadow-overlay sm:max-w-md sm:rounded-2xl",
 							className,
 						)}
 					>
@@ -58,7 +58,7 @@ export function ModalCloseButton({ className }: { className?: string }) {
 		<Dialog.Close
 			aria-label="Close"
 			className={cn(
-				"rounded p-1 text-[var(--text-muted)] transition-colors hover:text-white",
+				"rounded p-1 text-text-muted transition-colors hover:text-text",
 				className,
 			)}
 		>
@@ -70,8 +70,8 @@ export function ModalCloseButton({ className }: { className?: string }) {
 /** Title row with a close button, for modals without a custom header. */
 export function ModalHeader({ title }: { title: ReactNode }) {
 	return (
-		<div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-4">
-			<ModalTitle className="text-sm font-semibold text-white">
+		<div className="flex items-center justify-between border-b border-border px-5 py-4">
+			<ModalTitle className="text-sm font-semibold text-text">
 				{title}
 			</ModalTitle>
 			<ModalCloseButton />

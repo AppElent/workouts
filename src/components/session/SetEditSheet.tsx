@@ -36,7 +36,7 @@ interface Draft {
 
 const TYPE_COLOR: Record<SetType, string> = {
 	warmup: "var(--text-muted)",
-	working: "var(--accent)",
+	working: "var(--accent-ink)",
 	drop: "var(--warn)",
 	failure: "var(--danger)",
 };
@@ -251,7 +251,7 @@ export function SetEditSheet({
 				className="sm:hidden -mx-4 -mt-4 px-4 pt-3 pb-2 cursor-grab active:cursor-grabbing"
 				style={{ touchAction: "none" }}
 			>
-				<div className="mx-auto w-9 h-1 rounded-full bg-[var(--border-strong)]" />
+				<div className="mx-auto w-9 h-1 rounded-full bg-border-strong" />
 			</div>
 
 			<div
@@ -263,10 +263,10 @@ export function SetEditSheet({
 				style={{ touchAction: "pan-y" }}
 			>
 				<div>
-					<ModalTitle className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--accent)]">
+					<ModalTitle className="text-micro font-bold uppercase tracking-[0.1em] text-accent-ink">
 						Set {set.setNumber}
 					</ModalTitle>
-					<div className="text-base font-bold text-white mt-0.5">
+					<div className="text-base font-bold text-text mt-0.5">
 						{exerciseName}
 					</div>
 				</div>
@@ -274,7 +274,7 @@ export function SetEditSheet({
 					type="button"
 					onClick={requestClose}
 					onPointerDown={(e) => e.stopPropagation()}
-					className="p-1.5 text-[var(--text-muted)] hover:text-white transition-colors"
+					className="p-1.5 text-text-muted hover:text-text transition-colors"
 					aria-label="Close"
 				>
 					<X size={20} />
@@ -283,10 +283,10 @@ export function SetEditSheet({
 
 			<div className="mb-3.5">
 				<div className="flex items-baseline justify-between mb-1.5">
-					<span className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--text-muted)]">
+					<span className="text-micro font-bold uppercase tracking-[0.1em] text-text-muted">
 						Weight · {draft.unit}
 					</span>
-					<span className="text-[9px] uppercase tracking-[0.05em] text-[var(--text-faint)]">
+					<span className="text-axis uppercase tracking-[0.05em] text-text-faint">
 						step {inc}
 					</span>
 				</div>
@@ -301,7 +301,7 @@ export function SetEditSheet({
 			</div>
 
 			<div className="mb-3.5">
-				<div className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--text-muted)] mb-1.5">
+				<div className="text-micro font-bold uppercase tracking-[0.1em] text-text-muted mb-1.5">
 					Reps
 				</div>
 				<BigStepper
@@ -315,7 +315,7 @@ export function SetEditSheet({
 			</div>
 
 			<div className="mb-3.5">
-				<div className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--text-muted)] mb-1.5">
+				<div className="text-micro font-bold uppercase tracking-[0.1em] text-text-muted mb-1.5">
 					RPE
 				</div>
 				<div className="grid grid-cols-10 gap-1">
@@ -329,8 +329,8 @@ export function SetEditSheet({
 								className={[
 									"h-9 rounded-lg text-xs font-semibold border transition-colors",
 									sel
-										? "bg-[var(--accent-dim)] text-[var(--accent)] border-[var(--accent-ring)]"
-										: "bg-[var(--surface-2)] text-[var(--text-muted)] border-[var(--border)]",
+										? "bg-accent-dim text-accent-ink border-accent-ink/40"
+										: "bg-surface-2 text-text-muted border-border",
 								].join(" ")}
 							>
 								{v}
@@ -341,7 +341,7 @@ export function SetEditSheet({
 			</div>
 
 			<div className="mb-4">
-				<div className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--text-muted)] mb-1.5">
+				<div className="text-micro font-bold uppercase tracking-[0.1em] text-text-muted mb-1.5">
 					Type
 				</div>
 				<div className="grid grid-flow-col auto-cols-fr gap-1">
@@ -353,7 +353,7 @@ export function SetEditSheet({
 								key={type}
 								type="button"
 								onClick={() => update({ setType: type })}
-								className="h-10 rounded-lg text-[11px] font-semibold capitalize border transition-colors"
+								className="h-10 rounded-lg text-eyebrow font-semibold capitalize border transition-colors"
 								style={{
 									background: sel
 										? `color-mix(in srgb, ${color} 13%, transparent)`
@@ -372,13 +372,13 @@ export function SetEditSheet({
 			</div>
 
 			{confirmingDiscard ? (
-				<div className="flex items-center justify-between gap-2 p-3 rounded-lg bg-[var(--surface-2)] border border-[var(--border)]">
-					<span className="text-xs text-white">Discard unsaved changes?</span>
+				<div className="flex items-center justify-between gap-2 p-3 rounded-lg bg-surface-2 border border-border">
+					<span className="text-xs text-text">Discard unsaved changes?</span>
 					<div className="flex gap-2">
 						<button
 							type="button"
 							onClick={() => setConfirmingDiscard(false)}
-							className="px-3 py-1.5 rounded-md text-xs font-semibold text-[var(--text-muted)] hover:text-white transition-colors"
+							className="px-3 py-1.5 rounded-md text-xs font-semibold text-text-muted hover:text-text transition-colors"
 						>
 							Keep editing
 						</button>
@@ -388,7 +388,7 @@ export function SetEditSheet({
 								setConfirmingDiscard(false);
 								onClose();
 							}}
-							className="px-3 py-1.5 rounded-md bg-[var(--danger-soft)] text-[var(--danger)] text-xs font-semibold"
+							className="px-3 py-1.5 rounded-md bg-danger-soft text-danger text-xs font-semibold"
 						>
 							Discard
 						</button>
@@ -399,7 +399,7 @@ export function SetEditSheet({
 					<button
 						type="button"
 						onClick={() => void handleDelete()}
-						className="flex items-center gap-1.5 px-3.5 py-3 rounded-lg bg-[var(--danger-soft)] text-[var(--danger)] text-[13px] font-semibold"
+						className="flex items-center gap-1.5 px-3.5 py-3 rounded-lg bg-danger-soft text-danger text-label font-semibold"
 					>
 						<Trash2 size={14} />
 						Delete
@@ -407,7 +407,7 @@ export function SetEditSheet({
 					<button
 						type="button"
 						onClick={() => void handleDuplicate()}
-						className="flex items-center gap-1.5 px-3.5 py-3 rounded-lg bg-[var(--surface-2)] text-white text-[13px] font-semibold border border-[var(--border)]"
+						className="flex items-center gap-1.5 px-3.5 py-3 rounded-lg bg-surface-2 text-text text-label font-semibold border border-border"
 					>
 						<Copy size={14} />
 						Repeat
@@ -416,7 +416,7 @@ export function SetEditSheet({
 						type="button"
 						onClick={() => void handleSave()}
 						disabled={!dirty || busy}
-						className="flex-1 px-4 py-3 rounded-lg bg-[var(--accent)] text-black text-[13px] font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+						className="flex-1 px-4 py-3 rounded-lg bg-accent-fill text-on-accent text-label font-bold disabled:opacity-50 disabled:cursor-not-allowed"
 					>
 						Save
 					</button>
@@ -446,22 +446,22 @@ function BigStepper({
 	const clamp = (v: number) => Math.min(max, Math.max(min, +v.toFixed(2)));
 	return (
 		<div>
-			<div className="flex items-center bg-[var(--surface-2)] border border-[var(--border)] rounded-2xl h-16 overflow-hidden">
+			<div className="flex items-center bg-surface-2 border border-border rounded-2xl h-16 overflow-hidden">
 				<button
 					type="button"
 					onClick={() => onChange(clamp(value - step))}
-					className="w-16 h-full grid place-items-center text-white active:bg-white/5"
+					className="w-16 h-full grid place-items-center text-text active:bg-text/5"
 					aria-label="Decrease"
 				>
 					<Minus size={22} strokeWidth={2.5} />
 				</button>
-				<div className="flex-1 h-full grid place-items-center text-3xl font-extrabold text-white tabular-nums tracking-tight">
+				<div className="flex-1 h-full grid place-items-center text-3xl font-extrabold text-text tabular-nums tracking-tight">
 					{value}
 				</div>
 				<button
 					type="button"
 					onClick={() => onChange(clamp(value + step))}
-					className="w-16 h-full grid place-items-center text-white active:bg-white/5"
+					className="w-16 h-full grid place-items-center text-text active:bg-text/5"
 					aria-label="Increase"
 				>
 					<Plus size={22} strokeWidth={2.5} />
@@ -474,8 +474,8 @@ function BigStepper({
 						type="button"
 						onClick={() => onChange(clamp(value + j))}
 						className={[
-							"flex-1 h-8 rounded-lg text-xs font-bold tabular-nums bg-[var(--surface-2)] border border-[var(--border)]",
-							j > 0 ? "text-[var(--accent)]" : "text-[var(--text-muted)]",
+							"flex-1 h-8 rounded-lg text-xs font-bold tabular-nums bg-surface-2 border border-border",
+							j > 0 ? "text-accent-ink" : "text-text-muted",
 						].join(" ")}
 					>
 						{j > 0 ? `+${j}` : j}

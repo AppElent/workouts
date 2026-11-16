@@ -18,7 +18,7 @@ export function LanguageToggle() {
 			onClick={() => setLocale(next)}
 			aria-label={label}
 			title={label}
-			className="flex items-center justify-center gap-1 px-3 py-2 text-xs font-bold text-[var(--text-muted)] hover:text-white transition-colors"
+			className="flex items-center justify-center gap-1 px-3 py-2 text-xs font-bold text-text-muted hover:text-text transition-colors"
 		>
 			{locale.toUpperCase()}
 		</button>

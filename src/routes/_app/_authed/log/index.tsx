@@ -50,13 +50,13 @@ function LogPage() {
 
 	return (
 		<div className="p-4 sm:p-6 max-w-2xl mx-auto">
-			<h1 className="text-2xl font-bold text-white mb-6">Log Workout</h1>
+			<h1 className="text-2xl font-bold text-text mb-6">Log Workout</h1>
 
 			<form
 				onSubmit={(e) => void handleStartFreeForm(e)}
-				className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-5 mb-6"
+				className="rounded-xl bg-surface border border-border p-5 mb-6"
 			>
-				<h2 className="text-sm font-semibold text-white mb-4">
+				<h2 className="text-sm font-semibold text-text mb-4">
 					Start New Session
 				</h2>
 				<div className="flex gap-2">
@@ -65,23 +65,23 @@ function LogPage() {
 						placeholder="Session name (optional)"
 						value={sessionName}
 						onChange={(e) => setSessionName(e.target.value)}
-						className="flex-1 h-10 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+						className="flex-1 h-10 rounded-lg border border-border bg-surface-2 px-3 text-sm text-text placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent-ink"
 					/>
 					<button
 						type="submit"
 						disabled={creating}
-						className="flex items-center gap-2 px-5 py-2 rounded-lg bg-[var(--accent)] text-black text-sm font-bold disabled:opacity-50 hover:bg-[var(--accent-hover)] transition-colors"
+						className="flex items-center gap-2 px-5 py-2 rounded-lg bg-accent-fill text-on-accent text-sm font-bold disabled:opacity-50 hover:bg-accent-pressed transition-colors"
 					>
 						<Dumbbell size={15} />
 						{creating ? "Starting…" : "Start"}
 					</button>
 				</div>
-				{error && <p className="mt-2 text-xs text-[var(--danger)]">{error}</p>}
+				{error && <p className="mt-2 text-xs text-danger">{error}</p>}
 			</form>
 
 			{routines.length > 0 && (
-				<div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-5">
-					<h2 className="text-sm font-semibold text-white mb-4">
+				<div className="rounded-xl bg-surface border border-border p-5">
+					<h2 className="text-sm font-semibold text-text mb-4">
 						Start from Routine
 					</h2>
 					<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -93,13 +93,11 @@ function LogPage() {
 			)}
 
 			{routines.length === 0 && (
-				<div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-5 text-center">
-					<p className="text-[var(--text-muted)] text-sm mb-3">
-						No routines yet.
-					</p>
+				<div className="rounded-xl bg-surface border border-border p-5 text-center">
+					<p className="text-text-muted text-sm mb-3">No routines yet.</p>
 					<Link
 						to="/routines"
-						className="text-sm text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors"
+						className="text-sm text-accent-ink hover:underline"
 					>
 						Create a routine →
 					</Link>
@@ -117,15 +115,15 @@ function StartFromRoutineButton({ routine }: { routine: Doc<"routines"> }) {
 			type="button"
 			onClick={() => void start(routine._id)}
 			disabled={starting}
-			className="flex items-center justify-between gap-2 p-4 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] hover:border-[var(--accent)]/30 transition-colors text-left disabled:opacity-50"
+			className="flex items-center justify-between gap-2 p-4 rounded-lg border border-border bg-surface-2 hover:border-accent-ink/30 transition-colors text-left disabled:opacity-50"
 		>
 			<div>
-				<p className="text-sm font-medium text-white">{routine.name}</p>
-				<p className="text-xs text-[var(--text-muted)] mt-0.5">
+				<p className="text-sm font-medium text-text">{routine.name}</p>
+				<p className="text-xs text-text-muted mt-0.5">
 					{routine.exercises.length} exercises
 				</p>
 			</div>
-			<Play size={16} className="text-[var(--accent)] shrink-0" />
+			<Play size={16} className="text-accent-ink shrink-0" />
 		</button>
 	);
 }

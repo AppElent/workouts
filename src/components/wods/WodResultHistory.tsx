@@ -24,7 +24,7 @@ interface Props {
 export function WodResultHistory({ type, results }: Props) {
 	if (results.length === 0) {
 		return (
-			<p className="text-sm text-[var(--text-muted)]">
+			<p className="text-sm text-text-muted">
 				No results yet. Log your first result above.
 			</p>
 		);
@@ -56,16 +56,16 @@ export function WodResultHistory({ type, results }: Props) {
 	return (
 		<div className="flex flex-col gap-4">
 			{best && (
-				<div className="flex items-center justify-between rounded-xl bg-[var(--accent-dim)] border border-[var(--accent)]/20 px-4 py-3">
+				<div className="flex items-center justify-between rounded-xl bg-accent-dim border border-accent-ink/20 px-4 py-3">
 					<div className="flex items-center gap-2">
-						<Trophy size={16} className="text-[var(--accent)]" />
-						<span className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wide">
+						<Trophy size={16} className="text-accent-ink" />
+						<span className="text-xs font-semibold text-accent-ink uppercase tracking-wide">
 							Personal best
 						</span>
 					</div>
-					<span className="text-lg font-bold text-white tabular-nums">
+					<span className="text-lg font-bold text-text tabular-nums">
 						{formatScore(type, best)}
-						<span className="text-[10px] uppercase text-[var(--text-muted)] ml-1.5">
+						<span className="text-micro uppercase text-text-muted ml-1.5">
 							{best.rxScaled}
 						</span>
 					</span>
@@ -87,7 +87,7 @@ export function WodResultHistory({ type, results }: Props) {
 						<Line
 							type="monotone"
 							dataKey="rank"
-							stroke="var(--accent)"
+							stroke="var(--accent-ink)"
 							strokeWidth={2}
 							dot={{ r: 3 }}
 						/>
@@ -103,25 +103,25 @@ export function WodResultHistory({ type, results }: Props) {
 						return (
 							<div
 								key={r._id}
-								className="flex items-center justify-between rounded-lg bg-[var(--surface-2)] border border-[var(--border)] px-4 py-2.5"
+								className="flex items-center justify-between rounded-lg bg-surface-2 border border-border px-4 py-2.5"
 							>
 								<div className="flex items-center gap-2 flex-wrap">
-									<span className="text-sm font-semibold text-white tabular-nums">
+									<span className="text-sm font-semibold text-text tabular-nums">
 										{formatScore(type, r)}
 									</span>
-									<span className="text-[10px] uppercase text-[var(--text-muted)]">
+									<span className="text-micro uppercase text-text-muted">
 										{r.rxScaled}
 									</span>
 									{best && r._id === best._id && (
-										<Trophy size={13} className="text-[var(--accent)]" />
+										<Trophy size={13} className="text-accent-ink" />
 									)}
 									{pr && (
-										<span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-[var(--accent)] bg-[var(--accent-dim)] border border-[var(--accent)]/30 rounded px-1.5 py-0.5">
+										<span className="inline-flex items-center gap-1 text-micro font-bold uppercase tracking-wide text-accent-ink bg-accent-dim border border-accent-ink/30 rounded px-1.5 py-0.5">
 											PR{pr.improvement ? ` ${pr.improvement}` : ""}
 										</span>
 									)}
 								</div>
-								<span className="text-xs text-[var(--text-muted)]">
+								<span className="text-xs text-text-muted">
 									{format(new Date(r.date), "MMM d, yyyy")}
 								</span>
 							</div>

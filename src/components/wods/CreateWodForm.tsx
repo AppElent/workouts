@@ -83,14 +83,14 @@ export function CreateWodForm() {
 
 	const timingLabel = wodTimingLabel(type);
 	const inputCls =
-		"h-9 rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]";
+		"h-9 rounded-md border border-border bg-surface-2 px-3 text-sm text-text placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent-ink";
 
 	return (
 		<form
 			onSubmit={(e) => void handleSubmit(e)}
-			className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-5 flex flex-col gap-4"
+			className="rounded-xl bg-surface border border-border p-5 flex flex-col gap-4"
 		>
-			<h2 className="text-sm font-semibold text-white">Create WOD</h2>
+			<h2 className="text-sm font-semibold text-text">Create WOD</h2>
 
 			<input
 				type="text"
@@ -110,8 +110,8 @@ export function CreateWodForm() {
 						className={[
 							"flex-1 h-9 rounded-lg text-xs font-medium transition-all",
 							type === t
-								? "bg-[var(--accent-dim)] text-[var(--accent)] border border-[var(--accent)]/50"
-								: "bg-[var(--surface-2)] text-[var(--text-muted)] border border-[var(--border)] hover:text-white",
+								? "bg-accent-dim text-accent-ink border border-accent-ink/50"
+								: "bg-surface-2 text-text-muted border border-border hover:text-text",
 						].join(" ")}
 					>
 						{WOD_TYPE_LABELS[t]}
@@ -144,7 +144,7 @@ export function CreateWodForm() {
 				value={description}
 				onChange={(e) => setDescription(e.target.value)}
 				rows={2}
-				className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+				className="rounded-md border border-border bg-surface-2 px-3 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent-ink"
 			/>
 
 			<div className="flex flex-col gap-2">
@@ -174,7 +174,7 @@ export function CreateWodForm() {
 						<button
 							type="button"
 							onClick={() => removeMovement(m.id)}
-							className="p-1 text-[var(--text-muted)] hover:text-[var(--danger)] transition-colors"
+							className="p-1 text-text-muted hover:text-danger transition-colors"
 							aria-label="Remove movement"
 						>
 							<X size={14} />
@@ -184,7 +184,7 @@ export function CreateWodForm() {
 				<button
 					type="button"
 					onClick={addMovement}
-					className="flex items-center gap-2 text-sm text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors self-start"
+					className="flex items-center gap-2 text-sm text-accent-ink hover:underline self-start"
 				>
 					<Plus size={14} />
 					Add Movement
@@ -195,7 +195,7 @@ export function CreateWodForm() {
 				<button
 					type="submit"
 					disabled={saving || !name.trim()}
-					className="px-5 py-2 rounded-full bg-[var(--accent)] text-black text-sm font-bold disabled:opacity-40 hover:bg-[var(--accent-hover)] transition-colors"
+					className="px-5 py-2 rounded-full bg-accent-fill text-on-accent text-sm font-bold disabled:opacity-40 hover:bg-accent-pressed transition-colors"
 				>
 					Save WOD
 				</button>

@@ -46,16 +46,12 @@ export function JoinHostedWorkout({ token }: { token: string }) {
 	}
 
 	if (data === undefined) {
-		return (
-			<div className="p-6 text-sm text-[var(--text-muted)]">Loading...</div>
-		);
+		return <div className="p-6 text-sm text-text-muted">Loading...</div>;
 	}
 
 	if (data === null) {
 		return (
-			<div className="p-6 text-sm text-[var(--danger)]">
-				Hosted workout not found.
-			</div>
+			<div className="p-6 text-sm text-danger">Hosted workout not found.</div>
 		);
 	}
 
@@ -64,44 +60,42 @@ export function JoinHostedWorkout({ token }: { token: string }) {
 
 	return (
 		<div className="mx-auto flex max-w-4xl flex-col gap-5 p-4 sm:p-6">
-			<header className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
+			<header className="rounded-lg border border-border bg-surface p-4">
 				<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
 					<div>
 						<div className="flex flex-wrap items-center gap-2">
-							<h1 className="text-2xl font-bold text-white">{hosted.title}</h1>
-							<span className="rounded-full border border-[var(--border)] px-2 py-1 text-xs uppercase text-[var(--text-muted)]">
+							<h1 className="text-2xl font-bold text-text">{hosted.title}</h1>
+							<span className="rounded-full border border-border px-2 py-1 text-xs uppercase text-text-muted">
 								{hosted.status}
 							</span>
 						</div>
 						{hosted.scheduledAt && (
-							<p className="mt-1 text-sm text-[var(--text-muted)]">
+							<p className="mt-1 text-sm text-text-muted">
 								{format(new Date(hosted.scheduledAt), "MMM d, h:mm a")}
 							</p>
 						)}
 						{hosted.notes && (
-							<p className="mt-3 text-sm text-[var(--text-muted)]">
-								{hosted.notes}
-							</p>
+							<p className="mt-3 text-sm text-text-muted">{hosted.notes}</p>
 						)}
 					</div>
 
 					<Show when="signed-in">
 						<div className="flex flex-col gap-2 sm:w-56">
-							<label className="flex flex-col gap-1 text-xs font-medium uppercase text-[var(--text-muted)]">
+							<label className="flex flex-col gap-1 text-xs font-medium uppercase text-text-muted">
 								Your name
 								<input
 									type="text"
 									value={displayName}
 									onChange={(event) => setNameInput(event.target.value)}
 									placeholder="Name on leaderboard"
-									className="h-10 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm normal-case text-white placeholder:text-[var(--text-muted)]"
+									className="h-10 rounded-lg border border-border bg-surface-2 px-3 text-sm normal-case text-text placeholder:text-text-muted"
 								/>
 							</label>
 							<button
 								type="button"
 								onClick={() => void handleJoin()}
 								disabled={!isOpen || joining}
-								className="inline-flex items-center justify-center gap-2 rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-bold text-black disabled:opacity-50"
+								className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent-fill px-4 py-2 text-sm font-bold text-on-accent disabled:opacity-50"
 							>
 								<Play size={15} />
 								{joining ? "Joining..." : "Join workout"}
@@ -111,16 +105,14 @@ export function JoinHostedWorkout({ token }: { token: string }) {
 					<Show when="signed-out">
 						<Link
 							to="/sign-in"
-							className="inline-flex items-center justify-center gap-2 rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-semibold text-white"
+							className="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-semibold text-text"
 						>
 							<LogIn size={15} />
 							Sign in to join
 						</Link>
 					</Show>
 				</div>
-				{joinError && (
-					<p className="mt-3 text-sm text-[var(--danger)]">{joinError}</p>
-				)}
+				{joinError && <p className="mt-3 text-sm text-danger">{joinError}</p>}
 			</header>
 
 			<HostedStrengthBlocks blocks={hosted.template.strengthBlocks} />
@@ -138,7 +130,7 @@ export function JoinHostedWorkout({ token }: { token: string }) {
 						}
 					/>
 				) : (
-					<div className="h-fit rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 text-sm text-[var(--text-muted)]">
+					<div className="h-fit rounded-lg border border-border bg-surface p-4 text-sm text-text-muted">
 						{hosted.status === "closed"
 							? "This workout has closed. Scores are final."
 							: "This workout hasn't started yet. Check back once the host opens it."}

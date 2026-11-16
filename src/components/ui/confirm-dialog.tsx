@@ -71,14 +71,14 @@ export function ConfirmDialogProvider({
 				}}
 			>
 				<AlertDialog.Portal>
-					<AlertDialog.Backdrop className="fixed inset-0 z-40 bg-black/70" />
+					<AlertDialog.Backdrop className="fixed inset-0 z-40 bg-scrim" />
 					<AlertDialog.Popup className="fixed inset-0 z-50 flex items-end justify-center px-4 pb-4 sm:items-center sm:pb-0">
-						<div className="w-full max-w-sm rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl">
-							<AlertDialog.Title className="text-sm font-semibold text-white">
+						<div className="w-full max-w-sm rounded-2xl border border-border bg-surface p-5 shadow-xl">
+							<AlertDialog.Title className="text-sm font-semibold text-text">
 								{options?.title}
 							</AlertDialog.Title>
 							{options?.description && (
-								<AlertDialog.Description className="mt-2 text-sm text-[var(--text-muted)]">
+								<AlertDialog.Description className="mt-2 text-sm text-text-muted">
 									{options.description}
 								</AlertDialog.Description>
 							)}

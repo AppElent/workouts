@@ -20,7 +20,7 @@ export function ExercisePicker({
 
 	return (
 		<div className="flex flex-col">
-			<div className="border-b border-[var(--border)] p-3">
+			<div className="border-b border-border p-3">
 				<input
 					// biome-ignore lint/a11y/noAutofocus: the picker opens to search
 					autoFocus={autoFocus}
@@ -29,25 +29,25 @@ export function ExercisePicker({
 					placeholder="Search exercises…"
 					value={query}
 					onChange={(event) => setQuery(event.target.value)}
-					className="h-9 w-full rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+					className="h-9 w-full rounded-md border border-border bg-surface-2 px-3 text-sm text-text placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent-ink"
 				/>
 			</div>
-			<div className="max-h-72 divide-y divide-[var(--border)] overflow-y-auto">
+			<div className="max-h-72 divide-y divide-border overflow-y-auto">
 				{matches.map((exercise) => (
 					<button
 						key={exercise._id}
 						type="button"
 						onClick={() => onSelect(exercise)}
-						className="flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-white/5"
+						className="flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-text/5"
 					>
-						<span className="text-sm text-white">{exercise.name}</span>
-						<span className="ml-2 text-xs capitalize text-[var(--text-muted)]">
+						<span className="text-sm text-text">{exercise.name}</span>
+						<span className="ml-2 text-xs capitalize text-text-muted">
 							{exercise.equipment}
 						</span>
 					</button>
 				))}
 				{matches.length === 0 && (
-					<p className="px-4 py-6 text-center text-sm text-[var(--text-muted)]">
+					<p className="px-4 py-6 text-center text-sm text-text-muted">
 						No exercises found.
 					</p>
 				)}

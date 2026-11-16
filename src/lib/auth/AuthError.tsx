@@ -3,7 +3,7 @@ export function AuthError({ message }: { message: string | null }) {
 	return (
 		<p
 			role="alert"
-			className="rounded-[var(--auth-radius)] bg-[var(--auth-error)]/10 px-3 py-2 text-sm text-[var(--auth-error)]"
+			className="rounded-xl bg-danger/10 px-3 py-2 text-sm text-danger"
 		>
 			{message}
 		</p>

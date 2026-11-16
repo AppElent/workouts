@@ -83,9 +83,9 @@ export function AddExerciseForm({
 				e.preventDefault();
 				void form.handleSubmit();
 			}}
-			className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-5 flex flex-col gap-4"
+			className="rounded-xl bg-surface border border-border p-5 flex flex-col gap-4"
 		>
-			<h2 className="text-sm font-semibold text-white">Add Custom Exercise</h2>
+			<h2 className="text-sm font-semibold text-text">Add Custom Exercise</h2>
 
 			<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
 				<form.Field name="name">
@@ -93,13 +93,13 @@ export function AddExerciseForm({
 						<div className="flex flex-col gap-1">
 							<label
 								htmlFor="exercise-name"
-								className="text-xs text-[var(--text-muted)]"
+								className="text-xs text-text-muted"
 							>
 								Name
 							</label>
 							<input
 								id="exercise-name"
-								className="h-9 rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+								className="h-9 rounded-md border border-border bg-surface-2 px-3 text-sm text-text placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent-ink"
 								value={field.state.value}
 								onChange={(e) => field.handleChange(e.target.value)}
 								placeholder="e.g. Cable Lateral Raise"
@@ -115,13 +115,13 @@ export function AddExerciseForm({
 						<div className="flex flex-col gap-1">
 							<label
 								htmlFor="exercise-muscle-groups"
-								className="text-xs text-[var(--text-muted)]"
+								className="text-xs text-text-muted"
 							>
 								Muscle Groups (comma-separated)
 							</label>
 							<input
 								id="exercise-muscle-groups"
-								className="h-9 rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+								className="h-9 rounded-md border border-border bg-surface-2 px-3 text-sm text-text placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent-ink"
 								value={field.state.value}
 								onChange={(e) => field.handleChange(e.target.value)}
 								placeholder="e.g. side delts, traps"
@@ -135,13 +135,13 @@ export function AddExerciseForm({
 						<div className="flex flex-col gap-1">
 							<label
 								htmlFor="exercise-category"
-								className="text-xs text-[var(--text-muted)]"
+								className="text-xs text-text-muted"
 							>
 								Category
 							</label>
 							<select
 								id="exercise-category"
-								className="h-9 rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+								className="h-9 rounded-md border border-border bg-surface-2 px-3 text-sm text-text focus:outline-none focus:ring-1 focus:ring-accent-ink"
 								value={field.state.value}
 								onChange={(e) =>
 									field.handleChange(e.target.value as ExerciseCategory)
@@ -162,13 +162,13 @@ export function AddExerciseForm({
 						<div className="flex flex-col gap-1">
 							<label
 								htmlFor="exercise-equipment"
-								className="text-xs text-[var(--text-muted)]"
+								className="text-xs text-text-muted"
 							>
 								Equipment
 							</label>
 							<select
 								id="exercise-equipment"
-								className="h-9 rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+								className="h-9 rounded-md border border-border bg-surface-2 px-3 text-sm text-text focus:outline-none focus:ring-1 focus:ring-accent-ink"
 								value={field.state.value}
 								onChange={(e) =>
 									field.handleChange(e.target.value as Equipment)
@@ -192,7 +192,7 @@ export function AddExerciseForm({
 									<div className="flex flex-col gap-1">
 										<label
 											htmlFor="exercise-weight-increment"
-											className="text-xs text-[var(--text-muted)]"
+											className="text-xs text-text-muted"
 										>
 											Weight increment kg (optional)
 										</label>
@@ -201,7 +201,7 @@ export function AddExerciseForm({
 											type="number"
 											min="0.25"
 											step="0.25"
-											className="h-9 rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+											className="h-9 rounded-md border border-border bg-surface-2 px-3 text-sm text-text placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent-ink"
 											value={field.state.value ?? ""}
 											onChange={(e) =>
 												field.handleChange(
@@ -225,13 +225,13 @@ export function AddExerciseForm({
 						<div className="flex flex-col gap-1 sm:col-span-2">
 							<label
 								htmlFor="exercise-notes"
-								className="text-xs text-[var(--text-muted)]"
+								className="text-xs text-text-muted"
 							>
 								Notes (optional)
 							</label>
 							<input
 								id="exercise-notes"
-								className="h-9 rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+								className="h-9 rounded-md border border-border bg-surface-2 px-3 text-sm text-text placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent-ink"
 								value={field.state.value}
 								onChange={(e) => field.handleChange(e.target.value)}
 								placeholder="Form cues, tips..."
@@ -243,7 +243,7 @@ export function AddExerciseForm({
 
 			<div className="flex items-center justify-end gap-3">
 				{submitError && (
-					<p role="alert" className="text-xs text-[var(--danger)]">
+					<p role="alert" className="text-xs text-danger">
 						{submitError}
 					</p>
 				)}
@@ -252,7 +252,7 @@ export function AddExerciseForm({
 						<button
 							type="submit"
 							disabled={submitting}
-							className="px-5 py-2 rounded-full bg-[var(--accent)] text-black text-sm font-bold hover:bg-[var(--accent-hover)] transition-colors disabled:opacity-50"
+							className="px-5 py-2 rounded-full bg-accent-fill text-on-accent text-sm font-bold hover:bg-accent-pressed transition-colors disabled:opacity-50"
 						>
 							Add Exercise
 						</button>
@@ -265,5 +265,5 @@ export function AddExerciseForm({
 
 function FieldError({ message }: { message: string | undefined }) {
 	if (!message) return null;
-	return <p className="text-xs text-[var(--danger)]">{message}</p>;
+	return <p className="text-xs text-danger">{message}</p>;
 }

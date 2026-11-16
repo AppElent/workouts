@@ -38,9 +38,9 @@ function ProgressPage() {
 
 	return (
 		<div className="p-4 sm:p-6 max-w-4xl mx-auto">
-			<h1 className="text-2xl font-bold text-white mb-4">Progress</h1>
+			<h1 className="text-2xl font-bold text-text mb-4">Progress</h1>
 
-			<div className="flex border-b border-[var(--border)] mb-6">
+			<div className="flex border-b border-border mb-6">
 				{tabs.map((t) => (
 					<button
 						key={t.id}
@@ -49,8 +49,8 @@ function ProgressPage() {
 						className={cn(
 							"flex-1 sm:flex-none sm:px-6 py-2.5 text-sm font-semibold transition-colors",
 							tab === t.id
-								? "text-[var(--accent)] border-b-2 border-[var(--accent)]"
-								: "text-[var(--text-muted)] hover:text-white",
+								? "text-accent-ink border-b-2 border-accent-ink"
+								: "text-text-muted hover:text-text",
 						)}
 					>
 						{t.label}
@@ -64,7 +64,7 @@ function ProgressPage() {
 						<select
 							value={selectedId}
 							onChange={(e) => setSelectedId(e.target.value as ExerciseId)}
-							className="h-10 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-sm text-white min-w-[240px] w-full sm:w-auto focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+							className="h-10 rounded-lg border border-border bg-surface px-3 text-sm text-text min-w-[240px] w-full sm:w-auto focus:outline-none focus:ring-1 focus:ring-accent-ink"
 						>
 							<option value="">Select an exercise…</option>
 							{exercises.map((ex) => (
@@ -78,8 +78,8 @@ function ProgressPage() {
 					{selectedId ? (
 						<ExerciseCharts exerciseId={selectedId as ExerciseId} />
 					) : (
-						<div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-10 text-center">
-							<p className="text-[var(--text-muted)] text-sm">
+						<div className="rounded-xl bg-surface border border-border p-10 text-center">
+							<p className="text-text-muted text-sm">
 								Select an exercise to view your progress charts.
 							</p>
 						</div>
@@ -111,28 +111,25 @@ function ExerciseCharts({ exerciseId }: { exerciseId: ExerciseId }) {
 
 	const tooltipStyle = {
 		contentStyle: {
-			background: "#1a1a1a",
-			border: "1px solid rgba(255,255,255,0.1)",
+			background: "var(--surface)",
+			border: "1px solid var(--border-strong)",
 			borderRadius: 8,
-			color: "#fff",
+			color: "var(--text)",
 			fontSize: 12,
 		},
 	};
 
 	return (
 		<div className="flex flex-col gap-6">
-			<div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-5">
-				<h2 className="text-sm font-semibold text-white mb-1">1RM Over Time</h2>
-				<p className="text-xs text-[var(--text-muted)] mb-4">
+			<div className="rounded-xl bg-surface border border-border p-5">
+				<h2 className="text-sm font-semibold text-text mb-1">1RM Over Time</h2>
+				<p className="text-xs text-text-muted mb-4">
 					Actual + estimated (Epley) records
 				</p>
 				{ormChartData.length > 0 ? (
 					<ResponsiveContainer width="100%" height={240}>
 						<LineChart data={ormChartData}>
-							<CartesianGrid
-								strokeDasharray="3 3"
-								stroke="rgba(255,255,255,0.06)"
-							/>
+							<CartesianGrid strokeDasharray="3 3" stroke="var(--separator)" />
 							<XAxis
 								dataKey="date"
 								tick={{ fill: "var(--text-muted)", fontSize: 11 }}
@@ -163,32 +160,29 @@ function ExerciseCharts({ exerciseId }: { exerciseId: ExerciseId }) {
 							<Line
 								type="monotone"
 								dataKey="value"
-								stroke="var(--accent)"
+								stroke="var(--accent-ink)"
 								strokeWidth={2}
-								dot={{ fill: "var(--accent)", r: 4, strokeWidth: 0 }}
-								activeDot={{ r: 6, fill: "var(--accent-hover)" }}
+								dot={{ fill: "var(--accent-ink)", r: 4, strokeWidth: 0 }}
+								activeDot={{ r: 6, fill: "var(--accent-ink)" }}
 							/>
 						</LineChart>
 					</ResponsiveContainer>
 				) : (
-					<p className="text-sm text-[var(--text-muted)] py-8 text-center">
+					<p className="text-sm text-text-muted py-8 text-center">
 						No 1RM data yet. Log some sets!
 					</p>
 				)}
 			</div>
 
-			<div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-5">
-				<h2 className="text-sm font-semibold text-white mb-1">Weekly Volume</h2>
-				<p className="text-xs text-[var(--text-muted)] mb-4">
+			<div className="rounded-xl bg-surface border border-border p-5">
+				<h2 className="text-sm font-semibold text-text mb-1">Weekly Volume</h2>
+				<p className="text-xs text-text-muted mb-4">
 					Kg lifted per week (weight × reps), warm-ups excluded
 				</p>
 				{volumeData.length > 0 ? (
 					<ResponsiveContainer width="100%" height={200}>
 						<BarChart data={volumeData}>
-							<CartesianGrid
-								strokeDasharray="3 3"
-								stroke="rgba(255,255,255,0.06)"
-							/>
+							<CartesianGrid strokeDasharray="3 3" stroke="var(--separator)" />
 							<XAxis
 								dataKey="week"
 								tick={{ fill: "var(--text-muted)", fontSize: 10 }}
@@ -214,14 +208,14 @@ function ExerciseCharts({ exerciseId }: { exerciseId: ExerciseId }) {
 							/>
 							<Bar
 								dataKey="volume"
-								fill="var(--accent)"
+								fill="var(--accent-ink)"
 								radius={[4, 4, 0, 0]}
 								maxBarSize={40}
 							/>
 						</BarChart>
 					</ResponsiveContainer>
 				) : (
-					<p className="text-sm text-[var(--text-muted)] py-8 text-center">
+					<p className="text-sm text-text-muted py-8 text-center">
 						No volume data yet.
 					</p>
 				)}

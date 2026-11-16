@@ -11,7 +11,7 @@ export function AppShell() {
 	const hasSession = !!activeSession;
 
 	return (
-		<div className="flex h-screen overflow-hidden bg-[var(--bg)]">
+		<div className="flex h-screen overflow-hidden bg-bg">
 			<OfflineBanner />
 			<Sidebar />
 			<main

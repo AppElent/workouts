@@ -28,10 +28,7 @@ const features = [
 function IntroPage() {
 	const { privacy, support } = useMessages();
 	return (
-		<div
-			className="relative min-h-screen flex flex-col overflow-hidden"
-			style={{ background: "#000" }}
-		>
+		<div className="relative min-h-screen flex flex-col overflow-hidden bg-bg">
 			<div
 				aria-hidden
 				style={{
@@ -41,7 +38,7 @@ function IntroPage() {
 					width: 400,
 					height: 400,
 					background:
-						"radial-gradient(circle, color-mix(in srgb, var(--accent) 12%, transparent), transparent 65%)",
+						"radial-gradient(circle, color-mix(in srgb, var(--accent-fill) 12%, transparent), transparent 65%)",
 					pointerEvents: "none",
 				}}
 			/>
@@ -54,20 +51,17 @@ function IntroPage() {
 					width: 300,
 					height: 300,
 					background:
-						"radial-gradient(circle, color-mix(in srgb, var(--accent) 6%, transparent), transparent 65%)",
+						"radial-gradient(circle, color-mix(in srgb, var(--accent-fill) 6%, transparent), transparent 65%)",
 					pointerEvents: "none",
 				}}
 			/>
 
 			<header className="relative z-10 flex items-center justify-between px-8 py-5">
 				<div className="flex items-center gap-2.5">
-					<div
-						className="w-[30px] h-[30px] rounded-[6px] flex items-center justify-center font-black text-black text-[15px]"
-						style={{ background: "var(--accent)" }}
-					>
+					<div className="w-[30px] h-[30px] rounded-md flex items-center justify-center font-black bg-accent-fill text-on-accent text-body">
 						W
 					</div>
-					<span className="text-white font-bold text-sm">Foundry</span>
+					<span className="text-text font-bold text-sm">Foundry</span>
 				</div>
 
 				<nav className="hidden sm:flex items-center gap-7">
@@ -77,16 +71,7 @@ function IntroPage() {
 
 			<section className="relative z-10 flex-1 flex flex-col items-center justify-center text-center px-8 py-20">
 				<div style={{ maxWidth: 880, width: "100%" }}>
-					<p
-						className="mb-6"
-						style={{
-							color: "var(--accent)",
-							fontSize: 12,
-							fontWeight: 700,
-							textTransform: "uppercase",
-							letterSpacing: "2px",
-						}}
-					>
+					<p className="mb-6 text-caption font-bold uppercase tracking-[2px] text-accent-ink">
 						YOUR GYM. YOUR DATA.
 					</p>
 
@@ -95,28 +80,20 @@ function IntroPage() {
 						style={{ lineHeight: 1.05, letterSpacing: "-1.5px" }}
 					>
 						<span
-							className="block text-white"
+							className="block text-text"
 							style={{ fontSize: 56, fontWeight: 900 }}
 						>
 							Track every lift.
 						</span>
 						<span
-							className="block text-white"
+							className="block text-text"
 							style={{ fontSize: 56, fontWeight: 900 }}
 						>
 							Own every PR.
 						</span>
 					</h1>
 
-					<p
-						className="mb-9 mx-auto"
-						style={{
-							color: "var(--text-muted)",
-							fontSize: 16,
-							lineHeight: 1.6,
-							maxWidth: 560,
-						}}
-					>
+					<p className="mb-9 mx-auto text-control font-normal leading-[1.6] max-w-[560px] text-text-muted">
 						Log sets, track 1RMs, and watch your strength compound — session by
 						session.
 					</p>
@@ -124,18 +101,13 @@ function IntroPage() {
 					<div className="flex flex-wrap items-center justify-center gap-3">
 						<Link
 							to="/log"
-							className="inline-flex items-center rounded-full bg-[var(--accent)] px-8 py-3 font-bold text-black text-sm transition-colors hover:bg-[var(--accent-hover)]"
+							className="inline-flex items-center rounded-full bg-accent-fill px-8 py-3 font-bold text-on-accent text-sm transition-colors hover:bg-accent-pressed"
 						>
 							Start Logging →
 						</Link>
 						<Link
 							to="/exercises"
-							className="inline-flex items-center px-8 py-3 text-white text-sm border transition-colors"
-							style={{
-								borderColor: "var(--border)",
-								borderRadius: 9999,
-								fontWeight: 700,
-							}}
+							className="inline-flex items-center px-8 py-3 text-text text-sm font-bold border border-border rounded-full transition-colors hover:bg-text/5"
 						>
 							Browse exercises
 						</Link>
@@ -151,24 +123,13 @@ function IntroPage() {
 					{features.map(({ icon: Icon, title, description }) => (
 						<div
 							key={title}
-							className="rounded-xl p-5 border"
-							style={{
-								background: "var(--surface)",
-								borderColor: "var(--border)",
-							}}
+							className="rounded-xl p-5 border border-border bg-surface"
 						>
-							<Icon
-								size={20}
-								style={{ color: "var(--accent)" }}
-								strokeWidth={1.75}
-							/>
-							<div className="mt-3 text-sm font-semibold text-white">
+							<Icon size={20} className="text-accent-ink" strokeWidth={1.75} />
+							<div className="mt-3 text-sm font-semibold text-text">
 								{title}
 							</div>
-							<div
-								className="mt-1.5 text-xs leading-relaxed"
-								style={{ color: "var(--text-muted)" }}
-							>
+							<div className="mt-1.5 text-xs leading-relaxed text-text-muted">
 								{description}
 							</div>
 						</div>
@@ -177,17 +138,11 @@ function IntroPage() {
 			</section>
 
 			<footer className="relative z-10 pb-8 text-center text-xs">
-				<Link
-					to="/privacy"
-					className="text-[var(--text-muted)] hover:text-white"
-				>
+				<Link to="/privacy" className="text-text-muted hover:text-text">
 					{privacy.title}
 				</Link>
-				<span className="mx-2 text-[var(--text-muted)]">·</span>
-				<Link
-					to="/support"
-					className="text-[var(--text-muted)] hover:text-white"
-				>
+				<span className="mx-2 text-text-muted">·</span>
+				<Link to="/support" className="text-text-muted hover:text-text">
 					{support.title}
 				</Link>
 			</footer>

@@ -58,7 +58,7 @@ export function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
 		return (
 			<form onSubmit={submitCode} noValidate className="flex flex-col gap-3">
 				<AuthError message={error} />
-				<p className="text-sm text-[var(--auth-muted)]">
+				<p className="text-sm text-text-muted">
 					{fmt(auth.signUp.codeSent, { email })}
 				</p>
 				<AuthField
@@ -108,7 +108,7 @@ export function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
 				data-cl-language={locale}
 			/>
 			<AuthButton loading={loading}>{auth.signUp.submit}</AuthButton>
-			<div className="mt-1 text-center text-xs text-[var(--auth-muted)]">
+			<div className="mt-1 text-center text-xs text-text-muted">
 				<a href={AUTH_PATHS.signIn} className="hover:underline">
 					{auth.signUp.haveAccount}
 				</a>

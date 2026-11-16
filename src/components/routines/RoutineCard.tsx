@@ -40,11 +40,11 @@ export function RoutineCard({ routine }: Props) {
 	}
 
 	return (
-		<div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-5 flex flex-col gap-3">
+		<div className="rounded-xl bg-surface border border-border p-5 flex flex-col gap-3">
 			<div className="flex items-start justify-between gap-2">
 				<div>
-					<h3 className="text-base font-semibold text-white">{routine.name}</h3>
-					<p className="text-xs text-[var(--text-muted)] mt-1">
+					<h3 className="text-base font-semibold text-text">{routine.name}</h3>
+					<p className="text-xs text-text-muted mt-1">
 						{routine.exercises.length} exercise
 						{routine.exercises.length !== 1 ? "s" : ""}
 					</p>
@@ -53,7 +53,7 @@ export function RoutineCard({ routine }: Props) {
 					<button
 						type="button"
 						onClick={() => setEditing(true)}
-						className="p-1.5 text-[var(--text-muted)] hover:text-white transition-colors"
+						className="p-1.5 text-text-muted hover:text-text transition-colors"
 						aria-label="Edit routine"
 					>
 						<Pencil size={14} />
@@ -61,7 +61,7 @@ export function RoutineCard({ routine }: Props) {
 					<button
 						type="button"
 						onClick={() => void handleRemove()}
-						className="p-1.5 text-[var(--text-muted)] hover:text-[var(--danger)] transition-colors"
+						className="p-1.5 text-text-muted hover:text-danger transition-colors"
 						aria-label="Delete routine"
 					>
 						<Trash2 size={14} />
@@ -73,13 +73,13 @@ export function RoutineCard({ routine }: Props) {
 				{routine.exercises.slice(0, 4).map((ex) => (
 					<span
 						key={ex.exerciseId}
-						className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--surface-2)] text-[var(--text-muted)]"
+						className="text-micro px-2 py-0.5 rounded-full bg-surface-2 text-text-muted"
 					>
 						{ex.exerciseName} {ex.defaultSets}×{ex.defaultReps}
 					</span>
 				))}
 				{routine.exercises.length > 4 && (
-					<span className="text-[10px] text-[var(--text-muted)]">
+					<span className="text-micro text-text-muted">
 						+{routine.exercises.length - 4} more
 					</span>
 				)}
@@ -89,7 +89,7 @@ export function RoutineCard({ routine }: Props) {
 				type="button"
 				onClick={() => void start(routine._id)}
 				disabled={starting}
-				className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg bg-[var(--accent)] text-black text-sm font-bold hover:bg-[var(--accent-hover)] transition-colors disabled:opacity-50"
+				className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg bg-accent-fill text-on-accent text-sm font-bold hover:bg-accent-pressed transition-colors disabled:opacity-50"
 			>
 				<Play size={14} />
 				{starting ? "Starting…" : "Start Workout"}
