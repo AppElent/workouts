@@ -111,7 +111,7 @@ export function MuscleMap({ muscleGroups, size = "sm" }: Props) {
 			{visibleIcons.map((icon) => (
 				<div key={icon.key} className="flex flex-col items-center gap-1.5">
 					<div
-						className="flex items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface-2)] shadow-[var(--shadow-card)]"
+						className="flex items-center justify-center rounded-lg border border-border bg-surface-2 shadow-card"
 						style={{ width: dims.tile, height: dims.tile }}
 					>
 						<img
@@ -124,7 +124,7 @@ export function MuscleMap({ muscleGroups, size = "sm" }: Props) {
 							decoding="async"
 						/>
 					</div>
-					<span className="text-[9px] tracking-widest text-[var(--text-muted)] uppercase">
+					<span className="text-micro tracking-widest text-text-muted uppercase">
 						{icon.label}
 					</span>
 				</div>

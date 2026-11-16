@@ -26,24 +26,24 @@ export function Stepper({
 
 	return (
 		<div className="flex items-center gap-3">
-			<span className="text-xs text-[var(--text-muted)] uppercase tracking-wide w-12 shrink-0">
+			<span className="text-xs text-text-muted uppercase tracking-wide w-12 shrink-0">
 				{label}
 			</span>
-			<div className="flex items-stretch flex-1 h-14 bg-[var(--surface-2)] rounded-xl border border-[var(--border)]">
+			<div className="flex items-stretch flex-1 h-14 bg-surface-2 rounded-xl border border-border">
 				<button
 					type="button"
 					onClick={dec}
-					className="w-14 flex items-center justify-center text-[var(--text-muted)] hover:text-white hover:bg-white/5 active:bg-white/10 transition-colors touch-manipulation rounded-l-xl"
+					className="w-14 flex items-center justify-center text-text-muted hover:text-text hover:bg-text/5 active:bg-text/10 transition-colors touch-manipulation rounded-l-xl"
 					aria-label={`Decrease ${label}`}
 				>
 					<Minus size={18} />
 				</button>
 				<div className="flex-1 flex items-center justify-center gap-1.5 select-none">
-					<span className="text-[22px] font-bold text-white leading-none tabular-nums">
+					<span className="text-stat font-bold text-text leading-none tabular-nums">
 						{value}
 					</span>
 					{unit && (
-						<span className="text-xs text-[var(--text-muted)] uppercase tracking-wide">
+						<span className="text-xs text-text-muted uppercase tracking-wide">
 							{unit}
 						</span>
 					)}
@@ -51,7 +51,7 @@ export function Stepper({
 				<button
 					type="button"
 					onClick={inc}
-					className="w-14 flex items-center justify-center text-[var(--text-muted)] hover:text-white hover:bg-white/5 active:bg-white/10 transition-colors touch-manipulation rounded-r-xl"
+					className="w-14 flex items-center justify-center text-text-muted hover:text-text hover:bg-text/5 active:bg-text/10 transition-colors touch-manipulation rounded-r-xl"
 					aria-label={`Increase ${label}`}
 				>
 					<Plus size={18} />

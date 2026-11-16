@@ -27,20 +27,20 @@ export function ActiveSessionBar() {
 	const label = activeSession.name ?? shell.activeSession.fallbackName;
 
 	return (
-		<div className="fixed bottom-16 sm:bottom-0 left-0 right-0 z-40 flex items-center justify-between gap-4 px-4 py-3 bg-[var(--surface)] border-t border-[var(--accent)]/30">
+		<div className="fixed bottom-16 sm:bottom-0 left-0 right-0 z-40 flex items-center justify-between gap-4 px-4 py-3 bg-surface border-t border-accent-ink/30">
 			<div className="flex items-center gap-3 min-w-0">
-				<div className="flex-shrink-0 w-8 h-8 rounded-full bg-[var(--accent-dim)] flex items-center justify-center">
-					<Dumbbell size={14} className="text-[var(--accent)]" />
+				<div className="flex-shrink-0 w-8 h-8 rounded-full bg-accent-dim flex items-center justify-center">
+					<Dumbbell size={14} className="text-accent-ink" />
 				</div>
 				<div className="min-w-0">
-					<p className="text-sm font-semibold text-white truncate">{label}</p>
-					<p className="text-xs text-[var(--text-muted)]">{elapsed}</p>
+					<p className="text-sm font-semibold text-text truncate">{label}</p>
+					<p className="text-xs text-text-muted">{elapsed}</p>
 				</div>
 			</div>
 			<Link
 				to="/log/$sessionId"
 				params={{ sessionId: activeSession._id }}
-				className="flex-shrink-0 px-4 py-1.5 rounded-lg bg-[var(--accent)] text-black text-sm font-bold hover:bg-[var(--accent-hover)] transition-colors"
+				className="flex-shrink-0 px-4 py-1.5 rounded-lg bg-accent-fill text-on-accent text-sm font-bold hover:bg-accent-pressed transition-colors"
 			>
 				{shell.activeSession.resume} →
 			</Link>

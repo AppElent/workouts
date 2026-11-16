@@ -93,7 +93,7 @@ export function SignInForm({ onSuccess }: { onSuccess?: () => void }) {
 		return (
 			<form onSubmit={submitCode} noValidate className="flex flex-col gap-3">
 				<AuthError message={error} />
-				<p className="text-sm text-[var(--auth-muted)]">
+				<p className="text-sm text-text-muted">
 					{fmt(auth.signIn.codeSent, { email })}
 				</p>
 				<AuthField
@@ -106,11 +106,11 @@ export function SignInForm({ onSuccess }: { onSuccess?: () => void }) {
 				/>
 				<AuthButton loading={loading}>{auth.signIn.verify}</AuthButton>
 				{notice ? (
-					<p className="text-xs text-[var(--auth-muted)]" role="status">
+					<p className="text-xs text-text-muted" role="status">
 						{notice}
 					</p>
 				) : null}
-				<div className="mt-1 flex justify-between text-xs text-[var(--auth-muted)]">
+				<div className="mt-1 flex justify-between text-xs text-text-muted">
 					<button
 						type="button"
 						className="hover:underline"
@@ -158,14 +158,14 @@ export function SignInForm({ onSuccess }: { onSuccess?: () => void }) {
 			<AuthButton
 				type="button"
 				variant="ghost"
-				className="border-solid border-[var(--auth-border)]"
+				className="border-solid border-border"
 				loading={loading}
 				onClick={sendCode}
 			>
 				{auth.signIn.emailCode}
 			</AuthButton>
 			<TestLoginButton onSuccess={onSuccess} />
-			<div className="mt-1 flex justify-between text-xs text-[var(--auth-muted)]">
+			<div className="mt-1 flex justify-between text-xs text-text-muted">
 				<a href={AUTH_PATHS.forgotPassword} className="hover:underline">
 					{auth.signIn.forgotPassword}
 				</a>

@@ -95,24 +95,24 @@ export function SessionSummary({ session, sets, exerciseMap }: Props) {
 				<div className="flex items-center gap-2 mb-2">
 					{isCompleted ? (
 						<>
-							<CheckCircle2 size={16} className="text-[var(--accent)]" />
-							<span className="text-xs font-medium px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)]">
+							<CheckCircle2 size={16} className="text-accent-ink" />
+							<span className="text-xs font-medium px-2 py-0.5 rounded-full bg-accent-dim text-accent-ink">
 								Workout Complete
 							</span>
 						</>
 					) : (
 						<>
-							<XCircle size={16} className="text-[var(--text-muted)]" />
-							<span className="text-xs font-medium px-2 py-0.5 rounded-full bg-white/5 text-[var(--text-muted)]">
+							<XCircle size={16} className="text-text-muted" />
+							<span className="text-xs font-medium px-2 py-0.5 rounded-full bg-text/5 text-text-muted">
 								Workout Cancelled
 							</span>
 						</>
 					)}
 				</div>
-				<h1 className="text-xl font-bold text-white">
+				<h1 className="text-xl font-bold text-text">
 					{session.name ?? "Workout Session"}
 				</h1>
-				<div className="flex items-center gap-3 mt-1 text-xs text-[var(--text-muted)]">
+				<div className="flex items-center gap-3 mt-1 text-xs text-text-muted">
 					<span>
 						{format(new Date(session.startTime), "h:mm a · MMM d, yyyy")}
 					</span>
@@ -126,13 +126,13 @@ export function SessionSummary({ session, sets, exerciseMap }: Props) {
 			</div>
 
 			<div className="grid grid-cols-2 gap-3 mb-6">
-				<div className="rounded-xl bg-white/5 p-4">
-					<p className="text-xs text-[var(--text-muted)] mb-1">Total Sets</p>
-					<p className="text-2xl font-bold text-white">{sets.length}</p>
+				<div className="rounded-xl bg-text/5 p-4">
+					<p className="text-xs text-text-muted mb-1">Total Sets</p>
+					<p className="text-2xl font-bold text-text">{sets.length}</p>
 				</div>
-				<div className="rounded-xl bg-white/5 p-4">
-					<p className="text-xs text-[var(--text-muted)] mb-1">Volume</p>
-					<p className="text-2xl font-bold text-white">
+				<div className="rounded-xl bg-text/5 p-4">
+					<p className="text-xs text-text-muted mb-1">Volume</p>
+					<p className="text-2xl font-bold text-text">
 						{totalVolume > 0 ? `${totalVolume.toLocaleString()} kg` : "—"}
 					</p>
 				</div>
@@ -140,18 +140,18 @@ export function SessionSummary({ session, sets, exerciseMap }: Props) {
 
 			<div className="flex flex-col gap-3 mb-8">
 				{exerciseBreakdown.length === 0 ? (
-					<div className="rounded-xl bg-white/5 p-4 text-sm text-[var(--text-muted)] flex items-center gap-2">
+					<div className="rounded-xl bg-text/5 p-4 text-sm text-text-muted flex items-center gap-2">
 						<Dumbbell size={14} />
 						No sets logged
 					</div>
 				) : (
 					exerciseBreakdown.map((ex) => (
-						<div key={ex.id} className="rounded-xl bg-white/5 p-4">
+						<div key={ex.id} className="rounded-xl bg-text/5 p-4">
 							<div className="flex items-center justify-between mb-2">
-								<span className="text-sm font-semibold text-white">
+								<span className="text-sm font-semibold text-text">
 									{ex.name}
 								</span>
-								<span className="text-xs text-[var(--text-muted)]">
+								<span className="text-xs text-text-muted">
 									{ex.sets.length} {ex.sets.length === 1 ? "set" : "sets"}
 								</span>
 							</div>
@@ -161,8 +161,8 @@ export function SessionSummary({ session, sets, exerciseMap }: Props) {
 										key={s._id}
 										className={`text-xs px-2 py-1 rounded-md ${
 											s.setType === "warmup"
-												? "bg-yellow-500/10 text-yellow-400"
-												: "bg-white/5 text-[var(--text-muted)]"
+												? "bg-warn-soft text-warn"
+												: "bg-text/5 text-text-muted"
 										}`}
 									>
 										{i + 1}. {s.weight > 0 ? `${s.weight}kg` : "BW"} × {s.reps}
@@ -170,7 +170,7 @@ export function SessionSummary({ session, sets, exerciseMap }: Props) {
 								))}
 							</div>
 							{ex.bestSet && ex.bestSet.weight > 0 && (
-								<p className="text-xs text-[var(--text-muted)] mt-2">
+								<p className="text-xs text-text-muted mt-2">
 									Best: {ex.bestSet.weight}
 									{ex.bestSet.unit} × {ex.bestSet.reps} reps
 								</p>
@@ -182,19 +182,19 @@ export function SessionSummary({ session, sets, exerciseMap }: Props) {
 
 			{wodResults.length > 0 && (
 				<div className="mt-4 flex flex-col gap-2">
-					<h3 className="text-sm font-semibold text-white">WODs</h3>
+					<h3 className="text-sm font-semibold text-text">WODs</h3>
 					{wodResults.map((r) => {
 						const wod = wodMap.get(r.wodId as string);
 						if (!wod) return null;
 						return (
 							<div
 								key={r._id}
-								className="flex items-center justify-between rounded-lg bg-[var(--surface-2)] border border-[var(--border)] px-4 py-2.5"
+								className="flex items-center justify-between rounded-lg bg-surface-2 border border-border px-4 py-2.5"
 							>
-								<span className="text-sm text-white">{wod.name}</span>
-								<span className="text-sm text-[var(--accent)] tabular-nums">
+								<span className="text-sm text-text">{wod.name}</span>
+								<span className="text-sm text-accent-ink tabular-nums">
 									{formatScore(wod.type, r)}{" "}
-									<span className="text-[10px] uppercase text-[var(--text-muted)]">
+									<span className="text-micro uppercase text-text-muted">
 										{r.rxScaled}
 									</span>
 								</span>
@@ -207,14 +207,14 @@ export function SessionSummary({ session, sets, exerciseMap }: Props) {
 			<div className="flex flex-col sm:flex-row gap-3">
 				<Link
 					to="/dashboard"
-					className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[var(--accent)] text-black text-sm font-bold hover:bg-[var(--accent-hover)] transition-colors"
+					className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-accent-fill text-on-accent text-sm font-bold hover:bg-accent-pressed transition-colors"
 				>
 					<LayoutDashboard size={15} />
 					Go to Dashboard
 				</Link>
 				<Link
 					to="/log"
-					className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-[var(--border)] text-[var(--text-muted)] text-sm hover:text-white hover:border-white/20 transition-colors"
+					className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-border text-text-muted text-sm hover:text-text hover:border-border-strong transition-colors"
 				>
 					<ListChecks size={15} />
 					Back to Log
@@ -222,7 +222,7 @@ export function SessionSummary({ session, sets, exerciseMap }: Props) {
 				<button
 					type="button"
 					onClick={() => void handleDelete()}
-					className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-[var(--border)] text-[var(--text-muted)] text-sm hover:text-[var(--danger)] hover:border-[var(--danger)]/30 transition-colors"
+					className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-border text-text-muted text-sm hover:text-danger hover:border-danger/30 transition-colors"
 				>
 					<Trash2 size={15} />
 					Delete

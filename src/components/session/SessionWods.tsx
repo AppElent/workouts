@@ -27,10 +27,10 @@ export function SessionWods({
 				return (
 					<div
 						key={r._id}
-						className="flex items-center justify-between rounded-xl bg-[var(--surface)] border border-[var(--border)] px-4 py-3"
+						className="flex items-center justify-between rounded-xl bg-surface border border-border px-4 py-3"
 					>
-						<span className="text-sm font-semibold text-white">{wod.name}</span>
-						<span className="text-sm text-[var(--accent)] tabular-nums">
+						<span className="text-sm font-semibold text-text">{wod.name}</span>
+						<span className="text-sm text-accent-ink tabular-nums">
 							{formatScore(wod.type, r)}
 						</span>
 					</div>
@@ -42,7 +42,7 @@ export function SessionWods({
 					<button
 						type="button"
 						onClick={() => setSelectedId(null)}
-						className="absolute right-3 top-3 z-10 p-1 text-[var(--text-muted)] hover:text-white"
+						className="absolute right-3 top-3 z-10 p-1 text-text-muted hover:text-text"
 						aria-label="Close WOD form"
 					>
 						<X size={16} />
@@ -55,7 +55,7 @@ export function SessionWods({
 					/>
 				</div>
 			) : picking ? (
-				<div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] divide-y divide-[var(--border)] max-h-64 overflow-y-auto">
+				<div className="rounded-xl border border-border bg-surface divide-y divide-border max-h-64 overflow-y-auto">
 					{wods.map((w) => (
 						<button
 							key={w._id}
@@ -64,7 +64,7 @@ export function SessionWods({
 								setSelectedId(w._id);
 								setPicking(false);
 							}}
-							className="w-full text-left px-4 py-2.5 text-sm text-white hover:bg-white/5 transition-colors"
+							className="w-full text-left px-4 py-2.5 text-sm text-text hover:bg-text/5 transition-colors"
 						>
 							{w.name}
 						</button>
@@ -74,7 +74,7 @@ export function SessionWods({
 				<button
 					type="button"
 					onClick={() => setPicking(true)}
-					className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-[var(--border)] text-[var(--text-muted)] text-sm hover:border-[var(--accent)]/40 hover:text-[var(--accent)] transition-colors"
+					className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-border text-text-muted text-sm hover:border-accent-ink/40 hover:text-accent-ink transition-colors"
 				>
 					<Plus size={16} />
 					Add WOD

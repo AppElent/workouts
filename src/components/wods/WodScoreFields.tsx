@@ -62,7 +62,7 @@ export function WodScoreFields({
 		case "forTime":
 			return (
 				<>
-					<label className="flex items-center gap-2 text-sm text-white">
+					<label className="flex items-center gap-2 text-sm text-text">
 						<input
 							type="checkbox"
 							checked={draft.timeCapped}
@@ -125,7 +125,7 @@ export function WodScoreFields({
 							onChange({ loadUnit: event.target.value as LoadUnit })
 						}
 						aria-label="Load unit"
-						className="h-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-2 text-sm text-white"
+						className="h-full rounded-lg border border-border bg-surface-2 px-2 text-sm text-text"
 					>
 						{LOAD_UNITS.map((unit) => (
 							<option key={unit} value={unit}>

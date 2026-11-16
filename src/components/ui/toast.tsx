@@ -48,10 +48,10 @@ function ToastList() {
 				key={toast.id}
 				toast={toast}
 				className={cn(
-					"pointer-events-auto flex items-start gap-3 rounded-xl border bg-[var(--surface)] p-4 shadow-xl",
-					type === "error" && "border-[var(--danger)]/40",
-					type === "success" && "border-[var(--success)]/40",
-					type === "info" && "border-[var(--border)]",
+					"pointer-events-auto flex items-start gap-3 rounded-xl border bg-surface p-4 shadow-xl",
+					type === "error" && "border-danger/40",
+					type === "success" && "border-success/40",
+					type === "info" && "border-border",
 				)}
 			>
 				<Icon
@@ -59,17 +59,17 @@ function ToastList() {
 					aria-hidden="true"
 					className={cn(
 						"mt-0.5 shrink-0",
-						type === "error" && "text-[var(--danger)]",
-						type === "success" && "text-[var(--success)]",
-						type === "info" && "text-[var(--text-muted)]",
+						type === "error" && "text-danger",
+						type === "success" && "text-success",
+						type === "info" && "text-text-muted",
 					)}
 				/>
 				<div className="min-w-0 flex-1">
-					<Toast.Title className="text-sm font-semibold text-white" />
-					<Toast.Description className="mt-0.5 text-sm text-[var(--text-muted)]" />
+					<Toast.Title className="text-sm font-semibold text-text" />
+					<Toast.Description className="mt-0.5 text-sm text-text-muted" />
 				</div>
 				<Toast.Close
-					className="shrink-0 rounded p-1 text-[var(--text-muted)] transition-colors hover:text-white"
+					className="shrink-0 rounded p-1 text-text-muted transition-colors hover:text-text"
 					aria-label={shell.toast.dismiss}
 				>
 					<X size={14} />

@@ -36,16 +36,12 @@ export function HostedWorkoutDashboard({ id }: { id: Id<"hostedWorkouts"> }) {
 	}, [data?.hosted.joinToken]);
 
 	if (data === undefined) {
-		return (
-			<div className="p-6 text-sm text-[var(--text-muted)]">Loading...</div>
-		);
+		return <div className="p-6 text-sm text-text-muted">Loading...</div>;
 	}
 
 	if (data === null) {
 		return (
-			<div className="p-6 text-sm text-[var(--danger)]">
-				Hosted workout not found.
-			</div>
+			<div className="p-6 text-sm text-danger">Hosted workout not found.</div>
 		);
 	}
 
@@ -82,7 +78,7 @@ export function HostedWorkoutDashboard({ id }: { id: Id<"hostedWorkouts"> }) {
 			<div>
 				<Link
 					to="/hosted-workouts"
-					className="mb-3 inline-flex items-center gap-1 text-xs text-[var(--text-muted)] transition-colors hover:text-white"
+					className="mb-3 inline-flex items-center gap-1 text-xs text-text-muted transition-colors hover:text-text"
 				>
 					<ArrowLeft size={13} />
 					Hosted Workouts
@@ -90,18 +86,18 @@ export function HostedWorkoutDashboard({ id }: { id: Id<"hostedWorkouts"> }) {
 				<div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
 					<div>
 						<div className="flex flex-wrap items-center gap-2">
-							<h1 className="text-2xl font-bold text-white">{hosted.title}</h1>
-							<span className="rounded-full border border-[var(--border)] px-2 py-1 text-xs uppercase text-[var(--text-muted)]">
+							<h1 className="text-2xl font-bold text-text">{hosted.title}</h1>
+							<span className="rounded-full border border-border px-2 py-1 text-xs uppercase text-text-muted">
 								{hosted.status}
 							</span>
 						</div>
 						{hosted.scheduledAt && (
-							<p className="mt-1 text-sm text-[var(--text-muted)]">
+							<p className="mt-1 text-sm text-text-muted">
 								{format(new Date(hosted.scheduledAt), "MMM d, yyyy h:mm a")}
 							</p>
 						)}
 						{hosted.notes && (
-							<p className="mt-3 max-w-2xl text-sm text-[var(--text-muted)]">
+							<p className="mt-3 max-w-2xl text-sm text-text-muted">
 								{hosted.notes}
 							</p>
 						)}
@@ -112,14 +108,14 @@ export function HostedWorkoutDashboard({ id }: { id: Id<"hostedWorkouts"> }) {
 								<Link
 									to="/hosted-workouts/edit/$id"
 									params={{ id }}
-									className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-semibold text-white"
+									className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-semibold text-text"
 								>
 									<Pencil size={15} /> Edit
 								</Link>
 								<button
 									type="button"
 									onClick={() => runAction(() => openHostedWorkout({ id }))}
-									className="inline-flex items-center gap-2 rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-bold text-black"
+									className="inline-flex items-center gap-2 rounded-lg bg-accent-fill px-4 py-2 text-sm font-bold text-on-accent"
 								>
 									<Play size={15} /> Open
 								</button>
@@ -129,7 +125,7 @@ export function HostedWorkoutDashboard({ id }: { id: Id<"hostedWorkouts"> }) {
 							<Link
 								to="/log/$sessionId"
 								params={{ sessionId: myParticipant.sessionId }}
-								className="inline-flex items-center gap-2 rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-bold text-black"
+								className="inline-flex items-center gap-2 rounded-lg bg-accent-fill px-4 py-2 text-sm font-bold text-on-accent"
 							>
 								<Dumbbell size={15} /> Go to my session
 							</Link>
@@ -138,7 +134,7 @@ export function HostedWorkoutDashboard({ id }: { id: Id<"hostedWorkouts"> }) {
 							<button
 								type="button"
 								onClick={() => runAction(() => closeHostedWorkout({ id }))}
-								className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-semibold text-white"
+								className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-semibold text-text"
 							>
 								<Lock size={15} /> Close
 							</button>
@@ -146,7 +142,7 @@ export function HostedWorkoutDashboard({ id }: { id: Id<"hostedWorkouts"> }) {
 						<button
 							type="button"
 							onClick={handleDelete}
-							className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-semibold text-[var(--danger)] hover:border-[var(--danger)]/40"
+							className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-semibold text-danger hover:border-danger/40"
 						>
 							<Trash2 size={15} /> Delete
 						</button>
@@ -156,8 +152,8 @@ export function HostedWorkoutDashboard({ id }: { id: Id<"hostedWorkouts"> }) {
 
 			<div className="grid gap-4 lg:grid-cols-[280px_1fr]">
 				{hosted.status === "draft" ? (
-					<div className="flex h-fit flex-col gap-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 text-sm text-[var(--text-muted)]">
-						<p className="font-semibold text-white">Join link</p>
+					<div className="flex h-fit flex-col gap-1 rounded-lg border border-border bg-surface p-4 text-sm text-text-muted">
+						<p className="font-semibold text-text">Join link</p>
 						<p>
 							The QR code and join link become active once you open this
 							workout.
@@ -167,23 +163,23 @@ export function HostedWorkoutDashboard({ id }: { id: Id<"hostedWorkouts"> }) {
 					<HostedWorkoutQr url={joinUrl} />
 				)}
 
-				<section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
-					<h2 className="text-sm font-semibold text-white">Participants</h2>
+				<section className="rounded-lg border border-border bg-surface p-4">
+					<h2 className="text-sm font-semibold text-text">Participants</h2>
 					<div className="mt-3 grid gap-2 sm:grid-cols-2">
 						{participants.length === 0 && (
-							<p className="text-sm text-[var(--text-muted)]">
+							<p className="text-sm text-text-muted">
 								No signed-in athletes have joined yet.
 							</p>
 						)}
 						{participants.map((participant) => (
 							<div
 								key={participant._id}
-								className="rounded-lg border border-[var(--border)] px-3 py-2"
+								className="rounded-lg border border-border px-3 py-2"
 							>
-								<p className="text-sm font-medium text-white">
+								<p className="text-sm font-medium text-text">
 									{participantName(participant)}
 								</p>
-								<p className="mt-1 text-xs text-[var(--text-muted)]">
+								<p className="mt-1 text-xs text-text-muted">
 									Joined {format(new Date(participant.joinedAt), "h:mm a")}
 								</p>
 							</div>

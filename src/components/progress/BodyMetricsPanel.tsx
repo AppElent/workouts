@@ -100,9 +100,9 @@ export function BodyMetricsPanel() {
 		}));
 
 	const inputCls =
-		"h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[var(--accent)]";
+		"h-11 w-full rounded-lg border border-border bg-surface-2 px-3 text-sm text-text focus:outline-none focus:ring-1 focus:ring-accent-ink";
 	const labelCls =
-		"text-[10px] uppercase tracking-wide text-[var(--text-muted)] mb-1 block";
+		"text-micro uppercase tracking-wide text-text-muted mb-1 block";
 
 	return (
 		<div className="flex flex-col gap-6">
@@ -133,8 +133,8 @@ export function BodyMetricsPanel() {
 				</div>
 			)}
 
-			<div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-4 sm:p-5">
-				<h2 className="text-sm font-semibold text-white mb-4">
+			<div className="rounded-xl bg-surface border border-border p-4 sm:p-5">
+				<h2 className="text-sm font-semibold text-text mb-4">
 					Log measurement
 				</h2>
 				<div className="grid grid-cols-2 gap-3">
@@ -161,7 +161,7 @@ export function BodyMetricsPanel() {
 											],
 									)
 								}
-								className="h-11 px-3 shrink-0 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-sm font-semibold text-[var(--accent)]"
+								className="h-11 px-3 shrink-0 rounded-lg border border-border bg-surface-2 text-sm font-semibold text-accent-ink"
 							>
 								{unit}
 							</button>
@@ -185,7 +185,7 @@ export function BodyMetricsPanel() {
 				<button
 					type="button"
 					onClick={() => setShowMore((s) => !s)}
-					className="mt-3 flex items-center gap-1 text-xs text-[var(--text-muted)] hover:text-white transition-colors"
+					className="mt-3 flex items-center gap-1 text-xs text-text-muted hover:text-text transition-colors"
 				>
 					<ChevronDown
 						size={14}
@@ -221,28 +221,25 @@ export function BodyMetricsPanel() {
 					</div>
 				)}
 
-				{error && <p className="text-xs text-[var(--danger)] mt-3">{error}</p>}
+				{error && <p className="text-xs text-danger mt-3">{error}</p>}
 
 				<button
 					type="button"
 					onClick={() => void handleSave()}
 					disabled={saving}
-					className="mt-4 w-full h-12 rounded-full bg-[var(--accent)] text-black text-[15px] font-bold flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-40"
+					className="mt-4 w-full h-12 rounded-full bg-accent-fill text-on-accent text-body font-bold flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-40"
 				>
 					<Plus size={18} />
 					Save
 				</button>
 			</div>
 
-			<div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-5">
-				<h2 className="text-sm font-semibold text-white mb-4">Weight trend</h2>
+			<div className="rounded-xl bg-surface border border-border p-5">
+				<h2 className="text-sm font-semibold text-text mb-4">Weight trend</h2>
 				{chartData.length > 1 ? (
 					<ResponsiveContainer width="100%" height={220}>
 						<LineChart data={chartData}>
-							<CartesianGrid
-								strokeDasharray="3 3"
-								stroke="rgba(255,255,255,0.06)"
-							/>
+							<CartesianGrid strokeDasharray="3 3" stroke="var(--separator)" />
 							<XAxis
 								dataKey="date"
 								tick={{ fill: "var(--text-muted)", fontSize: 11 }}
@@ -258,59 +255,59 @@ export function BodyMetricsPanel() {
 							/>
 							<Tooltip
 								contentStyle={{
-									background: "#1a1a1a",
-									border: "1px solid rgba(255,255,255,0.1)",
+									background: "var(--surface)",
+									border: "1px solid var(--border-strong)",
 									borderRadius: 8,
-									color: "#fff",
+									color: "var(--text)",
 									fontSize: 12,
 								}}
 							/>
 							<Line
 								type="monotone"
 								dataKey="weight"
-								stroke="var(--accent)"
+								stroke="var(--accent-ink)"
 								strokeWidth={2}
-								dot={{ fill: "var(--accent)", r: 3, strokeWidth: 0 }}
-								activeDot={{ r: 6, fill: "var(--accent-hover)" }}
+								dot={{ fill: "var(--accent-ink)", r: 3, strokeWidth: 0 }}
+								activeDot={{ r: 6, fill: "var(--accent-ink)" }}
 							/>
 						</LineChart>
 					</ResponsiveContainer>
 				) : (
-					<p className="text-sm text-[var(--text-muted)] py-8 text-center">
+					<p className="text-sm text-text-muted py-8 text-center">
 						Log your weight on at least two days to see the trend.
 					</p>
 				)}
 			</div>
 
 			{entries.length > 0 && (
-				<div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-5">
-					<h2 className="text-sm font-semibold text-white mb-3">History</h2>
-					<div className="flex flex-col divide-y divide-[var(--border)]">
+				<div className="rounded-xl bg-surface border border-border p-5">
+					<h2 className="text-sm font-semibold text-text mb-3">History</h2>
+					<div className="flex flex-col divide-y divide-border">
 						{entries.map((e) => (
 							<div
 								key={e._id}
 								className="py-2.5 flex items-center justify-between gap-3"
 							>
 								<div className="min-w-0">
-									<p className="text-sm text-white">
+									<p className="text-sm text-text">
 										{e.weight !== undefined && (
 											<span className="font-semibold">
 												{e.weight} {e.unit}
 											</span>
 										)}
 										{e.bodyFatPct !== undefined && (
-											<span className="text-[var(--text-muted)]">
+											<span className="text-text-muted">
 												{e.weight !== undefined ? " · " : ""}
 												{e.bodyFatPct}% bf
 											</span>
 										)}
 										{e.measurements?.waist !== undefined && (
-											<span className="text-[var(--text-muted)]">
+											<span className="text-text-muted">
 												{" · "}waist {e.measurements.waist}cm
 											</span>
 										)}
 									</p>
-									<p className="text-xs text-[var(--text-muted)] mt-0.5">
+									<p className="text-xs text-text-muted mt-0.5">
 										{format(new Date(e.date), "EEE, MMM d · h:mm a")}
 									</p>
 								</div>
@@ -318,7 +315,7 @@ export function BodyMetricsPanel() {
 									type="button"
 									onClick={() => void handleRemove(e._id)}
 									aria-label="Delete entry"
-									className="p-2 text-[var(--text-muted)] hover:text-[var(--danger)] transition-colors shrink-0"
+									className="p-2 text-text-muted hover:text-danger transition-colors shrink-0"
 								>
 									<Trash2 size={15} />
 								</button>
@@ -341,17 +338,13 @@ function StatCard({
 	unit: string;
 }) {
 	return (
-		<div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-3">
-			<p className="text-[9px] tracking-widest text-[var(--text-muted)] uppercase mb-1">
+		<div className="rounded-xl bg-surface border border-border p-3">
+			<p className="text-micro tracking-widest text-text-muted uppercase mb-1">
 				{label}
 			</p>
-			<p className="text-lg font-bold text-white tabular-nums">
+			<p className="text-lg font-bold text-text tabular-nums">
 				{value}
-				{unit && (
-					<span className="text-xs text-[var(--text-muted)] ml-0.5">
-						{unit}
-					</span>
-				)}
+				{unit && <span className="text-xs text-text-muted ml-0.5">{unit}</span>}
 			</p>
 		</div>
 	);

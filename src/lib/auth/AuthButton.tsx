@@ -26,10 +26,10 @@ export function AuthButton({
 			aria-busy={loading ?? false}
 			onClick={onClick}
 			className={cn(
-				"inline-flex items-center justify-center rounded-[var(--auth-radius)] px-4 py-2 text-sm font-medium transition disabled:opacity-60",
+				"inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-medium transition disabled:opacity-60",
 				variant === "primary"
-					? "bg-[var(--auth-accent)] text-[var(--auth-accent-fg)] hover:opacity-90"
-					: "border border-dashed border-[var(--auth-accent)] text-[var(--auth-fg)] hover:bg-[var(--auth-border)]",
+					? "bg-accent-fill text-on-accent hover:opacity-90"
+					: "border border-dashed border-accent-ink text-text hover:bg-border",
 				className,
 			)}
 		>

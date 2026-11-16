@@ -1,65 +1,176 @@
 @import "tailwindcss";
 
+/*
+ * Foundry palette. Names and values mirror `darkColors` / `lightColors` in
+ * apps/mobile/src/theme/palette.ts (kebab-case). Light is the default; dark
+ * follows prefers-color-scheme.
+ *
+ * accent-fill (#c8f73c) is a fill only. Text, icons and chart lines use
+ * accent-ink; content on a lime fill uses on-accent.
+ */
 :root {
-  /* Spotify dark design tokens */
-  --bg: #000000;
-  --surface: #1a1a1a;
-  --surface-2: #242424;
-  --accent: #1DB954;
-  --accent-hover: #1ed760;
-  --accent-dim: rgba(29, 185, 84, 0.08);
-  --text: #ffffff;
-  --text-muted: #b3b3b3;
-  --text-faint: rgba(255,255,255,0.5);
-  --border: rgba(255, 255, 255, 0.1);
-  --border-strong: rgba(255, 255, 255, 0.18);
+  color-scheme: light dark;
 
-  /* Semantic */
-  --accent-ring:   rgba(29, 185, 84, 0.40);
-  --danger:        #f87171;
-  --danger-soft:   rgba(248,113,113,0.12);
-  --success:       #4ade80;
-  --warn:          #fbbf24;
+  --bg: #f4f5f0;
+  --surface: #ffffff;
+  --surface-2: #e9ece3;
+  --accent: #466400;
+  --accent-pressed: #b5e329;
+  --accent-dim: rgba(70, 100, 0, 0.10);
+  --on-accent: #0a0b09;
+  --accent-ink: #466400;
+  --text: #1a2015;
+  --text-muted: #535e49;
+  --swipe-neutral: #7d8478;
+  --text-faint: #606b57;
+  --border: rgba(26, 32, 21, 0.12);
+  --border-strong: rgba(26, 32, 21, 0.25);
+  --separator: rgba(60, 62, 50, 0.10);
+  --danger: #b42332;
+  --danger-soft: rgba(180, 35, 50, 0.09);
+  --success: #24723c;
+  --warn: #865500;
+  --warn-soft: rgba(134, 85, 0, 0.09);
+  --warn-border: rgba(134, 85, 0, 0.25);
+  --accent-fill: #c8f73c;
+  --on-danger: #ffffff;
+  --scrim: rgba(0, 0, 0, 0.4);
+  --media-scrim: rgba(10, 11, 9, 0.72);
+  --on-media: #ffffff;
+  --surface-transparent: rgba(255, 255, 255, 0);
 
-  /* Elevation */
-  --shadow-card:    0 1px 0 rgba(255,255,255,0.02) inset;
-  --shadow-overlay: 0 16px 40px rgba(0,0,0,0.6);
-
-  /* Auth components */
-  --auth-bg: var(--bg);
-  --auth-fg: var(--text);
-  --auth-muted: var(--text-muted);
-  --auth-card-bg: var(--surface);
-  --auth-border: var(--border);
-  --auth-radius: 12px;
-  --auth-field-bg: var(--surface-2);
-  --auth-accent: var(--accent);
-  --auth-accent-fg: #000000;
-  --auth-error: var(--danger);
+  /* Web-only elevation, not part of the palette. */
+  --elevation-card: 0 1px 2px rgba(26, 32, 21, 0.06);
+  --elevation-overlay: 0 16px 40px rgba(26, 32, 21, 0.18);
 }
 
-* {
-  box-sizing: border-box;
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0a0b09;
+    --surface: #141613;
+    --surface-2: #1d201b;
+    --accent: #c8f73c;
+    --accent-pressed: #d6ff5c;
+    --accent-dim: rgba(200, 247, 60, 0.13);
+    --on-accent: #0a0b09;
+    --accent-ink: #c8f73c;
+    --text: #f2f4ef;
+    --text-muted: #9ba095;
+    --swipe-neutral: #7d8478;
+    --text-faint: #919789;
+    --border: rgba(255, 255, 255, 0.07);
+    --border-strong: rgba(255, 255, 255, 0.14);
+    --separator: rgba(255, 255, 255, 0.14);
+    --danger: #ff6b6b;
+    --danger-soft: rgba(255, 107, 107, 0.12);
+    --success: #4ade80;
+    --warn: #fbbf24;
+    --warn-soft: rgba(251, 191, 36, 0.12);
+    --warn-border: rgba(251, 191, 36, 0.25);
+    --accent-fill: #c8f73c;
+    --on-danger: #0a0b09;
+    --scrim: rgba(0, 0, 0, 0.6);
+    --media-scrim: rgba(10, 11, 9, 0.72);
+    --on-media: #ffffff;
+    --surface-transparent: rgba(20, 22, 19, 0);
+
+    --elevation-card: 0 1px 0 rgba(255, 255, 255, 0.02) inset;
+    --elevation-overlay: 0 16px 40px rgba(0, 0, 0, 0.6);
+  }
 }
 
-html,
-body,
-#app {
-  min-height: 100%;
-  background-color: var(--bg);
-  color: var(--text);
+/*
+ * Token utilities: bg-surface, text-text-muted, text-accent-ink,
+ * bg-accent-fill, text-on-accent, border-border, shadow-overlay, text-micro…
+ */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-accent: var(--accent);
+  --color-accent-pressed: var(--accent-pressed);
+  --color-accent-dim: var(--accent-dim);
+  --color-on-accent: var(--on-accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-swipe-neutral: var(--swipe-neutral);
+  --color-text-faint: var(--text-faint);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-separator: var(--separator);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-success: var(--success);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-warn-border: var(--warn-border);
+  --color-accent-fill: var(--accent-fill);
+  --color-on-danger: var(--on-danger);
+  --color-scrim: var(--scrim);
+  --color-media-scrim: var(--media-scrim);
+  --color-on-media: var(--on-media);
+  --color-surface-transparent: var(--surface-transparent);
+
+  /*
+   * Barbell plates keep their real-world colours in both themes; on-plate is
+   * the label on them. Web-only, not part of the palette.
+   */
+  --color-plate-red: #ef4444;
+  --color-plate-blue: #3b82f6;
+  --color-plate-yellow: #eab308;
+  --color-plate-green: #22c55e;
+  --color-plate-white: #e5e7eb;
+  --color-plate-silver: #9ca3af;
+  --color-on-plate: #0a0b09;
+
+  --shadow-card: var(--elevation-card);
+  --shadow-overlay: var(--elevation-overlay);
+
+  /* Type ramp from apps/mobile/src/theme/tokens.ts `type` (sizes only). */
+  --text-axis: 9px;
+  --text-micro: 10px;
+  --text-eyebrow: 11px;
+  --text-caption: 12px;
+  --text-label: 13px;
+  --text-table: 14px;
+  --text-body: 15px;
+  --text-control: 16px;
+  --text-heading: 18px;
+  --text-stat: 21px;
+  --text-title: 24px;
+  --text-metric: 28px;
+  --text-display: 32px;
 }
 
-body {
-  margin: 0;
-  font-family: ui-sans-serif, system-ui, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+/*
+ * Element defaults live in the base layer so Tailwind utilities (a later
+ * layer) win: an unlayered `a { color: inherit }` beat every text-* class.
+ */
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
 
-a {
-  color: inherit;
-  text-decoration: none;
+  html,
+  body,
+  #app {
+    min-height: 100%;
+    background-color: var(--bg);
+    color: var(--text);
+  }
+
+  body {
+    margin: 0;
+    font-family: ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
 }
 
 /* Prevent iOS Safari from auto-zooming on input focus (triggers when font-size < 16px) */

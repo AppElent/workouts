@@ -21,7 +21,7 @@ export function AuthField({
 	const errorId = useId();
 	return (
 		<div className="flex flex-col gap-1">
-			<label htmlFor={id} className="text-sm font-medium text-[var(--auth-fg)]">
+			<label htmlFor={id} className="text-sm font-medium text-text">
 				{label}
 			</label>
 			<input
@@ -32,10 +32,10 @@ export function AuthField({
 				autoComplete={autoComplete}
 				aria-describedby={error ? errorId : undefined}
 				onChange={(e) => onChange(e.target.value)}
-				className="rounded-[var(--auth-radius)] border border-[var(--auth-border)] bg-[var(--auth-field-bg)] px-3 py-2 text-sm text-[var(--auth-fg)] outline-none focus:border-[var(--auth-accent)]"
+				className="rounded-xl border border-border bg-surface-2 px-3 py-2 text-sm text-text outline-none focus:border-accent-ink"
 			/>
 			{error ? (
-				<p id={errorId} className="text-xs text-[var(--auth-error)]">
+				<p id={errorId} className="text-xs text-danger">
 					{error}
 				</p>
 			) : null}

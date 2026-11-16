@@ -194,12 +194,10 @@ function ActiveSessionPage() {
 	}
 
 	if (session === undefined) {
-		return <div className="p-6 text-[var(--text-muted)] text-sm">Loading…</div>;
+		return <div className="p-6 text-text-muted text-sm">Loading…</div>;
 	}
 	if (session === null) {
-		return (
-			<div className="p-6 text-[var(--danger)] text-sm">Session not found.</div>
-		);
+		return <div className="p-6 text-danger text-sm">Session not found.</div>;
 	}
 
 	if (session.status !== "active") {
@@ -212,11 +210,11 @@ function ActiveSessionPage() {
 		<RestTimerProvider>
 			<div className="p-4 sm:p-6 max-w-3xl mx-auto">
 				<div className="mb-6">
-					<h1 className="text-xl font-bold text-white">
+					<h1 className="text-xl font-bold text-text">
 						{session.name ??
 							`Session ${format(new Date(session.startTime), "MMM d")}`}
 					</h1>
-					<p className="text-xs text-[var(--text-muted)] mt-1">
+					<p className="text-xs text-text-muted mt-1">
 						Started {format(new Date(session.startTime), "h:mm a · MMM d")}
 					</p>
 					<div className="flex items-center gap-2 mt-4">
@@ -224,7 +222,7 @@ function ActiveSessionPage() {
 							type="button"
 							onClick={() => void handleFinish()}
 							disabled={busy}
-							className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg bg-[var(--accent)] text-black text-sm font-bold hover:bg-[var(--accent-hover)] transition-colors"
+							className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg bg-accent-fill text-on-accent text-sm font-bold hover:bg-accent-pressed transition-colors"
 						>
 							<CheckCircle size={15} />
 							Finish Workout
@@ -233,7 +231,7 @@ function ActiveSessionPage() {
 							type="button"
 							onClick={() => void handleCancel()}
 							disabled={busy}
-							className="flex items-center gap-1.5 px-3 py-2.5 rounded-lg border border-[var(--border)] text-[var(--text-muted)] text-sm hover:text-[var(--danger)] hover:border-[var(--danger)]/30 transition-colors"
+							className="flex items-center gap-1.5 px-3 py-2.5 rounded-lg border border-border text-text-muted text-sm hover:text-danger hover:border-danger/30 transition-colors"
 						>
 							<XCircle size={15} />
 							Cancel
@@ -287,7 +285,7 @@ function ActiveSessionPage() {
 				<button
 					type="button"
 					onClick={() => setShowAddExercise(true)}
-					className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-[var(--border)] text-[var(--text-muted)] text-sm hover:border-[var(--accent)]/40 hover:text-[var(--accent)] transition-colors"
+					className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-border text-text-muted text-sm hover:border-accent-ink/40 hover:text-accent-ink transition-colors"
 				>
 					<Plus size={16} />
 					Add Exercise

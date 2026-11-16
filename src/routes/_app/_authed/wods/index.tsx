@@ -15,11 +15,11 @@ function WodsPage() {
 
 	return (
 		<div className="p-4 sm:p-6 max-w-4xl mx-auto">
-			<h1 className="text-2xl font-bold text-white mb-6">WODs</h1>
+			<h1 className="text-2xl font-bold text-text mb-6">WODs</h1>
 
 			{mine.length > 0 && (
 				<section className="mb-8">
-					<h2 className="text-sm font-semibold text-[var(--text-muted)] uppercase tracking-wide mb-3">
+					<h2 className="text-sm font-semibold text-text-muted uppercase tracking-wide mb-3">
 						My WODs
 					</h2>
 					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -31,7 +31,7 @@ function WodsPage() {
 			)}
 
 			<section className="mb-8">
-				<h2 className="text-sm font-semibold text-[var(--text-muted)] uppercase tracking-wide mb-3">
+				<h2 className="text-sm font-semibold text-text-muted uppercase tracking-wide mb-3">
 					Benchmarks
 				</h2>
 				{benchmarks.length > 0 ? (
@@ -41,7 +41,7 @@ function WodsPage() {
 						))}
 					</div>
 				) : (
-					<p className="text-[var(--text-muted)] text-sm">
+					<p className="text-text-muted text-sm">
 						No benchmark WODs seeded yet.
 					</p>
 				)}

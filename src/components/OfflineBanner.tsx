@@ -7,10 +7,10 @@ export function OfflineBanner() {
 	if (isWebSocketConnected) return null;
 
 	return (
-		<div className="fixed top-0 inset-x-0 z-50 flex items-center justify-center py-2 px-4 bg-yellow-500/10 border-b border-yellow-500/20">
-			<p className="text-xs text-yellow-400 font-medium">
-				{shell.offline.message}
-			</p>
+		<div className="fixed top-0 inset-x-0 z-50 bg-surface">
+			<div className="flex items-center justify-center py-2 px-4 bg-warn-soft border-b border-warn-border">
+				<p className="text-xs text-warn font-medium">{shell.offline.message}</p>
+			</div>
 		</div>
 	);
 }

@@ -63,11 +63,11 @@ export function TestDataCard() {
 	if (!status?.available) return null;
 	return (
 		<section
-			className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 space-y-3"
+			className="rounded-xl border border-border bg-surface p-4 space-y-3"
 			aria-label={c.title}
 		>
 			<h2 className="text-lg font-semibold">{c.title}</h2>
-			<p className="text-sm text-[var(--text-muted)]">{c.description}</p>
+			<p className="text-sm text-text-muted">{c.description}</p>
 			{status.blocker ? (
 				<p role="status">{c.refusals[status.blocker]}</p>
 			) : !online ? (

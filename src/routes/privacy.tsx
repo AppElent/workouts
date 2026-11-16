@@ -13,12 +13,12 @@ function PrivacyPage() {
 	const textSections = [copy.security, copy.children, copy.changes];
 	return (
 		<main className="min-h-screen px-6 py-12 sm:py-16">
-			<article className="mx-auto max-w-2xl flex flex-col gap-8 text-sm leading-relaxed text-[var(--text-muted)]">
+			<article className="mx-auto max-w-2xl flex flex-col gap-8 text-sm leading-relaxed text-text-muted">
 				<header className="flex flex-col gap-2">
-					<Link to="/" className="text-xs text-[var(--accent)]">
+					<Link to="/" className="text-xs text-accent-ink">
 						← {copy.back}
 					</Link>
-					<h1 className="text-3xl font-bold text-white">{copy.title}</h1>
+					<h1 className="text-3xl font-bold text-text">{copy.title}</h1>
 					<p className="text-xs">{copy.updated}</p>
 				</header>
 				<Section title={copy.intro.title}>
@@ -62,7 +62,7 @@ function Section({
 }) {
 	return (
 		<section className="flex flex-col gap-3">
-			<h2 className="text-lg font-semibold text-white">{title}</h2>
+			<h2 className="text-lg font-semibold text-text">{title}</h2>
 			{children}
 		</section>
 	);

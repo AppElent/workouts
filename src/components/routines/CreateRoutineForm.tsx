@@ -8,8 +8,8 @@ export function CreateRoutineForm() {
 	const [created, setCreated] = useState(0);
 
 	return (
-		<section className="flex flex-col gap-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5">
-			<h2 className="text-sm font-semibold text-white">Create Routine</h2>
+		<section className="flex flex-col gap-4 rounded-xl border border-border bg-surface p-5">
+			<h2 className="text-sm font-semibold text-text">Create Routine</h2>
 			<RoutineEditor
 				key={created}
 				submitLabel="Save Routine"

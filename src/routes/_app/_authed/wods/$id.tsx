@@ -19,12 +19,10 @@ function WodDetailPage() {
 	const results = useQuery(api.wodResults.listForWod, { wodId }) ?? [];
 
 	if (wod === undefined) {
-		return <div className="p-6 text-[var(--text-muted)] text-sm">Loading…</div>;
+		return <div className="p-6 text-text-muted text-sm">Loading…</div>;
 	}
 	if (wod === null) {
-		return (
-			<div className="p-6 text-[var(--danger)] text-sm">WOD not found.</div>
-		);
+		return <div className="p-6 text-danger text-sm">WOD not found.</div>;
 	}
 
 	return (
@@ -32,23 +30,21 @@ function WodDetailPage() {
 			<div>
 				<Link
 					to="/wods"
-					className="inline-flex items-center gap-1 text-xs text-[var(--text-muted)] hover:text-white transition-colors mb-3"
+					className="inline-flex items-center gap-1 text-xs text-text-muted hover:text-text transition-colors mb-3"
 				>
 					<ArrowLeft size={13} />
 					WODs
 				</Link>
-				<h1 className="text-2xl font-bold text-white">{wod.name}</h1>
+				<h1 className="text-2xl font-bold text-text">{wod.name}</h1>
 				{wod.repScheme && (
-					<p className="text-sm text-[var(--accent)] mt-1">{wod.repScheme}</p>
+					<p className="text-sm text-accent-ink mt-1">{wod.repScheme}</p>
 				)}
 				{wod.description && (
-					<p className="text-sm text-[var(--text-muted)] mt-2">
-						{wod.description}
-					</p>
+					<p className="text-sm text-text-muted mt-2">{wod.description}</p>
 				)}
 				<ul className="mt-3 flex flex-col gap-1">
 					{wod.movements.map((m) => (
-						<li key={movementKey("wod", m)} className="text-sm text-white">
+						<li key={movementKey("wod", m)} className="text-sm text-text">
 							{formatMovement(m)}
 						</li>
 					))}
@@ -58,7 +54,7 @@ function WodDetailPage() {
 			<LogWodResultForm wodId={wodId} type={wod.type} />
 
 			<div>
-				<h2 className="text-sm font-semibold text-white mb-3">History</h2>
+				<h2 className="text-sm font-semibold text-text mb-3">History</h2>
 				<WodResultHistory type={wod.type} results={results} />
 			</div>
 		</div>

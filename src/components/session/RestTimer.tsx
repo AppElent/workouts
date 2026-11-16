@@ -155,27 +155,20 @@ export function RestTimerProvider({ children }: { children: ReactNode }) {
 			{children}
 			{active && (
 				<div className="fixed inset-x-0 bottom-16 sm:bottom-4 z-50 px-3 sm:px-0 pointer-events-none">
-					<div className="pointer-events-auto mx-auto max-w-md rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] shadow-[var(--shadow-overlay)] overflow-hidden">
-						<div className="h-1 w-full bg-[var(--border)]">
+					<div className="pointer-events-auto mx-auto max-w-md rounded-2xl border border-border bg-surface-2 shadow-overlay overflow-hidden">
+						<div className="h-1 w-full bg-border">
 							<div
-								className={`h-full transition-[width] duration-300 ease-linear ${finished ? "bg-[var(--accent-hover)]" : "bg-[var(--accent)]"}`}
+								className={`h-full transition-[width] duration-300 ease-linear ${finished ? "bg-accent-pressed" : "bg-accent-fill"}`}
 								style={{ width: `${pct}%` }}
 							/>
 						</div>
 						<div className="flex items-center gap-2 p-2.5">
 							<div className="flex items-center gap-2 shrink-0">
-								<Timer
-									size={18}
-									className={
-										finished
-											? "text-[var(--accent-hover)]"
-											: "text-[var(--accent)]"
-									}
-								/>
+								<Timer size={18} className="text-accent-ink" />
 								<button
 									type="button"
 									onClick={() => setShowPresets((s) => !s)}
-									className="text-xl font-bold tabular-nums text-white tracking-tight"
+									className="text-xl font-bold tabular-nums text-text tracking-tight"
 									aria-label="Rest remaining — tap to change default"
 								>
 									{finished ? "Rest done" : formatClock(remaining)}
@@ -188,14 +181,14 @@ export function RestTimerProvider({ children }: { children: ReactNode }) {
 										<button
 											type="button"
 											onClick={() => adjust(-15)}
-											className="h-9 px-2.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-xs font-semibold text-[var(--text-muted)] hover:text-white active:scale-95 transition"
+											className="h-9 px-2.5 rounded-lg bg-surface border border-border text-xs font-semibold text-text-muted hover:text-text active:scale-95 transition"
 										>
 											−15
 										</button>
 										<button
 											type="button"
 											onClick={() => adjust(15)}
-											className="h-9 px-2.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-xs font-semibold text-[var(--text-muted)] hover:text-white active:scale-95 transition"
+											className="h-9 px-2.5 rounded-lg bg-surface border border-border text-xs font-semibold text-text-muted hover:text-text active:scale-95 transition"
 										>
 											+15
 										</button>
@@ -205,7 +198,7 @@ export function RestTimerProvider({ children }: { children: ReactNode }) {
 											aria-label={
 												running ? "Pause rest timer" : "Resume rest timer"
 											}
-											className="h-9 w-9 flex items-center justify-center rounded-lg bg-[var(--surface)] border border-[var(--border)] text-white active:scale-95 transition"
+											className="h-9 w-9 flex items-center justify-center rounded-lg bg-surface border border-border text-text active:scale-95 transition"
 										>
 											{running ? <Pause size={15} /> : <Play size={15} />}
 										</button>
@@ -216,7 +209,7 @@ export function RestTimerProvider({ children }: { children: ReactNode }) {
 										type="button"
 										onClick={() => start(duration)}
 										aria-label="Restart rest timer"
-										className="h-9 w-9 flex items-center justify-center rounded-lg bg-[var(--surface)] border border-[var(--border)] text-white active:scale-95 transition"
+										className="h-9 w-9 flex items-center justify-center rounded-lg bg-surface border border-border text-text active:scale-95 transition"
 									>
 										<RotateCcw size={15} />
 									</button>
@@ -225,7 +218,7 @@ export function RestTimerProvider({ children }: { children: ReactNode }) {
 									type="button"
 									onClick={dismiss}
 									aria-label="Dismiss rest timer"
-									className="h-9 w-9 flex items-center justify-center rounded-lg bg-[var(--accent)] text-black active:scale-95 transition"
+									className="h-9 w-9 flex items-center justify-center rounded-lg bg-accent-fill text-on-accent active:scale-95 transition"
 								>
 									<X size={16} />
 								</button>
@@ -234,7 +227,7 @@ export function RestTimerProvider({ children }: { children: ReactNode }) {
 
 						{showPresets && (
 							<div className="flex items-center gap-1.5 px-2.5 pb-2.5">
-								<span className="text-[10px] uppercase tracking-wide text-[var(--text-muted)] mr-1">
+								<span className="text-micro uppercase tracking-wide text-text-muted mr-1">
 									Default
 								</span>
 								{PRESETS.map((p) => (
@@ -248,8 +241,8 @@ export function RestTimerProvider({ children }: { children: ReactNode }) {
 										}}
 										className={`h-8 flex-1 rounded-lg text-xs font-semibold transition ${
 											defaultSeconds === p
-												? "bg-[var(--accent-dim)] text-[var(--accent)] border border-[var(--accent)]/50"
-												: "bg-[var(--surface)] text-[var(--text-muted)] border border-[var(--border)] hover:text-white"
+												? "bg-accent-dim text-accent-ink border border-accent-ink/50"
+												: "bg-surface text-text-muted border border-border hover:text-text"
 										}`}
 									>
 										{p < 120 ? `${p}s` : `${p / 60}m`}

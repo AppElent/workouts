@@ -56,9 +56,9 @@ export function LogWodResultForm({ wodId, type, sessionId, onLogged }: Props) {
 	return (
 		<form
 			onSubmit={(e) => void handleSubmit(e)}
-			className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-5 flex flex-col gap-3"
+			className="rounded-xl bg-surface border border-border p-5 flex flex-col gap-3"
 		>
-			<h2 className="text-sm font-semibold text-white">Log Result</h2>
+			<h2 className="text-sm font-semibold text-text">Log Result</h2>
 
 			<WodScoreFields type={type} draft={score.draft} onChange={score.update} />
 
@@ -71,8 +71,8 @@ export function LogWodResultForm({ wodId, type, sessionId, onLogged }: Props) {
 						className={[
 							"flex-1 h-9 rounded-lg text-xs font-medium uppercase transition-all",
 							rxScaled === v
-								? "bg-[var(--accent-dim)] text-[var(--accent)] border border-[var(--accent)]/50"
-								: "bg-[var(--surface-2)] text-[var(--text-muted)] border border-[var(--border)] hover:text-white",
+								? "bg-accent-dim text-accent-ink border border-accent-ink/50"
+								: "bg-surface-2 text-text-muted border border-border hover:text-text",
 						].join(" ")}
 					>
 						{v}
@@ -85,17 +85,17 @@ export function LogWodResultForm({ wodId, type, sessionId, onLogged }: Props) {
 				value={notes}
 				onChange={(e) => setNotes(e.target.value)}
 				rows={2}
-				className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+				className="rounded-md border border-border bg-surface-2 px-3 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent-ink"
 			/>
 
 			<button
 				type="submit"
 				disabled={saving}
-				className="w-full h-11 rounded-full bg-[var(--accent)] text-black text-sm font-bold disabled:opacity-40 hover:bg-[var(--accent-hover)] transition-colors"
+				className="w-full h-11 rounded-full bg-accent-fill text-on-accent text-sm font-bold disabled:opacity-40 hover:bg-accent-pressed transition-colors"
 			>
 				Log Result
 			</button>
-			{error && <p className="text-sm text-[var(--danger)]">{error}</p>}
+			{error && <p className="text-sm text-danger">{error}</p>}
 		</form>
 	);
 }

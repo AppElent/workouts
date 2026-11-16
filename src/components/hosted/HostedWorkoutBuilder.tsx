@@ -248,10 +248,10 @@ export function HostedWorkoutBuilder({
 
 	return (
 		<form onSubmit={(event) => void handleSubmit(event)} className="space-y-4">
-			<div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
+			<div className="rounded-xl border border-border bg-surface p-4">
 				<label
 					htmlFor="hosted-title"
-					className="text-xs font-semibold text-[var(--text-muted)]"
+					className="text-xs font-semibold text-text-muted"
 				>
 					Title
 				</label>
@@ -259,18 +259,18 @@ export function HostedWorkoutBuilder({
 					id="hosted-title"
 					value={title}
 					onChange={(event) => setTitle(event.target.value)}
-					className="mt-2 h-10 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-white placeholder:text-[var(--text-muted)]"
+					className="mt-2 h-10 w-full rounded-lg border border-border bg-surface-2 px-3 text-sm text-text placeholder:text-text-muted"
 					placeholder="Saturday class"
 				/>
 				<textarea
 					value={notes}
 					onChange={(event) => setNotes(event.target.value)}
-					className="mt-3 min-h-20 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-white placeholder:text-[var(--text-muted)]"
+					className="mt-3 min-h-20 w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm text-text placeholder:text-text-muted"
 					placeholder="Workout notes"
 				/>
 				<label
 					htmlFor="hosted-scheduled-at"
-					className="mt-3 block text-xs font-semibold text-[var(--text-muted)]"
+					className="mt-3 block text-xs font-semibold text-text-muted"
 				>
 					Scheduled time (optional)
 				</label>
@@ -279,7 +279,7 @@ export function HostedWorkoutBuilder({
 					type="datetime-local"
 					value={scheduledAt}
 					onChange={(event) => setScheduledAt(event.target.value)}
-					className="mt-2 h-10 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-white placeholder:text-[var(--text-muted)]"
+					className="mt-2 h-10 w-full rounded-lg border border-border bg-surface-2 px-3 text-sm text-text placeholder:text-text-muted"
 				/>
 				<div className="mt-3 grid grid-cols-2 gap-2">
 					<button
@@ -287,8 +287,8 @@ export function HostedWorkoutBuilder({
 						onClick={() => setHostParticipation("hostOnly")}
 						className={`rounded-lg border px-3 py-2 text-sm ${
 							hostParticipation === "hostOnly"
-								? "border-[var(--accent)] text-[var(--accent)]"
-								: "border-[var(--border)] text-white"
+								? "border-accent-ink text-accent-ink"
+								: "border-border text-text"
 						}`}
 					>
 						Host only
@@ -298,8 +298,8 @@ export function HostedWorkoutBuilder({
 						onClick={() => setHostParticipation("hostAndParticipate")}
 						className={`rounded-lg border px-3 py-2 text-sm ${
 							hostParticipation === "hostAndParticipate"
-								? "border-[var(--accent)] text-[var(--accent)]"
-								: "border-[var(--border)] text-white"
+								? "border-accent-ink text-accent-ink"
+								: "border-border text-text"
 						}`}
 					>
 						Host and participate
@@ -309,7 +309,7 @@ export function HostedWorkoutBuilder({
 
 			<div className="space-y-3">
 				<div className="flex items-center justify-between">
-					<h2 className="text-sm font-semibold text-white">Strength</h2>
+					<h2 className="text-sm font-semibold text-text">Strength</h2>
 					<button
 						type="button"
 						onClick={() =>
@@ -318,7 +318,7 @@ export function HostedWorkoutBuilder({
 								{ blockId: crypto.randomUUID(), exerciseName: "" },
 							])
 						}
-						className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-3 py-2 text-xs text-white"
+						className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-xs text-text"
 					>
 						<Plus size={14} /> Add
 					</button>
@@ -326,7 +326,7 @@ export function HostedWorkoutBuilder({
 				{strengthBlocks.map((block, index) => (
 					<div
 						key={block.blockId}
-						className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4"
+						className="rounded-xl border border-border bg-surface p-4"
 					>
 						<input
 							value={block.exerciseName}
@@ -340,7 +340,7 @@ export function HostedWorkoutBuilder({
 								)
 							}
 							aria-label={`Strength block ${index + 1} exercise`}
-							className="h-10 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-white placeholder:text-[var(--text-muted)]"
+							className="h-10 w-full rounded-lg border border-border bg-surface-2 px-3 text-sm text-text placeholder:text-text-muted"
 							placeholder="Exercise"
 						/>
 						<select
@@ -363,7 +363,7 @@ export function HostedWorkoutBuilder({
 								);
 							}}
 							aria-label={`Strength block ${index + 1} link to a logged exercise`}
-							className="mt-2 h-10 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-white"
+							className="mt-2 h-10 w-full rounded-lg border border-border bg-surface-2 px-3 text-sm text-text"
 						>
 							<option value="">Not linked (info only)</option>
 							{exercises.map((ex) => (
@@ -373,7 +373,7 @@ export function HostedWorkoutBuilder({
 							))}
 						</select>
 						{block.exerciseId && (
-							<p className="mt-1 text-xs text-[var(--text-muted)]">
+							<p className="mt-1 text-xs text-text-muted">
 								Participants can log sets for this exercise in their session.
 							</p>
 						)}
@@ -388,7 +388,7 @@ export function HostedWorkoutBuilder({
 									),
 								)
 							}
-							className="mt-2 min-h-16 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-white placeholder:text-[var(--text-muted)]"
+							className="mt-2 min-h-16 w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm text-text placeholder:text-text-muted"
 							placeholder="5x5 @ 75% 1RM"
 						/>
 						<button
@@ -398,7 +398,7 @@ export function HostedWorkoutBuilder({
 									prev.filter((item) => item.blockId !== block.blockId),
 								)
 							}
-							className="mt-2 flex items-center gap-1.5 text-xs text-[var(--danger)]"
+							className="mt-2 flex items-center gap-1.5 text-xs text-danger"
 						>
 							<Trash2 size={13} /> Remove
 						</button>
@@ -408,7 +408,7 @@ export function HostedWorkoutBuilder({
 
 			<div className="space-y-3">
 				<div className="flex items-center justify-between">
-					<h2 className="text-sm font-semibold text-white">WODs</h2>
+					<h2 className="text-sm font-semibold text-text">WODs</h2>
 					<button
 						type="button"
 						onClick={() =>
@@ -422,7 +422,7 @@ export function HostedWorkoutBuilder({
 								},
 							])
 						}
-						className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-3 py-2 text-xs text-white"
+						className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-xs text-text"
 					>
 						<Plus size={14} /> Add
 					</button>
@@ -430,7 +430,7 @@ export function HostedWorkoutBuilder({
 				{wodBlocks.map((block, index) => (
 					<div
 						key={block.blockId}
-						className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4"
+						className="rounded-xl border border-border bg-surface p-4"
 					>
 						<input
 							value={block.name}
@@ -444,7 +444,7 @@ export function HostedWorkoutBuilder({
 								)
 							}
 							aria-label={`WOD ${index + 1} name`}
-							className="h-10 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-white placeholder:text-[var(--text-muted)]"
+							className="h-10 w-full rounded-lg border border-border bg-surface-2 px-3 text-sm text-text placeholder:text-text-muted"
 							placeholder="WOD name"
 						/>
 						<div className="mt-2 grid grid-cols-2 gap-2 sm:grid-flow-col sm:grid-cols-none sm:auto-cols-fr">
@@ -461,8 +461,8 @@ export function HostedWorkoutBuilder({
 									}
 									className={`rounded-lg border px-2 py-2 text-xs ${
 										block.type === type
-											? "border-[var(--accent)] text-[var(--accent)]"
-											: "border-[var(--border)] text-white"
+											? "border-accent-ink text-accent-ink"
+											: "border-border text-text"
 									}`}
 								>
 									{WOD_TYPE_LABELS[type]}
@@ -480,7 +480,7 @@ export function HostedWorkoutBuilder({
 									})
 								}
 								aria-label={`WOD ${index + 1} rep scheme`}
-								className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 text-xs text-white placeholder:text-[var(--text-muted)]"
+								className="h-9 w-full rounded-lg border border-border bg-surface-2 px-3 text-xs text-text placeholder:text-text-muted"
 								placeholder="Rep scheme (e.g. 21-15-9)"
 							/>
 							{wodTimingLabel(block.type) && (
@@ -502,19 +502,19 @@ export function HostedWorkoutBuilder({
 										aria-label={`WOD ${index + 1} ${wodTimingLabel(
 											block.type,
 										)?.toLowerCase()} in minutes`}
-										className="h-9 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 text-xs text-white placeholder:text-[var(--text-muted)]"
+										className="h-9 w-full rounded-lg border border-border bg-surface-2 px-3 text-xs text-text placeholder:text-text-muted"
 										placeholder={`${wodTimingLabel(block.type)} (min)`}
 									/>
-									<span className="text-xs text-[var(--text-muted)]">min</span>
+									<span className="text-xs text-text-muted">min</span>
 								</div>
 							)}
 						</div>
 						{block.levels.map((level) => (
 							<div
 								key={level.level}
-								className="mt-3 rounded-lg bg-[var(--surface-2)] p-3"
+								className="mt-3 rounded-lg bg-surface-2 p-3"
 							>
-								<p className="text-xs font-semibold text-[var(--accent)]">
+								<p className="text-xs font-semibold text-accent-ink">
 									{level.label}
 								</p>
 								<div className="mt-2 flex flex-col gap-2">
@@ -531,7 +531,7 @@ export function HostedWorkoutBuilder({
 													})
 												}
 												aria-label={`${level.label} movement ${movementIndex + 1} name`}
-												className="h-9 w-full rounded-lg border border-[var(--border)] bg-black/20 px-3 text-xs text-white placeholder:text-[var(--text-muted)]"
+												className="h-9 w-full rounded-lg border border-border bg-surface-2 px-3 text-xs text-text placeholder:text-text-muted"
 												placeholder="Movement"
 											/>
 											<input
@@ -545,7 +545,7 @@ export function HostedWorkoutBuilder({
 													})
 												}
 												aria-label={`${level.label} movement ${movementIndex + 1} reps`}
-												className="h-9 w-full rounded-lg border border-[var(--border)] bg-black/20 px-2 text-xs text-white placeholder:text-[var(--text-muted)]"
+												className="h-9 w-full rounded-lg border border-border bg-surface-2 px-2 text-xs text-text placeholder:text-text-muted"
 												placeholder="reps"
 											/>
 											<input
@@ -560,7 +560,7 @@ export function HostedWorkoutBuilder({
 													})
 												}
 												aria-label={`${level.label} movement ${movementIndex + 1} weight`}
-												className="h-9 w-full rounded-lg border border-[var(--border)] bg-black/20 px-2 text-xs text-white placeholder:text-[var(--text-muted)]"
+												className="h-9 w-full rounded-lg border border-border bg-surface-2 px-2 text-xs text-text placeholder:text-text-muted"
 												placeholder="kg"
 											/>
 											<select
@@ -571,7 +571,7 @@ export function HostedWorkoutBuilder({
 													})
 												}
 												aria-label={`${level.label} movement ${movementIndex + 1} unit`}
-												className="h-9 w-full rounded-lg border border-[var(--border)] bg-black/20 px-1 text-xs text-white"
+												className="h-9 w-full rounded-lg border border-border bg-surface-2 px-1 text-xs text-text"
 											>
 												{LOAD_UNITS.map((unit) => (
 													<option key={unit} value={unit}>
@@ -586,7 +586,7 @@ export function HostedWorkoutBuilder({
 												}
 												disabled={level.movements.length <= 1}
 												aria-label={`Remove ${level.label} movement ${movementIndex + 1}`}
-												className="flex h-9 items-center justify-center rounded-lg text-[var(--text-muted)] hover:text-[var(--danger)] disabled:opacity-30"
+												className="flex h-9 items-center justify-center rounded-lg text-text-muted hover:text-danger disabled:opacity-30"
 											>
 												<Trash2 size={13} />
 											</button>
@@ -596,7 +596,7 @@ export function HostedWorkoutBuilder({
 								<button
 									type="button"
 									onClick={() => addMovement(index, level.level)}
-									className="mt-2 flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--accent)]"
+									className="mt-2 flex items-center gap-1.5 text-xs text-text-muted hover:text-accent-ink"
 								>
 									<Plus size={12} /> Add movement
 								</button>
@@ -610,7 +610,7 @@ export function HostedWorkoutBuilder({
 										)
 									}
 									aria-label={`${level.label} notes`}
-									className="mt-2 h-8 w-full rounded-lg border border-[var(--border)] bg-black/20 px-3 text-xs text-white placeholder:text-[var(--text-muted)]"
+									className="mt-2 h-8 w-full rounded-lg border border-border bg-surface-2 px-3 text-xs text-text placeholder:text-text-muted"
 									placeholder="Level notes (optional)"
 								/>
 							</div>
@@ -622,7 +622,7 @@ export function HostedWorkoutBuilder({
 									prev.filter((item) => item.blockId !== block.blockId),
 								)
 							}
-							className="mt-3 flex items-center gap-1.5 text-xs text-[var(--danger)]"
+							className="mt-3 flex items-center gap-1.5 text-xs text-danger"
 						>
 							<Trash2 size={13} /> Remove
 						</button>
@@ -630,11 +630,11 @@ export function HostedWorkoutBuilder({
 				))}
 			</div>
 
-			{error && <p className="text-sm text-[var(--danger)]">{error}</p>}
+			{error && <p className="text-sm text-danger">{error}</p>}
 			<button
 				type="submit"
 				disabled={saving}
-				className="flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--accent)] px-4 py-3 text-sm font-bold text-black disabled:opacity-50"
+				className="flex w-full items-center justify-center gap-2 rounded-lg bg-accent-fill px-4 py-3 text-sm font-bold text-on-accent disabled:opacity-50"
 			>
 				<Save size={15} />{" "}
 				{saving ? "Saving..." : hostedWorkoutId ? "Save changes" : "Save draft"}

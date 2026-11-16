@@ -77,12 +77,12 @@ export function ReportProblem() {
 				{text.report}
 			</Dialog.Trigger>
 			<Dialog.Portal>
-				<Dialog.Backdrop className="fixed inset-0 z-50 bg-black/60" />
-				<Dialog.Popup className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl bg-[var(--bg)] p-6 text-white shadow-xl max-h-[90vh] overflow-y-auto">
+				<Dialog.Backdrop className="fixed inset-0 z-50 bg-scrim" />
+				<Dialog.Popup className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl bg-bg p-6 text-text shadow-xl max-h-[90vh] overflow-y-auto">
 					<Dialog.Title className="text-lg font-semibold">
 						{text.report}
 					</Dialog.Title>
-					<Dialog.Description className="my-3 text-sm text-[var(--text-muted)]">
+					<Dialog.Description className="my-3 text-sm text-text-muted">
 						{text.description}
 					</Dialog.Description>
 					<form onSubmit={submit} className="flex flex-col gap-4">
@@ -95,7 +95,7 @@ export function ReportProblem() {
 								disabled={pending}
 								onChange={(event) => setMessage(event.target.value)}
 								placeholder={text.placeholder}
-								className="min-h-28 rounded-lg border border-[var(--border)] bg-transparent p-3"
+								className="min-h-28 rounded-lg border border-border bg-transparent p-3"
 							/>
 						</label>
 						{preview ? (

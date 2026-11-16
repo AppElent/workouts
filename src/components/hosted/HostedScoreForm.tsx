@@ -74,7 +74,7 @@ export function HostedScoreForm({
 
 	if (wodBlocks.length === 0) {
 		return (
-			<div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 text-sm text-[var(--text-muted)]">
+			<div className="rounded-lg border border-border bg-surface p-4 text-sm text-text-muted">
 				This hosted workout has no WOD scores to submit.
 			</div>
 		);
@@ -83,16 +83,16 @@ export function HostedScoreForm({
 	return (
 		<form
 			onSubmit={(event) => void handleSubmit(event)}
-			className="flex flex-col gap-4 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4"
+			className="flex flex-col gap-4 rounded-lg border border-border bg-surface p-4"
 		>
-			<h2 className="text-sm font-semibold text-white">Submit score</h2>
+			<h2 className="text-sm font-semibold text-text">Submit score</h2>
 
-			<label className="flex flex-col gap-1 text-xs font-medium uppercase text-[var(--text-muted)]">
+			<label className="flex flex-col gap-1 text-xs font-medium uppercase text-text-muted">
 				WOD
 				<select
 					value={wodBlockId}
 					onChange={(event) => setWodBlockId(event.target.value)}
-					className="h-10 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm normal-case text-white"
+					className="h-10 rounded-lg border border-border bg-surface-2 px-3 text-sm normal-case text-text"
 				>
 					{wodBlocks.map((block) => (
 						<option key={block.blockId} value={block.blockId}>
@@ -111,8 +111,8 @@ export function HostedScoreForm({
 						className={[
 							"h-10 rounded-lg border text-xs font-semibold",
 							level === entry.level
-								? "border-[var(--accent)] bg-[var(--accent-dim)] text-[var(--accent)]"
-								: "border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-muted)]",
+								? "border-accent-ink bg-accent-dim text-accent-ink"
+								: "border-border bg-surface-2 text-text-muted",
 						].join(" ")}
 					>
 						{hostedLevelLabel(selectedWod.levels, entry.level)}
@@ -121,7 +121,7 @@ export function HostedScoreForm({
 			</div>
 
 			{selectedLevelMovements.length > 0 && (
-				<ul className="rounded-lg bg-[var(--surface-2)] px-3 py-2 text-xs text-[var(--text-muted)]">
+				<ul className="rounded-lg bg-surface-2 px-3 py-2 text-xs text-text-muted">
 					{selectedLevelMovements.map((movement) => (
 						<li key={movementKey(level, movement)}>
 							{formatMovement(movement)}
@@ -143,18 +143,18 @@ export function HostedScoreForm({
 				value={notes}
 				onChange={(event) => setNotes(event.target.value)}
 				rows={2}
-				className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-white placeholder:text-[var(--text-muted)]"
+				className="rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm text-text placeholder:text-text-muted"
 			/>
 
 			<button
 				type="submit"
 				disabled={saving}
-				className="h-11 rounded-lg bg-[var(--accent)] text-sm font-bold text-black disabled:opacity-50"
+				className="h-11 rounded-lg bg-accent-fill text-sm font-bold text-on-accent disabled:opacity-50"
 			>
 				{saving ? "Submitting..." : submitLabel}
 			</button>
-			{message && <p className="text-sm text-[var(--accent)]">{message}</p>}
-			{error && <p className="text-sm text-[var(--danger)]">{error}</p>}
+			{message && <p className="text-sm text-accent-ink">{message}</p>}
+			{error && <p className="text-sm text-danger">{error}</p>}
 		</form>
 	);
 }

@@ -33,11 +33,11 @@ export const Route = createFileRoute("/_app/exercises/$id")({
 
 function SignInPrompt({ message }: { message: string }) {
 	return (
-		<div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-6 flex flex-col items-center gap-3 text-center">
-			<p className="text-sm text-[var(--text-muted)]">{message}</p>
+		<div className="rounded-xl bg-surface border border-border p-6 flex flex-col items-center gap-3 text-center">
+			<p className="text-sm text-text-muted">{message}</p>
 			<Link
 				to="/sign-in"
-				className="rounded-full bg-[var(--accent)] px-5 py-2 text-sm font-bold text-black hover:bg-[var(--accent-hover)] transition-colors"
+				className="rounded-full bg-accent-fill px-5 py-2 text-sm font-bold text-on-accent hover:bg-accent-pressed transition-colors"
 			>
 				Sign In
 			</Link>
@@ -69,14 +69,10 @@ function ExerciseDetailPage() {
 		) ?? [];
 
 	if (exercise === undefined) {
-		return <div className="p-6 text-[var(--text-muted)] text-sm">Loading…</div>;
+		return <div className="p-6 text-text-muted text-sm">Loading…</div>;
 	}
 	if (exercise === null) {
-		return (
-			<div className="p-6 text-[var(--danger)] text-sm">
-				Exercise not found.
-			</div>
-		);
+		return <div className="p-6 text-danger text-sm">Exercise not found.</div>;
 	}
 
 	const ormChartData = [...ormHistory]
@@ -111,21 +107,21 @@ function ExerciseDetailPage() {
 		<div className="p-4 sm:p-6 max-w-2xl mx-auto pb-20 sm:pb-6">
 			<Link
 				to="/exercises"
-				className="inline-flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-white mb-4 transition-colors"
+				className="inline-flex items-center gap-1.5 text-xs text-text-muted hover:text-text mb-4 transition-colors"
 			>
 				<ArrowLeft size={14} />
 				Back to exercises
 			</Link>
 
-			<div className="rounded-2xl bg-[var(--surface)] border border-[var(--border)] p-5 mb-4 text-center">
-				<h1 className="text-2xl font-black text-white tracking-tight mb-2">
+			<div className="rounded-2xl bg-surface border border-border p-5 mb-4 text-center">
+				<h1 className="text-2xl font-black text-text tracking-tight mb-2">
 					{exercise.name}
 				</h1>
 				<div className="flex gap-1.5 justify-center mb-4">
-					<span className="text-[10px] px-2 py-0.5 rounded-md bg-[var(--surface-2)] text-[var(--text-muted)] capitalize">
+					<span className="text-micro px-2 py-0.5 rounded-md bg-surface-2 text-text-muted capitalize">
 						{exercise.category}
 					</span>
-					<span className="text-[10px] px-2 py-0.5 rounded-md bg-[var(--surface-2)] text-[var(--text-muted)] capitalize">
+					<span className="text-micro px-2 py-0.5 rounded-md bg-surface-2 text-text-muted capitalize">
 						{exercise.equipment}
 					</span>
 				</div>
@@ -138,7 +134,7 @@ function ExerciseDetailPage() {
 					{exercise.muscleGroups.map((mg) => (
 						<span
 							key={mg}
-							className="rounded-full px-2.5 py-0.5 text-[11px] font-medium bg-[var(--accent-dim)] text-[var(--accent)] border border-[var(--accent)]/20 capitalize"
+							className="rounded-full px-2.5 py-0.5 text-eyebrow font-medium bg-accent-dim text-accent-ink border border-accent-ink/20 capitalize"
 						>
 							{mg}
 						</span>
@@ -146,7 +142,7 @@ function ExerciseDetailPage() {
 				</div>
 			</div>
 
-			<div className="flex border-b border-[var(--border)] mb-4">
+			<div className="flex border-b border-border mb-4">
 				{tabs.map((tab) => (
 					<button
 						key={tab.id}
@@ -155,8 +151,8 @@ function ExerciseDetailPage() {
 						className={cn(
 							"flex-1 py-2.5 text-xs font-semibold transition-colors",
 							activeTab === tab.id
-								? "text-[var(--accent)] border-b-2 border-[var(--accent)]"
-								: "text-[var(--text-muted)] hover:text-white",
+								? "text-accent-ink border-b-2 border-accent-ink"
+								: "text-text-muted hover:text-text",
 						)}
 					>
 						{tab.label}
@@ -167,19 +163,19 @@ function ExerciseDetailPage() {
 			{activeTab === "overview" && (
 				<div className="flex flex-col gap-3">
 					{currentOrm && (
-						<div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-4">
-							<p className="text-[9px] tracking-widest text-[var(--text-muted)] uppercase mb-2">
+						<div className="rounded-xl bg-surface border border-border p-4">
+							<p className="text-micro tracking-widest text-text-muted uppercase mb-2">
 								Current 1RM
 							</p>
 							<div className="flex items-baseline gap-1.5 mb-2">
-								<span className="text-4xl font-black text-white tracking-tight">
+								<span className="text-4xl font-black text-text tracking-tight">
 									{currentOrm.value}
 								</span>
-								<span className="text-sm text-[var(--text-muted)]">
+								<span className="text-sm text-text-muted">
 									{currentOrm.unit}
 								</span>
 							</div>
-							<span className="inline-block text-[10px] px-2 py-0.5 rounded bg-[var(--accent-dim)] text-[var(--accent)]">
+							<span className="inline-block text-micro px-2 py-0.5 rounded bg-accent-dim text-accent-ink">
 								{currentOrm.source === "calculated"
 									? "estimated"
 									: currentOrm.source}
@@ -196,11 +192,11 @@ function ExerciseDetailPage() {
 					)}
 
 					{exercise.notes && (
-						<div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-4">
-							<p className="text-[9px] tracking-widest text-[var(--text-muted)] uppercase mb-2">
+						<div className="rounded-xl bg-surface border border-border p-4">
+							<p className="text-micro tracking-widest text-text-muted uppercase mb-2">
 								Notes
 							</p>
-							<p className="text-sm text-[var(--text-muted)] leading-relaxed">
+							<p className="text-sm text-text-muted leading-relaxed">
 								{exercise.notes}
 							</p>
 						</div>
@@ -209,7 +205,7 @@ function ExerciseDetailPage() {
 					{!exercise.notes &&
 						(signedIn ? (
 							!currentOrm && (
-								<p className="text-sm text-[var(--text-muted)] text-center py-8">
+								<p className="text-sm text-text-muted text-center py-8">
 									No data yet. Log sets for this exercise to see your 1RM.
 								</p>
 							)
@@ -221,8 +217,8 @@ function ExerciseDetailPage() {
 
 			{activeTab === "progress" && signedIn && (
 				<div className="flex flex-col gap-4">
-					<div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-5">
-						<h2 className="text-sm font-semibold text-white mb-4">
+					<div className="rounded-xl bg-surface border border-border p-5">
+						<h2 className="text-sm font-semibold text-text mb-4">
 							1RM Progress
 						</h2>
 						{ormChartData.length > 1 ? (
@@ -230,7 +226,7 @@ function ExerciseDetailPage() {
 								<LineChart data={ormChartData}>
 									<CartesianGrid
 										strokeDasharray="3 3"
-										stroke="rgba(255,255,255,0.06)"
+										stroke="var(--separator)"
 									/>
 									<XAxis
 										dataKey="date"
@@ -250,7 +246,7 @@ function ExerciseDetailPage() {
 											background: "var(--surface)",
 											border: "1px solid var(--border)",
 											borderRadius: 8,
-											color: "#fff",
+											color: "var(--text)",
 											fontSize: 12,
 										}}
 										formatter={
@@ -268,25 +264,25 @@ function ExerciseDetailPage() {
 									<Line
 										type="monotone"
 										dataKey="value"
-										stroke="var(--accent)"
+										stroke="var(--accent-ink)"
 										strokeWidth={2}
-										dot={{ fill: "var(--accent)", r: 4, strokeWidth: 0 }}
-										activeDot={{ r: 6, fill: "var(--accent-hover)" }}
+										dot={{ fill: "var(--accent-ink)", r: 4, strokeWidth: 0 }}
+										activeDot={{ r: 6, fill: "var(--accent-ink)" }}
 									/>
 								</LineChart>
 							</ResponsiveContainer>
 						) : (
-							<p className="text-sm text-[var(--text-muted)] py-6 text-center">
+							<p className="text-sm text-text-muted py-6 text-center">
 								Log at least 2 sessions to see the 1RM trend.
 							</p>
 						)}
 					</div>
 
-					<div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-5">
-						<h2 className="text-sm font-semibold text-white mb-1">
+					<div className="rounded-xl bg-surface border border-border p-5">
+						<h2 className="text-sm font-semibold text-text mb-1">
 							Strength Curve
 						</h2>
-						<p className="text-xs text-[var(--text-muted)] mb-4">
+						<p className="text-xs text-text-muted mb-4">
 							Max weight logged vs. theoretical 1RM per rep count
 						</p>
 						{hasRepRangeData ? (
@@ -294,7 +290,7 @@ function ExerciseDetailPage() {
 								<LineChart data={repRangeData}>
 									<CartesianGrid
 										strokeDasharray="3 3"
-										stroke="rgba(255,255,255,0.06)"
+										stroke="var(--separator)"
 									/>
 									<XAxis
 										dataKey="label"
@@ -314,7 +310,7 @@ function ExerciseDetailPage() {
 											background: "var(--surface)",
 											border: "1px solid var(--border)",
 											borderRadius: 8,
-											color: "#fff",
+											color: "var(--text)",
 											fontSize: 12,
 										}}
 										formatter={strengthCurveFormatter}
@@ -330,10 +326,10 @@ function ExerciseDetailPage() {
 										type="monotone"
 										dataKey="maxWeight"
 										name="Max weight logged"
-										stroke="var(--accent)"
+										stroke="var(--accent-ink)"
 										strokeWidth={2}
-										dot={{ fill: "var(--accent)", r: 4, strokeWidth: 0 }}
-										activeDot={{ r: 6, fill: "var(--accent-hover)" }}
+										dot={{ fill: "var(--accent-ink)", r: 4, strokeWidth: 0 }}
+										activeDot={{ r: 6, fill: "var(--accent-ink)" }}
 										connectNulls={false}
 									/>
 									<Line
@@ -350,7 +346,7 @@ function ExerciseDetailPage() {
 								</LineChart>
 							</ResponsiveContainer>
 						) : (
-							<p className="text-sm text-[var(--text-muted)] py-6 text-center">
+							<p className="text-sm text-text-muted py-6 text-center">
 								Log sets for this exercise to see the strength curve.
 							</p>
 						)}
@@ -363,15 +359,15 @@ function ExerciseDetailPage() {
 			)}
 
 			{activeTab === "history" && signedIn && (
-				<div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-5">
-					<h2 className="text-sm font-semibold text-white mb-4">
+				<div className="rounded-xl bg-surface border border-border p-5">
+					<h2 className="text-sm font-semibold text-text mb-4">
 						Set History ({history.length} sets)
 					</h2>
 					{history.length > 0 ? (
 						<div className="overflow-x-auto">
 							<table className="w-full text-sm">
 								<thead>
-									<tr className="border-b border-[var(--border)]">
+									<tr className="border-b border-border">
 										{[
 											"Date",
 											"Set",
@@ -383,7 +379,7 @@ function ExerciseDetailPage() {
 										].map((h) => (
 											<th
 												key={h}
-												className="text-left pb-2 text-xs text-[var(--text-muted)] font-medium pr-4 whitespace-nowrap"
+												className="text-left pb-2 text-xs text-text-muted font-medium pr-4 whitespace-nowrap"
 											>
 												{h}
 											</th>
@@ -396,31 +392,31 @@ function ExerciseDetailPage() {
 										return (
 											<tr
 												key={set._id}
-												className="border-b border-[var(--border)] last:border-0"
+												className="border-b border-border last:border-0"
 											>
-												<td className="py-2 pr-4 text-[var(--text-muted)] whitespace-nowrap">
+												<td className="py-2 pr-4 text-text-muted whitespace-nowrap">
 													{format(new Date(set.sessionDate), "MMM d")}
 												</td>
-												<td className="py-2 pr-4 text-white">
+												<td className="py-2 pr-4 text-text">
 													#{set.setNumber}
 												</td>
-												<td className="py-2 pr-4 text-[var(--text-muted)] capitalize">
+												<td className="py-2 pr-4 text-text-muted capitalize">
 													{set.setType}
 												</td>
-												<td className="py-2 pr-4 text-white font-medium">
+												<td className="py-2 pr-4 text-text font-medium">
 													{set.weight}
-													<span className="text-[var(--text-muted)] text-xs ml-0.5">
+													<span className="text-text-muted text-xs ml-0.5">
 														{set.unit}
 													</span>
 												</td>
-												<td className="py-2 pr-4 text-white">{set.reps}</td>
-												<td className="py-2 pr-4 text-[var(--text-muted)]">
+												<td className="py-2 pr-4 text-text">{set.reps}</td>
+												<td className="py-2 pr-4 text-text-muted">
 													{set.rpe ?? "—"}
 												</td>
-												<td className="py-2 text-[var(--text-muted)] text-xs">
+												<td className="py-2 text-text-muted text-xs">
 													{orm ? orm.value : "—"}
 													{orm?.kind === "calculated" && (
-														<span className="ml-0.5 text-[10px]">est.</span>
+														<span className="ml-0.5 text-micro">est.</span>
 													)}
 												</td>
 											</tr>
@@ -430,7 +426,7 @@ function ExerciseDetailPage() {
 							</table>
 						</div>
 					) : (
-						<p className="text-sm text-[var(--text-muted)]">
+						<p className="text-sm text-text-muted">
 							No sets logged for this exercise yet.
 						</p>
 					)}

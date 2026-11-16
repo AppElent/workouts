@@ -9,7 +9,7 @@ interface Props {
 
 const TYPE_DOT_COLOR: Record<Doc<"sets">["setType"], string> = {
 	warmup: "var(--text-faint)",
-	working: "var(--accent)",
+	working: "var(--accent-ink)",
 	drop: "var(--warn)",
 	failure: "var(--danger)",
 };
@@ -22,7 +22,7 @@ export function SetCard({ set, onEdit }: Props) {
 		<button
 			type="button"
 			onClick={() => onEdit(set)}
-			className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] flex items-center px-3 py-3 text-left hover:border-[var(--border-strong)] transition-colors"
+			className="w-full rounded-lg border border-border bg-surface-2 flex items-center px-3 py-3 text-left hover:border-border-strong transition-colors"
 			aria-label={`Edit set ${set.setNumber}`}
 		>
 			<div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
@@ -30,41 +30,36 @@ export function SetCard({ set, onEdit }: Props) {
 					className="w-1.5 h-1.5 rounded-full shrink-0"
 					style={{ background: dotColor }}
 				/>
-				<span className="text-xs text-[var(--text-muted)] shrink-0 font-semibold">
+				<span className="text-xs text-text-muted shrink-0 font-semibold">
 					#{set.setNumber}
 				</span>
-				<span className="text-xs text-[var(--text-muted)] capitalize shrink-0">
+				<span className="text-xs text-text-muted capitalize shrink-0">
 					{set.setType}
 				</span>
 				{set.weight > 0 ? (
-					<span className="text-sm text-white font-medium shrink-0 tabular-nums">
+					<span className="text-sm text-text font-medium shrink-0 tabular-nums">
 						{set.weight}
-						<span className="text-xs text-[var(--text-muted)] ml-0.5">
-							{set.unit}
-						</span>
+						<span className="text-xs text-text-muted ml-0.5">{set.unit}</span>
 					</span>
 				) : (
-					<span className="text-sm text-[var(--text-muted)] shrink-0">BW</span>
+					<span className="text-sm text-text-muted shrink-0">BW</span>
 				)}
-				<span className="text-sm text-white shrink-0 tabular-nums">
+				<span className="text-sm text-text shrink-0 tabular-nums">
 					×{set.reps}
 				</span>
 				{set.rpe !== undefined && (
-					<span className="text-xs text-[var(--text-muted)] shrink-0">
+					<span className="text-xs text-text-muted shrink-0">
 						RPE {set.rpe}
 					</span>
 				)}
 				{orm && (
-					<span className="text-xs text-[var(--text-muted)] shrink-0 ml-auto tabular-nums">
+					<span className="text-xs text-text-muted shrink-0 ml-auto tabular-nums">
 						{orm.value}
 						{orm.kind === "calculated" ? " est." : ""} 1RM
 					</span>
 				)}
 			</div>
-			<ChevronRight
-				size={14}
-				className="text-[var(--text-faint)] ml-2 shrink-0"
-			/>
+			<ChevronRight size={14} className="text-text-faint ml-2 shrink-0" />
 		</button>
 	);
 }

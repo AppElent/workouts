@@ -16,18 +16,16 @@ function EditHostedWorkoutPage() {
 	});
 
 	if (data === undefined) {
-		return <div className="p-6 text-sm text-[var(--text-muted)]">Loading…</div>;
+		return <div className="p-6 text-sm text-text-muted">Loading…</div>;
 	}
 	if (data === null) {
 		return (
-			<div className="p-6 text-sm text-[var(--danger)]">
-				Hosted workout not found.
-			</div>
+			<div className="p-6 text-sm text-danger">Hosted workout not found.</div>
 		);
 	}
 	if (data.hosted.status !== "draft") {
 		return (
-			<div className="p-6 text-sm text-[var(--text-muted)]">
+			<div className="p-6 text-sm text-text-muted">
 				Only draft workouts can be edited.
 			</div>
 		);
@@ -35,7 +33,7 @@ function EditHostedWorkoutPage() {
 
 	return (
 		<div className="mx-auto max-w-3xl p-4 sm:p-6">
-			<h1 className="mb-6 text-2xl font-bold text-white">Edit Workout</h1>
+			<h1 className="mb-6 text-2xl font-bold text-text">Edit Workout</h1>
 			<HostedWorkoutBuilder
 				hostedWorkoutId={id as Id<"hostedWorkouts">}
 				initial={data.hosted}

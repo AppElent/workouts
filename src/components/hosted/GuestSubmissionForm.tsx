@@ -18,14 +18,14 @@ export function GuestSubmissionForm({
 
 	return (
 		<div className="flex flex-col gap-3">
-			<label className="flex flex-col gap-1 text-xs font-medium uppercase text-[var(--text-muted)]">
+			<label className="flex flex-col gap-1 text-xs font-medium uppercase text-text-muted">
 				Guest name
 				<input
 					type="text"
 					value={guestName}
 					onChange={(event) => setGuestName(event.target.value)}
 					placeholder="Name on leaderboard"
-					className="h-10 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm normal-case text-white placeholder:text-[var(--text-muted)]"
+					className="h-10 rounded-lg border border-border bg-surface-2 px-3 text-sm normal-case text-text placeholder:text-text-muted"
 				/>
 			</label>
 			<HostedScoreForm

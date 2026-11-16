@@ -139,14 +139,14 @@ export function ExerciseSection({
 	}
 
 	return (
-		<div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] p-4 sm:p-5">
+		<div className="rounded-xl bg-surface border border-border p-4 sm:p-5">
 			<div className="flex items-center justify-between gap-2 mb-4">
-				<h3 className="text-base font-semibold text-white">{exerciseName}</h3>
+				<h3 className="text-base font-semibold text-text">{exerciseName}</h3>
 				{isBarbell && (
 					<button
 						type="button"
 						onClick={() => setShowPlates(true)}
-						className="flex items-center gap-1.5 shrink-0 px-2.5 h-8 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-xs font-medium text-[var(--text-muted)] hover:text-[var(--accent)] hover:border-[var(--accent)]/40 transition-colors"
+						className="flex items-center gap-1.5 shrink-0 px-2.5 h-8 rounded-lg border border-border bg-surface-2 text-xs font-medium text-text-muted hover:text-accent-ink hover:border-accent-ink/40 transition-colors"
 					>
 						<Weight size={14} />
 						Plates
@@ -155,14 +155,14 @@ export function ExerciseSection({
 			</div>
 
 			{!valid && (
-				<p role="alert" className="text-sm text-[var(--text-muted)]">
+				<p role="alert" className="text-sm text-text-muted">
 					Enter weight up to {SET_LIMITS.weight.max} kg, {SET_LIMITS.reps.min}–
 					{SET_LIMITS.reps.max} whole reps, and optional RPE from{" "}
 					{SET_LIMITS.rpe.min} to {SET_LIMITS.rpe.max} in half steps.
 				</p>
 			)}
 			{plannedSets.length > sets.length ? (
-				<p className="text-xs text-[var(--text-muted)] mb-3">
+				<p className="text-xs text-text-muted mb-3">
 					{plannedSets.length - sets.length} planned sets remaining ·{" "}
 					{plannedSets[sets.length]?.weight} {plannedSets[sets.length]?.unit} ×{" "}
 					{plannedSets[sets.length]?.reps}
@@ -172,12 +172,12 @@ export function ExerciseSection({
 				<div className="hidden sm:block mb-4 overflow-x-auto">
 					<table className="w-full text-sm">
 						<thead>
-							<tr className="border-b border-[var(--border)]">
+							<tr className="border-b border-border">
 								{["#", "Type", "Weight", "Reps", "RPE", "Est. 1RM", ""].map(
 									(h) => (
 										<th
 											key={h}
-											className="text-left pb-2 text-xs text-[var(--text-muted)] font-medium pr-3 first:pl-2 whitespace-nowrap"
+											className="text-left pb-2 text-xs text-text-muted font-medium pr-3 first:pl-2 whitespace-nowrap"
 										>
 											{h}
 										</th>
@@ -207,13 +207,13 @@ export function ExerciseSection({
 					type="button"
 					onClick={() => setExpanded(true)}
 					aria-expanded={false}
-					className="sm:hidden w-full h-12 rounded-full bg-[var(--surface-2)] border border-[var(--border)] flex items-center gap-2 px-4 text-left active:scale-[0.98] transition-transform"
+					className="sm:hidden w-full h-12 rounded-full bg-surface-2 border border-border flex items-center gap-2 px-4 text-left active:scale-[0.98] transition-transform"
 				>
-					<Plus size={18} className="text-[var(--accent)] shrink-0" />
-					<span className="text-sm font-semibold text-white shrink-0">
+					<Plus size={18} className="text-accent-ink shrink-0" />
+					<span className="text-sm font-semibold text-text shrink-0">
 						Add set
 					</span>
-					<span className="text-xs text-[var(--text-muted)] truncate ml-1 tabular-nums">
+					<span className="text-xs text-text-muted truncate ml-1 tabular-nums">
 						{isBodyweight
 							? weight > 0
 								? `BW +${weight} kg`
@@ -228,14 +228,12 @@ export function ExerciseSection({
 				className={`flex-col gap-2.5 sm:hidden ${expanded ? "flex" : "hidden"}`}
 			>
 				<div className="flex items-center justify-between">
-					<p className="text-xs text-[var(--text-muted)]">
-						Set {sets.length + 1}
-					</p>
+					<p className="text-xs text-text-muted">Set {sets.length + 1}</p>
 					<button
 						type="button"
 						onClick={() => setExpanded(false)}
 						aria-label="Collapse add set form"
-						className="p-1 text-[var(--text-muted)] hover:text-white transition-colors"
+						className="p-1 text-text-muted hover:text-text transition-colors"
 					>
 						<ChevronUp size={16} />
 					</button>
@@ -278,8 +276,8 @@ export function ExerciseSection({
 								className={[
 									"flex-1 h-9 rounded-lg text-xs font-medium capitalize transition-all touch-manipulation",
 									setType === type
-										? "bg-[var(--accent-dim)] text-[var(--accent)] border border-[var(--accent)]/50"
-										: "bg-[var(--surface-2)] text-[var(--text-muted)] border border-[var(--border)] hover:text-white",
+										? "bg-accent-dim text-accent-ink border border-accent-ink/50"
+										: "bg-surface-2 text-text-muted border border-border hover:text-text",
 								].join(" ")}
 							>
 								{type}
@@ -290,7 +288,7 @@ export function ExerciseSection({
 					<button
 						type="button"
 						onClick={() => setRpe(undefined)}
-						className="text-xs text-[var(--text-muted)]"
+						className="text-xs text-text-muted"
 					>
 						{rpe === undefined ? "RPE not recorded" : "Clear RPE"}
 					</button>
@@ -299,7 +297,7 @@ export function ExerciseSection({
 					type="button"
 					onClick={() => void handleLogSet()}
 					disabled={!valid || busy}
-					className="w-full h-12 rounded-full bg-[var(--accent)] text-black text-[15px] font-bold flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-40 disabled:pointer-events-none mt-1"
+					className="w-full h-12 rounded-full bg-accent-fill text-on-accent text-body font-bold flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-40 disabled:pointer-events-none mt-1"
 				>
 					<Plus size={18} />
 					Log set
@@ -317,7 +315,7 @@ export function ExerciseSection({
 					<div className="flex flex-col gap-1">
 						<label
 							htmlFor="set-type"
-							className="text-[10px] text-[var(--text-muted)] uppercase"
+							className="text-micro text-text-muted uppercase"
 						>
 							Type
 						</label>
@@ -325,7 +323,7 @@ export function ExerciseSection({
 							id="set-type"
 							value={setType}
 							onChange={(e) => setSetType(e.target.value as SetType)}
-							className="h-8 rounded border border-[var(--border)] bg-[var(--surface-2)] px-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+							className="h-8 rounded border border-border bg-surface-2 px-2 text-xs text-text focus:outline-none focus:ring-1 focus:ring-accent-ink"
 						>
 							{SET_TYPES.map((t) => (
 								<option key={t} value={t} className="capitalize">
@@ -338,7 +336,7 @@ export function ExerciseSection({
 					<div className="flex flex-col gap-1">
 						<label
 							htmlFor="set-weight"
-							className="text-[10px] text-[var(--text-muted)] uppercase"
+							className="text-micro text-text-muted uppercase"
 						>
 							{isBodyweight ? "added kg" : "kg"}
 						</label>
@@ -350,14 +348,14 @@ export function ExerciseSection({
 							step={weightStep}
 							value={weight}
 							onChange={(e) => setWeight(parseFloat(e.target.value) || 0)}
-							className="w-16 h-8 rounded border border-[var(--border)] bg-[var(--surface-2)] px-2 text-xs text-white text-center focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+							className="w-16 h-8 rounded border border-border bg-surface-2 px-2 text-xs text-text text-center focus:outline-none focus:ring-1 focus:ring-accent-ink"
 						/>
 					</div>
 
 					<div className="flex flex-col gap-1">
 						<label
 							htmlFor="set-reps"
-							className="text-[10px] text-[var(--text-muted)] uppercase"
+							className="text-micro text-text-muted uppercase"
 						>
 							Reps
 						</label>
@@ -368,13 +366,13 @@ export function ExerciseSection({
 							max={SET_LIMITS.reps.max}
 							value={reps}
 							onChange={(e) => setReps(parseInt(e.target.value, 10) || 0)}
-							className="w-14 h-8 rounded border border-[var(--border)] bg-[var(--surface-2)] px-2 text-xs text-white text-center focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+							className="w-14 h-8 rounded border border-border bg-surface-2 px-2 text-xs text-text text-center focus:outline-none focus:ring-1 focus:ring-accent-ink"
 						/>
 					</div>
 					<div className="flex flex-col gap-1">
 						<label
 							htmlFor="set-rpe"
-							className="text-[10px] text-[var(--text-muted)] uppercase"
+							className="text-micro text-text-muted uppercase"
 						>
 							RPE
 						</label>
@@ -390,14 +388,14 @@ export function ExerciseSection({
 									e.target.value === "" ? undefined : Number(e.target.value),
 								)
 							}
-							className="w-14 h-8 rounded border border-[var(--border)] bg-[var(--surface-2)] px-2 text-xs text-white text-center focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+							className="w-14 h-8 rounded border border-border bg-surface-2 px-2 text-xs text-text text-center focus:outline-none focus:ring-1 focus:ring-accent-ink"
 						/>
 					</div>
 				</fieldset>
 				<button
 					type="submit"
 					disabled={!valid || busy}
-					className="h-8 flex items-center gap-1 px-3 rounded border border-[var(--accent)]/40 text-[var(--accent)] text-xs font-medium hover:bg-[var(--accent-dim)] transition-colors disabled:opacity-40 disabled:pointer-events-none"
+					className="h-8 flex items-center gap-1 px-3 rounded border border-accent-ink/40 text-accent-ink text-xs font-medium hover:bg-accent-dim transition-colors disabled:opacity-40 disabled:pointer-events-none"
 				>
 					<Plus size={13} />
 					Log set

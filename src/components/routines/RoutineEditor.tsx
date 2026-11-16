@@ -75,23 +75,23 @@ export function RoutineEditor({
 				placeholder="Routine name (e.g. Push Day A)"
 				value={name}
 				onChange={(event) => setName(event.target.value)}
-				className="h-9 rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+				className="h-9 rounded-md border border-border bg-surface-2 px-3 text-sm text-text placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent-ink"
 			/>
 
 			{entries.map((entry, index) => (
 				<div
 					key={entry.exerciseId}
-					className="flex flex-col gap-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-4"
+					className="flex flex-col gap-2.5 rounded-xl border border-border bg-surface-2 p-4"
 				>
 					<div className="flex items-center justify-between">
-						<span className="text-sm font-medium text-white">{entry.name}</span>
+						<span className="text-sm font-medium text-text">{entry.name}</span>
 						<button
 							type="button"
 							onClick={() =>
 								setEntries((prev) => prev.filter((_, i) => i !== index))
 							}
 							aria-label={`Remove ${entry.name}`}
-							className="p-1 text-[var(--text-muted)] transition-colors hover:text-[var(--danger)]"
+							className="p-1 text-text-muted transition-colors hover:text-danger"
 						>
 							<X size={14} />
 						</button>
@@ -127,7 +127,7 @@ export function RoutineEditor({
 			))}
 
 			{picking ? (
-				<div className="overflow-hidden rounded-lg border border-[var(--border)]">
+				<div className="overflow-hidden rounded-lg border border-border">
 					<ExercisePicker
 						autoFocus
 						onSelect={(exercise) => {
@@ -148,21 +148,21 @@ export function RoutineEditor({
 				<button
 					type="button"
 					onClick={() => setPicking(true)}
-					className="flex items-center gap-2 text-sm text-[var(--accent)] transition-colors hover:text-[var(--accent-hover)]"
+					className="flex items-center gap-2 text-sm text-accent-ink hover:underline"
 				>
 					<Plus size={14} />
 					Add Exercise
 				</button>
 			)}
 
-			{error && <p className="text-sm text-[var(--danger)]">{error}</p>}
+			{error && <p className="text-sm text-danger">{error}</p>}
 
 			<div className="flex justify-end gap-3">
 				{onCancel && (
 					<button
 						type="button"
 						onClick={onCancel}
-						className="rounded-full border border-[var(--border)] px-5 py-2 text-sm text-[var(--text-muted)] hover:text-white"
+						className="rounded-full border border-border px-5 py-2 text-sm text-text-muted hover:text-text"
 					>
 						Cancel
 					</button>
@@ -170,7 +170,7 @@ export function RoutineEditor({
 				<button
 					type="submit"
 					disabled={!canSave}
-					className="rounded-full bg-[var(--accent)] px-5 py-2 text-sm font-bold text-black transition-colors hover:bg-[var(--accent-hover)] disabled:opacity-40"
+					className="rounded-full bg-accent-fill px-5 py-2 text-sm font-bold text-on-accent transition-colors hover:bg-accent-pressed disabled:opacity-40"
 				>
 					{submitLabel}
 				</button>

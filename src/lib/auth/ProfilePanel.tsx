@@ -28,7 +28,7 @@ export function ProfilePanel() {
 	}, [user]);
 
 	if (!isLoaded || !user) {
-		return <p className="text-sm text-[var(--auth-muted)]">{text.loading}</p>;
+		return <p className="text-sm text-text-muted">{text.loading}</p>;
 	}
 
 	async function saveProfile(e: React.FormEvent) {
@@ -69,8 +69,8 @@ export function ProfilePanel() {
 		<div className="space-y-6">
 			<AuthError message={error} />
 
-			<section className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
-				<p className="text-sm font-semibold text-[var(--text)]">{text.title}</p>
+			<section className="rounded-xl border border-border bg-surface p-4">
+				<p className="text-sm font-semibold text-text">{text.title}</p>
 				<form
 					onSubmit={saveProfile}
 					className="mt-3 flex flex-col gap-3"
@@ -88,7 +88,7 @@ export function ProfilePanel() {
 						value={lastName}
 						onChange={setLastName}
 					/>
-					<p className="text-xs text-[var(--auth-muted)]">
+					<p className="text-xs text-text-muted">
 						{fmt(text.email, {
 							email: user.primaryEmailAddress?.emailAddress ?? "",
 						})}
@@ -97,10 +97,8 @@ export function ProfilePanel() {
 				</form>
 			</section>
 
-			<section className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
-				<p className="text-sm font-semibold text-[var(--text)]">
-					{text.security}
-				</p>
+			<section className="rounded-xl border border-border bg-surface p-4">
+				<p className="text-sm font-semibold text-text">{text.security}</p>
 				<form
 					onSubmit={changePassword}
 					className="mt-3 flex flex-col gap-3"
@@ -126,10 +124,8 @@ export function ProfilePanel() {
 				</form>
 			</section>
 
-			<section className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
-				<p className="text-sm font-semibold text-[var(--text)]">
-					{text.session}
-				</p>
+			<section className="rounded-xl border border-border bg-surface p-4">
+				<p className="text-sm font-semibold text-text">{text.session}</p>
 				<div className="mt-3">
 					<AuthButton type="button" variant="ghost" onClick={() => signOut()}>
 						{text.signOut}

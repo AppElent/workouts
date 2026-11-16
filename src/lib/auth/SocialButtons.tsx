@@ -64,7 +64,7 @@ export function SocialButtons() {
 						key={provider.strategy}
 						type="button"
 						variant="ghost"
-						className="border-solid border-[var(--auth-border)]"
+						className="border-solid border-border"
 						loading={pending === provider.strategy}
 						disabled={pending !== null}
 						onClick={() => start(provider.strategy)}
@@ -73,10 +73,10 @@ export function SocialButtons() {
 					</AuthButton>
 				),
 			)}
-			<div className="my-1 flex items-center gap-3 text-xs text-[var(--auth-muted)]">
-				<span className="h-px flex-1 bg-[var(--auth-border)]" />
+			<div className="my-1 flex items-center gap-3 text-xs text-text-muted">
+				<span className="h-px flex-1 bg-border" />
 				{auth.or}
-				<span className="h-px flex-1 bg-[var(--auth-border)]" />
+				<span className="h-px flex-1 bg-border" />
 			</div>
 		</div>
 	);

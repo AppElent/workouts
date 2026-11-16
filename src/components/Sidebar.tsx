@@ -16,19 +16,16 @@ export function Sidebar() {
 	return (
 		<aside
 			className={[
-				"hidden sm:flex flex-col h-screen sticky top-0 border-r border-[var(--border)] bg-[var(--surface)] transition-all duration-200",
+				"hidden sm:flex flex-col h-screen sticky top-0 border-r border-border bg-surface transition-all duration-200",
 				collapsed ? "w-16" : "w-56",
 			].join(" ")}
 		>
-			<div className="flex items-center gap-2 px-4 py-5 border-b border-[var(--border)]">
-				<div
-					className="shrink-0 w-7 h-7 rounded-md flex items-center justify-center font-black text-black text-sm"
-					style={{ background: "var(--accent)" }}
-				>
+			<div className="flex items-center gap-2 px-4 py-5 border-b border-border">
+				<div className="shrink-0 w-7 h-7 rounded-md flex items-center justify-center font-black bg-accent-fill text-on-accent text-sm">
 					W
 				</div>
 				{!collapsed && (
-					<span className="font-bold text-sm text-white truncate">
+					<span className="font-bold text-sm text-text truncate">
 						{nav.appName}
 					</span>
 				)}
@@ -45,10 +42,10 @@ export function Sidebar() {
 							className={[
 								"flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
 								active
-									? "bg-[var(--accent-dim)] text-[var(--accent)]"
+									? "bg-accent-dim text-accent-ink"
 									: locked
-										? "text-[var(--text-muted)]/60 hover:text-white hover:bg-white/5"
-										: "text-[var(--text-muted)] hover:text-white hover:bg-white/5",
+										? "text-text-faint hover:text-text hover:bg-text/5"
+										: "text-text-muted hover:text-text hover:bg-text/5",
 							].join(" ")}
 							aria-current={active ? "page" : undefined}
 						>
@@ -66,12 +63,12 @@ export function Sidebar() {
 				})}
 			</nav>
 
-			<div className="flex items-center justify-center p-3 border-t border-[var(--border)]">
+			<div className="flex items-center justify-center p-3 border-t border-border">
 				<HeaderUser />
 			</div>
 
 			{!collapsed && (
-				<div className="flex items-center justify-center border-t border-[var(--border)]">
+				<div className="flex items-center justify-center border-t border-border">
 					<LanguageToggle />
 				</div>
 			)}
@@ -79,7 +76,7 @@ export function Sidebar() {
 			<button
 				type="button"
 				onClick={() => setCollapsed((c) => !c)}
-				className="flex items-center justify-center p-3 border-t border-[var(--border)] text-[var(--text-muted)] hover:text-white transition-colors"
+				className="flex items-center justify-center p-3 border-t border-border text-text-muted hover:text-text transition-colors"
 				aria-label={collapsed ? nav.expandSidebar : nav.collapseSidebar}
 			>
 				{collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
