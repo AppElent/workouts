@@ -339,7 +339,7 @@ function StatCard({
 }) {
 	return (
 		<div className="rounded-xl bg-surface border border-border p-3">
-			<p className="text-axis tracking-widest text-text-muted uppercase mb-1">
+			<p className="text-micro tracking-widest text-text-muted uppercase mb-1">
 				{label}
 			</p>
 			<p className="text-lg font-bold text-text tabular-nums">

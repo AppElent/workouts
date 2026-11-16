@@ -124,7 +124,7 @@ export function MuscleMap({ muscleGroups, size = "sm" }: Props) {
 							decoding="async"
 						/>
 					</div>
-					<span className="text-axis tracking-widest text-text-muted uppercase">
+					<span className="text-micro tracking-widest text-text-muted uppercase">
 						{icon.label}
 					</span>
 				</div>

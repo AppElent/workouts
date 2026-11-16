@@ -181,13 +181,13 @@ function ExercisesPage() {
 								{ex.muscleGroups.slice(0, 3).map((mg) => (
 									<span
 										key={mg}
-										className="rounded px-1 py-0.5 text-axis bg-accent-dim text-accent-ink capitalize"
+										className="rounded px-1 py-0.5 text-micro bg-accent-dim text-accent-ink capitalize"
 									>
 										{mg}
 									</span>
 								))}
 								{ex.muscleGroups.length > 3 && (
-									<span className="rounded px-1 py-0.5 text-axis text-text-muted">
+									<span className="rounded px-1 py-0.5 text-micro text-text-muted">
 										+{ex.muscleGroups.length - 3}
 									</span>
 								)}

@@ -164,7 +164,7 @@ function ExerciseDetailPage() {
 				<div className="flex flex-col gap-3">
 					{currentOrm && (
 						<div className="rounded-xl bg-surface border border-border p-4">
-							<p className="text-axis tracking-widest text-text-muted uppercase mb-2">
+							<p className="text-micro tracking-widest text-text-muted uppercase mb-2">
 								Current 1RM
 							</p>
 							<div className="flex items-baseline gap-1.5 mb-2">
@@ -193,7 +193,7 @@ function ExerciseDetailPage() {
 
 					{exercise.notes && (
 						<div className="rounded-xl bg-surface border border-border p-4">
-							<p className="text-axis tracking-widest text-text-muted uppercase mb-2">
+							<p className="text-micro tracking-widest text-text-muted uppercase mb-2">
 								Notes
 							</p>
 							<p className="text-sm text-text-muted leading-relaxed">

@@ -286,7 +286,7 @@ export function SetEditSheet({
 					<span className="text-micro font-bold uppercase tracking-[0.1em] text-text-muted">
 						Weight · {draft.unit}
 					</span>
-					<span className="text-axis uppercase tracking-[0.05em] text-text-faint">
+					<span className="text-micro uppercase tracking-[0.05em] text-text-faint">
 						step {inc}
 					</span>
 				</div>

@@ -21,7 +21,7 @@ export function PersonalRecords({
 
 	return (
 		<div className="rounded-xl bg-surface border border-border p-4">
-			<p className="text-axis tracking-widest text-text-muted uppercase mb-3">
+			<p className="text-micro tracking-widest text-text-muted uppercase mb-3">
 				Personal records
 			</p>
 			<div className="grid grid-cols-2 gap-3">

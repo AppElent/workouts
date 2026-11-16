@@ -164,10 +164,7 @@ export function RestTimerProvider({ children }: { children: ReactNode }) {
 						</div>
 						<div className="flex items-center gap-2 p-2.5">
 							<div className="flex items-center gap-2 shrink-0">
-								<Timer
-									size={18}
-									className={finished ? "text-accent-ink" : "text-accent-ink"}
-								/>
+								<Timer size={18} className="text-accent-ink" />
 								<button
 									type="button"
 									onClick={() => setShowPresets((s) => !s)}
