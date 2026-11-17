@@ -20,6 +20,10 @@ export const account = {
 		offline: "Connect to delete your data.",
 		accountError:
 			"Your data was deleted, but the account could not be deleted. Try Delete account again.",
+		signInCheckError:
+			"Your sign-in could not be confirmed. Nothing was deleted. Try Delete account again.",
+		signInAgain:
+			"Your data was deleted, but the account was not, because your sign-in was not confirmed. Sign in again, then choose Delete account again.",
 		applePopupBlocked:
 			"Your browser blocked the Apple window. Allow pop-ups for this site, then try Delete account again.",
 		refusals: {

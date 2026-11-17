@@ -74,3 +74,25 @@ With the dev test account, reloading or opening a signed-in URL directly shows
 in headed and headless Chrome for Testing with a fresh profile, on `/account`
 and on `/progress`, which this PR does not change. So it predates this PR. It
 was not tried in a regular Chrome profile.
+
+## Recent sign-in before Delete account
+
+Clerk lists Delete account as a sensitive action: it needs the strongest
+factor verified within 10 minutes, and otherwise refuses with
+`session_reverification_required`. The live run above stayed inside that
+window. The instance config has no setting for this, so Clerk's documented
+default applies to both instances. Delete account now checks
+`session.checkAuthorization({ reverification: "strict" })` through
+`useReverification` before Apple revocation and before any data is deleted.
+`user.delete()` is wrapped too, in case the window lapses during a long
+deletion. Clerk's verify dialog opens in this app
+([screenshot](reverify-dialog.png), dev test account, cancelled). A fresh
+session passes the check without a dialog. Unit tests cover:
+
+- an old sign-in confirmed, then deleted;
+- the dialog cancelled, so nothing is deleted;
+- Clerk asking again after the data is gone and that being cancelled, which
+  shows "sign in again, then choose Delete account again".
+
+An end-to-end run with a stale session was not done, because it needs another
+throwaway account.

@@ -1,4 +1,5 @@
-import { useAuth, useUser } from "@clerk/react";
+import { useAuth, useReverification, useSession, useUser } from "@clerk/react";
+import { isReverificationCancelledError } from "@clerk/react/errors";
 import { api } from "@convex/_generated/api";
 import { isAppErrorCode, parseConvexError } from "@foundry/core";
 import { useNavigate } from "@tanstack/react-router";
@@ -18,6 +19,19 @@ import { useI18n } from "#/lib/i18n";
 type Mode = "deleteData" | "deleteAccount";
 
 /**
+ * Clerk's reverification hint (`reverificationError("strict")` in
+ * `@clerk/shared`): `useReverification` answers it with Clerk's verify dialog
+ * and then calls the wrapped function again.
+ */
+const NEEDS_RECENT_SIGN_IN = {
+	clerk_error: {
+		type: "forbidden",
+		reason: "reverification-error",
+		metadata: { reverification: "strict" },
+	},
+} as const;
+
+/**
  * Delete my data and Delete account, as on the mobile Account screen
  * (profile contract). Web keeps no account data outside Convex queries, so
  * after Delete my data every page re-renders empty without a local reset.
@@ -25,6 +39,18 @@ type Mode = "deleteData" | "deleteAccount";
 export function DeleteAccountCard() {
 	const { userId } = useAuth();
 	const { user } = useUser();
+	const { session } = useSession();
+	// Clerk deletes an account only after a recent sign-in ("strict": the
+	// strongest factor within 10 minutes). Ask for it before anything is
+	// deleted, so a stale session never leaves the data gone and the account
+	// still there.
+	const confirmRecentSignIn = useReverification(async () =>
+		session?.checkAuthorization({ reverification: "strict" })
+			? true
+			: NEEDS_RECENT_SIGN_IN,
+	);
+	// Still wrapped: the window can lapse while a large deletion runs.
+	const deleteUser = useReverification(() => user?.delete());
 	const blocker = useQuery(api.account.deletionBlocker, {});
 	const deleteData = useMutation(api.account.deleteData);
 	const revokeApple = useAction(api.account.revokeAppleSignIn);
@@ -62,6 +88,15 @@ export function DeleteAccountCard() {
 			if (!confirmed) return;
 			setBusy(mode);
 			if (mode === "deleteAccount") {
+				try {
+					await confirmRecentSignIn();
+				} catch (error) {
+					// Cancelling the dialog deletes nothing, like cancelling the
+					// confirmation.
+					if (!isReverificationCancelledError(error))
+						toast.error(c.deletion.signInCheckError);
+					return;
+				}
 				const apple = await revokeAppleSignIn(user, revokeApple, { locale });
 				if (apple === "popupBlocked") toast.error(c.deletion.applePopupBlocked);
 				if (apple !== "continue") return;
@@ -83,9 +118,13 @@ export function DeleteAccountCard() {
 			if (mode === "deleteAccount") {
 				try {
 					// Ends the session.
-					await user.delete();
-				} catch {
-					toast.error(c.deletion.accountError);
+					await deleteUser();
+				} catch (error) {
+					toast.error(
+						isReverificationCancelledError(error)
+							? c.deletion.signInAgain
+							: c.deletion.accountError,
+					);
 					return;
 				}
 				// The signed-out start; a full load also drops in-memory account state.

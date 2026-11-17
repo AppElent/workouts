@@ -21,7 +21,15 @@ const mocks = vi.hoisted(() => ({
 	deleteUser: vi.fn(),
 	navigate: vi.fn(),
 	deleteSelfEnabled: true,
+	// Whether the session's sign-in is recent enough for Clerk.
+	recentSignIn: true,
+	// How the person answers Clerk's verify dialog.
+	verifies: true,
+	verifyPrompts: 0,
 }));
+
+type Fetcher = (...args: unknown[]) => Promise<unknown>;
+const cancelled = { code: "reverification_cancelled" };
 
 vi.mock("convex/react", () => ({
 	useQuery: () => mocks.blocker,
@@ -31,6 +39,28 @@ vi.mock("convex/react", () => ({
 }));
 vi.mock("@clerk/react", () => ({
 	useAuth: () => ({ userId: "user_1" }),
+	useSession: () => ({
+		session: { checkAuthorization: () => mocks.recentSignIn },
+	}),
+	// Mirrors Clerk: a reverification hint, or Clerk's
+	// session_reverification_required error, opens the verify dialog, then the
+	// call runs again; cancelling it rejects.
+	useReverification:
+		(fetcher: Fetcher) =>
+		async (...args: unknown[]) => {
+			const attempt = () =>
+				fetcher(...args).catch((error: { reverify?: boolean }) => {
+					if (error?.reverify)
+						return { clerk_error: { reason: "reverification-error" } };
+					throw error;
+				});
+			const result = (await attempt()) as { clerk_error?: unknown } | undefined;
+			if (!result?.clerk_error) return result;
+			mocks.verifyPrompts++;
+			if (!mocks.verifies) throw cancelled;
+			mocks.recentSignIn = true;
+			return attempt();
+		},
 	useUser: () => ({
 		user: {
 			deleteSelfEnabled: mocks.deleteSelfEnabled,
@@ -38,6 +68,9 @@ vi.mock("@clerk/react", () => ({
 			delete: mocks.deleteUser,
 		},
 	}),
+}));
+vi.mock("@clerk/react/errors", () => ({
+	isReverificationCancelledError: (error: unknown) => error === cancelled,
 }));
 vi.mock("@tanstack/react-router", () => ({
 	useNavigate: () => mocks.navigate,
@@ -52,6 +85,9 @@ beforeEach(() => {
 	mocks.blocker = null;
 	mocks.online = true;
 	mocks.deleteSelfEnabled = true;
+	mocks.recentSignIn = true;
+	mocks.verifies = true;
+	mocks.verifyPrompts = 0;
 	mocks.deleteData.mockResolvedValue({ done: true });
 	mocks.revokeApple.mockResolvedValue("continue");
 	mocks.deleteUser.mockResolvedValue(undefined);
@@ -244,4 +280,45 @@ it("stops and asks to allow pop-ups when the browser blocks the Apple window", a
 	await notifications().findByText(/Allow pop-ups for this site/);
 	expect(mocks.deleteData).not.toHaveBeenCalled();
 	expect(mocks.deleteUser).not.toHaveBeenCalled();
+});
+
+it("asks to confirm an old sign-in before deleting anything, then deletes", async () => {
+	mocks.recentSignIn = false;
+	setup();
+	fireEvent.click(button("Delete account"));
+	fireEvent.click(dialog().getByRole("button", { name: "Delete account" }));
+	await waitFor(() => expect(mocks.navigate).toHaveBeenCalled());
+	expect(mocks.verifyPrompts).toBe(1);
+	expect(mocks.deleteUser).toHaveBeenCalledOnce();
+});
+
+it("deletes nothing when confirming the sign-in is cancelled", async () => {
+	mocks.recentSignIn = false;
+	mocks.verifies = false;
+	setup();
+	fireEvent.click(button("Delete account"));
+	fireEvent.click(dialog().getByRole("button", { name: "Delete account" }));
+	await waitFor(() => expect(mocks.verifyPrompts).toBe(1));
+	await waitFor(() => expect(button("Delete account").disabled).toBe(false));
+	expect(mocks.revokeApple).not.toHaveBeenCalled();
+	expect(mocks.deleteData).not.toHaveBeenCalled();
+	expect(mocks.deleteUser).not.toHaveBeenCalled();
+	expect(
+		screen.queryByRole("region", { name: "Notifications" })?.textContent ?? "",
+	).not.toMatch(/deleted/);
+});
+
+it("says to sign in again when Clerk asks once the data is gone and it is cancelled", async () => {
+	mocks.deleteUser.mockRejectedValue({ reverify: true });
+	mocks.verifies = false;
+	setup();
+	fireEvent.click(button("Delete account"));
+	fireEvent.click(dialog().getByRole("button", { name: "Delete account" }));
+	expect(
+		await notifications().findByText(
+			/Your data was deleted, but the account was not.*Sign in again, then choose Delete account again/,
+		),
+	).toBeTruthy();
+	expect(mocks.deleteData).toHaveBeenCalled();
+	expect(mocks.navigate).not.toHaveBeenCalled();
 });

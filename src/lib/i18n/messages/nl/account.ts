@@ -19,6 +19,10 @@ export const account = {
 		offline: "Maak verbinding om je gegevens te verwijderen.",
 		accountError:
 			"Je gegevens zijn verwijderd, maar het account kon niet worden verwijderd. Probeer Account verwijderen opnieuw.",
+		signInCheckError:
+			"Je inlog kon niet worden bevestigd. Er is niets verwijderd. Probeer Account verwijderen opnieuw.",
+		signInAgain:
+			"Je gegevens zijn verwijderd, maar het account niet, omdat je inlog niet is bevestigd. Log opnieuw in en kies dan opnieuw Account verwijderen.",
 		applePopupBlocked:
 			"Je browser blokkeerde het Apple-venster. Sta pop-ups toe voor deze site en probeer Account verwijderen opnieuw.",
 		refusals: {

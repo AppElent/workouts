@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing Profile, settings, account actions, or sign-out.
-version: 1.4.0
+version: 1.4.1
 status: current
 ---
 
@@ -40,7 +40,10 @@ tap. Study: [profile](../../designs/app/profile_final.html).
   - *Web.* The web Account page offers both deletions with the same
     confirmations and blockers. Web keeps no account data outside Convex
     queries, so Delete my data needs no local reset; Delete account ends on the
-    signed-out start with a full page load.
+    signed-out start with a full page load. Before Delete account deletes
+    anything, Clerk asks the person to confirm their sign-in when it is older
+    than its reverification window, so the data is never deleted while the
+    account stays.
 - **Summary.** None until lifetime totals exist. Profile shows no placeholder
   figures, dashes, or "coming soon" row in its place.
 - **Sign out.** A red row in its own bottom section, always confirmed. The
