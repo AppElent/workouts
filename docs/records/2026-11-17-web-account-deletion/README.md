@@ -103,5 +103,11 @@ session passes the check without a dialog. Unit tests cover:
 The check reads the live session through `useClerk()`, because Clerk replaces
 the session object after verifying.
 
+Each Clerk step, including Clerk's own retry, re-checks that the signed-in
+user and session are still the ones that confirmed. If another account signed
+in during the deletion (for example in another tab), that account is never
+deleted. The card also re-reads the deletion blocker before Apple's popup,
+because a revoked Apple grant can't be restored. Tests cover both cases.
+
 An end-to-end run with a stale session was not done, because it needs another
 throwaway account.

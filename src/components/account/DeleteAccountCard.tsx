@@ -35,6 +35,12 @@ const NEEDS_RECENT_SIGN_IN = {
 	},
 } as const;
 
+/** The Clerk account and session the person confirmed the deletion in. */
+type Confirmed = { userId: string; sessionId: string };
+
+/** Thrown when another account or session is signed in mid-deletion. */
+class AccountChanged extends Error {}
+
 /** Whether a reverification-wrapped call ended with Clerk still refusing. */
 function stillRefused(result: unknown) {
 	return (
@@ -57,12 +63,28 @@ export function DeleteAccountCard() {
 	// still there. Reads the live session: verifying replaces it.
 	const recentSignIn = () =>
 		clerk.session?.checkAuthorization({ reverification: "strict" }) ?? false;
-	const confirmRecentSignIn = useReverification(async () =>
-		recentSignIn() ? true : NEEDS_RECENT_SIGN_IN,
+	// Every Clerk step re-checks the live identity, also on Clerk's retry, so
+	// a sign-in to another account in another tab is never deleted.
+	const sameAccount = (confirmed: Confirmed) =>
+		clerk.user?.id === confirmed.userId &&
+		clerk.session?.id === confirmed.sessionId;
+	const confirmRecentSignIn = useReverification(
+		async (confirmed: Confirmed) => {
+			if (!sameAccount(confirmed)) throw new AccountChanged();
+			return recentSignIn() ? true : NEEDS_RECENT_SIGN_IN;
+		},
 	);
 	// Still wrapped: the window can lapse while a large deletion runs.
-	const deleteUser = useReverification(() => user?.delete());
+	const deleteUser = useReverification(async (confirmed: Confirmed) => {
+		if (!sameAccount(confirmed)) throw new AccountChanged();
+		return clerk.user?.delete();
+	});
 	const blocker = useQuery(api.account.deletionBlocker, {});
+	// The latest blocker, for steps that run after the confirmation.
+	const blockerNow = useRef(blocker);
+	useEffect(() => {
+		blockerNow.current = blocker;
+	}, [blocker]);
 	const deleteData = useMutation(api.account.deleteData);
 	const revokeApple = useAction(api.account.revokeAppleSignIn);
 	const online = useConvexConnectionState().isWebSocketConnected;
@@ -98,19 +120,28 @@ export function DeleteAccountCard() {
 			});
 			if (!confirmed) return;
 			setBusy(mode);
+			const account: Confirmed | null = clerk.session
+				? { userId, sessionId: clerk.session.id }
+				: null;
 			if (mode === "deleteAccount") {
+				if (!account || !sameAccount(account)) {
+					toast.error(c.deletion.accountChanged);
+					return;
+				}
 				const verifying = !recentSignIn();
 				try {
 					// Clerk retries once after its dialog and returns that result
 					// as is: anything but `true` means the sign-in is still old.
-					if ((await confirmRecentSignIn()) !== true) {
+					if ((await confirmRecentSignIn(account)) !== true) {
 						toast.error(c.deletion.signInCheckError);
 						return;
 					}
 				} catch (error) {
 					// Cancelling the dialog deletes nothing, like cancelling the
 					// confirmation.
-					if (!isReverificationCancelledError(error))
+					if (error instanceof AccountChanged)
+						toast.error(c.deletion.accountChanged);
+					else if (!isReverificationCancelledError(error))
 						toast.error(c.deletion.signInCheckError);
 					return;
 				}
@@ -128,6 +159,19 @@ export function DeleteAccountCard() {
 					}))
 				)
 					return;
+				// A blocker can appear while the dialogs are open; Apple's grant
+				// can't be restored, so check before revoking it.
+				const blocked = blockerNow.current;
+				if (blocked !== null) {
+					toast.error(
+						blocked ? c.deletion.refusals[blocked] : c.deletion.error,
+					);
+					return;
+				}
+				if (!sameAccount(account)) {
+					toast.error(c.deletion.accountChanged);
+					return;
+				}
 				const apple = await revokeAppleSignIn(user, revokeApple, { locale });
 				if (apple === "popupBlocked") toast.error(c.deletion.applePopupBlocked);
 				if (apple !== "continue") return;
@@ -146,18 +190,21 @@ export function DeleteAccountCard() {
 				toast.error((isAppErrorCode(code) && words[code]) || c.deletion.error);
 				return;
 			}
-			if (mode === "deleteAccount") {
+			// `account` is set for Delete account: it stops above without one.
+			if (mode === "deleteAccount" && account) {
 				try {
 					// Ends the session. Clerk can still refuse after its dialog.
-					if (stillRefused(await deleteUser())) {
+					if (stillRefused(await deleteUser(account))) {
 						toast.error(c.deletion.signInAgain);
 						return;
 					}
 				} catch (error) {
 					toast.error(
-						isReverificationCancelledError(error)
-							? c.deletion.signInAgain
-							: c.deletion.accountError,
+						error instanceof AccountChanged
+							? c.deletion.accountChanged
+							: isReverificationCancelledError(error)
+								? c.deletion.signInAgain
+								: c.deletion.accountError,
 					);
 					return;
 				}
