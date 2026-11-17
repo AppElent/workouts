@@ -314,7 +314,7 @@ it("deletes nothing when confirming the sign-in is cancelled", async () => {
 	).not.toMatch(/deleted/);
 });
 
-it("says to sign in again when Clerk asks once the data is gone and it is cancelled", async () => {
+it("asks to confirm the sign-in again when Clerk asks once the data is gone and it is cancelled", async () => {
 	mocks.deleteUser.mockRejectedValue({ reverify: true });
 	mocks.verifies = false;
 	setup();
@@ -322,7 +322,7 @@ it("says to sign in again when Clerk asks once the data is gone and it is cancel
 	fireEvent.click(dialog().getByRole("button", { name: "Delete account" }));
 	expect(
 		await notifications().findByText(
-			/Your data was deleted, but the account was not.*Sign in again, then choose Delete account again/,
+			/Your data was deleted, but the account was not.*Choose Delete account again and confirm your sign-in/,
 		),
 	).toBeTruthy();
 	expect(mocks.deleteData).toHaveBeenCalled();
@@ -352,7 +352,7 @@ it("stays here when Clerk refuses the account again after its dialog", async () 
 	fireEvent.click(dialog().getByRole("button", { name: "Delete account" }));
 	expect(
 		await notifications().findByText(
-			/Sign in again, then choose Delete account again/,
+			/Choose Delete account again and confirm your sign-in/,
 		),
 	).toBeTruthy();
 	expect(mocks.deleteUser).toHaveBeenCalledTimes(2);

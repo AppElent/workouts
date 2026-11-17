@@ -92,7 +92,16 @@ session passes the check without a dialog. Unit tests cover:
 - an old sign-in confirmed, then deleted;
 - the dialog cancelled, so nothing is deleted;
 - Clerk asking again after the data is gone and that being cancelled, which
-  shows "sign in again, then choose Delete account again".
+  asks the person to choose Delete account again and confirm their sign-in;
+- the sign-in still old after Clerk's dialog, so nothing is deleted (Clerk
+  retries once and returns the result as is, so the card requires `true`);
+- Clerk refusing the retried `user.delete()`, so the page stays put and no
+  reload claims success;
+- after Clerk's dialog, a second confirmation that gives Apple's popup a fresh
+  click, and cancelling it deletes nothing.
+
+The check reads the live session through `useClerk()`, because Clerk replaces
+the session object after verifying.
 
 An end-to-end run with a stale session was not done, because it needs another
 throwaway account.

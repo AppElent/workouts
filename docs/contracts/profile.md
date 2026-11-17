@@ -44,8 +44,8 @@ tap. Study: [profile](../../designs/app/profile_final.html).
     anything, Clerk asks the person to confirm their sign-in when it is older
     than its reverification window, so a stale session does not delete the data
     and keep the account. If Clerk still refuses the account after the data is
-    gone, the person is told to sign in again and repeat Delete account, which
-    resumes safely.
+    gone, the person is asked to choose Delete account again and confirm
+    their sign-in, which resumes safely.
 - **Summary.** None until lifetime totals exist. Profile shows no placeholder
   figures, dashes, or "coming soon" row in its place.
 - **Sign out.** A red row in its own bottom section, always confirmed. The
