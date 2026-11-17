@@ -324,7 +324,7 @@ it("dates the claimed WOD Result at the original guest submit", async () => {
 		...score(80),
 	});
 	await t.run((ctx) => ctx.db.patch(id, { submittedAt: 1_000_000 }));
-	await t
+	const { sessionId } = await t
 		.withIdentity({ subject: "sam" })
 		.mutation(api.hostedWorkoutSubmissions.claimGuestSubmissions, {
 			token,
@@ -338,6 +338,6 @@ it("dates the claimed WOD Result at the original guest submit", async () => {
 			.collect(),
 	);
 	expect(result.date).toBe(1_000_000);
-	const session = await t.run((ctx) => ctx.db.get(result.sessionId!));
+	const session = await t.run((ctx) => ctx.db.get(sessionId));
 	expect(session).toMatchObject({ date: 1_000_000, startTime: 1_000_000 });
 });
