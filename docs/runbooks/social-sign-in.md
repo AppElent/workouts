@@ -216,20 +216,20 @@ ID. Revoking from Foundry ends the grant for that whole group. That could sign
 the person out of Sign in with Apple in other Appelent apps, or leave
 Foundry's iOS grant in place if the Services ID is grouped under another app.
 Confirm the grouping in Apple Developer and decide whether that reach is
-acceptable before adding a return URL. Web Apple sign-in on the development Clerk instance with
-Clerk's shared credentials has another Apple team's user ID, so the popup's
-account never matches and nothing is revoked there.
+acceptable before adding a return URL. Web Apple sign-in on the development
+Clerk instance with Clerk's shared credentials has another Apple team's user
+ID, so the popup's account never matches and nothing is revoked there.
 
 The `state` and Apple-account checks run in the browser. Convex checks that
 the caller is signed in and that the return URL is registered, but it does not
 tie the code to this Foundry account. That matches native revocation. In the
 normal flow a code only comes from the person's own signed-in Apple popup,
 but a signed-in caller holding any valid code for this Services ID could
-revoke that grant; binding the code's Apple user to the caller on the server
-is a follow-up before enabling. Before enabling web revocation, also test in
-Safari that the card asks for one more click before Apple's popup opens, and
-that Clerk asks to confirm the sign-in again when Apple's step outlasts the
-10-minute window.
+revoke that grant. Before adding a return URL, Convex must bind the code's
+Apple user to the caller and check the deletion blocker before exchanging the
+code. Also test in Safari that the card asks for one more click before Apple's
+popup opens, and that Clerk asks to confirm the sign-in again when Apple's step
+takes longer than the card's 5-minute sign-in check.
 
 ## Verify
 

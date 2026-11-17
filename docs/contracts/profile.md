@@ -43,13 +43,14 @@ tap. Study: [profile](../../designs/app/profile_final.html).
     signed-out start with a full page load. Before Delete account deletes
     anything, Clerk asks the person to confirm their sign-in when it is older
     than half of Clerk's reverification window (5 of 10 minutes), so a stale
-    session does not delete the data and keep the account, and the window does
-    not lapse while the data is deleted. If Clerk still refuses the account after the data is
-    gone, the person is asked to choose Delete account again and confirm
-    their sign-in, which resumes safely. Apple's grant is revoked before the data
-    is deleted, so if deleting then fails, the account stays without it and a
-    retry asks for Apple's popup again. The sign-in is checked again after
-    Apple's step, because that step can outlast the window.
+    session does not delete the data and keep the account, and the window
+    does not lapse while the data is deleted. If Clerk still refuses the
+    account after the data is gone, the person is asked to choose Delete
+    account again and confirm their sign-in, which resumes safely. Apple's
+    grant is revoked before the data is deleted, so if deleting then fails,
+    the account stays without it and a retry asks for Apple's popup again.
+    The sign-in is checked again after Apple's step, because that step can
+    outlast the window.
 - **Summary.** None until lifetime totals exist. Profile shows no placeholder
   figures, dashes, or "coming soon" row in its place.
 - **Sign out.** A red row in its own bottom section, always confirmed. The

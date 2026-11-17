@@ -82,8 +82,10 @@ factor verified within 10 minutes, and otherwise refuses with
 `session_reverification_required`. The live run above stayed inside that
 window. The instance config has no setting for this, so Clerk's documented
 default applies to both instances. Delete account now checks
-`session.checkAuthorization({ reverification: "strict" })` through
-`useReverification` before Apple revocation and before any data is deleted.
+`session.checkAuthorization({ reverification: { level: "second_factor",
+afterMinutes: 5 } })`, half of Clerk's window, through `useReverification`
+before Apple revocation and before any data is deleted; Clerk's dialog is
+asked for with its "strict" level.
 `user.delete()` is wrapped too, in case the window lapses during a long
 deletion. Clerk's verify dialog opens in this app
 ([screenshot](reverify-dialog.png), dev test account, cancelled). A fresh
