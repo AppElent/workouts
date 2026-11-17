@@ -1,13 +1,17 @@
 import {
+	getWeightStep,
 	type LoadUnit,
+	percentOfOneRepMaxLoad,
 	SET_LIMITS,
+	sessionOneRepMax,
 	validatePlannedExercise,
+	validateRecordedTime,
 } from "@foundry/core";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { requireOwned } from "./auth";
 import { appError, checked } from "./errors";
-import { requireExercise } from "./exerciseCatalog";
+import { requireExercise, resolveExercise } from "./exerciseCatalog";
 import { snapshotStrengthReferences } from "./strengthReferences";
 
 /**
@@ -61,10 +65,17 @@ export async function startSession(
 	session: {
 		name?: string;
 		date?: number;
+		/** When it started, for a session logged afterwards; defaults to now. */
+		startTime?: number;
 		routineId?: Id<"routines">;
 		prescriptions: readonly Prescription[];
 	},
 ) {
+	const now = Date.now();
+	const startTime =
+		session.startTime === undefined
+			? now
+			: checked(validateRecordedTime("startTime", session.startTime, now));
 	if (await getActiveSession(ctx, userId))
 		throw appError("activeSessionExists");
 	validatePrescriptions(session.prescriptions);
@@ -84,11 +95,10 @@ export async function startSession(
 		for (let set = 0; set < prescription.sets; set++)
 			entry.plannedSets.push({ reps, weight, unit });
 	}
-	const now = Date.now();
 	return ctx.db.insert("workoutSessions", {
 		userId,
-		date: session.date ?? now,
-		startTime: now,
+		date: session.date ?? startTime,
+		startTime,
 		name: session.name,
 		routineId: session.routineId,
 		exercises,
@@ -115,7 +125,7 @@ export function hostedPrescriptions(
 	);
 }
 
-async function requireActiveSession(
+export async function requireActiveSession(
 	ctx: MutationCtx,
 	userId: string,
 	sessionId: Id<"workoutSessions">,
@@ -153,4 +163,81 @@ export async function ensureSessionExercise(
 		});
 	}
 	return exerciseId;
+}
+
+/** One target of `planSessionExercise`: a load, or a share of the 1RM. */
+export type PlannedTarget = {
+	reps: number;
+	weight?: number;
+	percentOfOneRepMax?: number;
+};
+
+/**
+ * Replaces an active session exercise's Planned Sets, adding the exercise when
+ * needed. A percentage resolves against the 1RM the session shows for that
+ * exercise, which is refreshed first while nothing is logged for it yet.
+ */
+export async function planSessionExercise(
+	ctx: MutationCtx,
+	userId: string,
+	sessionId: Id<"workoutSessions">,
+	id: string,
+	unit: LoadUnit,
+	targets: readonly PlannedTarget[],
+) {
+	if (targets.length > SET_LIMITS.plannedSets.max)
+		throw appError("tooLarge", "plannedSets");
+	const exerciseId = await ensureSessionExercise(ctx, userId, sessionId, id);
+	const session = await requireActiveSession(ctx, userId, sessionId);
+	const exercises = session.exercises ?? [];
+	const entry = exercises.find((item) => item.exerciseId === exerciseId);
+	if (!entry) throw appError("notFound", "exerciseId");
+	const sessionSets = await ctx.db
+		.query("sets")
+		.withIndex("by_session", (q) => q.eq("sessionId", sessionId))
+		.collect();
+	const logged = sessionSets.some((set) => set.exerciseId === exerciseId);
+	const references =
+		!logged && targets.some((t) => t.percentOfOneRepMax !== undefined)
+			? await snapshotStrengthReferences(ctx, userId, exerciseId)
+			: entry.references;
+	const exercise = await resolveExercise(ctx, exerciseId, userId);
+	const stepKg = getWeightStep(
+		exercise?.equipment ?? "barbell",
+		exercise?.weightIncrement,
+	);
+	const oneRepMax = references ? sessionOneRepMax(references) : null;
+	const plannedSets = targets.map(({ reps, weight, percentOfOneRepMax }) => {
+		if ((weight === undefined) === (percentOfOneRepMax === undefined))
+			throw appError("invalid", "weight");
+		let load = weight ?? 0;
+		if (percentOfOneRepMax !== undefined) {
+			checked(validatePlannedExercise({ percentOfOneRepMax }));
+			if (!oneRepMax) throw appError("unavailable", "oneRepMax");
+			load = percentOfOneRepMaxLoad(
+				oneRepMax.reference,
+				percentOfOneRepMax,
+				unit,
+				stepKg,
+			);
+		}
+		checked(
+			validatePlannedExercise({ plannedReps: reps, plannedWeight: load }),
+		);
+		return { reps, weight: load, unit };
+	});
+	await ctx.db.patch(sessionId, {
+		exercises: exercises.map((item) =>
+			item === entry ? { ...item, references, plannedSets } : item,
+		),
+	});
+	return {
+		exerciseId,
+		plannedSets,
+		oneRepMax: oneRepMax && {
+			value: oneRepMax.reference.value,
+			unit: oneRepMax.reference.unit,
+			kind: oneRepMax.kind,
+		},
+	};
 }

@@ -4,12 +4,15 @@ import {
 	exerciseRecords,
 	isReferenceEligible,
 	type PerformedSet,
+	percentOfOneRepMaxLoad,
+	RECORDED_TIME_TOLERANCE_MS,
 	repMaxCurve,
 	resolveStrengthReferences,
 	type StrengthReferenceRecord,
 	sessionOneRepMax,
 	validateManualOneRepMax,
 	validatePlannedExercise,
+	validateRecordedTime,
 	validateSetInput,
 	workingVolume,
 } from "./strength";
@@ -224,5 +227,37 @@ describe("One-rep Max precedence", () => {
 				manual: null,
 			})?.kind,
 		).toBe("measured");
+	});
+});
+
+describe("recorded times", () => {
+	const now = 1_000_000_000_000;
+	it("accepts the past and clock skew, refuses the future and times before the start", () => {
+		expect(validateRecordedTime("at", now - 86_400_000, now).ok).toBe(true);
+		expect(
+			validateRecordedTime("at", now + RECORDED_TIME_TOLERANCE_MS, now).ok,
+		).toBe(true);
+		expect(validateRecordedTime("at", now + 3_600_000, now)).toEqual({
+			ok: false,
+			errors: [{ field: "at", code: "tooLarge" }],
+		});
+		expect(validateRecordedTime("at", now - 3_600_000, now, now)).toEqual({
+			ok: false,
+			errors: [{ field: "at", code: "tooSmall" }],
+		});
+		expect(validateRecordedTime("at", Number.NaN, now).ok).toBe(false);
+	});
+});
+
+describe("percentage of a One-rep Max as a target load", () => {
+	it("rounds to the exercise step in kg and to 5 lb in pounds", () => {
+		const max = { value: 141, unit: "kg" } as const;
+		expect(percentOfOneRepMaxLoad(max, 75, "kg", 2.5)).toBe(105);
+		expect(percentOfOneRepMaxLoad(max, 75, "kg", 1)).toBe(106);
+		// 105.75 kg is 233.1 lb.
+		expect(percentOfOneRepMaxLoad(max, 75, "lbs", 2.5)).toBe(235);
+		expect(
+			percentOfOneRepMaxLoad({ value: 300, unit: "lbs" }, 80, "kg", 2.5),
+		).toBe(110);
 	});
 });

@@ -247,7 +247,14 @@ describe("Foundry MCP endpoint", () => {
 	});
 
 	it("logs a set with a namespaced operation ID", async () => {
-		const backend = fakeBackend({ "sets:add": () => "set_1" });
+		const backend = fakeBackend({
+			"workoutSessions:getById": () => ({
+				_id: "session_1",
+				status: "active",
+				startTime: Date.parse("2026-11-10T11:30:00Z"),
+			}),
+			"sets:add": () => "set_1",
+		});
 		const call = await callTool(backend, "log_set", {
 			idempotencyKey: "key-12345",
 			sessionId: "session_1",
@@ -258,7 +265,7 @@ describe("Foundry MCP endpoint", () => {
 			unit: "kg",
 		});
 		expect(call.structuredContent).toEqual({ setId: "set_1" });
-		expect(backend.calls[0]).toMatchObject({
+		expect(backend.calls[1]).toMatchObject({
 			kind: "mutation",
 			name: "sets:add",
 			args: { operationId: "mcp:key-12345", setType: "working" },
@@ -280,6 +287,195 @@ describe("Foundry MCP endpoint", () => {
 		const call = await callTool(backend, "start_strength_session", {});
 		expect(call.structuredContent).toMatchObject({ alreadyActive: true });
 		expect(backend.calls.some((c) => c.kind === "mutation")).toBe(false);
+	});
+
+	it("creates a personal exercise once per name", async () => {
+		const backend = fakeBackend({
+			"exercises:ensurePersonal": () => ({ id: "ex_sled", created: false }),
+			"exercises:getById": () => ({
+				_id: "ex_sled",
+				name: "Sled Push",
+				muscleGroups: ["quads"],
+				category: "compound",
+				equipment: "other",
+				isDefault: false,
+			}),
+		});
+		const call = await callTool(backend, "create_exercise", {
+			name: " Sled Push ",
+			muscleGroups: ["quads"],
+			equipment: "other",
+			category: "compound",
+		});
+		expect(call.structuredContent).toEqual({
+			created: false,
+			exercise: expect.objectContaining({ id: "ex_sled", personal: true }),
+		});
+		expect(backend.calls[0]).toMatchObject({
+			kind: "mutation",
+			name: "exercises:ensurePersonal",
+			args: { name: "Sled Push" },
+		});
+	});
+
+	describe("a strength session logged afterwards", () => {
+		const yesterday = "2026-11-09T18:00:00+01:00";
+		const startTime = Date.parse(yesterday);
+		const past = {
+			_id: "session_past",
+			status: "active",
+			startTime,
+			exercises: [],
+		};
+
+		it("starts at the given time and refuses future times", async () => {
+			const backend = fakeBackend({
+				"workoutSessions:getActive": () => null,
+				"workoutSessions:create": () => "session_past",
+				"workoutSessions:getById": () => past,
+				"sets:listForSession": () => [],
+			});
+			const call = await callTool(backend, "start_strength_session", {
+				startedAt: yesterday,
+			});
+			expect(call.structuredContent).toMatchObject({
+				alreadyActive: false,
+				session: { startedAt: "2026-11-09T17:00:00.000Z" },
+			});
+			expect(
+				backend.calls.find((c) => c.name === "workoutSessions:create")?.args,
+			).toEqual({ startTime });
+
+			const future = await callTool(fakeBackend(), "start_strength_session", {
+				startedAt: "2026-11-10T13:00:00Z",
+			});
+			expect(future.isError).toBe(true);
+			expect(future.content[0]?.text).toContain("future");
+		});
+
+		it("returns the same past session on retry but refuses one beside another active session", async () => {
+			const backend = fakeBackend({
+				"workoutSessions:getActive": () => past,
+				"workoutSessions:getById": () => past,
+				"sets:listForSession": () => [],
+			});
+			const retry = await callTool(backend, "start_strength_session", {
+				startedAt: yesterday,
+			});
+			expect(retry.structuredContent).toMatchObject({ alreadyActive: true });
+			const other = await callTool(backend, "start_strength_session", {
+				startedAt: "2026-11-08T18:00:00+01:00",
+			});
+			expect(other.isError).toBe(true);
+			expect(other.content[0]?.text).toContain("finish_strength_session");
+			expect(backend.calls.some((c) => c.kind === "mutation")).toBe(false);
+		});
+
+		it("needs loggedAt and endedAt, and passes them through", async () => {
+			const backend = fakeBackend({
+				"workoutSessions:getById": () => past,
+				"sets:listForSession": () => [],
+				"sets:add": () => "set_1",
+				"workoutSessions:finish": () => null,
+			});
+			const set = {
+				idempotencyKey: "past-key-1",
+				sessionId: "session_past",
+				exerciseId: "back-squat",
+				setNumber: 1,
+				reps: 5,
+				weight: 100,
+				unit: "kg",
+			};
+			const missing = await callTool(backend, "log_set", set);
+			expect(missing.isError).toBe(true);
+			expect(missing.content[0]?.text).toContain("loggedAt");
+			const early = await callTool(backend, "log_set", {
+				...set,
+				loggedAt: "2026-11-09T16:00:00Z",
+			});
+			expect(early.content[0]?.text).toContain("before the Strength Session");
+			const logged = await callTool(backend, "log_set", {
+				...set,
+				loggedAt: "2026-11-09T18:10:00+01:00",
+			});
+			expect(logged.isError).toBeUndefined();
+			expect(
+				backend.calls.find((c) => c.name === "sets:add")?.args,
+			).toMatchObject({ loggedAt: startTime + 10 * 60_000 });
+
+			const unended = await callTool(backend, "finish_strength_session", {
+				sessionId: "session_past",
+			});
+			expect(unended.content[0]?.text).toContain("endedAt");
+			await callTool(backend, "finish_strength_session", {
+				sessionId: "session_past",
+				endedAt: "2026-11-09T19:00:00+01:00",
+			});
+			expect(
+				backend.calls.find((c) => c.name === "workoutSessions:finish")?.args,
+			).toEqual({ id: "session_past", endTime: startTime + 60 * 60_000 });
+		});
+	});
+
+	describe("planned sets", () => {
+		const session = {
+			_id: "session_1",
+			status: "active",
+			startTime: 0,
+			exercises: [],
+		};
+
+		it("plans loads and percentages of the 1RM for an exercise", async () => {
+			const plan = {
+				exerciseId: SQUAT,
+				plannedSets: [{ reps: 5, weight: 105, unit: "kg" }],
+				oneRepMax: { value: 141, unit: "kg", kind: "manual" },
+			};
+			const backend = fakeBackend({
+				"workoutSessions:planExercise": () => plan,
+				"workoutSessions:getById": () => session,
+				"sets:listForSession": () => [],
+			});
+			const call = await callTool(backend, "add_exercise_to_session", {
+				sessionId: "session_1",
+				exerciseId: SQUAT,
+				plannedSets: [{ reps: 5, percentOfOneRepMax: 75 }],
+			});
+			expect(call.structuredContent?.plan).toEqual(plan);
+			expect(backend.calls[0]).toMatchObject({
+				kind: "mutation",
+				name: "workoutSessions:planExercise",
+				args: {
+					sessionId: "session_1",
+					exerciseId: SQUAT,
+					unit: "kg",
+					plannedSets: [{ reps: 5, percentOfOneRepMax: 75 }],
+				},
+			});
+		});
+
+		it("explains a missing 1RM and needs exactly one load per target", async () => {
+			const backend = fakeBackend({
+				"workoutSessions:planExercise": () => {
+					throw new ConvexError({ code: "unavailable", field: "oneRepMax" });
+				},
+			});
+			const missing = await callTool(backend, "add_exercise_to_session", {
+				sessionId: "session_1",
+				exerciseId: SQUAT,
+				plannedSets: [{ reps: 5, percentOfOneRepMax: 75 }],
+			});
+			expect(missing.isError).toBe(true);
+			expect(missing.content[0]?.text).toContain("record_one_rep_max");
+
+			const both = await callTool(fakeBackend(), "add_exercise_to_session", {
+				sessionId: "session_1",
+				exerciseId: SQUAT,
+				plannedSets: [{ reps: 5, weight: 60, percentOfOneRepMax: 75 }],
+			});
+			expect(both.content[0]?.text).toContain("exactly one");
+		});
 	});
 
 	it("logs a shipped food as a diary snapshot for the caller", async () => {
@@ -376,7 +572,7 @@ describe("Foundry MCP endpoint", () => {
 			"workoutSessions:getById": () => ({
 				_id: "session_1",
 				status: "active",
-				startTime: 0,
+				startTime: Date.parse("2026-11-10T11:00:00Z"),
 				exercises: [{ exerciseId: "squat", plannedSets: [{}, {}] }],
 			}),
 			"sets:listForSession": () => [{ _id: "set_1", exerciseId: "squat" }],
@@ -412,6 +608,7 @@ const EXISTING_TOOLS = [
 	"get_wod_results",
 	"log_wod_result",
 	"list_exercises",
+	"create_exercise",
 	"get_exercise_history",
 	"get_exercise_volume",
 	"list_one_rep_maxes",
