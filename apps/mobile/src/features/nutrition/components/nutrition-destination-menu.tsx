@@ -2,7 +2,6 @@ import { SymbolView } from "expo-symbols";
 import { useRef, useState } from "react";
 import {
 	Animated,
-	Modal,
 	Pressable,
 	StyleSheet,
 	useWindowDimensions,
@@ -18,6 +17,7 @@ import {
 	useTokens,
 } from "../../../theme";
 import { GlassSurface } from "../../../ui/glass-surface";
+import { Modal } from "../../../ui/modal";
 import { AppText } from "../../../ui/text";
 import type { NutritionDestinationMenuProps } from "./nutrition-destination-menu-props";
 

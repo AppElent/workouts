@@ -14,12 +14,15 @@ import * as ImagePicker from "expo-image-picker";
 import * as Updates from "expo-updates";
 import { Platform } from "react-native";
 import { DICTIONARIES } from "../i18n/dictionaries";
+import { startShakeToReport } from "./shake-to-report";
 
 const native = Platform.OS !== "web" && !isRunningInExpoGo();
 const environment = Updates.channel || (__DEV__ ? "development" : "production");
 
 const feedback = Sentry.feedbackIntegration({
-	enableShakeToReport: true,
+	// Shake is started below through shake-to-report, which pauses it while a
+	// sheet or modal is presented (APP-216).
+	enableShakeToReport: false,
 	enableScreenshot: true,
 	enableTakeScreenshot: native,
 	imagePicker: {
@@ -99,6 +102,8 @@ Sentry.init({
 			: []),
 	],
 });
+
+startShakeToReport();
 
 // Feedback skips beforeSend; redact the typed report text separately.
 Sentry.addEventProcessor(sanitizeFeedbackEvent);

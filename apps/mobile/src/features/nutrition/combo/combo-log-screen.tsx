@@ -1,10 +1,11 @@
 import type { MealSlot } from "@foundry/core";
 import { useState } from "react";
-import { Modal, Switch, View } from "react-native";
+import { Switch, View } from "react-native";
 import type { Combo } from "../../../data/personal-food-model";
 import { fmt, useI18n } from "../../../i18n";
 import { spacing, useTokens } from "../../../theme";
 import { InsetList, InsetRow } from "../../../ui/inset-list";
+import { Modal } from "../../../ui/modal";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
 import { AmountDestination } from "../components/amount-destination";

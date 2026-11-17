@@ -17,7 +17,6 @@ import { SymbolView } from "expo-symbols";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
 	FlatList,
-	Modal,
 	Pressable,
 	ScrollView,
 	StyleSheet,
@@ -59,6 +58,7 @@ import {
 } from "../../../theme";
 import { useConfirm } from "../../../ui/confirm-dialog";
 import { DatePickerSheet } from "../../../ui/date-picker-sheet";
+import { Modal } from "../../../ui/modal";
 import { PageSheet } from "../../../ui/page-sheet";
 import { isIOS26OrLater } from "../../../ui/platform";
 import { SkeletonBlock, SkeletonGroup } from "../../../ui/skeleton";

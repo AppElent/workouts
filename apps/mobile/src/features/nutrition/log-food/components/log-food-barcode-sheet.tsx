@@ -1,5 +1,5 @@
 import { SymbolView } from "expo-symbols";
-import { Modal, Pressable, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
 	modalAnimation,
@@ -13,6 +13,7 @@ import {
 	useThemedStyles,
 	useTokens,
 } from "../../../../theme";
+import { Modal } from "../../../../ui/modal";
 import { AppText } from "../../../../ui/text";
 
 const ACTIONS = [

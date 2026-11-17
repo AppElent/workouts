@@ -1,9 +1,10 @@
-import { Modal, Pressable, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { modalAnimation, useReduceMotion } from "../feedback/reduce-motion";
 import { radius, spacing, type Tokens, useThemedStyles } from "../theme";
 import { GhostButton } from "./button";
 import type { DatePickerSheetProps } from "./date-picker-sheet.types";
+import { Modal } from "./modal";
 import { MonthCalendar } from "./month-calendar";
 import { AppText } from "./text";
 

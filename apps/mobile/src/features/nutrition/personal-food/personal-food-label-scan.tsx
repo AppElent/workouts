@@ -1,13 +1,7 @@
 import { NUTRIENT_KEYS, type NutrientKey } from "@foundry/core";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useRef, useState } from "react";
-import {
-	ActivityIndicator,
-	Modal,
-	Pressable,
-	ScrollView,
-	View,
-} from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
 import { prepareImage } from "../../../data/nutrition-ai-image";
 import {
 	modalAnimation,
@@ -15,6 +9,7 @@ import {
 } from "../../../feedback/reduce-motion";
 import { fmt, localizeDecimal, plural, useI18n } from "../../../i18n";
 import { spacing, useTokens } from "../../../theme";
+import { Modal } from "../../../ui/modal";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
 import { FoodFormCard } from "../components/food-form-section";
