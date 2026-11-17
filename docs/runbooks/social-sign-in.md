@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when enabling, configuring, or debugging Apple, Google, or Microsoft sign-in on the shared Appelent Clerk application.
-version: 2.3.2
+version: 2.3.3
 ---
 
 # Social sign-in
@@ -209,8 +209,14 @@ origin (production `https://foundry.appelent.nl`, optionally staging):
 2. Add the same URL to `APPLE_WEB_RETURN_URLS` in `packages/core/src/auth.ts`
    and deploy web and Convex together.
 
-The existing Sign in with Apple key signs for the Services ID too, so no new
-secret is needed. Web Apple sign-in on the development Clerk instance with
+No new secret should be needed if the existing Sign in with Apple key is valid
+for the Services ID's primary App ID. Check this first: `nl.appelent.web` is
+shared by every Appelent web app, and Apple groups consent by the primary App
+ID. Revoking from Foundry ends the grant for that whole group. That could sign
+the person out of Sign in with Apple in other Appelent apps, or leave
+Foundry's iOS grant in place if the Services ID is grouped under another app.
+Confirm the grouping in Apple Developer and decide whether that reach is
+acceptable before adding a return URL. Web Apple sign-in on the development Clerk instance with
 Clerk's shared credentials has another Apple team's user ID, so the popup's
 account never matches and nothing is revoked there.
 

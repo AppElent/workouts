@@ -31,6 +31,8 @@ const mocks = vi.hoisted(() => ({
 	appleReturnUrl: null as string | null,
 	// The live Clerk identity; another tab can switch it.
 	clerkUserId: "user_1",
+	// Reloading the session shows a sign-in older than the tab believed.
+	staleAfterReload: false,
 }));
 
 type Fetcher = (...args: unknown[]) => Promise<unknown>;
@@ -46,7 +48,16 @@ vi.mock("@clerk/react", () => ({
 	useAuth: () => ({ userId: "user_1" }),
 	useClerk: () => ({
 		get session() {
-			return { id: "sess_1", checkAuthorization: () => mocks.recentSignIn };
+			return {
+				id: "sess_1",
+				checkAuthorization: () => mocks.recentSignIn,
+				reload: async () => {
+					if (mocks.staleAfterReload) {
+						mocks.staleAfterReload = false;
+						mocks.recentSignIn = false;
+					}
+				},
+			};
 		},
 		get user() {
 			return { id: mocks.clerkUserId, delete: mocks.deleteUser };
@@ -102,6 +113,7 @@ beforeEach(() => {
 	mocks.verifyRefreshes = true;
 	mocks.appleReturnUrl = null;
 	mocks.clerkUserId = "user_1";
+	mocks.staleAfterReload = false;
 	mocks.deleteData.mockResolvedValue({ done: true });
 	mocks.revokeApple.mockResolvedValue("continue");
 	mocks.deleteUser.mockResolvedValue(undefined);
@@ -428,4 +440,31 @@ it("stops before Apple when a blocker appears while the dialogs are open", async
 	await notifications().findByText(/Finish or cancel the running Activity/);
 	expect(mocks.revokeApple).not.toHaveBeenCalled();
 	expect(mocks.deleteData).not.toHaveBeenCalled();
+});
+
+it("reloads the session before trusting its sign-in age", async () => {
+	mocks.staleAfterReload = true;
+	setup();
+	fireEvent.click(button("Delete account"));
+	fireEvent.click(dialog().getByRole("button", { name: "Delete account" }));
+	await waitFor(() => expect(mocks.navigate).toHaveBeenCalled());
+	expect(mocks.verifyPrompts).toBe(1);
+});
+
+it("asks for a click before Apple's window even when the sign-in is recent", async () => {
+	mocks.appleReturnUrl = "https://foundry.appelent.nl/account";
+	setup();
+	fireEvent.click(button("Delete account"));
+	fireEvent.click(dialog().getByRole("button", { name: "Delete account" }));
+	await screen.findByText(/Next, Apple asks you to sign in/);
+	expect(mocks.verifyPrompts).toBe(0);
+	expect(mocks.revokeApple).not.toHaveBeenCalled();
+});
+
+it("points the disabled buttons at the explanation", () => {
+	mocks.blocker = "activeActivity";
+	setup();
+	const id = screen.getByRole("status").id;
+	expect(button("Delete my data").getAttribute("aria-describedby")).toBe(id);
+	expect(button("Delete account").getAttribute("aria-describedby")).toBe(id);
 });

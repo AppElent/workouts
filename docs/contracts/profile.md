@@ -45,7 +45,9 @@ tap. Study: [profile](../../designs/app/profile_final.html).
     than its reverification window, so a stale session does not delete the data
     and keep the account. If Clerk still refuses the account after the data is
     gone, the person is asked to choose Delete account again and confirm
-    their sign-in, which resumes safely.
+    their sign-in, which resumes safely. Apple's grant is revoked before the data
+    is deleted, so if deleting then fails, the account stays without it and a
+    retry asks for Apple's popup again.
 - **Summary.** None until lifetime totals exist. Profile shows no placeholder
   figures, dashes, or "coming soon" row in its place.
 - **Sign out.** A red row in its own bottom section, always confirmed. The

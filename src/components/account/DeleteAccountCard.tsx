@@ -9,7 +9,7 @@ import {
 	useMutation,
 	useQuery,
 } from "convex/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Button } from "#/components/ui/button";
 import { useConfirm } from "#/components/ui/confirm-dialog";
 import { useToast } from "#/components/ui/toast";
@@ -71,6 +71,9 @@ export function DeleteAccountCard() {
 	const confirmRecentSignIn = useReverification(
 		async (confirmed: Confirmed) => {
 			if (!sameAccount(confirmed)) throw new AccountChanged();
+			// The sign-in age is only as fresh as the last session reload; an
+			// open tab can otherwise pass the check long after the window.
+			await clerk.session?.reload();
 			return recentSignIn() ? true : NEEDS_RECENT_SIGN_IN;
 		},
 	);
@@ -128,7 +131,6 @@ export function DeleteAccountCard() {
 					toast.error(c.deletion.accountChanged);
 					return;
 				}
-				const verifying = !recentSignIn();
 				try {
 					// Clerk retries once after its dialog and returns that result
 					// as is: anything but `true` means the sign-in is still old.
@@ -145,10 +147,10 @@ export function DeleteAccountCard() {
 						toast.error(c.deletion.signInCheckError);
 					return;
 				}
-				// Clerk's dialog ends outside the person's click, so the browser
-				// would block Apple's popup; ask for a fresh click first.
+				// The sign-in check (and any Clerk dialog) ends outside the
+				// person's click, so the browser would block Apple's popup; ask
+				// for a fresh click first.
 				if (
-					verifying &&
 					appleRevocationReturnUrl(user) &&
 					!(await confirm({
 						title: c.deleteAccount,
@@ -219,6 +221,7 @@ export function DeleteAccountCard() {
 		}
 	}
 
+	const statusId = useId();
 	const status = !online
 		? c.deletion.offline
 		: blocker
@@ -232,7 +235,7 @@ export function DeleteAccountCard() {
 		>
 			<h2 className="text-sm font-semibold text-text">{c.deletionTitle}</h2>
 			{status && (
-				<p role="status" className="mt-2 text-sm text-text">
+				<p id={statusId} role="status" className="mt-2 text-sm text-text">
 					{status}
 				</p>
 			)}
@@ -243,6 +246,7 @@ export function DeleteAccountCard() {
 						<Button
 							variant="destructive"
 							disabled={disabled}
+							aria-describedby={status ? statusId : undefined}
 							loading={busy === "deleteData"}
 							onClick={() => void run("deleteData")}
 						>
@@ -260,6 +264,7 @@ export function DeleteAccountCard() {
 						<Button
 							variant="destructive"
 							disabled={disabled || !accountDeletable}
+							aria-describedby={status ? statusId : undefined}
 							loading={busy === "deleteAccount"}
 							onClick={() => void run("deleteAccount")}
 						>
