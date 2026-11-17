@@ -23,6 +23,8 @@ export const account = {
 			"Je inlog kon niet worden bevestigd. Er is niets verwijderd. Probeer Account verwijderen opnieuw.",
 		signInAgain:
 			"Je gegevens zijn verwijderd, maar het account niet, omdat je inlog niet is bevestigd. Log opnieuw in en kies dan opnieuw Account verwijderen.",
+		appleContinue:
+			"Je inlog is bevestigd. Daarna vraagt Apple je in te loggen, zodat Foundry stopt met Inloggen met Apple. Dan worden je gegevens en account verwijderd.",
 		applePopupBlocked:
 			"Je browser blokkeerde het Apple-venster. Sta pop-ups toe voor deze site en probeer Account verwijderen opnieuw.",
 		refusals: {

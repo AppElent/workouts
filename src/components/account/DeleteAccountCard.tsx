@@ -1,4 +1,4 @@
-import { useAuth, useReverification, useSession, useUser } from "@clerk/react";
+import { useAuth, useClerk, useReverification, useUser } from "@clerk/react";
 import { isReverificationCancelledError } from "@clerk/react/errors";
 import { api } from "@convex/_generated/api";
 import { isAppErrorCode, parseConvexError } from "@foundry/core";
@@ -13,7 +13,11 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "#/components/ui/button";
 import { useConfirm } from "#/components/ui/confirm-dialog";
 import { useToast } from "#/components/ui/toast";
-import { preloadAppleJs, revokeAppleSignIn } from "#/lib/auth/appleRevocation";
+import {
+	appleRevocationReturnUrl,
+	preloadAppleJs,
+	revokeAppleSignIn,
+} from "#/lib/auth/appleRevocation";
 import { useI18n } from "#/lib/i18n";
 
 type Mode = "deleteData" | "deleteAccount";
@@ -31,6 +35,13 @@ const NEEDS_RECENT_SIGN_IN = {
 	},
 } as const;
 
+/** Whether a reverification-wrapped call ended with Clerk still refusing. */
+function stillRefused(result: unknown) {
+	return (
+		typeof result === "object" && result !== null && "clerk_error" in result
+	);
+}
+
 /**
  * Delete my data and Delete account, as on the mobile Account screen
  * (profile contract). Web keeps no account data outside Convex queries, so
@@ -39,15 +50,15 @@ const NEEDS_RECENT_SIGN_IN = {
 export function DeleteAccountCard() {
 	const { userId } = useAuth();
 	const { user } = useUser();
-	const { session } = useSession();
+	const clerk = useClerk();
 	// Clerk deletes an account only after a recent sign-in ("strict": the
 	// strongest factor within 10 minutes). Ask for it before anything is
-	// deleted, so a stale session never leaves the data gone and the account
-	// still there.
+	// deleted, so a stale session doesn't leave the data gone and the account
+	// still there. Reads the live session: verifying replaces it.
+	const recentSignIn = () =>
+		clerk.session?.checkAuthorization({ reverification: "strict" }) ?? false;
 	const confirmRecentSignIn = useReverification(async () =>
-		session?.checkAuthorization({ reverification: "strict" })
-			? true
-			: NEEDS_RECENT_SIGN_IN,
+		recentSignIn() ? true : NEEDS_RECENT_SIGN_IN,
 	);
 	// Still wrapped: the window can lapse while a large deletion runs.
 	const deleteUser = useReverification(() => user?.delete());
@@ -88,8 +99,14 @@ export function DeleteAccountCard() {
 			if (!confirmed) return;
 			setBusy(mode);
 			if (mode === "deleteAccount") {
+				const verifying = !recentSignIn();
 				try {
-					await confirmRecentSignIn();
+					// Clerk retries once after its dialog and returns that result
+					// as is: anything but `true` means the sign-in is still old.
+					if ((await confirmRecentSignIn()) !== true) {
+						toast.error(c.deletion.signInCheckError);
+						return;
+					}
 				} catch (error) {
 					// Cancelling the dialog deletes nothing, like cancelling the
 					// confirmation.
@@ -97,6 +114,20 @@ export function DeleteAccountCard() {
 						toast.error(c.deletion.signInCheckError);
 					return;
 				}
+				// Clerk's dialog ends outside the person's click, so the browser
+				// would block Apple's popup; ask for a fresh click first.
+				if (
+					verifying &&
+					appleRevocationReturnUrl(user) &&
+					!(await confirm({
+						title: c.deleteAccount,
+						description: c.deletion.appleContinue,
+						confirmLabel: c.deleteAccount,
+						cancelLabel: common.actions.cancel,
+						destructive: true,
+					}))
+				)
+					return;
 				const apple = await revokeAppleSignIn(user, revokeApple, { locale });
 				if (apple === "popupBlocked") toast.error(c.deletion.applePopupBlocked);
 				if (apple !== "continue") return;
@@ -117,8 +148,11 @@ export function DeleteAccountCard() {
 			}
 			if (mode === "deleteAccount") {
 				try {
-					// Ends the session.
-					await deleteUser();
+					// Ends the session. Clerk can still refuse after its dialog.
+					if (stillRefused(await deleteUser())) {
+						toast.error(c.deletion.signInAgain);
+						return;
+					}
 				} catch (error) {
 					toast.error(
 						isReverificationCancelledError(error)

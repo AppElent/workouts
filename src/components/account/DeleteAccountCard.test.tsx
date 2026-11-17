@@ -26,6 +26,9 @@ const mocks = vi.hoisted(() => ({
 	// How the person answers Clerk's verify dialog.
 	verifies: true,
 	verifyPrompts: 0,
+	// Whether completing the dialog makes the sign-in recent.
+	verifyRefreshes: true,
+	appleReturnUrl: null as string | null,
 }));
 
 type Fetcher = (...args: unknown[]) => Promise<unknown>;
@@ -39,7 +42,7 @@ vi.mock("convex/react", () => ({
 }));
 vi.mock("@clerk/react", () => ({
 	useAuth: () => ({ userId: "user_1" }),
-	useSession: () => ({
+	useClerk: () => ({
 		session: { checkAuthorization: () => mocks.recentSignIn },
 	}),
 	// Mirrors Clerk: a reverification hint, or Clerk's
@@ -58,7 +61,7 @@ vi.mock("@clerk/react", () => ({
 			if (!result?.clerk_error) return result;
 			mocks.verifyPrompts++;
 			if (!mocks.verifies) throw cancelled;
-			mocks.recentSignIn = true;
+			if (mocks.verifyRefreshes) mocks.recentSignIn = true;
 			return attempt();
 		},
 	useUser: () => ({
@@ -78,6 +81,7 @@ vi.mock("@tanstack/react-router", () => ({
 vi.mock("#/lib/auth/appleRevocation", () => ({
 	revokeAppleSignIn: mocks.revokeApple,
 	preloadAppleJs: () => {},
+	appleRevocationReturnUrl: () => mocks.appleReturnUrl,
 }));
 
 beforeEach(() => {
@@ -88,6 +92,8 @@ beforeEach(() => {
 	mocks.recentSignIn = true;
 	mocks.verifies = true;
 	mocks.verifyPrompts = 0;
+	mocks.verifyRefreshes = true;
+	mocks.appleReturnUrl = null;
 	mocks.deleteData.mockResolvedValue({ done: true });
 	mocks.revokeApple.mockResolvedValue("continue");
 	mocks.deleteUser.mockResolvedValue(undefined);
@@ -321,4 +327,62 @@ it("says to sign in again when Clerk asks once the data is gone and it is cancel
 	).toBeTruthy();
 	expect(mocks.deleteData).toHaveBeenCalled();
 	expect(mocks.navigate).not.toHaveBeenCalled();
+});
+
+it("deletes nothing when the sign-in is still old after Clerk's dialog", async () => {
+	mocks.recentSignIn = false;
+	mocks.verifyRefreshes = false;
+	setup();
+	fireEvent.click(button("Delete account"));
+	fireEvent.click(dialog().getByRole("button", { name: "Delete account" }));
+	expect(
+		await notifications().findByText(
+			/Your sign-in could not be confirmed\. Nothing was deleted/,
+		),
+	).toBeTruthy();
+	expect(mocks.revokeApple).not.toHaveBeenCalled();
+	expect(mocks.deleteData).not.toHaveBeenCalled();
+	expect(mocks.deleteUser).not.toHaveBeenCalled();
+});
+
+it("stays here when Clerk refuses the account again after its dialog", async () => {
+	mocks.deleteUser.mockRejectedValue({ reverify: true });
+	setup();
+	fireEvent.click(button("Delete account"));
+	fireEvent.click(dialog().getByRole("button", { name: "Delete account" }));
+	expect(
+		await notifications().findByText(
+			/Sign in again, then choose Delete account again/,
+		),
+	).toBeTruthy();
+	expect(mocks.deleteUser).toHaveBeenCalledTimes(2);
+	expect(mocks.navigate).not.toHaveBeenCalled();
+});
+
+it("asks for a fresh click before Apple's window after confirming the sign-in", async () => {
+	mocks.recentSignIn = false;
+	mocks.appleReturnUrl = "https://foundry.appelent.nl/account";
+	setup();
+	fireEvent.click(button("Delete account"));
+	fireEvent.click(dialog().getByRole("button", { name: "Delete account" }));
+	expect(
+		await screen.findByText(/Next, Apple asks you to sign in/),
+	).toBeTruthy();
+	expect(mocks.revokeApple).not.toHaveBeenCalled();
+	fireEvent.click(dialog().getByRole("button", { name: "Delete account" }));
+	await waitFor(() => expect(mocks.navigate).toHaveBeenCalled());
+	expect(mocks.revokeApple).toHaveBeenCalledOnce();
+});
+
+it("deletes nothing when the Apple step is cancelled after confirming the sign-in", async () => {
+	mocks.recentSignIn = false;
+	mocks.appleReturnUrl = "https://foundry.appelent.nl/account";
+	setup();
+	fireEvent.click(button("Delete account"));
+	fireEvent.click(dialog().getByRole("button", { name: "Delete account" }));
+	await screen.findByText(/Next, Apple asks you to sign in/);
+	fireEvent.click(dialog().getByRole("button", { name: "Cancel" }));
+	await waitFor(() => expect(button("Delete account").disabled).toBe(false));
+	expect(mocks.revokeApple).not.toHaveBeenCalled();
+	expect(mocks.deleteData).not.toHaveBeenCalled();
 });

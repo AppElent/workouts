@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when enabling, configuring, or debugging Apple, Google, or Microsoft sign-in on the shared Appelent Clerk application.
-version: 2.3.1
+version: 2.3.2
 ---
 
 # Social sign-in
@@ -213,6 +213,14 @@ The existing Sign in with Apple key signs for the Services ID too, so no new
 secret is needed. Web Apple sign-in on the development Clerk instance with
 Clerk's shared credentials has another Apple team's user ID, so the popup's
 account never matches and nothing is revoked there.
+
+The `state` and Apple-account checks run in the browser. Convex checks that
+the caller is signed in and that the return URL is registered, but it does not
+tie the code to this Foundry account. That matches native revocation: a code
+only comes from a signed-in Apple popup, so the worst a caller can do is
+revoke their own Apple grant. Before enabling web revocation, also test in
+Safari the path where Clerk asks to confirm the sign-in first: the card then
+asks for one more click before Apple's popup opens.
 
 ## Verify
 

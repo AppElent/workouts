@@ -24,6 +24,8 @@ export const account = {
 			"Your sign-in could not be confirmed. Nothing was deleted. Try Delete account again.",
 		signInAgain:
 			"Your data was deleted, but the account was not, because your sign-in was not confirmed. Sign in again, then choose Delete account again.",
+		appleContinue:
+			"Your sign-in is confirmed. Next, Apple asks you to sign in so Foundry can stop using Sign in with Apple. Then your data and account are deleted.",
 		applePopupBlocked:
 			"Your browser blocked the Apple window. Allow pop-ups for this site, then try Delete account again.",
 		refusals: {
