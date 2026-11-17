@@ -21,13 +21,11 @@ import {
 	bestToday,
 	clearManual,
 	type ExerciseFacts,
-	groupOfExercise,
 	groupWith,
 	moveEntry,
 	nextOpenRow,
 	referenceFor,
 	rowsOf,
-	takeOutOfGroup,
 } from "../session-plan";
 import { useSessionScreen } from "../session-screen-context";
 import { SessionSetRow, useLargeText } from "./session-set-row";
@@ -106,7 +104,7 @@ function useExerciseMenu(exerciseId: string) {
 	const choose = useChoice();
 	const facts = workspace.getFacts(exerciseId);
 	const reference = referenceFor(plan, facts, exerciseId);
-	const group = groupOfExercise(plan, exerciseId);
+	// Only solo exercises render here; the group sheet manages members.
 	const index = plan.order.findIndex(
 		(entry) => entry.kind === "exercise" && entry.exerciseId === exerciseId,
 	);
@@ -122,8 +120,8 @@ function useExerciseMenu(exerciseId: string) {
 			{
 				title: workspace.nameOf(exerciseId),
 				options: [
-					...(group ? [] : [{ id: "addSet", label: copy.addSet }]),
-					...(group || facts.bodyweight
+					{ id: "addSet", label: copy.addSet },
+					...(facts.bodyweight
 						? []
 						: [{ id: "addWarmup", label: copy.addWarmup }]),
 					{ id: "swap", label: copy.swapExercise },
@@ -131,33 +129,29 @@ function useExerciseMenu(exerciseId: string) {
 			},
 			{
 				options: [
-					...(group
-						? [{ id: "takeOut", label: copy.takeOutOfGroup }]
-						: [
+					{
+						id: "earlier",
+						label: copy.moveEarlier,
+						disabled: index <= 0,
+					},
+					{
+						id: "later",
+						label: copy.moveLater,
+						disabled: index >= plan.order.length - 1,
+					},
+					...(neighbour?.kind === "exercise"
+						? [
 								{
-									id: "earlier",
-									label: copy.moveEarlier,
-									disabled: index <= 0,
+									id: "groupWith",
+									label: fmt(copy.groupWith, {
+										name: workspace.nameOf(neighbour.exerciseId),
+									}),
 								},
-								{
-									id: "later",
-									label: copy.moveLater,
-									disabled: index >= plan.order.length - 1,
-								},
-								...(neighbour?.kind === "exercise"
-									? [
-											{
-												id: "groupWith",
-												label: fmt(copy.groupWith, {
-													name: workspace.nameOf(neighbour.exerciseId),
-												}),
-											},
-										]
-									: []),
-								...(adjacentGroup
-									? [{ id: "addToGroup", label: copy.addToGroup }]
-									: []),
-							]),
+							]
+						: []),
+					...(adjacentGroup
+						? [{ id: "addToGroup", label: copy.addToGroup }]
+						: []),
 				],
 			},
 			...(facts.bodyweight
@@ -190,7 +184,6 @@ function useExerciseMenu(exerciseId: string) {
 			copy,
 			exerciseId,
 			facts.bodyweight,
-			group,
 			index,
 			neighbour,
 			plan.order.length,
@@ -210,19 +203,33 @@ function useExerciseMenu(exerciseId: string) {
 			const result = addWarmup(current, exerciseId, facts);
 			actions.apply(result, { name, undoable: false });
 		} else if (id === "swap") openPicker({ mode: "swap", from: exerciseId });
-		else if (id === "takeOut")
-			actions.apply(takeOutOfGroup(current, exerciseId), { name });
 		else if (id === "earlier" || id === "later") {
 			const entry = { kind: "exercise", exerciseId } as const;
 			actions.set(moveEntry(current, entry, id === "earlier" ? -1 : 1));
 		} else if (id === "groupWith" && neighbour?.kind === "exercise")
-			actions.apply(groupWith(current, exerciseId, neighbour.exerciseId), {
-				name,
-			});
+			actions.apply(
+				groupWith(
+					current,
+					exerciseId,
+					neighbour.exerciseId,
+					workspace.getFacts,
+				),
+				{
+					name,
+				},
+			);
 		else if (id === "addToGroup" && adjacentGroup?.kind === "group")
-			actions.apply(addToGroup(current, adjacentGroup.groupId, exerciseId), {
-				name,
-			});
+			actions.apply(
+				addToGroup(
+					current,
+					adjacentGroup.groupId,
+					exerciseId,
+					workspace.getFacts,
+				),
+				{
+					name,
+				},
+			);
 		else if (id === "profile") openProfile(exerciseId, nextRowOf(exerciseId));
 		else if (id === "manual") openManual(exerciseId);
 		else if (id === "clearManual")

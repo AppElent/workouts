@@ -583,6 +583,12 @@ export function reconcilePlan(
 			]),
 		),
 	};
+	// A set deleted elsewhere can take a group's last row of an exercise.
+	for (const before of Object.values(plan.groups)) {
+		const group = next.groups[before.id];
+		if (group && groupExercises(group).length !== groupExercises(before).length)
+			next = regroup(next, before, group);
+	}
 	for (const exercise of exercises) {
 		const id = exercise.exerciseId;
 		const present =
@@ -681,7 +687,10 @@ export function fillFromLast(
 
 /** Where a first hold starts, so the ±5 steps land on round numbers. */
 const TIMED_DEFAULT_SECONDS = 30;
-function setBlank(exerciseId: string, facts: ExerciseFacts): PlanSet {
+function setBlank(
+	exerciseId: string,
+	facts: Pick<ExerciseFacts, "last" | "timed">,
+): PlanSet {
 	const last = facts.last;
 	return {
 		id: newRowId(),
@@ -865,7 +874,7 @@ export function removeRow(plan: SessionPlan, id: string): SessionPlan {
 				]),
 			),
 		};
-	return settleGroup(plan, {
+	return regroup(plan, group, {
 		...group,
 		rounds: group.rounds
 			.map((round) => ({
@@ -1435,27 +1444,47 @@ function buildRounds(lists: PlanSet[][]): GroupRound[] {
 		}),
 	})).filter((round) => round.items.length > 0);
 }
+/** A group member needs a row: an exercise without sets gets one empty set. */
+function memberRows(
+	plan: SessionPlan,
+	exerciseId: string,
+	getFacts?: PlanFacts,
+): PlanSet[] {
+	const rows = plan.sets[exerciseId] ?? [];
+	return rows.length
+		? rows
+		: [
+				setBlank(
+					exerciseId,
+					getFacts?.(exerciseId) ?? { last: null, timed: false },
+				),
+			];
+}
+const orderIndex = (plan: SessionPlan, exerciseId: string) =>
+	plan.order.findIndex(
+		(entry) => entry.kind === "exercise" && entry.exerciseId === exerciseId,
+	);
 export function groupWith(
 	plan: SessionPlan,
-	first: string,
-	second: string,
+	a: string,
+	b: string,
+	getFacts?: PlanFacts,
 ): PlanResult & { groupId?: string } {
-	if (groupOfExercise(plan, first) || groupOfExercise(plan, second))
+	if (groupOfExercise(plan, a) || groupOfExercise(plan, b))
 		return { plan, refused: true, note: { code: "alreadyGrouped" } };
-	const lists = [plan.sets[first] ?? [], plan.sets[second] ?? []];
-	const before = lists[0].length + lists[1].length;
-	const rounds = buildRounds(lists);
+	// The group lists its exercises in the order the session showed them.
+	const [first, second] =
+		orderIndex(plan, b) < orderIndex(plan, a) ? [b, a] : [a, b];
+	const before =
+		(plan.sets[first]?.length ?? 0) + (plan.sets[second]?.length ?? 0);
+	const rounds = buildRounds([
+		memberRows(plan, first, getFacts),
+		memberRows(plan, second, getFacts),
+	]);
 	const after = rounds.reduce((sum, round) => sum + round.items.length, 0);
 	const id = newRowId();
 	const { [first]: _a, [second]: _b, ...sets } = plan.sets;
-	const position = Math.min(
-		plan.order.findIndex(
-			(entry) => entry.kind === "exercise" && entry.exerciseId === first,
-		),
-		plan.order.findIndex(
-			(entry) => entry.kind === "exercise" && entry.exerciseId === second,
-		),
-	);
+	const position = Math.min(orderIndex(plan, first), orderIndex(plan, second));
 	const left = plan.order.filter(
 		(entry) =>
 			!(
@@ -1503,13 +1532,14 @@ export function addToGroup(
 	plan: SessionPlan,
 	groupId: string,
 	exerciseId: string,
+	getFacts?: PlanFacts,
 ): PlanResult {
 	const group = plan.groups[groupId];
 	if (!group || groupOfExercise(plan, exerciseId))
 		return { plan, refused: true, note: { code: "alreadyGrouped" } };
 	if (group.state === "closed")
 		return { plan, refused: true, note: { code: "groupClosed" } };
-	const rows = plan.sets[exerciseId] ?? [];
+	const rows = memberRows(plan, exerciseId, getFacts);
 	const open = rows.filter((row) => !row.done);
 	const done = rows.filter((row) => row.done);
 	// A clock keeps one open set per exercise, so the rest must be safe to lose.
@@ -1536,13 +1566,23 @@ export function addToGroup(
 		group.mode === "amrap"
 			? Math.min(open.length, 1)
 			: Math.max(open.length, group.rounds.length - from);
-	let added = 0;
+	let added = plan.sets[exerciseId]?.length ? 0 : 1;
 	if (open.length) {
 		for (let index = 0; index < wanted; index += 1) {
 			const own = open[index];
 			if (!own) added += 1;
 			place(own ?? cloneOpen(open[open.length - 1] as PlanSet), from + index);
 		}
+	}
+	// New rounds repeat the members already there, as grouping two would.
+	const repeated = groupExercises(group).flatMap((member) => {
+		const mine = groupRows(group).filter((row) => row.exerciseId === member);
+		const last = mine[mine.length - 1];
+		return last && mine.some((row) => !row.done) ? [last] : [];
+	});
+	for (const round of rounds.slice(group.rounds.length)) {
+		round.items = [...repeated.map(cloneOpen), ...round.items];
+		added += repeated.length;
 	}
 	const { [exerciseId]: _gone, ...sets } = plan.sets;
 	return {
@@ -1571,8 +1611,12 @@ function releaseRows(
 	plan: SessionPlan,
 	groupId: string,
 	rows: PlanSet[],
+	/** Exercises leaving without rows; they stay in the session, empty. */
+	empty: string[] = [],
 ): SessionPlan {
-	const exercises = [...new Set(rows.map((row) => row.exerciseId))];
+	const exercises = [
+		...new Set([...rows.map((row) => row.exerciseId), ...empty]),
+	];
 	const at = plan.order.findIndex(
 		(entry) => entry.kind === "group" && entry.groupId === groupId,
 	);
@@ -1618,6 +1662,22 @@ function settleGroup(plan: SessionPlan, group: SetGroup): SessionPlan {
 			(entry) => !(entry.kind === "group" && entry.groupId === group.id),
 		),
 	};
+}
+/**
+ * A group whose rows changed. Membership follows the rows, so an exercise whose
+ * last row went stays in the session as a solo exercise instead of vanishing.
+ */
+function regroup(
+	plan: SessionPlan,
+	before: SetGroup,
+	group: SetGroup,
+): SessionPlan {
+	const kept = new Set(groupExercises(group));
+	const lost = groupExercises(before).filter((id) => !kept.has(id));
+	return settleGroup(
+		lost.length ? releaseRows(plan, group.id, [], lost) : plan,
+		group,
+	);
 }
 export function takeOutOfGroup(
 	plan: SessionPlan,
