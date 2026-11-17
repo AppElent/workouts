@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when enabling, configuring, or debugging Apple, Google, or Microsoft sign-in on the shared Appelent Clerk application.
-version: 2.3.0
+version: 2.3.1
 ---
 
 # Social sign-in
@@ -238,6 +238,10 @@ account never matches and nothing is revoked there.
   Testing mode.
 - Microsoft rejects personal accounts: registration's account types exclude
   personal Microsoft accounts.
+- Web Delete account says "Allow pop-ups for this site": the browser blocked
+  Apple's revocation popup, often in Safari when the Account page was opened
+  moments before. Allowing pop-ups or retrying once Apple JS has loaded fixes
+  it; nothing was deleted.
 - Microsoft stops working everywhere: client secret expired; create a new one
   and update Clerk.
 - Mobile button fails at once with "Redirect url mismatch" (often on a

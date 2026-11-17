@@ -44,8 +44,9 @@ function loadAppleJs(locale: AppleJsLocale): Promise<AppleIdAuth> {
 		script.onload = () => {
 			const auth = (window as { AppleID?: { auth?: AppleIdAuth } }).AppleID
 				?.auth;
-			if (auth) resolve(auth);
-			else reject(new Error("Apple JS loaded without AppleID.auth"));
+			if (auth) return resolve(auth);
+			appleJs = null;
+			reject(new Error("Apple JS loaded without AppleID.auth"));
 		};
 		script.onerror = () => {
 			appleJs = null;
