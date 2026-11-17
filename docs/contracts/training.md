@@ -87,9 +87,15 @@ the app; there is no separate data.
 - **Logged afterwards:** a session's start (`date` and `startTime`), each Set's
   `loggedAt`, and the finish time can be given. Activities, history, volume,
   and references then see the given times. Times more than five minutes in the
-  future, and Set or finish times before the session's start, are refused. The
+  future, and Set or finish times more than five minutes before the session's
+  start, are refused; the five minutes absorb clock skew between devices. A
+  past start that matches a session already logged (active or finished, not
+  cancelled) returns that session, so a retry never makes a second one. The
   MCP asks for Set and finish times once a session started over six hours ago,
   and refuses a past start while another session is active.
+- **Repeated plans:** planning an exercise again replaces its targets and
+  resolves percentages against the 1RM at that moment, so the plan always
+  follows the latest 1RM.
 
 ### Set editor
 

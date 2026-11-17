@@ -58,6 +58,8 @@ export async function getActiveSession(
  * Starts the user's one active session, with every prescribed exercise's
  * One-rep Max references snapshotted at the start. The caller has resolved
  * the exercise ids: a hosted workout may name the host's personal exercise.
+ * A past `startTime` that matches a session already logged returns that
+ * session, active or finished, so a connected app's retry is safe.
  */
 export async function startSession(
 	ctx: MutationCtx,
@@ -76,6 +78,19 @@ export async function startSession(
 		session.startTime === undefined
 			? now
 			: checked(validateRecordedTime("startTime", session.startTime, now));
+	if (session.startTime !== undefined) {
+		// The same past start again is a retry of the first, even once it finished.
+		const sameStart = await ctx.db
+			.query("workoutSessions")
+			.withIndex("by_user_date", (q) =>
+				q.eq("userId", userId).eq("date", session.date ?? startTime),
+			)
+			.take(10);
+		const logged = sameStart.find(
+			(row) => row.startTime === startTime && row.status !== "cancelled",
+		);
+		if (logged) return logged._id;
+	}
 	if (await getActiveSession(ctx, userId))
 		throw appError("activeSessionExists");
 	validatePrescriptions(session.prescriptions);

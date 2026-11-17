@@ -358,17 +358,20 @@ describe("Foundry MCP endpoint", () => {
 				"workoutSessions:getActive": () => past,
 				"workoutSessions:getById": () => past,
 				"sets:listForSession": () => [],
+				"workoutSessions:create": () => {
+					throw new ConvexError({ code: "activeSessionExists" });
+				},
 			});
 			const retry = await callTool(backend, "start_strength_session", {
 				startedAt: yesterday,
 			});
 			expect(retry.structuredContent).toMatchObject({ alreadyActive: true });
+			expect(backend.calls.some((c) => c.kind === "mutation")).toBe(false);
 			const other = await callTool(backend, "start_strength_session", {
 				startedAt: "2026-11-08T18:00:00+01:00",
 			});
 			expect(other.isError).toBe(true);
 			expect(other.content[0]?.text).toContain("finish_strength_session");
-			expect(backend.calls.some((c) => c.kind === "mutation")).toBe(false);
 		});
 
 		it("needs loggedAt and endedAt, and passes them through", async () => {

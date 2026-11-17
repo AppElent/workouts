@@ -133,6 +133,42 @@ describe("strength sessions logged afterwards", () => {
 		).toMatchObject({ date: start, startTime: start });
 	});
 
+	it("returns the session a past start made when that start is repeated", async () => {
+		const { alice } = setup();
+		const start = Date.now() - 24 * HOUR;
+		const sessionId = await alice.mutation(api.workoutSessions.create, {
+			startTime: start,
+		});
+		await alice.mutation(api.sets.add, {
+			operationId: "retry-set-1",
+			sessionId,
+			exerciseId: squat,
+			setNumber: 1,
+			reps: 5,
+			weight: 100,
+			unit: "kg",
+			setType: "working",
+			loggedAt: start + 60_000,
+		});
+		await alice.mutation(api.workoutSessions.finish, {
+			id: sessionId,
+			endTime: start + HOUR,
+		});
+		expect(
+			await alice.mutation(api.workoutSessions.create, { startTime: start }),
+		).toBe(sessionId);
+		const other = await alice.mutation(api.workoutSessions.create, {
+			startTime: start + 1,
+		});
+		expect(other).not.toBe(sessionId);
+		await alice.mutation(api.workoutSessions.cancel, { id: other });
+		// A cancelled start can be logged again.
+		const again = await alice.mutation(api.workoutSessions.create, {
+			startTime: start + 1,
+		});
+		expect(again).not.toBe(other);
+	});
+
 	it("refuses future times and times before the session started", async () => {
 		const { alice } = setup();
 		await expect(

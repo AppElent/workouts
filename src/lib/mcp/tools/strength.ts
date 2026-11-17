@@ -91,9 +91,9 @@ function requireTimeForPastSession(
 	);
 }
 
-function isConvexCode(error: unknown, code: string, field: string) {
+function isConvexCode(error: unknown, code: string, field?: string) {
 	const data = (error as { data?: { code?: unknown; field?: unknown } })?.data;
-	return data?.code === code && data?.field === field;
+	return data?.code === code && (field === undefined || data?.field === field);
 }
 
 const plannedTarget = z.object({
@@ -372,7 +372,7 @@ export const strengthTools = [
 		name: "start_strength_session",
 		title: "Start strength session",
 		description:
-			"Start a Strength Session, free-form or from a Routine. Only one session can be active; if one already is, it is returned with alreadyActive true instead of starting another. To log a training afterwards, pass startedAt; the session then counts on that day everywhere (activities, week overview, history). Logging a past session while another is active is refused: finish that one first.",
+			"Start a Strength Session, free-form or from a Routine. Only one session can be active; if one already is, it is returned with alreadyActive true instead of starting another. To log a training afterwards, pass startedAt; the session then counts on that day everywhere (activities, week overview, history). Repeating the same startedAt returns the session it made, even once finished. Logging a past session while another is active is refused: finish that one first.",
 		access: "write",
 		annotations: { idempotentHint: true },
 		input: {
@@ -388,26 +388,31 @@ export const strengthTools = [
 		async run({ name, routineId, startedAt }, { backend, now }) {
 			const startTime = recordedTime(startedAt, "startedAt", now());
 			const active = await backend.query(api.workoutSessions.getActive, {});
-			if (active) {
-				// The same backdated start again is a retry of the first.
-				if (startTime === undefined || active.startTime === startTime)
-					return {
-						alreadyActive: true,
-						session: await sessionWithSets(backend, active._id),
-					};
-				throw new ToolInputError(
-					`Another Strength Session is active (started ${isoDate(active.startTime)}). Finish it with finish_strength_session before logging a past one.`,
-				);
+			// The same backdated start again is a retry of the first.
+			if (active && (startTime === undefined || active.startTime === startTime))
+				return {
+					alreadyActive: true,
+					session: await sessionWithSets(backend, active._id),
+				};
+			let id: Id<"workoutSessions">;
+			try {
+				// Foundry returns a finished session with this past start instead of a second one.
+				id = routineId
+					? await backend.mutation(api.routines.startSession, {
+							routineId: routineId as Id<"routines">,
+							startTime,
+						})
+					: await backend.mutation(api.workoutSessions.create, {
+							name,
+							startTime,
+						});
+			} catch (error) {
+				if (active && isConvexCode(error, "activeSessionExists"))
+					throw new ToolInputError(
+						`Another Strength Session is active (started ${isoDate(active.startTime)}). Finish it with finish_strength_session before logging a past one.`,
+					);
+				throw error;
 			}
-			const id = routineId
-				? await backend.mutation(api.routines.startSession, {
-						routineId: routineId as Id<"routines">,
-						startTime,
-					})
-				: await backend.mutation(api.workoutSessions.create, {
-						name,
-						startTime,
-					});
 			return {
 				alreadyActive: false,
 				session: await sessionWithSets(backend, id),
