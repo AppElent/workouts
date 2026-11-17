@@ -26,7 +26,7 @@ const SOCIAL_PROVIDERS = [
  * the flow. Starting from sign-in is enough for sign-up too: Clerk transfers
  * an unknown account to a sign-up on the callback.
  */
-export function SocialButtons() {
+export function SocialButtons({ redirect }: { redirect?: string } = {}) {
 	const { signIn } = useSignIn();
 	const { auth } = useMessages();
 	const errorMessage = useClerkErrorMessage();
@@ -46,7 +46,7 @@ export function SocialButtons() {
 				signIn.sso({
 					strategy,
 					redirectCallbackUrl: AUTH_PATHS.ssoCallback,
-					redirectUrl: AUTH_PATHS.afterAuth,
+					redirectUrl: redirect ?? AUTH_PATHS.afterAuth,
 				}),
 			);
 		} catch (err) {

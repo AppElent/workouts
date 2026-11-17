@@ -458,6 +458,10 @@ export default defineSchema({
 		hostedWorkoutId: v.id("hostedWorkouts"),
 		participantId: v.optional(v.id("hostedWorkoutParticipants")),
 		guestName: v.optional(v.string()),
+		// Random per-browser key a guest submits with, so two guests with the
+		// same name keep separate rows and a guest can later claim theirs. Never
+		// sent back to clients.
+		guestKey: v.optional(v.string()),
 		// Personal-library records created for a signed-in athlete's submission,
 		// linked so a re-submit reuses them. Absent for guest submissions.
 		wodId: v.optional(v.id("wods")),

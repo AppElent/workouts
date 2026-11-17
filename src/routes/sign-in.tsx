@@ -2,28 +2,36 @@ import { useAuth } from "@clerk/react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { AuthCard } from "#/lib/auth/AuthCard";
+import { AUTH_PATHS, safeRedirect } from "#/lib/auth/paths";
 import { SignInForm } from "#/lib/auth/SignInForm";
 import { useMessages } from "#/lib/i18n";
 
 export const Route = createFileRoute("/sign-in")({
 	ssr: false,
+	validateSearch: (search: Record<string, unknown>): { redirect?: string } => ({
+		redirect: safeRedirect(search.redirect),
+	}),
 	component: SignInPage,
 });
 
 function SignInPage() {
 	const navigate = useNavigate();
+	const { redirect } = Route.useSearch();
 	const { isSignedIn } = useAuth();
 	const { auth } = useMessages();
 
 	useEffect(() => {
 		if (isSignedIn) {
-			navigate({ to: "/dashboard" });
+			navigate({ href: redirect ?? AUTH_PATHS.afterAuth });
 		}
-	}, [isSignedIn, navigate]);
+	}, [isSignedIn, navigate, redirect]);
 
 	return (
 		<AuthCard title={auth.signIn.title} subtitle={auth.signIn.subtitle}>
-			<SignInForm onSuccess={() => navigate({ to: "/dashboard" })} />
+			<SignInForm
+				redirect={redirect}
+				onSuccess={() => navigate({ href: redirect ?? AUTH_PATHS.afterAuth })}
+			/>
 		</AuthCard>
 	);
 }

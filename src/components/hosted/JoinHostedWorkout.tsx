@@ -3,9 +3,10 @@ import { api } from "@convex/_generated/api";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { format } from "date-fns";
-import { LogIn, Play } from "lucide-react";
+import { History, LogIn, Play, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { GuestSubmissionForm } from "#/components/hosted/GuestSubmissionForm";
+import { getGuestKey } from "#/components/hosted/guestKey";
 import {
 	HostedStrengthBlocks,
 	HostedWodBlockCard,
@@ -19,6 +20,11 @@ export function JoinHostedWorkout({ token }: { token: string }) {
 	const data = useQuery(api.hostedWorkouts.getByJoinToken, { token });
 	const join = useMutation(api.hostedWorkoutParticipants.join);
 	const submitGuest = useMutation(api.hostedWorkoutSubmissions.submitGuest);
+	const [guestKey] = useState(getGuestKey);
+	const guestScores = useQuery(
+		api.hostedWorkoutSubmissions.countGuestSubmissions,
+		{ token, guestKey },
+	);
 	const errorMessage = useConvexErrorMessage();
 	const [joining, setJoining] = useState(false);
 	const [joinError, setJoinError] = useState<string | null>(null);
@@ -105,6 +111,7 @@ export function JoinHostedWorkout({ token }: { token: string }) {
 					<Show when="signed-out">
 						<Link
 							to="/sign-in"
+							search={{ redirect: `/join/${token}` }}
 							className="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-semibold text-text"
 						>
 							<LogIn size={15} />
@@ -114,6 +121,14 @@ export function JoinHostedWorkout({ token }: { token: string }) {
 				</div>
 				{joinError && <p className="mt-3 text-sm text-danger">{joinError}</p>}
 			</header>
+
+			{guestScores ? (
+				<ClaimGuestScores
+					token={token}
+					guestKey={guestKey}
+					count={guestScores}
+				/>
+			) : null}
 
 			<HostedStrengthBlocks blocks={hosted.template.strengthBlocks} />
 
@@ -125,6 +140,7 @@ export function JoinHostedWorkout({ token }: { token: string }) {
 							submitGuest({
 								token,
 								guestName,
+								guestKey,
 								...payload,
 							})
 						}
@@ -158,5 +174,80 @@ export function JoinHostedWorkout({ token }: { token: string }) {
 				</div>
 			</section>
 		</div>
+	);
+}
+
+/**
+ * Offers a guest who scored from this browser to keep those scores: sign up
+ * (and come back here), then claim them into their own history.
+ */
+function ClaimGuestScores({
+	token,
+	guestKey,
+	count,
+}: {
+	token: string;
+	guestKey: string;
+	count: number;
+}) {
+	const navigate = useNavigate();
+	const claim = useMutation(api.hostedWorkoutSubmissions.claimGuestSubmissions);
+	const errorMessage = useConvexErrorMessage();
+	const [claiming, setClaiming] = useState(false);
+	const [error, setError] = useState<string | null>(null);
+	const scores =
+		count === 1 ? "your guest score" : `your ${count} guest scores`;
+
+	async function handleClaim() {
+		if (claiming) return;
+		setClaiming(true);
+		setError(null);
+		try {
+			const { sessionId } = await claim({ token, guestKey });
+			void navigate({ to: "/log/$sessionId", params: { sessionId } });
+		} catch (err) {
+			setError(errorMessage(err, "Couldn't add your scores. Try again."));
+			setClaiming(false);
+		}
+	}
+
+	return (
+		<section className="flex flex-col gap-3 rounded-lg border border-border bg-surface p-4 sm:flex-row sm:items-center sm:justify-between">
+			<div>
+				<h2 className="text-sm font-bold text-text">Keep {scores}</h2>
+				<Show when="signed-in">
+					<p className="mt-1 text-sm text-text-muted">
+						Add {scores} from this device to your training history.
+					</p>
+				</Show>
+				<Show when="signed-out">
+					<p className="mt-1 text-sm text-text-muted">
+						Create a free account to save {scores} in your own training history.
+					</p>
+				</Show>
+				{error && <p className="mt-2 text-sm text-danger">{error}</p>}
+			</div>
+			<Show when="signed-in">
+				<button
+					type="button"
+					onClick={() => void handleClaim()}
+					disabled={claiming}
+					className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-accent-fill px-4 py-2 text-sm font-bold text-on-accent disabled:opacity-50"
+				>
+					<History size={15} />
+					{claiming ? "Adding..." : "Add to my history"}
+				</button>
+			</Show>
+			<Show when="signed-out">
+				<Link
+					to="/sign-up"
+					search={{ redirect: `/join/${token}` }}
+					className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-accent-fill px-4 py-2 text-sm font-bold text-on-accent"
+				>
+					<UserPlus size={15} />
+					Create account
+				</Link>
+			</Show>
+		</section>
 	);
 }

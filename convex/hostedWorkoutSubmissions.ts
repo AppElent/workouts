@@ -1,10 +1,11 @@
 import { validateWodScore } from "@foundry/core";
 import { type ObjectType, v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
-import type { MutationCtx } from "./_generated/server";
-import { mutation } from "./_generated/server";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 import { requireUserId } from "./lib/auth";
 import { appError, checked } from "./lib/errors";
+import { joinHosted } from "./lib/hosted";
 import { hostedLevel, wodScoreFields } from "./lib/validators";
 import { recordWodResult, wodDefinitionOf } from "./lib/wods";
 
@@ -102,37 +103,171 @@ export const submitForSession = mutation({
 	},
 });
 
-/** One submission per guest name per WOD block; a re-submit updates it. */
+const GUEST_KEY = /^[A-Za-z0-9_-]{16,64}$/;
+
+function checkedGuestKey(guestKey: string) {
+	if (!GUEST_KEY.test(guestKey)) throw appError("invalid", "guestKey");
+	return guestKey;
+}
+
+async function hostedByToken(ctx: QueryCtx, token: string) {
+	const hosted = await ctx.db
+		.query("hostedWorkouts")
+		.withIndex("by_join_token", (q) => q.eq("joinToken", token))
+		.first();
+	if (!hosted) throw appError("notFound");
+	return hosted;
+}
+
+/** The guest submissions sent from one browser, not yet claimed. */
+async function guestSubmissions(
+	ctx: QueryCtx,
+	hosted: Doc<"hostedWorkouts">,
+	guestKey: string,
+) {
+	const rows = await ctx.db
+		.query("hostedWorkoutSubmissions")
+		.withIndex("by_hosted_workout", (q) => q.eq("hostedWorkoutId", hosted._id))
+		.collect();
+	return rows.filter((row) => !row.participantId && row.guestKey === guestKey);
+}
+
+/**
+ * One submission per guest per WOD block, keyed by the browser's guest key
+ * rather than the typed name: two guests called Sam keep separate rows, and a
+ * re-submit from the same browser corrects that guest's own score.
+ */
 export const submitGuest = mutation({
 	args: {
 		token: v.string(),
 		guestName: v.string(),
+		// Optional only for web clients loaded before the key shipped: without
+		// one, every submit adds a new row and nothing is ever overwritten.
+		guestKey: v.optional(v.string()),
 		wodBlockId: v.string(),
 		...scoreFields,
 	},
-	handler: async (ctx, { token, guestName, wodBlockId, ...score }) => {
+	handler: async (
+		ctx,
+		{ token, guestName, guestKey, wodBlockId, ...score },
+	) => {
 		const name = guestName.trim();
 		if (name.length < 2) throw appError("invalid", "guestName");
 		if (name.length > 80) throw appError("tooLong", "guestName");
-		const hosted = await ctx.db
-			.query("hostedWorkouts")
-			.withIndex("by_join_token", (q) => q.eq("joinToken", token))
-			.first();
-		if (!hosted) throw appError("notFound");
+		const key = guestKey === undefined ? undefined : checkedGuestKey(guestKey);
+		const hosted = await hostedByToken(ctx, token);
 		scoredLevel(hosted, wodBlockId, score);
-		const existing = (await blockSubmissions(ctx, hosted, wodBlockId)).find(
-			(row) => row.guestName === name,
-		);
+		const existing =
+			key === undefined
+				? undefined
+				: (await blockSubmissions(ctx, hosted, wodBlockId)).find(
+						(row) => !row.participantId && row.guestKey === key,
+					);
 		if (existing) {
-			await ctx.db.patch(existing._id, submissionFields(score));
+			await ctx.db.patch(existing._id, {
+				guestName: name,
+				...submissionFields(score),
+			});
 			return existing._id;
 		}
 		return ctx.db.insert("hostedWorkoutSubmissions", {
 			hostedWorkoutId: hosted._id,
 			guestName: name,
+			guestKey: key,
 			wodBlockId,
 			...submissionFields(score),
 		});
+	},
+});
+
+/**
+ * Public: how many unclaimed guest scores this browser sent to the workout, so
+ * the join page can offer to claim them after sign-up.
+ */
+export const countGuestSubmissions = query({
+	args: { token: v.string(), guestKey: v.string() },
+	handler: async (ctx, { token, guestKey }) => {
+		if (!GUEST_KEY.test(guestKey)) return 0;
+		const hosted = await ctx.db
+			.query("hostedWorkouts")
+			.withIndex("by_join_token", (q) => q.eq("joinToken", token))
+			.first();
+		if (!hosted || hosted.status === "draft") return 0;
+		return (await guestSubmissions(ctx, hosted, guestKey)).length;
+	},
+});
+
+/**
+ * Turns this browser's guest scores into the signed-in athlete's own
+ * Submissions (ADR 0008): joins them to the workout if needed, records each
+ * score as a WOD Result in their history, and links the leaderboard row. A
+ * WOD block the athlete already scored while signed in keeps that score and
+ * leaves the guest row as it is.
+ */
+export const claimGuestSubmissions = mutation({
+	args: { token: v.string(), guestKey: v.string() },
+	handler: async (ctx, { token, guestKey }) => {
+		const userId = await requireUserId(ctx);
+		const key = checkedGuestKey(guestKey);
+		const hosted = await hostedByToken(ctx, token);
+		if (hosted.status === "draft") throw appError("hostedNotOpen");
+		const rows = await guestSubmissions(ctx, hosted, key);
+		if (rows.length === 0) throw appError("notFound", "guestKey");
+		let participant = await ctx.db
+			.query("hostedWorkoutParticipants")
+			.withIndex("by_hosted_workout_user", (q) =>
+				q.eq("hostedWorkoutId", hosted._id).eq("userId", userId),
+			)
+			.first();
+		if (!participant) {
+			const sessionId = await joinHosted(
+				ctx,
+				hosted,
+				userId,
+				rows[0].guestName,
+			);
+			if (hosted.status === "closed")
+				await ctx.db.patch(sessionId, {
+					status: "completed",
+					endTime: Date.now(),
+				});
+			participant = await ctx.db
+				.query("hostedWorkoutParticipants")
+				.withIndex("by_session", (q) => q.eq("sessionId", sessionId))
+				.first();
+			if (!participant) throw appError("notFound");
+		}
+		const participantId = participant._id;
+		let claimed = 0;
+		let skipped = 0;
+		for (const row of rows) {
+			const alreadyScored = (
+				await blockSubmissions(ctx, hosted, row.wodBlockId)
+			).some((other) => other.participantId === participantId);
+			const block = hosted.template.wodBlocks.find(
+				(item) => item.blockId === row.wodBlockId,
+			);
+			const level = block?.levels.find((item) => item.level === row.level);
+			if (alreadyScored || !block || !level) {
+				skipped += 1;
+				continue;
+			}
+			const recorded = await recordWodResult(ctx, userId, {
+				wod: { ...wodDefinitionOf(block), movements: level.movements },
+				sessionId: participant.sessionId,
+				rxScaled: row.level === "rx" ? "rx" : "scaled",
+				score: row,
+				date: row.submittedAt,
+			});
+			await ctx.db.patch(row._id, {
+				participantId,
+				guestName: undefined,
+				guestKey: undefined,
+				...recorded,
+			});
+			claimed += 1;
+		}
+		return { sessionId: participant.sessionId, claimed, skipped };
 	},
 });
 

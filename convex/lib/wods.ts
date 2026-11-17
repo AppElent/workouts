@@ -41,6 +41,8 @@ export async function recordWodResult(
 		sessionId?: Id<"workoutSessions">;
 		rxScaled: RxScaled;
 		score: Score;
+		/** When the WOD was done; defaults to now. */
+		date?: number;
 		previous?: { wodId?: Id<"wods">; wodResultId?: Id<"wodResults"> };
 	},
 ) {
@@ -60,7 +62,7 @@ export async function recordWodResult(
 		});
 	const result = {
 		wodId,
-		date: Date.now(),
+		date: input.date ?? Date.now(),
 		rxScaled: input.rxScaled,
 		timeSeconds: score.timeSeconds,
 		rounds: score.rounds,
