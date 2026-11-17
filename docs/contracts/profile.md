@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing Profile, settings, account actions, or sign-out.
-version: 1.3.0
+version: 1.4.0
 status: current
 ---
 
@@ -37,6 +37,10 @@ tap. Study: [profile](../../designs/app/profile_final.html).
     Activity, and with Hosted Workout involvement, like test-data reset.
   - *Delete account.* The same deletion, then Clerk's self-deletion, which signs
     out. Unavailable when the Clerk instance disables self-deletion.
+  - *Web.* The web Account page offers both deletions with the same
+    confirmations and blockers. Web keeps no account data outside Convex
+    queries, so Delete my data needs no local reset; Delete account ends on the
+    signed-out start with a full page load.
 - **Summary.** None until lifetime totals exist. Profile shows no placeholder
   figures, dashes, or "coming soon" row in its place.
 - **Sign out.** A red row in its own bottom section, always confirmed. The

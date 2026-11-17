@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when enabling, configuring, or debugging Apple, Google, or Microsoft sign-in on the shared Appelent Clerk application.
-version: 2.2.2
+version: 2.3.0
 ---
 
 # Social sign-in
@@ -175,8 +175,13 @@ grant when the account is deleted. Clerk does not do this, so Foundry does:
 1. On iOS, Delete account opens the native Apple sheet once more for an
    Apple-linked account (`apps/mobile/src/features/profile/apple-revocation.ts`).
    Dismissing the sheet cancels the deletion.
+   On the web, it opens an Apple JS popup for the Services ID
+   (`src/lib/auth/appleRevocation.ts`), but only from an origin whose
+   `<origin>/account` is in `APPLE_WEB_RETURN_URLS`
+   (`packages/core/src/auth.ts`). Closing the popup cancels the deletion.
 2. Convex `account.revokeAppleSignIn` exchanges the code at Apple's
-   `/auth/token` and revokes the refresh token at `/auth/revoke`.
+   `/auth/token` (a web code with its return URL) and revokes the refresh
+   token at `/auth/revoke`.
 3. Any other failure is reported to Sentry, and the account is deleted anyway.
 
 The action signs Apple's client secret with the Sign in with Apple key from
@@ -190,6 +195,24 @@ it and Convex uses it as `client_id` after checking it against
 `APPLE_CLIENT_IDS` in `convex/lib/appleSignIn.ts`.
 Android has no native sheet, so an Apple-linked account deleted there is not
 revoked.
+
+### Enabling web revocation
+
+Apple JS shows its popup only for a domain and return URL registered on the
+Services ID, so web revocation is off until both are added. For each web
+origin (production `https://foundry.appelent.nl`, optionally staging):
+
+1. Apple Developer → Identifiers → `nl.appelent.web` → Sign in with Apple →
+   Configure: add the host (for example `foundry.appelent.nl`) under Domains
+   and `https://foundry.appelent.nl/account` under Return URLs. Keep the Clerk
+   entries. Save.
+2. Add the same URL to `APPLE_WEB_RETURN_URLS` in `packages/core/src/auth.ts`
+   and deploy web and Convex together.
+
+The existing Sign in with Apple key signs for the Services ID too, so no new
+secret is needed. Web Apple sign-in on the development Clerk instance with
+Clerk's shared credentials has another Apple team's user ID, so the popup's
+account never matches and nothing is revoked there.
 
 ## Verify
 

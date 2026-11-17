@@ -2,7 +2,7 @@ import type { privacy as enPrivacy } from "../en/privacy";
 
 export const privacy = {
 	title: "Privacyverklaring",
-	updated: "Laatst bijgewerkt: 18 oktober 2026",
+	updated: "Laatst bijgewerkt: 17 november 2026",
 	back: "Terug naar home",
 	intro: {
 		title: "Wie we zijn",
@@ -71,7 +71,7 @@ export const privacy = {
 		title: "Hoe lang we ze bewaren",
 		body: {
 			account:
-				"We bewaren je gegevens zolang je een account hebt. Als je je account in de mobiele app verwijdert, worden je gegevens en account direct verwijderd. Vraag je het ons per e-mail, dan verwijderen we ze binnen 30 dagen.",
+				"We bewaren je gegevens zolang je een account hebt. Als je je account in de mobiele app of de webapp verwijdert, worden je gegevens en account direct verwijderd. Vraag je het ons per e-mail, dan verwijderen we ze binnen 30 dagen.",
 			diagnostics:
 				"Diagnostische gegevens en probleemmeldingen worden na maximaal 90 dagen automatisch verwijderd.",
 		},
@@ -82,7 +82,7 @@ export const privacy = {
 			rights:
 				"Je hebt het recht je gegevens in te zien, te corrigeren, te verwijderen of te exporteren, de verwerking te beperken of er bezwaar tegen te maken, en je toestemming in te trekken.",
 			howTo:
-				"In de mobiele app kun je via het Account-scherm je gegevens exporteren, je gegevens verwijderen of je account verwijderen. Je kunt je gegevens ook exporteren via de Account-pagina in de webapp. Wil je je account per e-mail laten verwijderen, of heb je een ander verzoek, mail dan naar privacy@appelent.nl. We reageren binnen een maand.",
+				"Via het Account-scherm in de mobiele app of de Account-pagina in de webapp kun je je gegevens exporteren, je gegevens verwijderen of je account verwijderen. Wil je je account per e-mail laten verwijderen, of heb je een ander verzoek, mail dan naar privacy@appelent.nl. We reageren binnen een maand.",
 			complaint:
 				"Ben je niet tevreden over hoe we met je gegevens omgaan, dan kun je een klacht indienen bij de Autoriteit Persoonsgegevens of bij de toezichthouder in je eigen land.",
 		},
