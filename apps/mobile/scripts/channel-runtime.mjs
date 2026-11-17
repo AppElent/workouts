@@ -26,14 +26,20 @@ const option = (name) => {
 const force = args.includes("--force");
 const env = { ...process.env, APP_VARIANT: channel };
 
-/** Parsed JSON from an `eas` command; exits on failure, since a gate must not guess. */
-function eas(easArgs) {
+/**
+ * Parsed JSON from an `eas` command; exits on failure, since a gate must not
+ * guess. `missing` is returned instead when stderr matches `missingPattern`.
+ */
+function eas(easArgs, missing, missingPattern) {
 	const result = spawnSync("pnpm", ["exec", "eas", ...easArgs, "--json", "--non-interactive"], {
 		cwd: appRoot,
 		env,
 		encoding: "utf8",
 		maxBuffer: 64 * 1024 * 1024,
 	});
+	if (result.status !== 0 && missingPattern?.test(`${result.stdout}${result.stderr}`)) {
+		return missing;
+	}
 	if (result.status !== 0) {
 		console.error(`eas ${easArgs.join(" ")} failed:\n${result.stderr}`);
 		process.exit(result.status || 1);
@@ -44,8 +50,12 @@ function eas(easArgs) {
 const results = PLATFORMS.map((platform) => {
 	const runtime = fingerprint(channel, platform).hash;
 	const updates = (
-		eas(["update:list", "--branch", channel, "--runtime-version", runtime, "--limit", "50"])
-			.currentPage ?? []
+		// The branch only exists after the channel's first update: none yet.
+		eas(
+			["update:list", "--branch", channel, "--runtime-version", runtime, "--limit", "50"],
+			{ currentPage: [] },
+			/Could not find branch/i,
+		).currentPage ?? []
 	).filter((group) => String(group.platforms).includes(platform)).length;
 	const builds = eas([
 		"build:list",

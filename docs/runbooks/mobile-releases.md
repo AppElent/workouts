@@ -209,6 +209,14 @@ Sentry token; preview updates publish without maps for now. Neither waits for a
 person. A forced production publish (dispatch with `force`, for a fingerprint
 mismatch) and every store build wait for Eric's decision card first.
 
+"Soaked" means published to `preview` at least 24 hours ago. A commit whose
+preview update was replaced by a fix less than 24 hours ago still ships; the
+fix follows the next day. To hold a bad commit back, roll back the production
+update or publish the fix by hand after Eric's card.
+
+A Deploy run whose commit is no longer `main`'s tip (a slow run, or a re-run of
+an old one) skips its web deploys and its preview update: the newer run ships.
+
 When one platform publishes and the other reports a store build due, the tag
 still moves, so the due platform is not retried until the app changes again:
 treat "store build due" as the trigger for a store release.

@@ -53,12 +53,27 @@ jobs:
           exit 1
 
       - uses: actions/checkout@v4
+
+      # Runs queue per target, so an older run (a slow `checks`, or a re-run)
+      # could otherwise deploy over a newer commit. Only main's tip ships.
+      - name: Guard superseded
+        id: fresh
+        run: |
+          tip=$(git ls-remote origin refs/heads/main | cut -f1)
+          if [ "$tip" != "$GITHUB_SHA" ]; then
+            echo "::warning::main is at ${tip:0:7}; skipping ${GITHUB_SHA:0:7}, the newer run deploys."
+            echo "Skipped $ENVIRONMENT_NAME: superseded by \`${tip:0:7}\`." >> "$GITHUB_STEP_SUMMARY"
+            echo "stale=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: ./.github/actions/setup
+        if: steps.fresh.outputs.stale != 'true'
 
       # An Environment without its own CONVEX_DEPLOY_KEY silently inherits a
       # repository secret of that name, so check the prefix first. `--ci` checks
       # the job env: a workflow cannot list GitHub secrets and holds them anyway.
       - name: Check environment
+        if: steps.fresh.outputs.stale != 'true'
         run: |
           case "$CONVEX_DEPLOY_KEY" in
             prod:*) ;;
@@ -67,12 +82,14 @@ jobs:
           node scripts/env.mjs check "$ENVIRONMENT_NAME" --ci
 
       # Core exports compiled files; a fresh runner has no dist yet.
-      - run: pnpm build:packages
+      - if: steps.fresh.outputs.stale != 'true'
+        run: pnpm build:packages
 
       # The deploy key alone picks the Convex deployment, which exposes its URL
       # to --cmd as $CONVEX_URL; the build reads VITE_CONVEX_URL. Both targets
       # run `pnpm build`, so staging exercises the bundle production ships.
       - name: Convex deploy + build
+        if: steps.fresh.outputs.stale != 'true'
         run: |
           # shellcheck disable=SC2016 # $CONVEX_URL expands inside convex deploy
           pnpm exec convex deploy \
@@ -81,6 +98,7 @@ jobs:
 
       # A build for the wrong env would replace another environment's Worker.
       - name: Guard Worker name
+        if: steps.fresh.outputs.stale != 'true'
         run: |
           built=$(jq -r .name dist/server/wrangler.json)
           if [ "$built" != "$EXPECTED_WORKER" ]; then
@@ -89,11 +107,13 @@ jobs:
           fi
 
       - name: Deploy Worker
+        if: steps.fresh.outputs.stale != 'true'
         run: pnpm exec wrangler deploy
 
       # The Worker answers /version before the app, so this proves the new
       # bundle is live; the page fetch proves SSR renders.
       - name: Smoke check
+        if: steps.fresh.outputs.stale != 'true'
         env:
           URL: ${{ inputs.url }}
         run: |

@@ -68,16 +68,18 @@ jobs:
             echo "Skipped: no preview update is 24 hours old yet." >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
+          # A hand publish from a branch is not a release candidate.
           if ! git merge-base --is-ancestor "$commit" origin/main; then
-            echo "::error::Soaked preview commit $commit is not on main."
-            exit 1
+            echo "::warning::Soaked preview commit ${commit:0:7} is not on main; skipped."
+            echo "Skipped: the soaked preview update \`${commit:0:7}\` is not on main." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
           fi
           if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
             if git merge-base --is-ancestor "$commit" "$TAG"; then
               echo "Skipped: \`$TAG\` already has the soaked commit \`${commit:0:7}\`." >> "$GITHUB_STEP_SUMMARY"
               exit 0
             fi
-            if git diff --quiet "$TAG" "$commit" -- apps/mobile packages/core pnpm-lock.yaml; then
+            if git diff --quiet "$TAG" "$commit" -- apps/mobile packages/core convex/_generated pnpm-lock.yaml; then
               echo "Skipped: nothing the app bundles changed between \`$TAG\` and \`${commit:0:7}\`." >> "$GITHUB_STEP_SUMMARY"
               exit 0
             fi
@@ -113,6 +115,12 @@ jobs:
           ref: ${{ needs.select.outputs.commit }}
           fetch-depth: 0
       - uses: ./.github/actions/setup
+
+      # The gate scripts come from main, so a candidate from before they
+      # existed (or with an older copy) is still gated the current way. They
+      # are not bundled and not part of the fingerprint.
+      - name: Use main's gate scripts
+        run: git checkout origin/main -- apps/mobile/scripts/channel-runtime.mjs scripts/lib/ota-gates.mjs
 
       - name: Match fingerprints
         id: match

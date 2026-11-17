@@ -65,8 +65,15 @@ jobs:
       - name: Changed since last publish
         id: changed
         run: |
+          tip=$(git ls-remote origin refs/heads/main | cut -f1)
+          if [ "$tip" != "$(git rev-parse HEAD)" ]; then
+            echo "Skipped: main moved on to \`${tip:0:7}\`; its run publishes." >> "$GITHUB_STEP_SUMMARY"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # convex/_generated: the app imports the API proxy from the root.
           if [ "$FORCE" != true ] && git rev-parse -q --verify "refs/tags/$TAG" >/dev/null &&
-            git diff --quiet "$TAG" HEAD -- apps/mobile packages/core pnpm-lock.yaml; then
+            git diff --quiet "$TAG" HEAD -- apps/mobile packages/core convex/_generated pnpm-lock.yaml; then
             echo "Nothing the app bundles changed since \`$TAG\`; no preview update published." >> "$GITHUB_STEP_SUMMARY"
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
