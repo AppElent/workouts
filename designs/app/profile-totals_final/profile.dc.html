@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Profiel met totalen</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:#e6e8e2;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,system-ui,sans-serif}
+.th-light{--bg:#f4f5f0;--surface:#ffffff;--surface2:#e9ece3;--fill:#c8f73c;--onFill:#0a0b09;--ink:#466400;--text:#1a2015;--muted:#535e49;--faint:#606b57;--sep:rgba(60,62,50,.12);--border:rgba(26,32,21,.12);--danger:#b42332;--tIndigo:#5856d6;--tBlue:#007aff;--tOrange:#ff9500;--tGreen:#34c759}
+.th-dark{--bg:#0a0b09;--surface:#141613;--surface2:#1d201b;--fill:#c8f73c;--onFill:#0a0b09;--ink:#c8f73c;--text:#f2f4ef;--muted:#9ba095;--faint:#919789;--sep:rgba(255,255,255,.14);--border:rgba(255,255,255,.07);--danger:#ff6b6b;--tIndigo:#5e5ce6;--tBlue:#0a84ff;--tOrange:#ff9f0a;--tGreen:#30d158}
+.board{display:flex;gap:48px;padding:32px;align-items:flex-start}
+.col{display:flex;flex-direction:column;gap:12px}
+.cap{font-size:14px;font-weight:600;color:#373d33}
+.phone{width:390px;height:844px;border-radius:48px;overflow:hidden;position:relative;background:var(--bg);color:var(--text);border:1px solid rgba(0,0,0,.18)}
+.scr{position:absolute;left:0;right:0;top:0;bottom:0;padding:60px 16px 120px;display:flex;flex-direction:column;gap:16px;overflow:hidden}
+.lt{font-size:34px;font-weight:700;letter-spacing:-.8px;margin:0 4px -4px}
+.acct{display:flex;align-items:center;gap:16px;padding:16px;border-radius:14px;background:var(--surface);border:0;color:var(--text);text-align:left;font:inherit}
+.av{width:52px;height:52px;border-radius:26px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700}
+.sum{background:var(--surface);border-radius:24px;padding:10px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}
+.fig{border:0;background:transparent;color:var(--text);text-align:left;border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;font:inherit;min-height:64px}
+.fig b{font-size:24px;font-weight:800;letter-spacing:-.4px;font-variant-numeric:tabular-nums}
+.fig b small{font-size:14px;font-weight:600;color:var(--muted);margin-left:2px}
+.fig span{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:4px}
+.fig.hit{background:var(--surface2)}
+.foot{font-size:13px;color:var(--muted);padding:6px 16px 0;line-height:1.35;margin-top:-10px}
+.hdr{font-size:13px;color:var(--muted);padding:0 16px 6px;font-weight:500}
+.grp{background:var(--surface);border-radius:14px;overflow:hidden}
+.row{display:flex;align-items:center;gap:14px;min-height:48px;padding:0 14px;font-size:17px;position:relative}
+.row+.row::before{content:"";position:absolute;left:58px;right:0;top:0;height:1px;background:var(--sep)}
+.row.plain+.row.plain::before{left:16px}
+.tile{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff}
+.row .v{margin-left:auto;color:var(--muted);font-size:17px}
+.chev{color:var(--faint);font-size:20px}
+.tabbar{position:absolute;left:16px;right:16px;bottom:28px;height:62px;border-radius:31px;background:var(--surface);display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:center;border:1px solid var(--sep)}
+.tab{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;font-weight:600;color:var(--muted)}
+.tab.on{color:var(--ink)}
+</style>
+</helmet>
+<div class="board">
+<sc-for list="{{themes}}" as="th" hint-placeholder-count="2">
+<div class="col">
+<div class="cap">{{th.label}}</div>
+<div class="phone {{th.cls}}">
+<div class="scr">
+<h1 class="lt">Profiel</h1>
+<button class="acct" type="button" aria-label="Accountgegevens, Eric Jansen"><span class="av">EJ</span><span style="flex:1;display:flex;flex-direction:column;gap:4px"><b style="font-size:18px">Eric Jansen</b><span style="font-size:13px;color:var(--muted)">[je e-mailadres]</span></span><span class="chev">›</span></button>
+<div class="sum" role="group" aria-label="Totalen sinds het begin">
+<button class="fig {{th.hit}}" type="button" aria-label="214 trainingen, alle activiteit"><b>214</b><span>trainingen ›</span></button>
+<button class="fig" type="button" aria-label="96,4 ton getild, krachttrainingen"><b>96,4<small>ton</small></b><span>getild ›</span></button>
+<button class="fig" type="button" aria-label="612 kilometer hardgelopen"><b>612<small>km</small></b><span>hardgelopen ›</span></button>
+<button class="fig" type="button" aria-label="1840 kilometer gefietst"><b>1.840<small>km</small></b><span>gefietst ›</span></button>
+</div>
+<div class="foot">Sinds 3 maart 2026. Tik een getal voor de activiteiten erachter.</div>
+<div class="grp"><div class="row plain">Alle activiteit<span class="v"></span><span class="chev">›</span></div></div>
+<div>
+<div class="hdr">Voorkeuren</div>
+<div class="grp">
+<div class="row"><span class="tile" style="background:var(--tIndigo)"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6" fill="none" stroke="#fff" stroke-width="1.6"></circle><path d="M8 2a6 6 0 0 1 0 12z" fill="#fff"></path></svg></span>Weergave<span class="v">Systeem</span><span class="chev">›</span></div>
+<div class="row"><span class="tile" style="background:var(--tBlue)"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6" fill="none" stroke="#fff" stroke-width="1.5"></circle><path d="M2 8h12M8 2c2 2 2 10 0 12M8 2c-2 2-2 10 0 12" fill="none" stroke="#fff" stroke-width="1.3"></path></svg></span>Taal<span class="v">Nederlands</span><span class="chev">›</span></div>
+</div>
+</div>
+<div>
+<div class="hdr">Voeding</div>
+<div class="grp">
+<div class="row"><span class="tile" style="background:var(--tOrange)"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.5" fill="none" stroke="#fff" stroke-width="1.5"></circle><circle cx="8" cy="8" r="2" fill="#fff"></circle></svg></span>Doelen<span class="v"></span><span class="chev">›</span></div>
+<div class="row"><span class="tile" style="background:var(--tGreen)"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 3v10M7 3v10M10 4l3 9" stroke="#fff" stroke-width="1.6" fill="none"></path></svg></span>Bibliotheek<span class="v"></span><span class="chev">›</span></div>
+</div>
+</div>
+</div>
+<div class="tabbar">
+<div class="tab">Home</div><div class="tab">Trainen</div><div class="tab">Voeding</div><div class="tab">Voortgang</div><div class="tab on">Profiel</div>
+</div>
+</div>
+</div>
+</sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":892,"height":940}}'>
+class Component extends DCLogic {
+renderVals() {
+return { themes: [
+{ label: "Licht · totalen onder het account", cls: "th-light", hit: "" },
+{ label: "Donker · ‘trainingen’ ingedrukt (opent Alle activiteit)", cls: "th-dark", hit: "hit" }
+] };
+}
+}
+</script>
+</body>
+</html>
