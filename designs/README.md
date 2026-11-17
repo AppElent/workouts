@@ -13,3 +13,5 @@ Exploration and review artifacts. Naming, copy, and adoption rules are in
 | Shell | [Shell study](shell/index.html) | Reference study; [native shell experiments](../docs/records/2026-08-20-shell-prototype/README.md) are a dated record |
 | Start activity | [Round 1](app/start-activity_round1.html), [round 2](app/start-activity_round2.html), selected: [final design](app/start-activity_final.html) | Approved single-sheet design with keyboard, dismissal, navigation, and recovery states; native implementation and device acceptance remain pending |
 
+| Profile totals (APP-57) | Round 3 on the [Foundry — Profile & settings canvas](https://claude.ai/artifact/5WL2hvuHoXNQnK9FhN1aqf); selected: [profile totals](app/profile-totals_final.md) ([artboards](app/profile-totals_final/)), which replaces the summary in [profile](app/profile_final.html) | Approved 17 Nov 2026; implementation pending |
+| Web appearance (APP-39) | Round 1 on the [Foundry — Profile & settings canvas](https://claude.ai/artifact/5WL2hvuHoXNQnK9FhN1aqf); selected: [web Account preferences](web/appearance_final.md) ([artboards](web/appearance_final/)) | Approved 17 Nov 2026; implementation pending |

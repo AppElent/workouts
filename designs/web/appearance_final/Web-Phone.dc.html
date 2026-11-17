@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Web Account op telefoonbreedte</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:#e6e8e2;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif}
+.th-light{--bg:#f4f5f0;--surface:#ffffff;--surface2:#e9ece3;--fill:#c8f73c;--onFill:#0a0b09;--ink:#466400;--text:#1a2015;--muted:#535e49;--border:rgba(26,32,21,.12)}
+.th-dark{--bg:#0a0b09;--surface:#141613;--surface2:#1d201b;--fill:#c8f73c;--onFill:#0a0b09;--ink:#c8f73c;--text:#f2f4ef;--muted:#9ba095;--border:rgba(255,255,255,.07)}
+.board{display:flex;gap:48px;padding:32px;align-items:flex-start}
+.col{display:flex;flex-direction:column;gap:12px}
+.cap{font-size:14px;font-weight:600;color:#373d33}
+.phone{width:390px;height:844px;border-radius:24px;overflow:hidden;position:relative;background:var(--bg);color:var(--text);border:1px solid rgba(0,0,0,.18)}
+.url{height:44px;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--muted);border-bottom:1px solid var(--border);background:var(--surface)}
+.wrap{padding:16px;display:flex;flex-direction:column;gap:16px}
+h1{font-size:24px;font-weight:700;margin:0}
+.card{border:1px solid var(--border);background:var(--surface);border-radius:12px;padding:16px}
+.ct{font-size:14px;font-weight:600;margin:0 0 10px}
+.figs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}
+.fig{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border-radius:10px;text-decoration:none;color:var(--text)}
+.fig b{font-size:24px;font-weight:800;font-variant-numeric:tabular-nums}
+.fig b small{font-size:14px;color:var(--muted);font-weight:600;margin-left:2px}
+.fig span{font-size:13px;color:var(--muted)}
+.hint{font-size:12px;color:var(--muted);margin:8px 0 0}
+.pl{font-size:14px;font-weight:500;margin:0 0 8px}
+.seg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));background:var(--surface2);border-radius:999px;padding:3px;gap:2px}
+.seg button{border:0;background:transparent;color:var(--text);font:600 14px/1 inherit;min-height:40px;border-radius:999px}
+.seg button.on{background:var(--fill);color:var(--onFill)}
+.sel{min-height:44px;padding:0 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font:500 15px/1 inherit;display:flex;align-items:center;justify-content:space-between}
+.tabs{position:absolute;left:0;right:0;bottom:0;height:72px;background:var(--surface);border-top:1px solid var(--border);display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:center;text-align:center;font-size:11px;font-weight:600;color:var(--muted)}
+.tabs .on{color:var(--ink)}
+</style>
+</helmet>
+<div class="board">
+<sc-for list="{{phones}}" as="ph" hint-placeholder-count="2">
+<div class="col">
+<div class="cap">{{ph.label}}</div>
+<div class="phone {{ph.cls}}">
+<div class="url">foundry · account</div>
+<div class="wrap">
+<h1>Account</h1>
+<section class="card">
+<p class="ct">Sinds het begin</p>
+<div class="figs">
+<a class="fig" href="#log"><b>214</b><span>trainingen</span></a>
+<a class="fig" href="#log"><b>96,4<small>ton</small></b><span>getild</span></a>
+<a class="fig" href="#log"><b>612<small>km</small></b><span>hardgelopen</span></a>
+<a class="fig" href="#log"><b>1.840<small>km</small></b><span>gefietst</span></a>
+</div>
+<p class="hint">Sinds 3 maart 2026. Elk getal opent het Logboek.</p>
+</section>
+<section class="card">
+<p class="ct">Voorkeuren</p>
+<p class="pl" id="wg">Weergave</p>
+<div class="seg" role="radiogroup" aria-labelledby="wg">
+<sc-for list="{{ph.modes}}" as="m" hint-placeholder-count="3"><button type="button" role="radio" class="{{m.cls}}" aria-checked="{{m.checked}}">{{m.label}}</button></sc-for>
+</div>
+<p class="hint">{{ph.hint}}</p>
+<p class="pl" style="margin-top:16px">Taal</p>
+<div class="sel" role="button" tabindex="0">Nederlands <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></svg></div>
+</section>
+</div>
+<nav class="tabs" aria-label="Hoofdmenu"><span>Dashboard</span><span>Logboek</span><span>Oefeningen</span><span>Voortgang</span><span class="on">Profiel</span></nav>
+</div>
+</div>
+</sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":892,"height":940}}'>
+class Component extends DCLogic {
+renderVals() {
+const modes = (sel) => ["Systeem", "Licht", "Donker"].map((label) => ({ label, cls: label === sel ? "on" : "", checked: label === sel ? "true" : "false" }));
+return { phones: [
+{ label: "Licht · Licht gekozen", cls: "th-light", modes: modes("Licht"), hint: "Altijd licht in deze browser." },
+{ label: "Donker · Systeem gekozen, telefoon staat op donker", cls: "th-dark", modes: modes("Systeem"), hint: "Systeem volgt de instelling van je apparaat." }
+] };
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Profieltotalen: staten</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:#e6e8e2;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,system-ui,sans-serif}
+.th-light{--bg:#f4f5f0;--surface:#ffffff;--surface2:#e9ece3;--fill:#c8f73c;--onFill:#0a0b09;--ink:#466400;--text:#1a2015;--muted:#535e49;--faint:#606b57;--sep:rgba(60,62,50,.12);--warn:#865500;--warnSoft:rgba(134,85,0,.09)}
+.th-dark{--bg:#0a0b09;--surface:#141613;--surface2:#1d201b;--fill:#c8f73c;--onFill:#0a0b09;--ink:#c8f73c;--text:#f2f4ef;--muted:#9ba095;--faint:#919789;--sep:rgba(255,255,255,.14);--warn:#fbbf24;--warnSoft:rgba(251,191,36,.12)}
+.board{display:flex;gap:48px;padding:32px;align-items:flex-start}
+.col{display:flex;flex-direction:column;gap:12px}
+.cap{font-size:14px;font-weight:600;color:#373d33;max-width:390px}
+.phone{width:390px;height:844px;border-radius:48px;overflow:hidden;position:relative;background:var(--bg);color:var(--text);border:1px solid rgba(0,0,0,.18)}
+.scr{position:absolute;left:0;right:0;top:0;bottom:0;padding:60px 16px 120px;display:flex;flex-direction:column;gap:16px;overflow:hidden}
+.lt{font-size:34px;font-weight:700;letter-spacing:-.8px;margin:0 4px -4px}
+.acct{display:flex;align-items:center;gap:16px;padding:16px;border-radius:14px;background:var(--surface)}
+.av{width:52px;height:52px;border-radius:26px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700}
+.sum{background:var(--surface);border-radius:24px;padding:10px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}
+.fig{padding:10px 12px;display:flex;flex-direction:column;gap:6px;min-height:64px}
+.fig b{font-size:24px;font-weight:800;letter-spacing:-.4px}
+.fig b small{font-size:14px;font-weight:600;color:var(--muted);margin-left:2px}
+.fig span{font-size:13px;color:var(--muted)}
+.sk{display:block;border-radius:6px;background:var(--surface2)}
+.foot{font-size:13px;color:var(--muted);padding:6px 16px 0;line-height:1.35;margin-top:-10px}
+.empty{background:var(--surface);border-radius:24px;padding:18px;display:flex;flex-direction:column;gap:6px}
+.empty b{font-size:17px}
+.empty span{font-size:15px;color:var(--muted);line-height:1.4}
+.pill{align-self:flex-start;margin-top:8px;min-height:46px;padding:0 20px;border-radius:999px;border:0;background:var(--fill);color:var(--onFill);font:700 16px/1 inherit}
+.line{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);padding:0 4px}
+.txt{border:0;background:none;color:var(--ink);font:600 15px/1 inherit;padding:8px 0 0;text-align:left}
+</style>
+</helmet>
+<div class="board">
+
+<div class="col">
+<div class="cap">Licht · laden: alleen de getallen zijn een skelet (stil, geen animatie)</div>
+<div class="phone th-light"><div class="scr">
+<h1 class="lt">Profiel</h1>
+<div class="acct"><span class="av">EJ</span><span style="display:flex;flex-direction:column;gap:4px"><b style="font-size:18px">Eric Jansen</b><span style="font-size:13px;color:var(--muted)">[je e-mailadres]</span></span></div>
+<div class="sum" aria-busy="true" aria-label="Totalen laden">
+<div class="fig"><span class="sk" style="width:58px;height:26px"></span><span class="sk" style="width:76px;height:12px"></span></div>
+<div class="fig"><span class="sk" style="width:70px;height:26px"></span><span class="sk" style="width:52px;height:12px"></span></div>
+<div class="fig"><span class="sk" style="width:58px;height:26px"></span><span class="sk" style="width:84px;height:12px"></span></div>
+<div class="fig"><span class="sk" style="width:72px;height:26px"></span><span class="sk" style="width:60px;height:12px"></span></div>
+</div>
+</div></div>
+</div>
+
+<div class="col">
+<div class="cap">Donker · nieuw account: geen nullen, één route</div>
+<div class="phone th-dark"><div class="scr">
+<h1 class="lt">Profiel</h1>
+<div class="acct"><span class="av">EJ</span><span style="display:flex;flex-direction:column;gap:4px"><b style="font-size:18px">Eric Jansen</b><span style="font-size:13px;color:var(--muted)">[je e-mailadres]</span></span></div>
+<div class="empty">
+<b>Nog geen activiteit</b>
+<span>Je trainingen, getilde kilo's en kilometers verschijnen hier na je eerste training.</span>
+<button class="pill" type="button">Start een training</button>
+</div>
+</div></div>
+</div>
+
+<div class="col">
+<div class="cap">Licht · offline: laatst bekende totalen met hun tijd; fout: opnieuw proberen</div>
+<div class="phone th-light"><div class="scr">
+<h1 class="lt">Profiel</h1>
+<div class="line" role="status"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 6a9 9 0 0 1 12 0M4.5 8.5a5.5 5.5 0 0 1 7 0M2 2l12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path></svg>Offline · totalen van 09:12</div>
+<div class="acct"><span class="av">EJ</span><span style="display:flex;flex-direction:column;gap:4px"><b style="font-size:18px">Eric Jansen</b><span style="font-size:13px;color:var(--muted)">[je e-mailadres]</span></span></div>
+<div class="sum">
+<div class="fig"><b>214</b><span>trainingen</span></div>
+<div class="fig"><b>96,4<small>ton</small></b><span>getild</span></div>
+<div class="fig"><b>612<small>km</small></b><span>hardgelopen</span></div>
+<div class="fig"><b>1.840<small>km</small></b><span>gefietst</span></div>
+</div>
+<div class="foot">Sinds 3 maart 2026.</div>
+<div style="height:24px"></div>
+<div class="cap" style="color:var(--muted);padding:0 4px">Fout bij laden (online):</div>
+<div class="empty">
+<b>Totalen niet geladen</b>
+<span>Je instellingen werken gewoon.</span>
+<button class="txt" type="button">Opnieuw proberen</button>
+</div>
+</div></div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1350,"height":940}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
