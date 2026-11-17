@@ -14,6 +14,9 @@ import * as Sentry from "@sentry/react-native";
 import { useEffect } from "react";
 import { Platform } from "react-native";
 
+/** A sheet still animates out after it leaves state; shake waits for that. */
+export const DISMISS_SETTLE_MS = 600;
+
 let blockers = 0;
 let started = false;
 let listening = false;
@@ -40,8 +43,12 @@ export function useShakeToReportBlocker(active: boolean) {
 		blockers += 1;
 		sync();
 		return () => {
-			blockers -= 1;
-			sync();
+			setTimeout(() => {
+				// Clamped: a Fast Refresh of this module resets the count under
+				// still-mounted blockers.
+				blockers = Math.max(0, blockers - 1);
+				sync();
+			}, DISMISS_SETTLE_MS);
 		};
 	}, [active]);
 }
