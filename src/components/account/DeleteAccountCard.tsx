@@ -146,9 +146,11 @@ export function DeleteAccountCard() {
 			});
 			if (!confirmed) return;
 			setBusy(mode);
-			const account: Confirmed | null = clerk.session
-				? { userId, sessionId: clerk.session.id }
-				: null;
+			// Only Delete account acts on the Clerk account.
+			const account: Confirmed | null =
+				mode === "deleteAccount" && clerk.session
+					? { userId, sessionId: clerk.session.id }
+					: null;
 			if (mode === "deleteAccount") {
 				if (!account || !sameAccount(account)) {
 					toast.error(c.deletion.accountChanged);
@@ -197,6 +199,8 @@ export function DeleteAccountCard() {
 			}
 			try {
 				// Each batch commits; a retry after an error resumes deleting.
+				// Deleting the profile can re-route and unmount this card; the
+				// loop and the steps after it still finish.
 				while (!(await deleteData({ expectedSubject: userId })).done);
 			} catch (error) {
 				// Known codes only: a raw server message would hide that deleting

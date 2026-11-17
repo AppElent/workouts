@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing Profile, settings, account actions, or sign-out.
-version: 1.4.2
+version: 1.4.3
 status: current
 ---
 
@@ -42,8 +42,9 @@ tap. Study: [profile](../../designs/app/profile_final.html).
     queries, so Delete my data needs no local reset; Delete account ends on the
     signed-out start with a full page load. Before Delete account deletes
     anything, Clerk asks the person to confirm their sign-in when it is older
-    than its reverification window, so a stale session does not delete the data
-    and keep the account. If Clerk still refuses the account after the data is
+    than half of Clerk's reverification window (5 of 10 minutes), so a stale
+    session does not delete the data and keep the account, and the window does
+    not lapse while the data is deleted. If Clerk still refuses the account after the data is
     gone, the person is asked to choose Delete account again and confirm
     their sign-in, which resumes safely. Apple's grant is revoked before the data
     is deleted, so if deleting then fails, the account stays without it and a

@@ -23,7 +23,7 @@ export const account = {
 		signInCheckError:
 			"Your sign-in could not be confirmed. Nothing was deleted. Try Delete account again.",
 		signInCheckAfterApple:
-			"Sign in with Apple was turned off for Foundry, but your sign-in could not be confirmed, so your data and account were not deleted. Try Delete account again.",
+			"After the Apple step, your sign-in could not be confirmed, so your data and account were not deleted. Try Delete account again.",
 		signInAgain:
 			"Your data was deleted, but the account was not, because your sign-in was not confirmed. Choose Delete account again and confirm your sign-in. If that fails, sign out, sign in again and repeat.",
 		appleContinue:

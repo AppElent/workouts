@@ -508,7 +508,9 @@ it("says the sign-in failed after Apple's step when the sign-in stays old", asyn
 	await screen.findByText(/Next, Apple asks you to sign in/);
 	fireEvent.click(dialog().getByRole("button", { name: "Delete account" }));
 	expect(
-		await notifications().findByText(/Sign in with Apple was turned off/),
+		await notifications().findByText(
+			/After the Apple step, your sign-in could not be confirmed/,
+		),
 	).toBeTruthy();
 	expect(mocks.deleteData).not.toHaveBeenCalled();
 });
