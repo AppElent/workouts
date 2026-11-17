@@ -185,6 +185,30 @@ const firstCheck = async () =>
 const firstRow = async () =>
 	(await screen.findAllByLabelText(/set 1, .*60 × 8/))[0];
 
+it.each([
+	["Chin-Up", "shipped:exercise:chin-up"],
+	["Inverted Row", "shipped:exercise:inverted-row"],
+])("logs a bodyweight %s set with reps only (APP-217)", async (name, id) => {
+	currentSession = {
+		...currentSession,
+		exercises: [{ exerciseId: id, plannedSets: [] }],
+	};
+	await mount();
+	await fireEvent.press(await screen.findByLabelText(`Add set, ${name}`));
+	const reps = await screen.findByTestId("session-editor-reps");
+	await fireEvent(reps, "focus");
+	await fireEvent.changeText(reps, "8");
+	await fireEvent(reps, "blur");
+	await fireEvent.press(screen.getByText("Log · +0 × 8"));
+	expect(add).toHaveBeenCalledTimes(1);
+	expect(add.mock.calls[0][0]).toMatchObject({
+		exerciseId: id,
+		reps: 8,
+		weight: 0,
+		unit: "kg",
+	});
+});
+
 it("shows the plan against the measured 1RM, with what each set would be worth", async () => {
 	await mount();
 	expect(await screen.findByText(/Measured 1RM 100 kg/)).toBeTruthy();

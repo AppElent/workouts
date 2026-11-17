@@ -73,6 +73,42 @@ const equipment: Record<string, DefaultExercise["equipment"]> = {
 	"foam roll": "other",
 	other: "other",
 };
+// Movements upstream lists without equipment (or with a ball or straps as a
+// prop) that are performed with bodyweight alone. Without this they map to
+// `other`, which is a loaded equipment, so the phone refused a set at 0 kg
+// (APP-217). Weighted variants (for example Weighted Pull Ups) stay loaded.
+const bodyweightMovements = new Set([
+	"Band Assisted Pull-Up",
+	"Bodyweight Mid Row",
+	"Bodyweight Walking Lunge",
+	"Decline Push-Up",
+	"Downward Facing Balance",
+	"Exercise Ball Crunch",
+	"Exercise Ball Pull-In",
+	"Floor Glute-Ham Raise",
+	"Gironda Sternum Chins",
+	"Inverted Row",
+	"Inverted Row with Straps",
+	"Kipping Muscle Up",
+	"Knee/Hip Raise On Parallel Bars",
+	"London Bridges",
+	"Mixed Grip Chin",
+	"Muscle Up",
+	"One Arm Chin-Up",
+	"Physioball Hip Bridge",
+	"Platform Hamstring Slides",
+	"Push-Ups With Feet On An Exercise Ball",
+	"Ring Dips",
+	"Rope Climb",
+	"Scapular Pull-Up",
+	"Side To Side Chins",
+	"Single-Leg High Box Squat",
+	"Suspended Fallout",
+	"Suspended Push-Up",
+	"Suspended Reverse Crunch",
+	"Suspended Row",
+	"Suspended Split Squat",
+]);
 const muscles: Record<string, string> = {
 	abdominals: "core",
 	lats: "back",
@@ -112,8 +148,11 @@ for (const directory of (await readdir(resolve(source, "exercises"))).sort()) {
 	const key = normalize(aliases[name] ?? name);
 	if (seen.has(key)) continue;
 	const category = exercise.mechanic ?? mechanics[name];
-	const mappedEquipment =
-		exercise.equipment === null ? "other" : equipment[exercise.equipment];
+	const mappedEquipment = bodyweightMovements.has(name)
+		? "bodyweight"
+		: exercise.equipment === null
+			? "other"
+			: equipment[exercise.equipment];
 	if (!["compound", "isolation"].includes(category) || !mappedEquipment) {
 		throw new Error(`Unmapped metadata: ${name}`);
 	}
@@ -140,6 +179,11 @@ for (const directory of (await readdir(resolve(source, "exercises"))).sort()) {
 		instructions,
 	});
 	seen.add(key);
+}
+const imported = new Set(exercises.map(({ name }) => name));
+for (const name of bodyweightMovements) {
+	if (!imported.has(name))
+		throw new Error(`Unknown bodyweight movement: ${name}`);
 }
 const output = fileURLToPath(
 	new URL("../src/exercises/wrkoutExercises.ts", import.meta.url),

@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { isLoadedEquipment } from "../exercise";
 import { DEFAULT_EXERCISES } from "./exercises";
 import { getShippedExercise, mergeExerciseCatalog } from "./index";
 import { WRKOUT_EXERCISES } from "./wrkoutExercises";
@@ -32,6 +33,25 @@ describe("shipped exercise catalog", () => {
 				),
 			).toBe(false);
 		}
+	});
+	it("logs bodyweight movements reps-only, without a required load (APP-217)", () => {
+		for (const id of [
+			"shipped:exercise:push-up",
+			"shipped:exercise:chin-up",
+			"shipped:exercise:pull-up",
+			"shipped:exercise:inverted-row",
+			"shipped:exercise:decline-push-up",
+			"shipped:exercise:suspended-row",
+			"shipped:exercise:ring-dips",
+		]) {
+			const exercise = getShippedExercise(id);
+			expect(exercise?.equipment, id).toBe("bodyweight");
+			expect(isLoadedEquipment(exercise?.equipment ?? "other"), id).toBe(false);
+		}
+		// Weighted variants still take a load.
+		expect(
+			getShippedExercise("shipped:exercise:weighted-pull-ups")?.equipment,
+		).toBe("other");
 	});
 	it("preserves shipped IDs and same-name personal exercises", () => {
 		const shipped = getShippedExercise(DEFAULT_EXERCISES[0]._id);
