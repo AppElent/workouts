@@ -116,5 +116,12 @@ extra click before Apple's popup applies whenever Apple revocation runs, not
 only after Clerk's dialog. The disabled buttons point to the explanation with
 `aria-describedby`.
 
+Apple's step waits for the person and can outlast Clerk's 10-minute window, so
+when Apple revocation runs, the sign-in is checked again right before the
+first data batch. Cancelling Clerk's dialog then deletes neither data nor
+account (Apple's grant is already revoked, as the message says). The check
+also re-reads the signed-in account after the session reload, so an account
+switch during the reload stops without Clerk's dialog. Tests cover all three.
+
 An end-to-end run with a stale session was not done, because it needs another
 throwaway account.

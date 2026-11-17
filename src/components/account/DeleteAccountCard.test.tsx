@@ -33,6 +33,8 @@ const mocks = vi.hoisted(() => ({
 	clerkUserId: "user_1",
 	// Reloading the session shows a sign-in older than the tab believed.
 	staleAfterReload: false,
+	// Another tab signs in to another account while the session reloads.
+	switchOnReload: false,
 }));
 
 type Fetcher = (...args: unknown[]) => Promise<unknown>;
@@ -52,6 +54,7 @@ vi.mock("@clerk/react", () => ({
 				id: "sess_1",
 				checkAuthorization: () => mocks.recentSignIn,
 				reload: async () => {
+					if (mocks.switchOnReload) mocks.clerkUserId = "user_2";
 					if (mocks.staleAfterReload) {
 						mocks.staleAfterReload = false;
 						mocks.recentSignIn = false;
@@ -114,6 +117,7 @@ beforeEach(() => {
 	mocks.appleReturnUrl = null;
 	mocks.clerkUserId = "user_1";
 	mocks.staleAfterReload = false;
+	mocks.switchOnReload = false;
 	mocks.deleteData.mockResolvedValue({ done: true });
 	mocks.revokeApple.mockResolvedValue("continue");
 	mocks.deleteUser.mockResolvedValue(undefined);
@@ -467,4 +471,54 @@ it("points the disabled buttons at the explanation", () => {
 	const id = screen.getByRole("status").id;
 	expect(button("Delete my data").getAttribute("aria-describedby")).toBe(id);
 	expect(button("Delete account").getAttribute("aria-describedby")).toBe(id);
+});
+
+it("checks the sign-in again after Apple's step and deletes nothing when that is cancelled", async () => {
+	mocks.appleReturnUrl = "https://foundry.appelent.nl/account";
+	mocks.revokeApple.mockImplementation(async () => {
+		// The 10-minute window runs out while Apple's window is open.
+		mocks.recentSignIn = false;
+		mocks.verifies = false;
+		return "continue";
+	});
+	setup();
+	fireEvent.click(button("Delete account"));
+	fireEvent.click(dialog().getByRole("button", { name: "Delete account" }));
+	await screen.findByText(/Next, Apple asks you to sign in/);
+	fireEvent.click(dialog().getByRole("button", { name: "Delete account" }));
+	await waitFor(() => expect(mocks.verifyPrompts).toBe(1));
+	await waitFor(() => expect(button("Delete account").disabled).toBe(false));
+	expect(mocks.revokeApple).toHaveBeenCalledOnce();
+	expect(mocks.deleteData).not.toHaveBeenCalled();
+	expect(mocks.deleteUser).not.toHaveBeenCalled();
+});
+
+it("says the sign-in failed after Apple's step when the sign-in stays old", async () => {
+	mocks.appleReturnUrl = "https://foundry.appelent.nl/account";
+	mocks.verifyRefreshes = false;
+	mocks.revokeApple.mockImplementation(async () => {
+		mocks.recentSignIn = false;
+		return "continue";
+	});
+	setup();
+	fireEvent.click(button("Delete account"));
+	fireEvent.click(dialog().getByRole("button", { name: "Delete account" }));
+	await screen.findByText(/Next, Apple asks you to sign in/);
+	fireEvent.click(dialog().getByRole("button", { name: "Delete account" }));
+	expect(
+		await notifications().findByText(/Sign in with Apple was turned off/),
+	).toBeTruthy();
+	expect(mocks.deleteData).not.toHaveBeenCalled();
+});
+
+it("stops without Clerk's dialog when another account signs in during the reload", async () => {
+	mocks.switchOnReload = true;
+	setup();
+	fireEvent.click(button("Delete account"));
+	fireEvent.click(dialog().getByRole("button", { name: "Delete account" }));
+	expect(
+		await notifications().findByText(/signed in to a different account now/),
+	).toBeTruthy();
+	expect(mocks.verifyPrompts).toBe(0);
+	expect(mocks.deleteData).not.toHaveBeenCalled();
 });

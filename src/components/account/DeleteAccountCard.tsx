@@ -74,6 +74,7 @@ export function DeleteAccountCard() {
 			// The sign-in age is only as fresh as the last session reload; an
 			// open tab can otherwise pass the check long after the window.
 			await clerk.session?.reload();
+			if (!sameAccount(confirmed)) throw new AccountChanged();
 			return recentSignIn() ? true : NEEDS_RECENT_SIGN_IN;
 		},
 	);
@@ -109,6 +110,24 @@ export function DeleteAccountCard() {
 		if (user && accountDeletable) preloadAppleJs(user, locale);
 	}, [user, accountDeletable, locale]);
 
+	/**
+	 * Confirms a recent sign-in, asking with Clerk's dialog when it is old.
+	 * Says why when it can't; cancelling stays quiet, like any other cancel.
+	 */
+	async function signInConfirmed(account: Confirmed, refused: string) {
+		try {
+			// Clerk retries once after its dialog and returns that result as
+			// is: anything but `true` means the sign-in is still old.
+			if ((await confirmRecentSignIn(account)) === true) return true;
+			toast.error(refused);
+		} catch (error) {
+			if (error instanceof AccountChanged)
+				toast.error(c.deletion.accountChanged);
+			else if (!isReverificationCancelledError(error)) toast.error(refused);
+		}
+		return false;
+	}
+
 	async function run(mode: Mode) {
 		if (pending.current || disabled || !userId || !user) return;
 		pending.current = true;
@@ -131,27 +150,14 @@ export function DeleteAccountCard() {
 					toast.error(c.deletion.accountChanged);
 					return;
 				}
-				try {
-					// Clerk retries once after its dialog and returns that result
-					// as is: anything but `true` means the sign-in is still old.
-					if ((await confirmRecentSignIn(account)) !== true) {
-						toast.error(c.deletion.signInCheckError);
-						return;
-					}
-				} catch (error) {
-					// Cancelling the dialog deletes nothing, like cancelling the
-					// confirmation.
-					if (error instanceof AccountChanged)
-						toast.error(c.deletion.accountChanged);
-					else if (!isReverificationCancelledError(error))
-						toast.error(c.deletion.signInCheckError);
+				if (!(await signInConfirmed(account, c.deletion.signInCheckError)))
 					return;
-				}
+				const appleReturnUrl = appleRevocationReturnUrl(user);
 				// The sign-in check (and any Clerk dialog) ends outside the
 				// person's click, so the browser would block Apple's popup; ask
 				// for a fresh click first.
 				if (
-					appleRevocationReturnUrl(user) &&
+					appleReturnUrl &&
 					!(await confirm({
 						title: c.deleteAccount,
 						description: c.deletion.appleContinue,
@@ -177,6 +183,13 @@ export function DeleteAccountCard() {
 				const apple = await revokeAppleSignIn(user, revokeApple, { locale });
 				if (apple === "popupBlocked") toast.error(c.deletion.applePopupBlocked);
 				if (apple !== "continue") return;
+				// Apple's step can outlast the sign-in window; check again so the
+				// data is never deleted while Clerk would refuse the account.
+				if (
+					appleReturnUrl &&
+					!(await signInConfirmed(account, c.deletion.signInCheckAfterApple))
+				)
+					return;
 			}
 			try {
 				// Each batch commits; a retry after an error resumes deleting.

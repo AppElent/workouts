@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing Profile, settings, account actions, or sign-out.
-version: 1.4.1
+version: 1.4.2
 status: current
 ---
 
@@ -47,7 +47,8 @@ tap. Study: [profile](../../designs/app/profile_final.html).
     gone, the person is asked to choose Delete account again and confirm
     their sign-in, which resumes safely. Apple's grant is revoked before the data
     is deleted, so if deleting then fails, the account stays without it and a
-    retry asks for Apple's popup again.
+    retry asks for Apple's popup again. The sign-in is checked again after
+    Apple's step, because that step can outlast the window.
 - **Summary.** None until lifetime totals exist. Profile shows no placeholder
   figures, dashes, or "coming soon" row in its place.
 - **Sign out.** A red row in its own bottom section, always confirmed. The
