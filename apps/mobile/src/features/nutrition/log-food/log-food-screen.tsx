@@ -141,6 +141,13 @@ const SCOPE_CHIPS = [
 /** How long a row's + shows ✓ after a quick log. */
 const JUST_LOGGED_MS = 2000;
 const NOTE_WRITE = "note";
+/**
+ * iOS 26+: the search field floats above the keyboard, and the system inset
+ * stops at the keyboard. Without this clearance the last results rest under
+ * the field, where a tap on a row's + lands on its close button instead: the
+ * keyboard closes and nothing logs (APP-56).
+ */
+const FLOATING_SEARCH_CLEARANCE = 64;
 
 /** A new Personal Food with nothing filled in but the name and the barcode. */
 function blankFoodDraft(
@@ -1056,11 +1063,15 @@ export function LogFoodScreen({
 				}}
 				onEndReachedThreshold={0.5}
 				data={items}
+				testID="log-food-results"
 				style={styles.root}
 				contentInsetAdjustmentBehavior="automatic"
 				keyboardDismissMode="interactive"
 				keyboardShouldPersistTaps="handled"
-				contentContainerStyle={styles.content}
+				contentContainerStyle={[
+					styles.content,
+					bottomToolbar && styles.contentAboveFloatingSearch,
+				]}
 				keyExtractor={logFoodItemKey}
 				ListHeaderComponent={
 					<View style={styles.headerContent}>
@@ -1351,6 +1362,9 @@ const createStyles = (colors: Tokens) =>
 	StyleSheet.create({
 		root: { flex: 1, backgroundColor: colors.bg },
 		content: { paddingTop: 10, paddingBottom: 40 },
+		contentAboveFloatingSearch: {
+			paddingBottom: 40 + FLOATING_SEARCH_CLEARANCE,
+		},
 		flex: { flex: 1 },
 		headerContent: { gap: 12, paddingBottom: spacing.xs },
 		headerButton: {
