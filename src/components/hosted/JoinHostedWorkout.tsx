@@ -2,7 +2,7 @@ import { Show, useAuth, useUser } from "@clerk/react";
 import { api } from "@convex/_generated/api";
 import { plural } from "@foundry/core";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useMutation, useQuery } from "convex/react";
+import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { format } from "date-fns";
 import { History, LogIn, Play, UserPlus } from "lucide-react";
 import { useState } from "react";
@@ -198,6 +198,9 @@ function ClaimGuestScores({
 	const { locale, messages } = useI18n();
 	const t = messages.hosted.claim;
 	const claim = useMutation(api.hostedWorkoutSubmissions.claimGuestSubmissions);
+	// Clerk can report signed-in before Convex has the token, right after
+	// returning from sign-up; claiming then would be rejected.
+	const { isAuthenticated } = useConvexAuth();
 	const errorMessage = useConvexErrorMessage();
 	const [claiming, setClaiming] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
@@ -205,7 +208,7 @@ function ClaimGuestScores({
 	const shared = guests.length > 1;
 
 	async function handleClaim(guestName: string) {
-		if (claiming) return;
+		if (claiming || !isAuthenticated) return;
 		setClaiming(guestName);
 		setError(null);
 		try {
@@ -242,7 +245,7 @@ function ClaimGuestScores({
 							key={guestName}
 							type="button"
 							onClick={() => void handleClaim(guestName)}
-							disabled={claiming !== null}
+							disabled={claiming !== null || !isAuthenticated}
 							className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent-fill px-4 py-2 text-sm font-bold text-on-accent disabled:opacity-50"
 						>
 							<History size={15} />
