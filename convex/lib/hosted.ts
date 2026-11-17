@@ -36,10 +36,14 @@ export async function joinHosted(
 	hosted: Doc<"hostedWorkouts">,
 	userId: string,
 	displayName: string | undefined,
+	/** For a session recorded after the fact; see `startSession`. */
+	recorded?: { startTime: number; endTime?: number },
 ) {
 	const sessionId = await startSession(ctx, userId, {
 		name: hosted.title,
 		date: hosted.scheduledAt,
+		startTime: recorded?.startTime,
+		endTime: recorded?.endTime,
 		prescriptions: hostedPrescriptions(hosted.template.strengthBlocks),
 	});
 	await ctx.db.insert("hostedWorkoutParticipants", {

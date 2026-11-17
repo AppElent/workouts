@@ -341,3 +341,28 @@ it("dates the claimed WOD Result at the original guest submit", async () => {
 	const session = await t.run((ctx) => ctx.db.get(sessionId));
 	expect(session).toMatchObject({ date: 1_000_000, startTime: 1_000_000 });
 });
+
+it("claims a closed workout while another activity is in progress", async () => {
+	const { t, host, id, token } = await openWorkout();
+	await t.mutation(api.hostedWorkoutSubmissions.submitGuest, {
+		token,
+		guestName: "Sam",
+		guestKey: SAM_KEY,
+		...score(80),
+	});
+	await host.mutation(api.hostedWorkouts.close, { id });
+	const sam = t.withIdentity({ subject: "sam" });
+	const active = await sam.mutation(api.workoutSessions.create, {});
+	const { sessionId, claimed } = await sam.mutation(
+		api.hostedWorkoutSubmissions.claimGuestSubmissions,
+		{ token, guestKey: SAM_KEY, guestName: "Sam" },
+	);
+	expect(claimed).toBe(1);
+	expect(sessionId).not.toBe(active);
+	const sessions = await t.run(async (ctx) => ({
+		claimed: await ctx.db.get(sessionId),
+		active: await ctx.db.get(active),
+	}));
+	expect(sessions.claimed?.status).toBe("completed");
+	expect(sessions.active?.status).toBe("active");
+});
