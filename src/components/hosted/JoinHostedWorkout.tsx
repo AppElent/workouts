@@ -21,10 +21,10 @@ export function JoinHostedWorkout({ token }: { token: string }) {
 	const join = useMutation(api.hostedWorkoutParticipants.join);
 	const submitGuest = useMutation(api.hostedWorkoutSubmissions.submitGuest);
 	const [guestKey] = useState(getGuestKey);
-	const guestScores = useQuery(
-		api.hostedWorkoutSubmissions.countGuestSubmissions,
-		{ token, guestKey },
-	);
+	const guestScores = useQuery(api.hostedWorkoutSubmissions.listGuestScores, {
+		token,
+		guestKey,
+	});
 	const errorMessage = useConvexErrorMessage();
 	const [joining, setJoining] = useState(false);
 	const [joinError, setJoinError] = useState<string | null>(null);
@@ -122,11 +122,11 @@ export function JoinHostedWorkout({ token }: { token: string }) {
 				{joinError && <p className="mt-3 text-sm text-danger">{joinError}</p>}
 			</header>
 
-			{guestScores ? (
+			{guestScores && guestScores.length > 0 ? (
 				<ClaimGuestScores
 					token={token}
 					guestKey={guestKey}
-					count={guestScores}
+					guests={guestScores}
 				/>
 			) : null}
 
@@ -179,35 +179,38 @@ export function JoinHostedWorkout({ token }: { token: string }) {
 
 /**
  * Offers a guest who scored from this browser to keep those scores: sign up
- * (and come back here), then claim them into their own history.
+ * (and come back here), then claim them into their own history. On a shared
+ * device each name is claimed on its own, so one athlete never takes another's
+ * scores.
  */
 function ClaimGuestScores({
 	token,
 	guestKey,
-	count,
+	guests,
 }: {
 	token: string;
 	guestKey: string;
-	count: number;
+	guests: { guestName: string; count: number }[];
 }) {
 	const navigate = useNavigate();
 	const claim = useMutation(api.hostedWorkoutSubmissions.claimGuestSubmissions);
 	const errorMessage = useConvexErrorMessage();
-	const [claiming, setClaiming] = useState(false);
+	const [claiming, setClaiming] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
-	const scores =
-		count === 1 ? "your guest score" : `your ${count} guest scores`;
+	const total = guests.reduce((sum, guest) => sum + guest.count, 0);
+	const scores = total === 1 ? "your guest score" : "your guest scores";
+	const shared = guests.length > 1;
 
-	async function handleClaim() {
+	async function handleClaim(guestName: string) {
 		if (claiming) return;
-		setClaiming(true);
+		setClaiming(guestName);
 		setError(null);
 		try {
-			const { sessionId } = await claim({ token, guestKey });
+			const { sessionId } = await claim({ token, guestKey, guestName });
 			void navigate({ to: "/log/$sessionId", params: { sessionId } });
 		} catch (err) {
 			setError(errorMessage(err, "Couldn't add your scores. Try again."));
-			setClaiming(false);
+			setClaiming(null);
 		}
 	}
 
@@ -217,7 +220,9 @@ function ClaimGuestScores({
 				<h2 className="text-sm font-bold text-text">Keep {scores}</h2>
 				<Show when="signed-in">
 					<p className="mt-1 text-sm text-text-muted">
-						Add {scores} from this device to your training history.
+						{shared
+							? "Several people scored on this device. Add only the scores under your own name to your training history."
+							: `Add ${scores} from this device to your training history.`}
 					</p>
 				</Show>
 				<Show when="signed-out">
@@ -228,15 +233,24 @@ function ClaimGuestScores({
 				{error && <p className="mt-2 text-sm text-danger">{error}</p>}
 			</div>
 			<Show when="signed-in">
-				<button
-					type="button"
-					onClick={() => void handleClaim()}
-					disabled={claiming}
-					className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-accent-fill px-4 py-2 text-sm font-bold text-on-accent disabled:opacity-50"
-				>
-					<History size={15} />
-					{claiming ? "Adding..." : "Add to my history"}
-				</button>
+				<div className="flex shrink-0 flex-col gap-2">
+					{guests.map(({ guestName, count }) => (
+						<button
+							key={guestName}
+							type="button"
+							onClick={() => void handleClaim(guestName)}
+							disabled={claiming !== null}
+							className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent-fill px-4 py-2 text-sm font-bold text-on-accent disabled:opacity-50"
+						>
+							<History size={15} />
+							{claiming === guestName
+								? "Adding..."
+								: shared
+									? `I'm ${guestName} (${count})`
+									: "Add to my history"}
+						</button>
+					))}
+				</div>
 			</Show>
 			<Show when="signed-out">
 				<Link

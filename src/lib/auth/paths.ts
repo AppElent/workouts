@@ -11,12 +11,14 @@ export const AUTH_PATHS = {
 
 /**
  * A same-site path to return to after signing in or up, from the `redirect`
- * search param. Anything else (another origin, `//host`, `/\\host`) is
- * dropped so the param cannot send people off-site.
+ * search param. Anything else is dropped so the param cannot send people
+ * off-site: another origin, `//host`, and any backslash or control character
+ * (URL parsing strips tabs and newlines, so `/\t/host` would become `//host`).
  */
 export function safeRedirect(value: unknown): string | undefined {
 	if (typeof value !== "string") return undefined;
-	return /^\/(?![/\\])/.test(value) ? value : undefined;
+	// biome-ignore lint/suspicious/noControlCharactersInRegex: rejecting them is the point.
+	return /^\/(?!\/)[^\\\u0000-\u001f\u007f]*$/.test(value) ? value : undefined;
 }
 
 /** `path`, carrying the return path along when there is one. */

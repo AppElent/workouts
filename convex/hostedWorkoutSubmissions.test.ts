@@ -126,16 +126,16 @@ it("lets a guest who signs up claim their scores into their own history", async 
 			...score(load, block),
 		});
 	expect(
-		await t.query(api.hostedWorkoutSubmissions.countGuestSubmissions, {
+		await t.query(api.hostedWorkoutSubmissions.listGuestScores, {
 			token,
 			guestKey: SAM_KEY,
 		}),
-	).toBe(2);
+	).toEqual([{ guestName: "Sam", count: 2 }]);
 
 	const sam = t.withIdentity({ subject: "sam" });
 	const result = await sam.mutation(
 		api.hostedWorkoutSubmissions.claimGuestSubmissions,
-		{ token, guestKey: SAM_KEY },
+		{ token, guestKey: SAM_KEY, guestName: "Sam" },
 	);
 	expect(result).toMatchObject({ claimed: 2, skipped: 0 });
 
@@ -169,15 +169,16 @@ it("lets a guest who signs up claim their scores into their own history", async 
 	// Nothing is left to claim, and a re-submit as a guest no longer touches
 	// the claimed row.
 	expect(
-		await t.query(api.hostedWorkoutSubmissions.countGuestSubmissions, {
+		await t.query(api.hostedWorkoutSubmissions.listGuestScores, {
 			token,
 			guestKey: SAM_KEY,
 		}),
-	).toBe(0);
+	).toEqual([]);
 	await expect(
 		sam.mutation(api.hostedWorkoutSubmissions.claimGuestSubmissions, {
 			token,
 			guestKey: SAM_KEY,
+			guestName: "Sam",
 		}),
 	).rejects.toThrow();
 });
@@ -201,7 +202,7 @@ it("keeps an athlete's signed-in score when they also scored as a guest", async 
 	});
 	const result = await sam.mutation(
 		api.hostedWorkoutSubmissions.claimGuestSubmissions,
-		{ token, guestKey: SAM_KEY },
+		{ token, guestKey: SAM_KEY, guestName: "Sam" },
 	);
 	expect(result).toEqual({ sessionId, claimed: 0, skipped: 1 });
 	const results = await t.run((ctx) =>
@@ -211,6 +212,12 @@ it("keeps an athlete's signed-in score when they also scored as a guest", async 
 			.collect(),
 	);
 	expect(results.map((row) => row.load)).toEqual([90]);
+	expect(
+		await t.query(api.hostedWorkoutSubmissions.listGuestScores, {
+			token,
+			guestKey: SAM_KEY,
+		}),
+	).toEqual([]);
 });
 
 it("claims into a finished session once the workout has closed", async () => {
@@ -225,9 +232,110 @@ it("claims into a finished session once the workout has closed", async () => {
 	const sam = t.withIdentity({ subject: "sam" });
 	const { sessionId, claimed } = await sam.mutation(
 		api.hostedWorkoutSubmissions.claimGuestSubmissions,
-		{ token, guestKey: SAM_KEY },
+		{ token, guestKey: SAM_KEY, guestName: "Sam" },
 	);
 	expect(claimed).toBe(1);
 	const session = await t.run((ctx) => ctx.db.get(sessionId));
 	expect(session?.status).toBe("completed");
+});
+
+it("keeps people taking turns on one shared device apart, and lets each claim only their own", async () => {
+	const { t, token } = await openWorkout();
+	for (const [guestName, load] of [
+		["Alex", 80],
+		["Sam", 100],
+		["Alex", 82],
+	] as const)
+		await t.mutation(api.hostedWorkoutSubmissions.submitGuest, {
+			token,
+			guestName,
+			guestKey: SAM_KEY,
+			...score(load),
+		});
+	expect(await board(t, token)).toEqual(
+		expect.arrayContaining([
+			{ athleteName: "Alex", load: 82, wodBlockId: "max" },
+			{ athleteName: "Sam", load: 100, wodBlockId: "max" },
+		]),
+	);
+	expect(await board(t, token)).toHaveLength(2);
+	expect(
+		await t.query(api.hostedWorkoutSubmissions.listGuestScores, {
+			token,
+			guestKey: SAM_KEY,
+		}),
+	).toEqual(
+		expect.arrayContaining([
+			{ guestName: "Alex", count: 1 },
+			{ guestName: "Sam", count: 1 },
+		]),
+	);
+
+	const sam = t.withIdentity({ subject: "sam" });
+	await sam.mutation(api.hostedWorkoutSubmissions.claimGuestSubmissions, {
+		token,
+		guestKey: SAM_KEY,
+		guestName: "Sam",
+	});
+	const results = await t.run((ctx) =>
+		ctx.db
+			.query("wodResults")
+			.withIndex("by_user", (q) => q.eq("userId", "sam"))
+			.collect(),
+	);
+	expect(results.map((row) => row.load)).toEqual([100]);
+	expect(
+		await t.query(api.hostedWorkoutSubmissions.listGuestScores, {
+			token,
+			guestKey: SAM_KEY,
+		}),
+	).toEqual([{ guestName: "Alex", count: 1 }]);
+});
+
+it("needs a signed-in athlete to claim, and lists nothing for a malformed key", async () => {
+	const { t, token } = await openWorkout();
+	await t.mutation(api.hostedWorkoutSubmissions.submitGuest, {
+		token,
+		guestName: "Sam",
+		guestKey: SAM_KEY,
+		...score(80),
+	});
+	await expect(
+		t.mutation(api.hostedWorkoutSubmissions.claimGuestSubmissions, {
+			token,
+			guestKey: SAM_KEY,
+			guestName: "Sam",
+		}),
+	).rejects.toThrow();
+	expect(
+		await t.query(api.hostedWorkoutSubmissions.listGuestScores, {
+			token,
+			guestKey: "short",
+		}),
+	).toEqual([]);
+});
+
+it("dates the claimed WOD Result at the original guest submit", async () => {
+	const { t, token } = await openWorkout();
+	const id = await t.mutation(api.hostedWorkoutSubmissions.submitGuest, {
+		token,
+		guestName: "Sam",
+		guestKey: SAM_KEY,
+		...score(80),
+	});
+	await t.run((ctx) => ctx.db.patch(id, { submittedAt: 1_000_000 }));
+	await t
+		.withIdentity({ subject: "sam" })
+		.mutation(api.hostedWorkoutSubmissions.claimGuestSubmissions, {
+			token,
+			guestKey: SAM_KEY,
+			guestName: "Sam",
+		});
+	const [result] = await t.run((ctx) =>
+		ctx.db
+			.query("wodResults")
+			.withIndex("by_user", (q) => q.eq("userId", "sam"))
+			.collect(),
+	);
+	expect(result.date).toBe(1_000_000);
 });
