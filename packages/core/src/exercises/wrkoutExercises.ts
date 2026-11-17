@@ -339,7 +339,7 @@ export const WRKOUT_EXERCISES: DefaultExercise[] = [
 		name: "Ball Leg Curl",
 		muscleGroups: ["hamstrings", "calves", "glutes"],
 		category: "isolation",
-		equipment: "other",
+		equipment: "bodyweight",
 		instructions: [
 			"Begin on the floor laying on your back with your feet on top of the ball.",
 			"Position the ball so that when your legs are extended your ankles are on top of the ball. This will be your starting position.",

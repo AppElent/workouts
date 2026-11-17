@@ -78,6 +78,7 @@ const equipment: Record<string, DefaultExercise["equipment"]> = {
 // `other`, which is a loaded equipment, so the phone refused a set at 0 kg
 // (APP-217). Weighted variants (for example Weighted Pull Ups) stay loaded.
 const bodyweightMovements = new Set([
+	"Ball Leg Curl",
 	"Band Assisted Pull-Up",
 	"Bodyweight Mid Row",
 	"Bodyweight Walking Lunge",
