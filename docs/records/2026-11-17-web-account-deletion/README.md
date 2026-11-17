@@ -123,5 +123,9 @@ account (Apple's grant is already revoked, as the message says). The check
 also re-reads the signed-in account after the session reload, so an account
 switch during the reload stops without Clerk's dialog. Tests cover all three.
 
+The card asks for a sign-in within 5 minutes, half of Clerk's 10-minute
+window, so the window doesn't lapse while a large deletion runs and Clerk's
+dialog after the data is gone stays rare.
+
 An end-to-end run with a stale session was not done, because it needs another
 throwaway account.

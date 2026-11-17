@@ -35,6 +35,7 @@ const mocks = vi.hoisted(() => ({
 	staleAfterReload: false,
 	// Another tab signs in to another account while the session reloads.
 	switchOnReload: false,
+	checkAuthorization: vi.fn(),
 }));
 
 type Fetcher = (...args: unknown[]) => Promise<unknown>;
@@ -52,7 +53,7 @@ vi.mock("@clerk/react", () => ({
 		get session() {
 			return {
 				id: "sess_1",
-				checkAuthorization: () => mocks.recentSignIn,
+				checkAuthorization: mocks.checkAuthorization,
 				reload: async () => {
 					if (mocks.switchOnReload) mocks.clerkUserId = "user_2";
 					if (mocks.staleAfterReload) {
@@ -118,6 +119,7 @@ beforeEach(() => {
 	mocks.clerkUserId = "user_1";
 	mocks.staleAfterReload = false;
 	mocks.switchOnReload = false;
+	mocks.checkAuthorization.mockImplementation(() => mocks.recentSignIn);
 	mocks.deleteData.mockResolvedValue({ done: true });
 	mocks.revokeApple.mockResolvedValue("continue");
 	mocks.deleteUser.mockResolvedValue(undefined);
@@ -521,4 +523,14 @@ it("stops without Clerk's dialog when another account signs in during the reload
 	).toBeTruthy();
 	expect(mocks.verifyPrompts).toBe(0);
 	expect(mocks.deleteData).not.toHaveBeenCalled();
+});
+
+it("asks for a sign-in within half of Clerk's window, so it can't lapse mid-deletion", async () => {
+	setup();
+	fireEvent.click(button("Delete account"));
+	fireEvent.click(dialog().getByRole("button", { name: "Delete account" }));
+	await waitFor(() => expect(mocks.navigate).toHaveBeenCalled());
+	expect(mocks.checkAuthorization).toHaveBeenCalledWith({
+		reverification: { level: "second_factor", afterMinutes: 5 },
+	});
 });

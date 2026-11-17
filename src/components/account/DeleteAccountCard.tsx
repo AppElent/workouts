@@ -61,8 +61,12 @@ export function DeleteAccountCard() {
 	// strongest factor within 10 minutes). Ask for it before anything is
 	// deleted, so a stale session doesn't leave the data gone and the account
 	// still there. Reads the live session: verifying replaces it.
+	// Checked with half the window, so it doesn't lapse while the data is
+	// deleted and Clerk's dialog after the data is gone stays rare.
 	const recentSignIn = () =>
-		clerk.session?.checkAuthorization({ reverification: "strict" }) ?? false;
+		clerk.session?.checkAuthorization({
+			reverification: { level: "second_factor", afterMinutes: 5 },
+		}) ?? false;
 	// Every Clerk step re-checks the live identity, also on Clerk's retry, so
 	// a sign-in to another account in another tab is never deleted.
 	const sameAccount = (confirmed: Confirmed) =>
