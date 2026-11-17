@@ -97,8 +97,8 @@ session passes the check without a dialog. Unit tests cover:
   retries once and returns the result as is, so the card requires `true`);
 - Clerk refusing the retried `user.delete()`, so the page stays put and no
   reload claims success;
-- after Clerk's dialog, a second confirmation that gives Apple's popup a fresh
-  click, and cancelling it deletes nothing.
+- when Apple revocation applies, a second confirmation that gives Apple's popup
+  a fresh click, and cancelling it deletes nothing.
 
 The check reads the live session through `useClerk()`, because Clerk replaces
 the session object after verifying.
@@ -108,6 +108,13 @@ user and session are still the ones that confirmed. If another account signed
 in during the deletion (for example in another tab), that account is never
 deleted. The card also re-reads the deletion blocker before Apple's popup,
 because a revoked Apple grant can't be restored. Tests cover both cases.
+
+The sign-in age (`factorVerificationAge`) only updates when the session
+reloads, so the check calls `session.reload()` first. On the dev instance that
+took 264 ms and kept the same session. Because the check always awaits, the
+extra click before Apple's popup applies whenever Apple revocation runs, not
+only after Clerk's dialog. The disabled buttons point to the explanation with
+`aria-describedby`.
 
 An end-to-end run with a stale session was not done, because it needs another
 throwaway account.
