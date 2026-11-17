@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { cloudflare } from "@cloudflare/vite-plugin";
 import { sentryVitePlugin } from "@sentry/vite-plugin";
 import tailwindcss from "@tailwindcss/vite";
@@ -8,9 +9,17 @@ import { defineConfig } from "vite";
 import { unstable_readConfig } from "wrangler";
 import { foundryMcpViews } from "./src/lib/mcp/views/vitePlugin.ts";
 
-const release =
-	process.env.SENTRY_RELEASE ||
+// The release standard: `apps/mobile/app.json` (`expo.version`) is the one
+// version for web and mobile, and every artefact names itself
+// `<version>+<short sha>`. Sentry's release is `foundry@<version>+<short sha>`.
+const version: string = JSON.parse(
+	readFileSync(new URL("./apps/mobile/app.json", import.meta.url), "utf8"),
+).expo.version;
+const commit =
+	process.env.GITHUB_SHA ||
 	execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+const release =
+	process.env.SENTRY_RELEASE || `foundry@${version}+${commit.slice(0, 7)}`;
 
 // The Wrangler environment being built (CLOUDFLARE_ENV) names the deployment;
 // CI overrides it for bundles that are never deployed.
@@ -24,6 +33,10 @@ const sentryEnvironment =
 const config = defineConfig({
 	define: {
 		"import.meta.env.VITE_SENTRY_RELEASE": JSON.stringify(release),
+		"import.meta.env.VITE_APP_VERSION": JSON.stringify(version),
+		"import.meta.env.VITE_APP_COMMIT": JSON.stringify(commit),
+		// Stamped by the deploy job's build, minutes before the Worker goes live.
+		"import.meta.env.VITE_BUILT_AT": JSON.stringify(new Date().toISOString()),
 		"import.meta.env.VITE_SENTRY_ENVIRONMENT":
 			JSON.stringify(sentryEnvironment),
 	},

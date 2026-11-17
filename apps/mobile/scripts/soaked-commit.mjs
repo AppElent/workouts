@@ -1,0 +1,71 @@
+// The newest commit published to a channel for one platform at least <hours>
+// ago, read from EAS (`update:list --platform`, paged, then `update:view` per
+// group for its commit and time). The daily production update ships this
+// commit to that platform only, so everything it publishes ran on Eric's
+// phone through the preview channel on the same platform first.
+//
+//   node scripts/soaked-commit.mjs <ios|android> [channel=preview] [hours=24]
+//
+// Prints the commit, or nothing when no update has soaked. Needs EXPO_TOKEN.
+import { spawnSync } from "node:child_process";
+import { soakedCommit } from "../../../scripts/lib/ota-gates.mjs";
+import { appRoot } from "./fingerprint.mjs";
+
+const [platform, channel = "preview", hours = "24"] = process.argv.slice(2);
+if (!["ios", "android"].includes(platform)) {
+	console.error("Usage: soaked-commit.mjs <ios|android> [channel] [hours]");
+	process.exit(1);
+}
+const PAGE = 50;
+// Enough history for months of merges; a gate that finds nothing skips.
+const MAX_PAGES = 20;
+
+// `update:view` takes `--json` only; it rejects `--non-interactive`.
+function eas(easArgs, flags = ["--json", "--non-interactive"]) {
+	const result = spawnSync("pnpm", ["exec", "eas", ...easArgs, ...flags], {
+		cwd: appRoot,
+		encoding: "utf8",
+		maxBuffer: 64 * 1024 * 1024,
+	});
+	if (result.status !== 0 && /Could not find branch/i.test(result.stderr)) {
+		console.error(`No ${channel} branch on EAS yet.`);
+		process.exit(0);
+	}
+	if (result.status !== 0) {
+		console.error(`eas ${easArgs.join(" ")} failed:\n${result.stderr}`);
+		process.exit(result.status || 1);
+	}
+	return JSON.parse(result.stdout);
+}
+
+// Groups come newest first. Stop at the first that has soaked: older ones
+// can only be older commits.
+for (let page = 0; page < MAX_PAGES; page++) {
+	const groups =
+		eas([
+			"update:list",
+			"--branch",
+			channel,
+			"--platform",
+			platform,
+			"--limit",
+			String(PAGE),
+			"--offset",
+			String(page * PAGE),
+		]).currentPage ?? [];
+	for (const { group } of groups) {
+		const found = soakedCommit(
+			eas(["update:view", group], ["--json"]),
+			new Date(),
+			Number(hours),
+			platform,
+		);
+		if (found) {
+			console.error(`${channel} ${platform} update ${group} from ${found.createdAt} has soaked.`);
+			console.log(found.commit);
+			process.exit(0);
+		}
+	}
+	if (groups.length < PAGE) break;
+}
+console.error(`No ${channel} ${platform} update is ${hours} hours old yet.`);

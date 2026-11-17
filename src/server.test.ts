@@ -40,3 +40,18 @@ it("retains the Sentry wrapper for deployed requests", async () => {
 	expect(mocks.sentryFetch).toHaveBeenCalledWith(request, env, ctx);
 	expect(mocks.startFetch).not.toHaveBeenCalled();
 });
+
+it("answers /version without the app or Sentry", async () => {
+	const request = new Request("https://foundry.appelent.nl/version");
+
+	const response = await server.fetch(
+		request,
+		{} as Env,
+		{} as ExecutionContext,
+	);
+
+	expect(response.status).toBe(200);
+	expect(response.headers.get("content-type")).toContain("application/json");
+	expect(mocks.startFetch).not.toHaveBeenCalled();
+	expect(mocks.sentryFetch).not.toHaveBeenCalled();
+});
