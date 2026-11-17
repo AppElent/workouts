@@ -79,9 +79,10 @@ the app; there is no separate data.
 - **Planned Sets:** `add_exercise_to_session` with `plannedSets` replaces that
   exercise's Planned Sets in an active session. A target is a load or a
   percentage of the session's 1RM (Measured unless a newer Manual), rounded to
-  the exercise's step (5 lb in pounds). While nothing is logged for the
-  exercise, its references are snapshotted again first, so a 1RM saved after
-  the exercise was added counts. No 1RM refuses the percentage. Both apps show
+  the exercise's step (5 lb in pounds). When the session has no 1RM for the
+  exercise and nothing is logged for it, its references are snapshotted again
+  first, so a 1RM saved after the exercise was added counts. No 1RM refuses the
+  percentage. Both apps show
   the targets as they show a Routine's; an app that already shows the exercise
   keeps its own plan.
 - **Logged afterwards:** a session's start (`date` and `startTime`), each Set's
@@ -93,9 +94,10 @@ the app; there is no separate data.
   cancelled) returns that session, so a retry never makes a second one. The
   MCP asks for Set and finish times once a session started over six hours ago,
   and refuses a past start while another session is active.
-- **Repeated plans:** planning an exercise again replaces its targets and
-  resolves percentages against the 1RM at that moment, so the plan always
-  follows the latest 1RM.
+- **Repeated plans:** planning an exercise again replaces its targets.
+  Percentages resolve against the session's 1RM, the one its percentage chips
+  use, so repeating the same plan gives the same loads even after a newer 1RM
+  is saved.
 
 ### Set editor
 

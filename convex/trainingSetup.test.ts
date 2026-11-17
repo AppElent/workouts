@@ -157,6 +157,11 @@ describe("strength sessions logged afterwards", () => {
 		expect(
 			await alice.mutation(api.workoutSessions.create, { startTime: start }),
 		).toBe(sessionId);
+		const live = await alice.mutation(api.workoutSessions.create, {});
+		expect(
+			await alice.mutation(api.workoutSessions.create, { startTime: start }),
+		).toBe(sessionId);
+		await alice.mutation(api.workoutSessions.cancel, { id: live });
 		const other = await alice.mutation(api.workoutSessions.create, {
 			startTime: start + 1,
 		});
@@ -292,6 +297,30 @@ describe("planned sets for an exercise", () => {
 			id: sessionId,
 		});
 		expect(session?.exercises?.[0]?.references?.manual?.value).toBe(141);
+	});
+
+	it("keeps the loads when the same plan is repeated after a newer 1RM", async () => {
+		const { alice, sessionId } = await activeSession();
+		await alice.mutation(api.oneRepMaxes.addManual, {
+			exerciseId: squat,
+			value: 100,
+			unit: "kg",
+		});
+		const plan = {
+			sessionId,
+			exerciseId: squat,
+			unit: "kg" as const,
+			plannedSets: [{ reps: 5, percentOfOneRepMax: 80 }],
+		};
+		const first = await alice.mutation(api.workoutSessions.planExercise, plan);
+		expect(first.plannedSets[0]?.weight).toBe(80);
+		await alice.mutation(api.oneRepMaxes.addManual, {
+			exerciseId: squat,
+			value: 150,
+			unit: "kg",
+		});
+		const retry = await alice.mutation(api.workoutSessions.planExercise, plan);
+		expect(retry).toEqual(first);
 	});
 
 	it("explains a missing 1RM and an ambiguous target", async () => {

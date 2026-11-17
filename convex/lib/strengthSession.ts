@@ -188,9 +188,34 @@ export type PlannedTarget = {
 };
 
 /**
+ * The references a plan resolves percentages against: the session's own, as
+ * the set editor's percentage chips use, so planning again gives the same
+ * loads. Only when the session has no 1RM for the exercise, and nothing is
+ * logged for it yet, are they snapshotted again, so a 1RM saved after the
+ * exercise joined the session still counts.
+ */
+async function planReferences(
+	ctx: MutationCtx,
+	userId: string,
+	sessionId: Id<"workoutSessions">,
+	entry: NonNullable<Doc<"workoutSessions">["exercises"]>[number],
+	usesPercent: boolean,
+) {
+	const current = entry.references;
+	if (!usesPercent || (current && sessionOneRepMax(current))) return current;
+	const sessionSets = await ctx.db
+		.query("sets")
+		.withIndex("by_session", (q) => q.eq("sessionId", sessionId))
+		.collect();
+	if (sessionSets.some((set) => set.exerciseId === entry.exerciseId))
+		return current;
+	return snapshotStrengthReferences(ctx, userId, entry.exerciseId);
+}
+
+/**
  * Replaces an active session exercise's Planned Sets, adding the exercise when
  * needed. A percentage resolves against the 1RM the session shows for that
- * exercise, which is refreshed first while nothing is logged for it yet.
+ * exercise (see `planReferences`), so repeating a plan gives the same loads.
  */
 export async function planSessionExercise(
 	ctx: MutationCtx,
@@ -207,15 +232,13 @@ export async function planSessionExercise(
 	const exercises = session.exercises ?? [];
 	const entry = exercises.find((item) => item.exerciseId === exerciseId);
 	if (!entry) throw appError("notFound", "exerciseId");
-	const sessionSets = await ctx.db
-		.query("sets")
-		.withIndex("by_session", (q) => q.eq("sessionId", sessionId))
-		.collect();
-	const logged = sessionSets.some((set) => set.exerciseId === exerciseId);
-	const references =
-		!logged && targets.some((t) => t.percentOfOneRepMax !== undefined)
-			? await snapshotStrengthReferences(ctx, userId, exerciseId)
-			: entry.references;
+	const references = await planReferences(
+		ctx,
+		userId,
+		sessionId,
+		entry,
+		targets.some((t) => t.percentOfOneRepMax !== undefined),
+	);
 	const exercise = await resolveExercise(ctx, exerciseId, userId);
 	const stepKg = getWeightStep(
 		exercise?.equipment ?? "barbell",

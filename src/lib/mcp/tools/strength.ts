@@ -547,11 +547,11 @@ export const strengthTools = [
 			if (session.status === "active") {
 				requireTimeForPastSession(session, endedAt, "endedAt", now());
 				endTime = recordedTime(endedAt, "endedAt", now(), session.startTime);
+				if (!discardUnfinished && (await hasUnloggedTargets(backend, session)))
+					throw new ToolInputError(
+						"Some planned Sets are not logged yet. Confirm with the user, then finish with discardUnfinished: true.",
+					);
 			}
-			if (!discardUnfinished && (await hasUnloggedTargets(backend, session)))
-				throw new ToolInputError(
-					"Some planned Sets are not logged yet. Confirm with the user, then finish with discardUnfinished: true.",
-				);
 			await backend.mutation(api.workoutSessions.finish, {
 				id: session._id,
 				endTime,

@@ -597,6 +597,23 @@ describe("Foundry MCP endpoint", () => {
 			backend.calls.filter((c) => c.name === "workoutSessions:finish"),
 		).toHaveLength(1);
 	});
+
+	it("treats finishing a completed session with unlogged targets as a retry", async () => {
+		const backend = fakeBackend({
+			"workoutSessions:getById": () => ({
+				_id: "session_1",
+				status: "completed",
+				startTime: Date.parse("2026-11-10T11:00:00Z"),
+				exercises: [{ exerciseId: "squat", plannedSets: [{}, {}] }],
+			}),
+			"sets:listForSession": () => [{ _id: "set_1", exerciseId: "squat" }],
+			"workoutSessions:finish": () => null,
+		});
+		const again = await callTool(backend, "finish_strength_session", {
+			sessionId: "session_1",
+		});
+		expect(again.isError).toBeUndefined();
+	});
 });
 
 const EXISTING_TOOLS = [
