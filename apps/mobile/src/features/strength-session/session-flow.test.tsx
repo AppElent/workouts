@@ -8,6 +8,7 @@ import {
 import { getFunctionName } from "convex/server";
 import { router } from "expo-router";
 import { act, fireEvent, screen } from "expo-router/testing-library";
+import { ActionSheetIOS } from "react-native";
 import * as SessionRoute from "../../../app/(app)/session";
 import * as GroupRoute from "../../../app/(app)/session-group";
 import * as ManualRoute from "../../../app/(app)/session-manual";
@@ -22,6 +23,7 @@ import {
 	findRow,
 	groupWith,
 	markFailed,
+	markLogged,
 	type PlanSet,
 	type SessionPlan,
 	seedPlan,
@@ -596,6 +598,80 @@ it("takes one exercise out of a group from the group sheet (APP-215)", async () 
 		{ kind: "group", groupId: id },
 		{ kind: "exercise", exerciseId: second },
 	]);
+});
+
+it("asks before removing a grouped exercise with logged sets, and keeps it on Keep training (APP-215)", async () => {
+	const facts = {
+		exercise: { equipment: "barbell" as const },
+		bodyweight: false,
+		stepKg: 2.5,
+		measured: 100,
+		estimated: null,
+		savedManual: null,
+		measuredDate: 1,
+		last: null,
+	};
+	const second = "shipped:exercise:barbell-bench-press";
+	const third = "shipped:exercise:barbell-deadlift";
+	const plannedSets = [{ weight: 60, reps: 8, unit: "kg" as const }];
+	const exercises = [
+		{ exerciseId, plannedSets },
+		{ exerciseId: second, plannedSets },
+		{ exerciseId: third, plannedSets },
+	];
+	currentSession = { ...currentSession, exercises };
+	const grouped = groupWith(
+		seedPlan(exercises, [], () => facts),
+		exerciseId,
+		second,
+	);
+	const id = grouped.groupId as string;
+	const joined = addToGroup(grouped.plan, id, third).plan;
+	const benchRow = (joined.groups[id]?.rounds[0]?.items ?? []).find(
+		(item) => item.exerciseId === second,
+	) as PlanSet;
+	const logged = markLogged(joined, benchRow.id, "set-b1", 1, facts).plan;
+	loggedSets = [{ ...serverSet("set-b1", 8, 1), exerciseId: second }];
+	removeSet.mockImplementation(async ({ id: setId }: { id: string }) => {
+		loggedSets = loggedSets.filter((item) => item._id !== setId);
+	});
+	workspaceStore.setPlan(planKey(), logged);
+	const sheet = jest.spyOn(ActionSheetIOS, "showActionSheetWithOptions");
+	await mount();
+	await act(() =>
+		router.push(`/session-group?sessionId=session-1&groupId=${id}`),
+	);
+	const removeBench = async () => {
+		await fireEvent.press(
+			await screen.findByLabelText(/^Options for Barbell Bench Press/),
+		);
+		await fireEvent.press(
+			await screen.findByRole("button", { name: "Remove exercise" }),
+		);
+	};
+
+	sheet.mockImplementationOnce((_options, pick) => pick(1));
+	await removeBench();
+	expect(sheet).toHaveBeenLastCalledWith(
+		expect.objectContaining({
+			title: "Remove Barbell Bench Press?",
+			options: ["Remove", "Keep training"],
+			destructiveButtonIndex: 0,
+		}),
+		expect.any(Function),
+	);
+	expect(removeSet).not.toHaveBeenCalled();
+	let plan = workspaceStore.plan(planKey()) as SessionPlan;
+	expect(sessionExercises(plan)).toEqual([exerciseId, second, third]);
+	expect(findRow(plan, benchRow.id)?.done).toBe(true);
+
+	sheet.mockImplementationOnce((_options, pick) => pick(0));
+	await removeBench();
+	expect(removeSet).toHaveBeenCalledWith({ id: "set-b1" });
+	plan = workspaceStore.plan(planKey()) as SessionPlan;
+	expect(sessionExercises(plan)).toEqual([exerciseId, third]);
+	expect(allRows(plan).some((row) => row.exerciseId === second)).toBe(false);
+	sheet.mockRestore();
 });
 
 it("undoes a removed set, unless the session changed since", async () => {
