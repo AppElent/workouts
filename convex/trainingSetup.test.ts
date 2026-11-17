@@ -323,6 +323,64 @@ describe("planned sets for an exercise", () => {
 		expect(retry).toEqual(first);
 	});
 
+	it("plans a Routine's exercise against the 1RM the session started with", async () => {
+		const { alice } = setup();
+		await alice.mutation(api.oneRepMaxes.addManual, {
+			exerciseId: squat,
+			value: 100,
+			unit: "kg",
+		});
+		const routineId = await alice.mutation(api.routines.create, {
+			name: "Legs",
+			exercises: [{ exerciseId: squat, defaultSets: 3, defaultReps: 5 }],
+		});
+		const sessionId = await alice.mutation(api.routines.startSession, {
+			routineId,
+		});
+		await alice.mutation(api.oneRepMaxes.addManual, {
+			exerciseId: squat,
+			value: 150,
+			unit: "kg",
+		});
+		const result = await alice.mutation(api.workoutSessions.planExercise, {
+			sessionId,
+			exerciseId: squat,
+			unit: "kg",
+			plannedSets: [{ reps: 5, percentOfOneRepMax: 80 }],
+		});
+		expect(result.plannedSets).toEqual([{ reps: 5, weight: 80, unit: "kg" }]);
+		expect(result.oneRepMax).toMatchObject({ value: 100, kind: "manual" });
+	});
+
+	it("leaves the snapshot alone once a Set is logged for the exercise", async () => {
+		const { alice, sessionId } = await activeSession();
+		await alice.mutation(api.sets.add, {
+			operationId: "logged-before-plan",
+			sessionId,
+			exerciseId: squat,
+			setNumber: 1,
+			reps: 5,
+			weight: 60,
+			unit: "kg",
+			setType: "working",
+		});
+		await alice.mutation(api.oneRepMaxes.addManual, {
+			exerciseId: squat,
+			value: 100,
+			unit: "kg",
+		});
+		await expect(
+			alice.mutation(api.workoutSessions.planExercise, {
+				sessionId,
+				exerciseId: squat,
+				unit: "kg",
+				plannedSets: [{ reps: 5, percentOfOneRepMax: 80 }],
+			}),
+		).rejects.toMatchObject({
+			data: { code: "unavailable", field: "oneRepMax" },
+		});
+	});
+
 	it("explains a missing 1RM and an ambiguous target", async () => {
 		const { alice, sessionId } = await activeSession();
 		await expect(
