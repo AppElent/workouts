@@ -199,9 +199,11 @@ JavaScript without anyone running a command:
 | Channel | When | Workflow | Gates |
 | --- | --- | --- | --- |
 | `preview` | Every merge, after the production web and Convex deploy | `mobile-update.yml`, called by `deploy.yml` | Something under `apps/mobile`, `packages/core` or the lockfile changed since `ota-preview`; production Convex has the commit; per platform, an update or finished build on `preview` has this fingerprint |
-| `production` | Daily, 06:23 UTC (07:23 Amsterdam in winter) | `mobile-update-production.yml` | Publishes the newest commit that has been on `preview` for 24 hours; skips when nothing the app bundles changed since `ota-production`; production Convex has the commit; per platform, an update or finished build on `production` has this fingerprint, otherwise the run reports **store build due** |
+| `production` | Daily, 06:23 UTC (07:23 Amsterdam in winter) | `mobile-update-production.yml` | Per platform: publishes the newest commit that has been on that platform's `preview` for 24 hours; skips when nothing the app bundles changed since `ota-production-<platform>`; production Convex has the commit; an update or finished build on `production` has this fingerprint, otherwise the run reports **store build due** |
 
-Both move their tag (`ota-preview`, `ota-production`) after publishing, and
+Both move their tags (`ota-preview`; `ota-production-ios` and
+`ota-production-android`, per platform because each platform soaks and
+publishes on its own) after publishing, and
 both publish through `publish-update.mjs` with `--without-build`, since the
 workflow already did the fingerprint check (`apps/mobile/scripts/channel-runtime.mjs`).
 The production run uploads source maps with the `production` Environment's
@@ -216,10 +218,6 @@ update or publish the fix by hand after Eric's card.
 
 A Deploy run whose commit is no longer `main`'s tip (a slow run, or a re-run of
 an old one) skips its web deploys and its preview update: the newer run ships.
-
-When one platform publishes and the other reports a store build due, the tag
-still moves, so the due platform is not retried until the app changes again:
-treat "store build due" as the trigger for a store release.
 
 Rollback: `pnpm exec eas update:rollback` (from `apps/mobile`) or republish the
 previous group, then fix forward. A local build (`eas build --local`) is not

@@ -1,22 +1,25 @@
 name: Mobile Update (production)
 
-# The daily production app update (developer-home standards/releases.md). Once
-# a day it publishes the `production` channel with the newest commit that has
-# run on the `preview` channel for at least 24 hours, per platform, only when:
-#   1. something the app bundles changed since the last production publish
-#      (the `ota-production` tag);
-#   2. that commit soaked 24 hours on preview (soaked-commit.mjs);
+# The daily production app update (developer-home standards/releases.md), per
+# platform. Once a day, for iOS and Android separately, it publishes the
+# `production` channel with the newest commit that has run on that platform's
+# `preview` channel for at least 24 hours, only when:
+#   1. something the app bundles changed since that platform's last production
+#      publish (the `ota-production-<platform>` tag);
+#   2. that commit soaked 24 hours on preview on the same platform
+#      (soaked-commit.mjs), so no platform gets JavaScript it never previewed;
 #   3. production Convex has it (convex-drift.mjs);
 #   4. an earlier update or a finished build on `production` has the same
 #      runtime fingerprint (channel-runtime.mjs). Otherwise it publishes
-#      nothing for that platform and reports "store build due".
+#      nothing and reports "store build due".
 # No decision card per daily update. A store build, or a forced publish on a
 # fingerprint mismatch, waits for Eric's card first.
 #
 # The `production` GitHub Environment supplies the Sentry token the publish
 # script needs for source maps; it has no required reviewer and allows main
-# only. A regression is rolled back with `eas update:rollback` and fixed
-# forward. See docs/runbooks/mobile-releases.md.
+# only. `deployment: false` records no deployment, so convex-drift.mjs keeps
+# reading the web deploy's commit. A regression is rolled back with
+# `eas update:rollback` and fixed forward. See docs/runbooks/mobile-releases.md.
 on:
   schedule:
     # 06:23 UTC: 07:23 Amsterdam in winter, 08:23 in summer.
@@ -33,18 +36,29 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  select:
+  publish:
     if: github.ref == 'refs/heads/main'
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [ios, android]
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
+    environment:
+      name: production
+      deployment: false
     permissions:
-      contents: read
+      # Moves the ota-production-<platform> tag.
+      contents: write
+      # convex-drift.mjs reads the production deployment records.
       deployments: read
-    outputs:
-      commit: ${{ steps.pick.outputs.commit }}
     env:
       EXPO_TOKEN: ${{ secrets.PREVIEW_EXPO_TOKEN }}
-      TAG: ota-production
+      # Environment-scoped; publish-update.mjs refuses production without it.
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      CHANNEL: production
+      PLATFORM: ${{ matrix.platform }}
+      TAG: ota-production-${{ matrix.platform }}
     steps:
       - name: Check Expo token
         run: |
@@ -63,83 +77,64 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          commit=$(node apps/mobile/scripts/soaked-commit.mjs preview 24)
+          commit=$(node apps/mobile/scripts/soaked-commit.mjs "$PLATFORM" preview 24)
           if [ -z "$commit" ]; then
-            echo "Skipped: no preview update is 24 hours old yet." >> "$GITHUB_STEP_SUMMARY"
+            echo "$PLATFORM skipped: no preview update is 24 hours old yet." >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
           # A hand publish from a branch is not a release candidate.
           if ! git merge-base --is-ancestor "$commit" origin/main; then
-            echo "::warning::Soaked preview commit ${commit:0:7} is not on main; skipped."
-            echo "Skipped: the soaked preview update \`${commit:0:7}\` is not on main." >> "$GITHUB_STEP_SUMMARY"
+            echo "::warning::Soaked $PLATFORM preview commit ${commit:0:7} is not on main; skipped."
+            echo "$PLATFORM skipped: the soaked preview update \`${commit:0:7}\` is not on main." >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
           if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
             if git merge-base --is-ancestor "$commit" "$TAG"; then
-              echo "Skipped: \`$TAG\` already has the soaked commit \`${commit:0:7}\`." >> "$GITHUB_STEP_SUMMARY"
+              echo "$PLATFORM skipped: \`$TAG\` already has the soaked commit \`${commit:0:7}\`." >> "$GITHUB_STEP_SUMMARY"
               exit 0
             fi
+            # convex/_generated: the app imports the API proxy from the root.
             if git diff --quiet "$TAG" "$commit" -- apps/mobile packages/core convex/_generated pnpm-lock.yaml; then
-              echo "Skipped: nothing the app bundles changed between \`$TAG\` and \`${commit:0:7}\`." >> "$GITHUB_STEP_SUMMARY"
+              echo "$PLATFORM skipped: nothing the app bundles changed between \`$TAG\` and \`${commit:0:7}\`." >> "$GITHUB_STEP_SUMMARY"
               exit 0
             fi
           fi
           # Fails the run when production Convex lacks a Convex commit of it.
           node scripts/convex-drift.mjs --target "$commit"
-          echo "Candidate: \`${commit:0:7}\` ($(git log -1 --format=%s "$commit"))" >> "$GITHUB_STEP_SUMMARY"
+          echo "$PLATFORM candidate: \`${commit:0:7}\` ($(git log -1 --format=%s "$commit"))" >> "$GITHUB_STEP_SUMMARY"
           echo "commit=$commit" >> "$GITHUB_OUTPUT"
-
-  publish:
-    needs: select
-    if: needs.select.outputs.commit != ''
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    # Secrets only: `deployment: false` (GitHub, March 2026) records no
-    # deployment, so convex-drift.mjs keeps reading the web deploy's commit.
-    environment:
-      name: production
-      deployment: false
-    permissions:
-      # Moves the ota-production tag.
-      contents: write
-    env:
-      EXPO_TOKEN: ${{ secrets.PREVIEW_EXPO_TOKEN }}
-      # Environment-scoped; publish-update.mjs refuses production without it.
-      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-      CHANNEL: production
-      TAG: ota-production
-      COMMIT: ${{ needs.select.outputs.commit }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.select.outputs.commit }}
-          fetch-depth: 0
-      - uses: ./.github/actions/setup
 
       # The gate scripts come from main, so a candidate from before they
       # existed (or with an older copy) is still gated the current way. They
       # are not bundled and not part of the fingerprint.
-      - name: Use main's gate scripts
-        run: git checkout origin/main -- apps/mobile/scripts/channel-runtime.mjs scripts/lib/ota-gates.mjs
+      - name: Check out the candidate
+        if: steps.pick.outputs.commit != ''
+        env:
+          COMMIT: ${{ steps.pick.outputs.commit }}
+        run: |
+          git checkout --detach "$COMMIT"
+          git checkout origin/main -- apps/mobile/scripts/channel-runtime.mjs scripts/lib/ota-gates.mjs
+          pnpm install --frozen-lockfile
 
-      - name: Match fingerprints
+      - name: Match fingerprint
         id: match
+        if: steps.pick.outputs.commit != ''
         working-directory: apps/mobile
-        run: node scripts/channel-runtime.mjs "$CHANNEL" --summary "$GITHUB_STEP_SUMMARY" --output "$GITHUB_OUTPUT" ${{ inputs.force && '--force' || '' }}
+        run: node scripts/channel-runtime.mjs "$CHANNEL" --platform "$PLATFORM" --summary "$GITHUB_STEP_SUMMARY" --output "$GITHUB_OUTPUT" ${{ inputs.force && '--force' || '' }}
 
       - name: eas update
         if: steps.match.outputs.platforms != ''
+        env:
+          COMMIT: ${{ steps.pick.outputs.commit }}
         run: |
           message="$(git log -1 --format=%s) ($(jq -r .expo.version apps/mobile/app.json)+$(git rev-parse --short=7 HEAD))"
-          for platform in ${{ steps.match.outputs.platforms }}; do
-            EXPO_NO_DOTENV=1 node apps/mobile/scripts/publish-update.mjs "$CHANNEL" --without-build \
-              --platform "$platform" --non-interactive --message "$message"
-          done
+          EXPO_NO_DOTENV=1 node apps/mobile/scripts/publish-update.mjs "$CHANNEL" --without-build \
+            --platform "$PLATFORM" --non-interactive --message "$message"
           git tag -f "$TAG" "$COMMIT"
           git push -f origin "refs/tags/$TAG"
-          echo "Published \`${COMMIT:0:7}\` to \`$CHANNEL\` for: ${{ steps.match.outputs.platforms }}. Check Sentry for the new release." >> "$GITHUB_STEP_SUMMARY"
+          echo "Published \`${COMMIT:0:7}\` to \`$CHANNEL\` for $PLATFORM. Check Sentry for the new release." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Store build due
         if: steps.match.outputs.due != ''
         run: |
-          echo "::warning::Store build due for ${{ steps.match.outputs.due }}: no production build has this fingerprint. Propose a release on a decision card."
+          echo "::warning::Store build due for $PLATFORM: no production build has this fingerprint. Propose a release on a decision card."

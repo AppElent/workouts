@@ -2,8 +2,8 @@
 // an earlier update or a finished EAS build already runs this checkout's
 // runtime fingerprint. Used by the mobile-update workflows.
 //
-//   node scripts/channel-runtime.mjs <preview|production> [--force]
-//     [--summary <file>] [--output <file>]
+//   node scripts/channel-runtime.mjs <preview|production> [--platform <p>]
+//     [--force] [--summary <file>] [--output <file>]
 //
 // Writes `platforms=<space-separated>` and `due=<space-separated>` to
 // --output (GITHUB_OUTPUT) and a Markdown line per platform to --summary.
@@ -47,7 +47,12 @@ function eas(easArgs, missing, missingPattern) {
 	return JSON.parse(result.stdout);
 }
 
-const results = PLATFORMS.map((platform) => {
+const only = option("--platform");
+if (only && !PLATFORMS.includes(only)) {
+	console.error(`Unknown platform "${only}"`);
+	process.exit(1);
+}
+const results = PLATFORMS.filter((p) => !only || p === only).map((platform) => {
 	const runtime = fingerprint(channel, platform).hash;
 	const updates = (
 		// The branch only exists after the channel's first update: none yet.

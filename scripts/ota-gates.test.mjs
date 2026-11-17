@@ -5,6 +5,7 @@ const now = new Date("2026-11-17T06:00:00Z");
 const update = (createdAt, gitCommitHash, extra = {}) => ({
 	createdAt,
 	gitCommitHash,
+	platform: "ios",
 	isRollBackToEmbedded: false,
 	...extra,
 });
@@ -16,7 +17,7 @@ describe("soakedCommit", () => {
 			update("2026-11-16T05:59:00Z", "soaked"),
 			update("2026-11-15T05:00:00Z", "older"),
 		];
-		expect(soakedCommit(updates, now, 24)).toEqual({
+		expect(soakedCommit(updates, now, 24, "ios")).toEqual({
 			commit: "soaked",
 			createdAt: "2026-11-16T05:59:00Z",
 		});
@@ -27,12 +28,12 @@ describe("soakedCommit", () => {
 			update("2026-11-15T05:00:00Z", "older"),
 			update("2026-11-16T05:00:00Z", "soaked"),
 		];
-		expect(soakedCommit(updates, now, 24)?.commit).toBe("soaked");
+		expect(soakedCommit(updates, now, 24, "ios")?.commit).toBe("soaked");
 	});
 
 	it("returns null when nothing has soaked", () => {
-		expect(soakedCommit([update("2026-11-16T07:00:00Z", "fresh")], now, 24)).toBeNull();
-		expect(soakedCommit([], now, 24)).toBeNull();
+		expect(soakedCommit([update("2026-11-16T07:00:00Z", "fresh")], now, 24, "ios")).toBeNull();
+		expect(soakedCommit([], now, 24, "ios")).toBeNull();
 	});
 
 	it("skips roll-backs and updates without a commit", () => {
@@ -41,8 +42,18 @@ describe("soakedCommit", () => {
 			update("2026-11-16T03:00:00Z", null),
 			update("2026-11-16T02:00:00Z", "real"),
 		];
-		expect(soakedCommit(updates, now, 24)?.commit).toBe("real");
+		expect(soakedCommit(updates, now, 24, "ios")?.commit).toBe("real");
 	});
+});
+
+it("only counts the asked platform's updates", () => {
+	const updates = [
+		update("2026-11-15T05:00:00Z", "ios-only"),
+		update("2026-11-16T05:00:00Z", "android-soaked", { platform: "android" }),
+	];
+	expect(soakedCommit(updates, now, 24, "android")?.commit).toBe("android-soaked");
+	expect(soakedCommit(updates, now, 24, "ios")?.commit).toBe("ios-only");
+	expect(soakedCommit(updates.slice(0, 1), now, 24, "android")).toBeNull();
 });
 
 describe("matchPlatforms", () => {
