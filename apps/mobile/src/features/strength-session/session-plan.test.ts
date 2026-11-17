@@ -65,6 +65,7 @@ import {
 const facts = (over: Partial<ExerciseFacts> = {}): ExerciseFacts => ({
 	exercise: { equipment: "barbell" },
 	bodyweight: false,
+	timed: false,
 	stepKg: 2.5,
 	measured: null,
 	estimated: null,
@@ -79,6 +80,11 @@ const PLAIN = facts();
 const PULLUP = facts({
 	exercise: { equipment: "bodyweight" },
 	bodyweight: true,
+});
+const PLANK = facts({
+	exercise: { equipment: "bodyweight" },
+	bodyweight: true,
+	timed: true,
 });
 const TABLE: Record<string, ExerciseFacts> = {
 	squat: SQUAT,
@@ -718,6 +724,12 @@ describe("typo guards", () => {
 		expect(typoCheck(plan, { ...row, reps: 11 }, SQUAT, row)?.code).toBe(
 			"repsAbovePlan",
 		);
+	});
+	it("takes a long hold at face value", () => {
+		expect(typoCheck(plan, { ...row, kg: 0, reps: 90 }, PLANK, row)).toBeNull();
+		expect(
+			typoCheck(plan, { ...row, kg: 200, reps: 60 }, PLANK, row)?.code,
+		).toBe("addedHigh");
 	});
 	it("asks about implausible load", () => {
 		expect(typoCheck(plan, { ...row, kg: 200 }, SQUAT, row)?.kind).toBe("kg");

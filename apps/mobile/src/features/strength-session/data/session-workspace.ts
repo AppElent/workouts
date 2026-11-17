@@ -9,6 +9,7 @@ import {
 	DEFAULT_REST_SECONDS,
 	getWeightStep,
 	isLoadedEquipment,
+	isTimedExercise,
 } from "@foundry/core";
 import type { Exercise } from "@foundry/core/exercises";
 import type { RequestForQueries } from "convex/react";
@@ -229,11 +230,13 @@ export function factsFrom(
 	exercise: Pick<Exercise, "equipment" | "weightIncrement"> | undefined,
 	references: RawReferences | undefined,
 	last: LastSet | null | undefined,
+	exerciseId?: string,
 ): ExerciseFacts {
 	const manual = toKg(references?.manual);
 	return {
 		exercise: exercise ?? null,
 		bodyweight: exercise ? !isLoadedEquipment(exercise.equipment) : false,
+		timed: isTimedExercise(exerciseId),
 		stepKg: getWeightStep(
 			exercise?.equipment ?? "barbell",
 			exercise?.weightIncrement,
@@ -326,6 +329,7 @@ export function useWorkspace(
 					session?.exercises?.find((item) => item.exerciseId === exerciseId)
 						?.references,
 					last instanceof Error ? null : (last as LastSet),
+					exerciseId,
 				),
 			);
 		}
@@ -338,6 +342,7 @@ export function useWorkspace(
 				catalog.find((item) => item._id === exerciseId),
 				undefined,
 				null,
+				exerciseId,
 			),
 		[factsById, catalog],
 	);

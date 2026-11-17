@@ -20,6 +20,7 @@ import {
 	addWarmup,
 	bestToday,
 	clearManual,
+	type ExerciseFacts,
 	groupOfExercise,
 	groupWith,
 	moveEntry,
@@ -263,7 +264,7 @@ export function SessionExerciseBlock({ exerciseId }: { exerciseId: string }) {
 	const addLabel =
 		last && !last.blank && (facts.bodyweight || last.kg > 0)
 			? fmt(copy.addSetLoad, {
-					load: formatSetShort(last, facts.bodyweight, locale),
+					load: formatSetShort(last, facts, locale),
 				})
 			: copy.addSet;
 	return (
@@ -297,7 +298,7 @@ export function SessionExerciseBlock({ exerciseId }: { exerciseId: string }) {
 				/>
 			</View>
 			<View style={styles.card}>
-				{large ? null : <ColumnHeads bodyweight={facts.bodyweight} />}
+				{large ? null : <ColumnHeads facts={facts} />}
 				{rows.map((row) => (
 					<SessionSetRow key={row.id} row={row} isNext={next?.id === row.id} />
 				))}
@@ -319,7 +320,11 @@ export function SessionExerciseBlock({ exerciseId }: { exerciseId: string }) {
 		</View>
 	);
 }
-function ColumnHeads({ bodyweight }: { bodyweight: boolean }) {
+function ColumnHeads({
+	facts: { bodyweight, timed },
+}: {
+	facts: Pick<ExerciseFacts, "bodyweight" | "timed">;
+}) {
 	const { t } = useI18n();
 	const copy = t.strength.plan;
 	const styles = useThemedStyles(createStyles);
@@ -336,7 +341,11 @@ function ColumnHeads({ bodyweight }: { bodyweight: boolean }) {
 				{bodyweight ? "" : "%"}
 			</AppText>
 			<AppText variant="caption" style={styles.headLoad}>
-				{bodyweight ? copy.columnLoadBodyweight : copy.columnLoad}
+				{timed
+					? copy.columnLoadTimed
+					: bodyweight
+						? copy.columnLoadBodyweight
+						: copy.columnLoad}
 			</AppText>
 			<AppText variant="caption" style={styles.headOneRm}>
 				{bodyweight ? "" : copy.columnOneRm}

@@ -86,6 +86,7 @@ export const exerciseLibraryEn = {
 		records: "Personal records",
 		heaviest: "Heaviest",
 		mostReps: "Most reps",
+		longestHold: "Longest hold",
 		bestEstimate: "Best est. 1RM",
 		notes: "Notes",
 		howTo: "How to",
@@ -99,6 +100,7 @@ export const exerciseLibraryEn = {
 		nothingLoggedHint: "Sets you log for this exercise show up here.",
 		date: "Date",
 		reps: "Reps",
+		seconds: "Sec.",
 		estimate: "Est. 1RM",
 	},
 	picker: {
@@ -198,6 +200,7 @@ export const exerciseLibraryNl: typeof exerciseLibraryEn = {
 		records: "Persoonlijke records",
 		heaviest: "Zwaarste",
 		mostReps: "Meeste herh.",
+		longestHold: "Langst gehouden",
 		bestEstimate: "Beste gesch. 1RM",
 		notes: "Notities",
 		howTo: "Uitvoering",
@@ -212,6 +215,7 @@ export const exerciseLibraryNl: typeof exerciseLibraryEn = {
 			"Sets die je voor deze oefening vastlegt, verschijnen hier.",
 		date: "Datum",
 		reps: "Herh.",
+		seconds: "Sec.",
 		estimate: "Gesch. 1RM",
 	},
 	picker: {

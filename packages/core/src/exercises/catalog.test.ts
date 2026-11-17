@@ -1,5 +1,10 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import {
+	isLoadedEquipment,
+	isTimedExercise,
+	TIMED_EXERCISES,
+} from "../exercise";
 import { DEFAULT_EXERCISES } from "./exercises";
 import { getShippedExercise, mergeExerciseCatalog } from "./index";
 import { WRKOUT_EXERCISES } from "./wrkoutExercises";
@@ -46,5 +51,23 @@ describe("shipped exercise catalog", () => {
 				.map((exercise) => exercise._id)
 				.sort(),
 		).toEqual([shipped._id, "personal-id"].sort());
+	});
+});
+
+describe("timed exercises", () => {
+	it("name shipped bodyweight exercises, so holds never feed 1RM references", () => {
+		expect(TIMED_EXERCISES.length).toBeGreaterThan(0);
+		for (const id of TIMED_EXERCISES) {
+			const exercise = getShippedExercise(id);
+			expect(exercise, id).toBeDefined();
+			expect(isLoadedEquipment(exercise?.equipment ?? "barbell"), id).toBe(
+				false,
+			);
+		}
+	});
+	it("count Plank in seconds and other exercises in reps", () => {
+		expect(isTimedExercise("shipped:exercise:plank")).toBe(true);
+		expect(isTimedExercise("shipped:exercise:barbell-back-squat")).toBe(false);
+		expect(isTimedExercise(undefined)).toBe(false);
 	});
 });
