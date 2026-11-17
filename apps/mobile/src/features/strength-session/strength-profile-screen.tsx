@@ -30,7 +30,7 @@ import { Segmented } from "../../ui/segmented";
 import { AppText } from "../../ui/text";
 import { useSessionActions } from "./data/session-actions";
 import { useSessionWorkspace, workspaceStore } from "./data/session-workspace";
-import { formatNumber, formatSetFull } from "./session-format";
+import { formatNumber, formatSetFull, LOADED_FORMAT } from "./session-format";
 import {
 	applyPercent,
 	bestToday,
@@ -223,7 +223,7 @@ export function StrengthProfileScreen() {
 									style={{ color: colors.textMuted }}
 								>
 									{fmt(copy.fromSet, {
-										load: formatSetFull(row, false, locale),
+										load: formatSetFull(row, LOADED_FORMAT, locale),
 										value: Math.round(estimate.value),
 									})}
 								</AppText>
@@ -356,7 +356,7 @@ export function StrengthProfileScreen() {
 								>
 									{chosen
 										? fmt(copy.apply, {
-												load: formatSetFull(chosen, false, locale),
+												load: formatSetFull(chosen, LOADED_FORMAT, locale),
 											})
 										: copy.pick}
 								</AppText>

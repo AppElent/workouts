@@ -3,6 +3,7 @@ import type { Id } from "@convex/_generated/dataModel";
 import {
 	EQUIPMENT,
 	EXERCISE_CATEGORIES,
+	isTimedExercise,
 	SET_LIMITS,
 	validateRecordedTime,
 } from "@foundry/core";
@@ -97,7 +98,14 @@ function isConvexCode(error: unknown, code: string, field?: string) {
 }
 
 const plannedTarget = z.object({
-	reps: z.number().int().min(0).max(1000).describe("Target reps"),
+	reps: z
+		.number()
+		.int()
+		.min(0)
+		.max(1000)
+		.describe(
+			"Target reps, or seconds held when list_exercises gives the Exercise measure seconds",
+		),
 	weight: z
 		.number()
 		.min(0)
@@ -219,6 +227,8 @@ export const strengthTools = [
 					muscleGroups: exercise.muscleGroups,
 					category: exercise.category,
 					equipment: exercise.equipment,
+					// A Set's `reps` holds seconds on a timed hold such as Plank.
+					measure: isTimedExercise(exercise._id) ? "seconds" : "reps",
 					personal: !exercise.isDefault,
 				}));
 			return { exercises };
@@ -270,6 +280,8 @@ export const strengthTools = [
 					category: exercise.category,
 					equipment: exercise.equipment,
 					weightIncrement: exercise.weightIncrement,
+					// Personal Exercises are always counted in reps.
+					measure: "reps",
 					personal: true,
 				},
 			};
@@ -485,7 +497,14 @@ export const strengthTools = [
 			sessionId,
 			exerciseId,
 			setNumber: z.number().int().min(1).max(10000),
-			reps: z.number().int().min(0).max(1000),
+			reps: z
+				.number()
+				.int()
+				.min(0)
+				.max(1000)
+				.describe(
+					"Reps, or seconds held when list_exercises gives the Exercise measure seconds",
+				),
 			weight: z.number().min(0).max(2000).describe("Load; 0 for bodyweight"),
 			unit,
 			rpe: z.number().min(1).max(10).optional(),
@@ -514,7 +533,13 @@ export const strengthTools = [
 		annotations: { idempotentHint: true },
 		input: {
 			setId: z.string().min(1),
-			reps: z.number().int().min(0).max(1000).optional(),
+			reps: z
+				.number()
+				.int()
+				.min(0)
+				.max(1000)
+				.optional()
+				.describe("Reps, or seconds held on an Exercise measured in seconds"),
 			weight: z.number().min(0).max(2000).optional(),
 			unit: unit.optional(),
 			rpe: z.number().min(1).max(10).nullable().optional(),

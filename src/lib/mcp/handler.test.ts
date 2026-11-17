@@ -309,7 +309,11 @@ describe("Foundry MCP endpoint", () => {
 		});
 		expect(call.structuredContent).toEqual({
 			created: false,
-			exercise: expect.objectContaining({ id: "ex_sled", personal: true }),
+			exercise: expect.objectContaining({
+				id: "ex_sled",
+				measure: "reps",
+				personal: true,
+			}),
 		});
 		expect(backend.calls[0]).toMatchObject({
 			kind: "mutation",
@@ -1083,6 +1087,38 @@ describe("Foundry MCP views", () => {
 				(p) => p.value,
 			),
 		).toEqual([200, 110, 105]);
+	});
+
+	it("plots no load progress for a timed hold", async () => {
+		const day = Date.parse("2026-11-03T18:00:00Z");
+		const backend = fakeBackend({
+			"exercises:listPersonal": () => ({
+				page: [],
+				isDone: true,
+				continueCursor: "",
+			}),
+			"exercises:getHistory": () => [
+				{
+					_id: "plank-1",
+					sessionId: "s1",
+					exerciseId: "shipped:exercise:plank",
+					reps: 60,
+					weight: 10,
+					unit: "kg",
+					setType: "working",
+					loggedAt: day,
+					sessionDate: day,
+				},
+			],
+			"progress:weeklyVolume": () => [],
+			"oneRepMaxes:listForExercise": () => [],
+		});
+		const call = await callTool(backend, "show_exercise_progress", {
+			exerciseId: "shipped:exercise:plank",
+			range: "4w",
+		});
+		expect(call.isError).toBeUndefined();
+		expect(call.structuredContent).toMatchObject({ points: [] });
 	});
 
 	it("refuses progress for an unknown exercise", async () => {

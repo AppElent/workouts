@@ -8,7 +8,12 @@ import { mintUuid } from "../../../data/account-write";
 import { haptics } from "../../../feedback/haptics";
 import { fmt, plural, useI18n } from "../../../i18n";
 import { useWriteFailureMessage } from "../../../ui/use-screen-write";
-import { formatOneRm, formatSetFull, formatSetShort } from "../session-format";
+import {
+	formatOneRm,
+	formatSetFull,
+	formatSetShort,
+	LOADED_FORMAT,
+} from "../session-format";
 import {
 	addExerciseToPlan,
 	addToGroup,
@@ -166,7 +171,7 @@ export function useSessionActions(workspace: SessionWorkspace) {
 			return true;
 		};
 		const shortLoad = (row: PlanSet) =>
-			formatSetShort(row, getFacts(row.exerciseId).bodyweight, locale);
+			formatSetShort(row, getFacts(row.exerciseId), locale);
 		function restBody() {
 			const next = nextOpenRow(plan());
 			if (!next) return undefined;
@@ -229,9 +234,11 @@ export function useSessionActions(workspace: SessionWorkspace) {
 			else text = fmt(copy.toastNoOneRm, { load });
 			if (result.carriedTo !== null)
 				text += fmt(copy.toastCarried, {
-					load: formatSetFull({ ...row, reps: row.reps }, false, locale).split(
-						" × ",
-					)[0] as string,
+					load: formatSetFull(
+						{ ...row, reps: row.reps },
+						LOADED_FORMAT,
+						locale,
+					).split(" × ")[0] as string,
 				});
 			say(text, {
 				highlight: Boolean(record),
@@ -477,6 +484,7 @@ export function useSessionActions(workspace: SessionWorkspace) {
 				session?.exercises?.find((item) => item.exerciseId === exerciseId)
 					?.references,
 				last,
+				exerciseId,
 			);
 		}
 		async function addExercise(
@@ -571,7 +579,9 @@ export function useSessionActions(workspace: SessionWorkspace) {
 				const added = await addExercise(exerciseId, undefined, label);
 				if (!added) return false;
 			}
-			return apply(addToGroup(plan(), groupId, exerciseId), { name: label });
+			return apply(addToGroup(plan(), groupId, exerciseId, getFacts), {
+				name: label,
+			});
 		}
 		async function dropExercise(exerciseId: string) {
 			if (refuseUnresolved(rowsOf(plan(), exerciseId))) return;

@@ -20,6 +20,7 @@ export const workoutSummaryEn = {
 	deleteMessage: "Every set logged in it goes too. This cannot be undone.",
 	deleteError: "Could not delete the session.",
 	repsOnly: "{reps} reps",
+	secondsOnly: "{seconds} s",
 	best: "Best: {weight} kg × {reps}",
 };
 
@@ -46,5 +47,6 @@ export const workoutSummaryNl: typeof workoutSummaryEn = {
 		"Alle vastgelegde sets verdwijnen ook. Dit kan niet ongedaan worden gemaakt.",
 	deleteError: "Kon de sessie niet verwijderen.",
 	repsOnly: "{reps} herh.",
+	secondsOnly: "{seconds} s",
 	best: "Beste: {weight} kg × {reps}",
 };

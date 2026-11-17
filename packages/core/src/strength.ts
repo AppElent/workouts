@@ -1,4 +1,4 @@
-import { type Equipment, isLoadedEquipment } from "./exercise";
+import { type Equipment, isLoadedEquipment, isTimedExercise } from "./exercise";
 import {
 	calculateOneRepMax,
 	roundLoad,
@@ -149,13 +149,18 @@ export function isReferenceEligible(
 	);
 }
 
-/** Total kg × reps; warm-ups are not work volume. */
+/**
+ * Total kg × reps; warm-ups and timed holds (a count of seconds, see
+ * `isTimedExercise`) are not work volume.
+ */
 export function workingVolume(
-	sets: readonly Pick<PerformedSet, "weight" | "reps" | "unit" | "setType">[],
+	sets: readonly (Pick<PerformedSet, "weight" | "reps" | "unit" | "setType"> & {
+		exerciseId?: string;
+	})[],
 ): number {
 	return sets.reduce(
 		(total, set) =>
-			set.setType === "warmup"
+			set.setType === "warmup" || isTimedExercise(set.exerciseId)
 				? total
 				: total + toKg(set.weight, set.unit) * set.reps,
 		0,

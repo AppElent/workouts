@@ -65,6 +65,7 @@ import {
 const facts = (over: Partial<ExerciseFacts> = {}): ExerciseFacts => ({
 	exercise: { equipment: "barbell" },
 	bodyweight: false,
+	timed: false,
 	stepKg: 2.5,
 	measured: null,
 	estimated: null,
@@ -79,6 +80,11 @@ const PLAIN = facts();
 const PULLUP = facts({
 	exercise: { equipment: "bodyweight" },
 	bodyweight: true,
+});
+const PLANK = facts({
+	exercise: { equipment: "bodyweight" },
+	bodyweight: true,
+	timed: true,
 });
 const TABLE: Record<string, ExerciseFacts> = {
 	squat: SQUAT,
@@ -622,6 +628,131 @@ describe("groups", () => {
 		expect(Object.keys(plan.groups)).toHaveLength(0);
 		expect(allRows(plan)).toHaveLength(before);
 	});
+	describe("keeps every exercise in the session (APP-215)", () => {
+		const three = () => {
+			const grouped = groupWith(
+				plannedPlan({
+					squat: [{ reps: 5, weight: 95 }],
+					curl: [{ reps: 12, weight: 40 }],
+					press: [{ reps: 5, weight: 60 }],
+				}),
+				"squat",
+				"curl",
+			);
+			const id = grouped.groupId as string;
+			return { id, plan: addToGroup(grouped.plan, id, "press").plan };
+		};
+		it("when the last set of a grouped exercise is deleted", () => {
+			const { id, plan } = three();
+			const press = rowsOf(plan, "press")[0] as PlanSet;
+			const next = removeRow(plan, press.id);
+			expect(sessionExercises(next)).toEqual(["squat", "curl", "press"]);
+			expect(next.order).toEqual([
+				{ kind: "group", groupId: id },
+				{ kind: "exercise", exerciseId: "press" },
+			]);
+			expect(next.sets.press).toEqual([]);
+		});
+		it("when a grouped exercise's last set is deleted elsewhere", () => {
+			const { plan } = three();
+			const press = rowsOf(plan, "press")[0] as PlanSet;
+			const logged = log(plan, press, "press-1");
+			const exercises = ["squat", "curl", "press"].map((exerciseId) => ({
+				exerciseId,
+				plannedSets: [],
+			}));
+			const next = reconcilePlan(
+				logged,
+				exercises,
+				[],
+				lookup,
+				new Set(["press-1"]),
+			);
+			expect(sessionExercises(next)).toEqual(["squat", "curl", "press"]);
+			expect(next.sets.press).toEqual([]);
+		});
+		it("and dissolves a group that is left with one exercise", () => {
+			const grouped = groupWith(two(), "squat", "curl");
+			const curl = rowsOf(grouped.plan, "curl");
+			const next = curl.reduce(
+				(plan, row) => removeRow(plan, row.id),
+				grouped.plan,
+			);
+			expect(Object.keys(next.groups)).toHaveLength(0);
+			expect(sessionExercises(next)).toEqual(["squat", "curl"]);
+		});
+		it("when grouping an exercise without sets", () => {
+			const plan = plannedPlan({
+				squat: [{ reps: 5, weight: 95 }],
+				curl: [{ reps: 12, weight: 40 }],
+			});
+			const empty = removeRow(plan, firstOpen(plan, "curl").id);
+			const grouped = groupWith(empty, "squat", "curl", lookup);
+			expect(sessionExercises(grouped.plan)).toEqual(["squat", "curl"]);
+			expect(rowsOf(grouped.plan, "curl")).toMatchObject([
+				{ done: false, blank: true },
+			]);
+		});
+		it("when adding an exercise without sets to a group", () => {
+			const plan = plannedPlan({
+				squat: [{ reps: 5, weight: 95 }],
+				curl: [{ reps: 12, weight: 40 }],
+				press: [{ reps: 5, weight: 60 }],
+			});
+			const empty = removeRow(plan, firstOpen(plan, "press").id);
+			const grouped = groupWith(empty, "squat", "curl");
+			const added = addToGroup(
+				grouped.plan,
+				grouped.groupId as string,
+				"press",
+				lookup,
+			);
+			expect(sessionExercises(added.plan)).toEqual(["squat", "curl", "press"]);
+			expect(rowsOf(added.plan, "press")).toHaveLength(1);
+			expect(added.note).toEqual({
+				code: "addedToGroupWithSet",
+				values: { added: 1 },
+			});
+		});
+	});
+	it("lists the group in the order the session showed it", () => {
+		const grouped = groupWith(two(), "curl", "squat");
+		const round = grouped.plan.groups[grouped.groupId as string]?.rounds[0];
+		expect(round?.items.map((row) => row.exerciseId)).toEqual([
+			"squat",
+			"curl",
+		]);
+	});
+	it("repeats every member in rounds an added exercise brings", () => {
+		const grouped = groupWith(
+			plannedPlan({
+				squat: [{ reps: 5, weight: 95 }],
+				curl: [{ reps: 12, weight: 40 }],
+				press: [
+					{ reps: 5, weight: 60 },
+					{ reps: 5, weight: 60 },
+					{ reps: 5, weight: 60 },
+				],
+			}),
+			"squat",
+			"curl",
+		);
+		const id = grouped.groupId as string;
+		const added = addToGroup(grouped.plan, id, "press");
+		expect(
+			added.plan.groups[id]?.rounds.map((round) =>
+				round.items.map((row) => row.exerciseId),
+			),
+		).toEqual([
+			["squat", "curl", "press"],
+			["squat", "curl", "press"],
+			["squat", "curl", "press"],
+		]);
+		expect(added.note).toEqual({
+			code: "addedToGroupWithSets",
+			values: { added: 4 },
+		});
+	});
 	it("takes one out, dissolving a group left with one exercise", () => {
 		const grouped = groupWith(two(), "squat", "curl");
 		const result = takeOutOfGroup(grouped.plan, "curl");
@@ -718,6 +849,12 @@ describe("typo guards", () => {
 		expect(typoCheck(plan, { ...row, reps: 11 }, SQUAT, row)?.code).toBe(
 			"repsAbovePlan",
 		);
+	});
+	it("takes a long hold at face value", () => {
+		expect(typoCheck(plan, { ...row, kg: 0, reps: 90 }, PLANK, row)).toBeNull();
+		expect(
+			typoCheck(plan, { ...row, kg: 200, reps: 60 }, PLANK, row)?.code,
+		).toBe("addedHigh");
 	});
 	it("asks about implausible load", () => {
 		expect(typoCheck(plan, { ...row, kg: 200 }, SQUAT, row)?.kind).toBe("kg");

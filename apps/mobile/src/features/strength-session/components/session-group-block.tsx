@@ -85,7 +85,7 @@ export function SessionGroupBlock({ group }: { group: SetGroup }) {
 	const current = group.rounds.findIndex((round) => !roundDone(round));
 	const next = nextOpenRow(plan);
 	const shortOf = (row: PlanSet) =>
-		formatSetShort(row, workspace.getFacts(row.exerciseId).bodyweight, locale);
+		formatSetShort(row, workspace.getFacts(row.exerciseId), locale);
 	const short = (round: GroupRound) =>
 		round.items
 			.filter((row) => !closed || row.done)

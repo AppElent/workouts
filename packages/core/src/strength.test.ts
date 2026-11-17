@@ -148,6 +148,14 @@ describe("workingVolume", () => {
 			]),
 		).toBeCloseTo(500 + 640 + 453.59237, 5);
 	});
+	it("leaves out timed holds, whose count is seconds", () => {
+		expect(
+			workingVolume([
+				{ ...set(100, 5), exerciseId: "shipped:exercise:barbell-row" },
+				{ ...set(10, 60), exerciseId: "shipped:exercise:plank" },
+			]),
+		).toBe(500);
+	});
 });
 
 describe("repMaxCurve", () => {

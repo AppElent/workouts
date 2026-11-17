@@ -60,7 +60,7 @@ export function useRowFacts(row: PlanSet) {
 		? "—"
 		: !facts.bodyweight && !(row.kg > 0)
 			? `— × ${row.reps}`
-			: formatSetShort(row, facts.bodyweight, locale);
+			: formatSetShort(row, facts, locale);
 	return {
 		copy,
 		locale,
