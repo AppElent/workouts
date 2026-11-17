@@ -44,6 +44,7 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 vi.mock("#/lib/auth/appleRevocation", () => ({
 	revokeAppleSignIn: mocks.revokeApple,
+	preloadAppleJs: () => {},
 }));
 
 beforeEach(() => {
@@ -84,14 +85,21 @@ it("disables both actions and explains why while deletion is blocked", () => {
 	);
 });
 
-it("stays disabled until the blocker is known, and while offline", () => {
+it("stays disabled until the blocker is known", () => {
 	mocks.blocker = undefined;
 	setup();
 	expect(button("Delete my data").disabled).toBe(true);
-	mocks.blocker = null;
+	expect(button("Delete account").disabled).toBe(true);
+});
+
+it("stays disabled offline and says why", () => {
 	mocks.online = false;
 	setup();
-	expect(screen.getByText("Connect to delete your data.")).toBeTruthy();
+	expect(button("Delete my data").disabled).toBe(true);
+	expect(button("Delete account").disabled).toBe(true);
+	expect(screen.getByRole("status").textContent).toBe(
+		"Connect to delete your data.",
+	);
 });
 
 it("offers no account deletion when the Clerk instance disables it", () => {
@@ -197,4 +205,43 @@ it("keeps the person here when Clerk refuses to delete the account", async () =>
 		),
 	).toBeTruthy();
 	expect(mocks.navigate).not.toHaveBeenCalled();
+});
+
+it("ignores further clicks while a deletion runs", async () => {
+	let finish = (_: { done: boolean }) => {};
+	mocks.deleteData.mockReturnValue(
+		new Promise((resolve) => {
+			finish = resolve;
+		}),
+	);
+	setup();
+	fireEvent.click(button("Delete my data"));
+	fireEvent.click(dialog().getByRole("button", { name: "Delete my data" }));
+	await waitFor(() => expect(button("Delete my data").disabled).toBe(true));
+	expect(button("Delete account").disabled).toBe(true);
+	fireEvent.click(button("Delete account"));
+	expect(screen.queryByRole("alertdialog")).toBeNull();
+	finish({ done: true });
+	await notifications().findByText("Your data was deleted.");
+	expect(mocks.deleteData).toHaveBeenCalledTimes(1);
+});
+
+it("keeps the account when deleting its data fails", async () => {
+	mocks.deleteData.mockRejectedValue(new Error("network"));
+	setup();
+	fireEvent.click(button("Delete account"));
+	fireEvent.click(dialog().getByRole("button", { name: "Delete account" }));
+	await notifications().findByText(/Deleting stopped before it finished/);
+	expect(mocks.deleteUser).not.toHaveBeenCalled();
+	expect(mocks.navigate).not.toHaveBeenCalled();
+});
+
+it("stops and asks to allow pop-ups when the browser blocks the Apple window", async () => {
+	mocks.revokeApple.mockResolvedValue("popupBlocked");
+	setup();
+	fireEvent.click(button("Delete account"));
+	fireEvent.click(dialog().getByRole("button", { name: "Delete account" }));
+	await notifications().findByText(/Allow pop-ups for this site/);
+	expect(mocks.deleteData).not.toHaveBeenCalled();
+	expect(mocks.deleteUser).not.toHaveBeenCalled();
 });

@@ -12,7 +12,6 @@ export const account = {
 		"Al je trainings- en voedingsgegevens worden definitief verwijderd, daarna wordt je account verwijderd en word je uitgelogd. Dit kan niet ongedaan worden gemaakt.",
 	deleteAccountUnavailable:
 		"Account verwijderen staat uit voor deze app. Verwijder in plaats daarvan je gegevens, of neem contact op met support.",
-	cancel: "Annuleren",
 	deletion: {
 		success: "Je gegevens zijn verwijderd.",
 		error:
@@ -20,6 +19,8 @@ export const account = {
 		offline: "Maak verbinding om je gegevens te verwijderen.",
 		accountError:
 			"Je gegevens zijn verwijderd, maar het account kon niet worden verwijderd. Probeer Account verwijderen opnieuw.",
+		applePopupBlocked:
+			"Je browser blokkeerde het Apple-venster. Sta pop-ups toe voor deze site en probeer Account verwijderen opnieuw.",
 		refusals: {
 			activeActivity:
 				"Rond de actieve activiteit af of annuleer deze voordat je je gegevens verwijdert.",

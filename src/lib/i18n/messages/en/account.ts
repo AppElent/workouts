@@ -13,7 +13,6 @@ export const account = {
 		"All your training and nutrition data will be permanently removed, then your account is deleted and you are signed out. This cannot be undone.",
 	deleteAccountUnavailable:
 		"Account deletion is turned off for this app. Delete your data instead, or contact support.",
-	cancel: "Cancel",
 	deletion: {
 		success: "Your data was deleted.",
 		error:
@@ -21,6 +20,8 @@ export const account = {
 		offline: "Connect to delete your data.",
 		accountError:
 			"Your data was deleted, but the account could not be deleted. Try Delete account again.",
+		applePopupBlocked:
+			"Your browser blocked the Apple window. Allow pop-ups for this site, then try Delete account again.",
 		refusals: {
 			activeActivity:
 				"Finish or cancel the running Activity before deleting your data.",

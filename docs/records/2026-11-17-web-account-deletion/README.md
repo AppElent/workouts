@@ -19,6 +19,14 @@ without a reload. No data or account was deleted in these runs: the confirm
 dialogs were cancelled. A live deletion run needs a throwaway Clerk development
 user, which is pending (see the PR's leftover work).
 
+## Sign-out race after Delete account
+
+After `user.delete()` Clerk is signed out, so the signed-in layout mounts
+`RedirectToSignIn` while the card does a replace + full load of `/`. Without
+deleting anything, the same sequence was reproduced with the test account:
+`Clerk.setActive({ session: null })`, then `window.location.replace("/")`
+after 0, 50 and 300 ms. Every run ended on `/`; none reached `/sign-in`.
+
 | State | Desktop | 375 px |
 | --- | --- | --- |
 | Card, light | ![](web-account-desktop-light.png) | ![](web-account-375-light.png) |

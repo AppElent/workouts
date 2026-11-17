@@ -1,8 +1,9 @@
 import { APPLE_WEB_SERVICES_ID, appleWebReturnUrl } from "@foundry/core";
 import { reportError } from "#/lib/observability/errors";
 
-const APPLE_JS =
-	"https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js";
+/** Apple JS localises its popup per script URL. */
+const APPLE_JS_LOCALES = { en: "en_US", nl: "nl_NL" } as const;
+export type AppleJsLocale = keyof typeof APPLE_JS_LOCALES;
 
 /** The slice of Apple JS (`window.AppleID.auth`) this flow uses. */
 export type AppleIdAuth = {
@@ -30,10 +31,15 @@ export type RevokeAppleSignIn = (args: {
 
 let appleJs: Promise<AppleIdAuth> | null = null;
 
-function loadAppleJs(): Promise<AppleIdAuth> {
+/**
+ * Loads Apple JS once per page. Load it before the person clicks: Safari blocks
+ * a popup opened after awaiting a script load, because the click no longer
+ * counts as the trigger.
+ */
+function loadAppleJs(locale: AppleJsLocale): Promise<AppleIdAuth> {
 	appleJs ??= new Promise<AppleIdAuth>((resolve, reject) => {
 		const script = document.createElement("script");
-		script.src = APPLE_JS;
+		script.src = `https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/${APPLE_JS_LOCALES[locale]}/appleid.auth.js`;
 		script.async = true;
 		script.onload = () => {
 			const auth = (window as { AppleID?: { auth?: AppleIdAuth } }).AppleID
@@ -48,6 +54,28 @@ function loadAppleJs(): Promise<AppleIdAuth> {
 		document.head.appendChild(script);
 	});
 	return appleJs;
+}
+
+/**
+ * The return URL to revoke with, when this account is Apple-linked and this
+ * origin is registered with Apple; otherwise web revocation is skipped.
+ */
+export function appleRevocationReturnUrl(
+	user: AppleLinkedUser,
+	origin: string = window.location.origin,
+	returnUrls?: readonly string[],
+): string | null {
+	return appleUserIds(user).length > 0
+		? appleWebReturnUrl(origin, returnUrls)
+		: null;
+}
+
+/** Starts loading Apple JS when Delete account may need it. */
+export function preloadAppleJs(user: AppleLinkedUser, locale: AppleJsLocale) {
+	if (appleRevocationReturnUrl(user))
+		loadAppleJs(locale).catch(() => {
+			// Reported when the deletion actually needs it.
+		});
 }
 
 function appleUserIds(user: AppleLinkedUser) {
@@ -69,17 +97,17 @@ function idTokenSubject(idToken: string | undefined): string | null {
 	}
 }
 
-function isPopupCancel(error: unknown) {
-	const code = (error as { error?: unknown } | null)?.error;
-	return code === "popup_closed_by_user" || code === "user_cancelled_authorize";
+function popupError(error: unknown) {
+	return (error as { error?: unknown } | null)?.error;
 }
 
 /**
  * Revokes the Sign in with Apple grant before the account is deleted, as Apple
  * requires; the web counterpart of the iOS native sheet. An Apple JS popup for
  * the web Services ID supplies a fresh code that Convex exchanges and revokes.
- * Closing the popup cancels the deletion; any other failure is reported and
- * the deletion continues, so Apple never blocks it.
+ * Closing the popup cancels the deletion, and a blocked popup stops it so the
+ * person can allow pop-ups and retry; any other failure is reported and the
+ * deletion continues, so Apple never blocks it.
  *
  * The popup signs in whoever owns the browser's Apple Account, which need not
  * be the person linked to this account. A code for anyone else is never sent,
@@ -93,20 +121,23 @@ export async function revokeAppleSignIn(
 	user: AppleLinkedUser,
 	revoke: RevokeAppleSignIn,
 	options: {
+		locale?: AppleJsLocale;
 		origin?: string;
 		returnUrls?: readonly string[];
 		loadApple?: () => Promise<AppleIdAuth>;
 	} = {},
-): Promise<"continue" | "cancelled"> {
-	const linked = appleUserIds(user);
-	if (linked.length === 0) return "continue";
-	const redirectUri = appleWebReturnUrl(
-		options.origin ?? window.location.origin,
+): Promise<"continue" | "cancelled" | "popupBlocked"> {
+	const redirectUri = appleRevocationReturnUrl(
+		user,
+		options.origin,
 		options.returnUrls,
 	);
 	if (!redirectUri) return "continue";
+	const linked = appleUserIds(user);
 	try {
-		const apple = await (options.loadApple ?? loadAppleJs)();
+		const apple = await (
+			options.loadApple ?? (() => loadAppleJs(options.locale ?? "en"))
+		)();
 		const state = crypto.randomUUID();
 		apple.init({
 			clientId: APPLE_WEB_SERVICES_ID,
@@ -129,7 +160,10 @@ export async function revokeAppleSignIn(
 			redirectUri,
 		});
 	} catch (error) {
-		if (isPopupCancel(error)) return "cancelled";
+		const code = popupError(error);
+		if (code === "popup_closed_by_user" || code === "user_cancelled_authorize")
+			return "cancelled";
+		if (code === "popup_blocked_by_browser") return "popupBlocked";
 		reportError(error, "account.revokeAppleSignIn");
 	}
 	return "continue";

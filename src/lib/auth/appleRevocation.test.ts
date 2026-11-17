@@ -12,7 +12,10 @@ const appleUser = {
 
 function idToken(sub: string) {
 	const part = (value: object) =>
-		btoa(JSON.stringify(value)).replace(/=+$/, "");
+		btoa(JSON.stringify(value))
+			.replace(/\+/g, "-")
+			.replace(/\//g, "_")
+			.replace(/=+$/, "");
 	return `${part({ alg: "RS256" })}.${part({ sub })}.signature`;
 }
 
@@ -115,4 +118,25 @@ it("reports a failed revocation and lets the deletion continue", async () => {
 		expect.any(Error),
 		"account.revokeAppleSignIn",
 	);
+});
+
+it("reads the Apple user from a base64url ID token", async () => {
+	// "~~~" and "???" encode to "-" and "_" in base64url.
+	const sub = "001234.~~~???.0001";
+	const auth = signedIn(sub);
+	const { revoke, result } = run(auth, {
+		externalAccounts: [{ provider: "oauth_apple", providerUserId: sub }],
+	});
+	await expect(result).resolves.toBe("continue");
+	expect(revoke).toHaveBeenCalledOnce();
+});
+
+it("stops the deletion when the browser blocks the popup", async () => {
+	const auth = apple(() =>
+		Promise.reject({ error: "popup_blocked_by_browser" }),
+	);
+	const { revoke, result } = run(auth);
+	await expect(result).resolves.toBe("popupBlocked");
+	expect(revoke).not.toHaveBeenCalled();
+	expect(mocks.report).not.toHaveBeenCalled();
 });

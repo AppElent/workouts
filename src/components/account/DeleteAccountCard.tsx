@@ -8,12 +8,12 @@ import {
 	useMutation,
 	useQuery,
 } from "convex/react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "#/components/ui/button";
 import { useConfirm } from "#/components/ui/confirm-dialog";
 import { useToast } from "#/components/ui/toast";
-import { revokeAppleSignIn } from "#/lib/auth/appleRevocation";
-import { useMessages } from "#/lib/i18n";
+import { preloadAppleJs, revokeAppleSignIn } from "#/lib/auth/appleRevocation";
+import { useI18n } from "#/lib/i18n";
 
 type Mode = "deleteData" | "deleteAccount";
 
@@ -29,7 +29,10 @@ export function DeleteAccountCard() {
 	const deleteData = useMutation(api.account.deleteData);
 	const revokeApple = useAction(api.account.revokeAppleSignIn);
 	const online = useConvexConnectionState().isWebSocketConnected;
-	const { account: c, errors } = useMessages();
+	const {
+		locale,
+		messages: { account: c, common, errors },
+	} = useI18n();
 	const confirm = useConfirm();
 	const toast = useToast();
 	const navigate = useNavigate();
@@ -40,6 +43,10 @@ export function DeleteAccountCard() {
 	const disabled = !online || blocker !== null || busy !== null;
 	const accountDeletable = user?.deleteSelfEnabled ?? false;
 
+	useEffect(() => {
+		if (user && accountDeletable) preloadAppleJs(user, locale);
+	}, [user, accountDeletable, locale]);
+
 	async function run(mode: Mode) {
 		if (pending.current || disabled || !userId || !user) return;
 		pending.current = true;
@@ -49,16 +56,16 @@ export function DeleteAccountCard() {
 				description:
 					mode === "deleteData" ? c.deleteDataConfirm : c.deleteAccountConfirm,
 				confirmLabel: c[mode],
-				cancelLabel: c.cancel,
+				cancelLabel: common.actions.cancel,
 				destructive: true,
 			});
 			if (!confirmed) return;
-			if (
-				mode === "deleteAccount" &&
-				(await revokeAppleSignIn(user, revokeApple)) === "cancelled"
-			)
-				return;
 			setBusy(mode);
+			if (mode === "deleteAccount") {
+				const apple = await revokeAppleSignIn(user, revokeApple, { locale });
+				if (apple === "popupBlocked") toast.error(c.deletion.applePopupBlocked);
+				if (apple !== "continue") return;
+			}
 			try {
 				// Each batch commits; a retry after an error resumes deleting.
 				while (!(await deleteData({ expectedSubject: userId })).done);

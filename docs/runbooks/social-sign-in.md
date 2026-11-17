@@ -223,6 +223,9 @@ account never matches and nothing is revoked there.
 - Cancelling any flow returns to the form without an error.
 - Account deletion (iOS, Apple-linked account): after Delete account, Foundry
   disappears from Settings → Apple ID → Sign in with Apple.
+- Account deletion (web, production, once `APPLE_WEB_RETURN_URLS` lists it):
+  Delete account opens the Apple popup; afterwards Foundry disappears from
+  account.apple.com → Sign in with Apple. Closing the popup keeps the account.
 
 ## Troubleshooting
 
