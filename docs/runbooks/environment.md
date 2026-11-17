@@ -73,8 +73,9 @@ pnpm mobile:update:preview   # exec staging: preview channel, EAS preview values
 `deploy:dev` pushes Convex functions to the shared dev deployment
 (`colorless-sturgeon-704`), whatever `.env.local` selects, and leaves `.env.local`
 as it was: `exec dev` blanks the local-file names, so the script names the
-deployment itself and runs `convex dev --once` through
-`scripts/keep-env-local.mjs`, which restores the file afterwards. A worktree
+deployment itself and runs `convex dev --once` directly under
+`scripts/keep-env-local.mjs`, which restores the file once Convex exits and
+fails the run if it was cancelled. A worktree
 with its own backend pushes to it with plain `pnpm exec convex dev --once`.
 `deploy:production` targets Convex with the production `CONVEX_DEPLOY_KEY` from
 Infisical `prod`, which wins over any selector or worktree key in `.env.local`, and

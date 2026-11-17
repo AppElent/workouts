@@ -60,3 +60,30 @@ it("passes SIGTERM to the command, restores .env.local and fails", async () => {
 	expect(code).toBe(143);
 	expect(readFileSync(join(cwd, ".env.local")).equals(original)).toBe(true);
 });
+
+it("fails a cancelled run even when the command exits 0", async () => {
+	const cwd = mkdtempSync(join(tmpdir(), "keep-env-local-"));
+	const original = Buffer.from("CONVEX_DEPLOYMENT=dev:worktree\n");
+	writeFileSync(join(cwd, ".env.local"), original);
+	const wrapper = spawn(
+		process.execPath,
+		[
+			script,
+			"--",
+			process.execPath,
+			"-e",
+			// Writes the file while handling the signal, then exits cleanly.
+			"process.on('SIGTERM', () => { require('fs').writeFileSync('.env.local', 'late'); process.exit(0) }); console.log('ready'); setInterval(() => {}, 1000)",
+		],
+		{ cwd },
+	);
+	await new Promise((resolve) => wrapper.stdout.once("data", resolve));
+
+	wrapper.kill("SIGTERM");
+	const [code] = await new Promise((resolve) =>
+		wrapper.on("exit", (...exit) => resolve(exit)),
+	);
+
+	expect(code).toBe(143);
+	expect(readFileSync(join(cwd, ".env.local")).equals(original)).toBe(true);
+});
