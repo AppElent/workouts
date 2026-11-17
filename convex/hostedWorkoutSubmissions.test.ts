@@ -366,3 +366,30 @@ it("claims a closed workout while another activity is in progress", async () => 
 	expect(sessions.claimed?.status).toBe("completed");
 	expect(sessions.active?.status).toBe("active");
 });
+
+it("completes a joined session that closing cancelled once scores are claimed into it", async () => {
+	const { t, host, id, token } = await openWorkout();
+	const sam = t.withIdentity({ subject: "sam" });
+	const sessionId = await sam.mutation(api.hostedWorkoutParticipants.join, {
+		token,
+		displayName: "Sam",
+	});
+	await t.mutation(api.hostedWorkoutSubmissions.submitGuest, {
+		token,
+		guestName: "Sam",
+		guestKey: SAM_KEY,
+		...score(80),
+	});
+	await host.mutation(api.hostedWorkouts.close, { id });
+	expect((await t.run((ctx) => ctx.db.get(sessionId)))?.status).toBe(
+		"cancelled",
+	);
+	const result = await sam.mutation(
+		api.hostedWorkoutSubmissions.claimGuestSubmissions,
+		{ token, guestKey: SAM_KEY, guestName: "Sam" },
+	);
+	expect(result).toMatchObject({ sessionId, claimed: 1 });
+	expect((await t.run((ctx) => ctx.db.get(sessionId)))?.status).toBe(
+		"completed",
+	);
+});

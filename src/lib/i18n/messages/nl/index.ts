@@ -2,6 +2,7 @@ import type { Messages } from "../en";
 import { auth } from "./auth";
 import { common } from "./common";
 import { errors } from "./errors";
+import { hosted } from "./hosted";
 import { mcpViews } from "./mcp-views";
 import { nav } from "./nav";
 import { privacy } from "./privacy";
@@ -13,6 +14,7 @@ export const nl = {
 	auth,
 	common,
 	errors,
+	hosted,
 	mcpViews,
 	nav,
 	privacy,

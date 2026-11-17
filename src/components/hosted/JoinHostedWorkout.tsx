@@ -1,5 +1,6 @@
 import { Show, useAuth, useUser } from "@clerk/react";
 import { api } from "@convex/_generated/api";
+import { plural } from "@foundry/core";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { format } from "date-fns";
@@ -12,6 +13,7 @@ import {
 	HostedWodBlockCard,
 } from "#/components/hosted/HostedBlocks";
 import { useConvexErrorMessage } from "#/lib/convexError";
+import { fmt, useI18n } from "#/lib/i18n";
 
 export function JoinHostedWorkout({ token }: { token: string }) {
 	const navigate = useNavigate();
@@ -193,12 +195,13 @@ function ClaimGuestScores({
 	guests: { guestName: string; count: number }[];
 }) {
 	const navigate = useNavigate();
+	const { locale, messages } = useI18n();
+	const t = messages.hosted.claim;
 	const claim = useMutation(api.hostedWorkoutSubmissions.claimGuestSubmissions);
 	const errorMessage = useConvexErrorMessage();
 	const [claiming, setClaiming] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const total = guests.reduce((sum, guest) => sum + guest.count, 0);
-	const scores = total === 1 ? "your guest score" : "your guest scores";
 	const shared = guests.length > 1;
 
 	async function handleClaim(guestName: string) {
@@ -209,7 +212,7 @@ function ClaimGuestScores({
 			const { sessionId } = await claim({ token, guestKey, guestName });
 			void navigate({ to: "/log/$sessionId", params: { sessionId } });
 		} catch (err) {
-			setError(errorMessage(err, "Couldn't add your scores. Try again."));
+			setError(errorMessage(err, t.failed));
 			setClaiming(null);
 		}
 	}
@@ -217,17 +220,17 @@ function ClaimGuestScores({
 	return (
 		<section className="flex flex-col gap-3 rounded-lg border border-border bg-surface p-4 sm:flex-row sm:items-center sm:justify-between">
 			<div>
-				<h2 className="text-sm font-bold text-text">Keep {scores}</h2>
+				<h2 className="text-sm font-bold text-text">
+					{plural(locale, total, t.title)}
+				</h2>
 				<Show when="signed-in">
 					<p className="mt-1 text-sm text-text-muted">
-						{shared
-							? "Several people scored on this device. Add only the scores under your own name to your training history."
-							: `Add ${scores} from this device to your training history.`}
+						{shared ? t.signedInShared : plural(locale, total, t.signedIn)}
 					</p>
 				</Show>
 				<Show when="signed-out">
 					<p className="mt-1 text-sm text-text-muted">
-						Create a free account to save {scores} in your own training history.
+						{plural(locale, total, t.signedOut)}
 					</p>
 				</Show>
 				{error && <p className="mt-2 text-sm text-danger">{error}</p>}
@@ -244,10 +247,10 @@ function ClaimGuestScores({
 						>
 							<History size={15} />
 							{claiming === guestName
-								? "Adding..."
+								? t.adding
 								: shared
-									? `I'm ${guestName} (${count})`
-									: "Add to my history"}
+									? fmt(t.addAs, { name: guestName, count })
+									: t.add}
 						</button>
 					))}
 				</div>
@@ -259,7 +262,7 @@ function ClaimGuestScores({
 					className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-accent-fill px-4 py-2 text-sm font-bold text-on-accent"
 				>
 					<UserPlus size={15} />
-					Create account
+					{t.createAccount}
 				</Link>
 			</Show>
 		</section>

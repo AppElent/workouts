@@ -282,6 +282,11 @@ export const claimGuestSubmissions = mutation({
 			});
 			claimed += 1;
 		}
+		// Closing the workout cancels a joined session with nothing logged; the
+		// claimed scores now belong to it, so it counts as completed.
+		const session = await ctx.db.get(participant.sessionId);
+		if (claimed > 0 && session?.status === "cancelled")
+			await ctx.db.patch(session._id, { status: "completed" });
 		return { sessionId: participant.sessionId, claimed, skipped };
 	},
 });
