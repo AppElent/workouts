@@ -16,7 +16,7 @@ Light and dark tokens already ship in `src/styles.css` (#221) and follow `prefer
 3. Hint under it: Systeem "Systeem volgt de instelling van je apparaat. Opgeslagen in deze browser."; Licht "Altijd licht in deze browser."; Donker "Altijd donker in deze browser, wat je apparaat ook doet." (en: "System follows your device setting. Saved in this browser." / "Always light in this browser." / "Always dark in this browser, whatever your device does.")
 4. Taal: a select (Nederlands, English) bound to the existing `setLocale`. The sidebar keeps its NL/EN shortcut; no theme toggle in the sidebar.
 5. Per-browser storage (localStorage `foundry.theme` = system|light|dark), not synced to the account.
-6. `features.ts`: `theme` → status parity, platforms web + mobile, web route `account`.
+6. `features.ts`: `theme` → status parity, platforms web + mobile, web route `account`; drop its `pending-port` reason.
 
 ## Implementation notes
 
