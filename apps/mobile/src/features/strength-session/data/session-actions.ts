@@ -579,7 +579,9 @@ export function useSessionActions(workspace: SessionWorkspace) {
 				const added = await addExercise(exerciseId, undefined, label);
 				if (!added) return false;
 			}
-			return apply(addToGroup(plan(), groupId, exerciseId), { name: label });
+			return apply(addToGroup(plan(), groupId, exerciseId, getFacts), {
+				name: label,
+			});
 		}
 		async function dropExercise(exerciseId: string) {
 			if (refuseUnresolved(rowsOf(plan(), exerciseId))) return;

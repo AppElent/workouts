@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing Training, Start activity, Strength Sessions, the set editor, Set Drafts, or strength references.
-version: 1.0.0
+version: 1.1.0
 status: current
 ---
 
@@ -66,6 +66,38 @@ references. Studies: [training](../../designs/app/training_final.html),
   logged Sets but is not a completed Activity. Both clear drafts and wait for pending
   set writes.
 - Legacy history stays as recorded; never present prefilled targets as measured.
+
+### Connected-app setup
+
+An agent can prepare a training through the [MCP](../runbooks/mcp.md) so the
+person only confirms numbers, or log one afterwards. It uses the same records as
+the app; there is no separate data.
+
+- **Personal Exercises:** `create_exercise` reuses the in-app create path and
+  returns the caller's existing Personal Exercise with the same name (ignoring
+  case) instead of a duplicate.
+- **Planned Sets:** `add_exercise_to_session` with `plannedSets` replaces that
+  exercise's Planned Sets in an active session. A target is a load or a
+  percentage of the session's 1RM (Measured unless a newer Manual), rounded to
+  the exercise's step (5 lb in pounds). When the session has no 1RM for the
+  exercise and nothing is logged for it, its references are snapshotted again
+  first, so a 1RM saved after the exercise was added counts. No 1RM refuses the
+  percentage. Both apps show
+  the targets as they show a Routine's; an app that already shows the exercise
+  keeps its own plan.
+- **Logged afterwards:** a session's start (`date` and `startTime`), each Set's
+  `loggedAt`, and the finish time can be given. Activities, history, volume,
+  and references then see the given times. Times more than five minutes in the
+  future, and Set or finish times more than five minutes before the session's
+  start, are refused; the five minutes absorb clock skew between devices. A
+  past start that matches a session already logged (active or finished, not
+  cancelled) returns that session, so a retry never makes a second one. The
+  MCP asks for Set and finish times once a session started over six hours ago,
+  and refuses a past start while another session is active.
+- **Repeated plans:** planning an exercise again replaces its targets.
+  Percentages resolve against the session's 1RM, the one its percentage chips
+  use, so repeating the same plan gives the same loads even after a newer 1RM
+  is saved.
 
 ### Set editor
 

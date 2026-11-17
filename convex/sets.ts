@@ -1,4 +1,4 @@
-import { validateSetInput } from "@foundry/core";
+import { validateRecordedTime, validateSetInput } from "@foundry/core";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import type { QueryCtx } from "./_generated/server";
@@ -37,8 +37,10 @@ export const add = mutation({
 		unit: loadUnit,
 		rpe: v.optional(v.number()),
 		setType,
+		/** When it was performed, for a session logged afterwards; defaults to now. */
+		loggedAt: v.optional(v.number()),
 	},
-	handler: async (ctx, { operationId, ...values }) => {
+	handler: async (ctx, { operationId, loggedAt, ...values }) => {
 		const userId = await requireUserId(ctx);
 		// A coded rejection tells the client this operation did not commit, so it
 		// may unlock the input; a transport failure keeps the operation id frozen.
@@ -46,8 +48,19 @@ export const add = mutation({
 		return withOperationReceipt(
 			ctx,
 			"strengthLogReceipts",
-			{ userId, operationId, payload: values },
+			{
+				userId,
+				operationId,
+				payload: loggedAt === undefined ? values : { ...values, loggedAt },
+			},
 			async () => {
+				const now = Date.now();
+				if (loggedAt !== undefined) {
+					const session = await requireOwned(ctx, userId, values.sessionId);
+					checked(
+						validateRecordedTime("loggedAt", loggedAt, now, session.startTime),
+					);
+				}
 				const exerciseId = await ensureSessionExercise(
 					ctx,
 					userId,
@@ -58,7 +71,7 @@ export const add = mutation({
 				const setId = await ctx.db.insert("sets", {
 					...set,
 					userId,
-					loggedAt: Date.now(),
+					loggedAt: loggedAt ?? now,
 					...(await performanceReference(ctx, userId, set)),
 				});
 				await recalcStrengthReferences(ctx, userId, exerciseId);

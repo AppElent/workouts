@@ -14,7 +14,9 @@ import {
 	useTokens,
 } from "../../theme";
 import { Segmented } from "../../ui/segmented";
+import { SelectionMenu } from "../../ui/selection-menu";
 import { AppText } from "../../ui/text";
+import { useChoice } from "../../ui/use-choice";
 import { SessionExercisePicker } from "./components/session-exercise-picker";
 import { useSessionActions } from "./data/session-actions";
 import { useSessionWorkspace } from "./data/session-workspace";
@@ -25,11 +27,13 @@ import {
 	modeLocked,
 	moveEntry,
 	REST_STEP_SECONDS,
+	rowsOf,
 	sessionExercises,
 	setGroupCap,
 	setGroupMode,
 	setGroupRest,
 	setGroupRounds,
+	takeOutOfGroup,
 } from "./session-plan";
 
 function Stepper({
@@ -94,6 +98,7 @@ export function SessionGroupScreen() {
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
 	const [picking, setPicking] = useState(false);
+	const choose = useChoice();
 	const group = plan?.groups[params.groupId];
 	const gone = Boolean(plan && !group);
 	const screenOptions = useMemo(
@@ -112,6 +117,26 @@ export function SessionGroupScreen() {
 	const entry = { kind: "group", groupId: group.id } as const;
 	const locked = modeLocked(group);
 	const amrap = group.mode === "amrap";
+	const onMember = async (exerciseId: string, id: string) => {
+		const name = nameOf(exerciseId);
+		if (id === "takeOut") {
+			void actions.apply(takeOutOfGroup(actions.plan(), exerciseId), { name });
+			return;
+		}
+		const logged = rowsOf(actions.plan(), exerciseId).filter(
+			(row) => row.done,
+		).length;
+		if (
+			logged === 0 ||
+			(await choose({
+				title: fmt(root.removeExerciseTitle, { name }),
+				message: plural(locale, logged, root.removeExerciseLogged),
+				confirm: { label: root.removeExerciseConfirm, destructive: true },
+				cancel: root.keepTraining,
+			}))
+		)
+			await actions.dropExercise(exerciseId);
+	};
 	const applyMode = (mode: GroupMode) => {
 		// Amrap keeps one round in view: the others must not hide an unsaved set.
 		if (actions.refusePending(group.rounds.flatMap((round) => round.items)))
@@ -241,8 +266,34 @@ export function SessionGroupScreen() {
 						{copy.exercises}
 					</AppText>
 					{names.map((exerciseId) => (
-						<View key={exerciseId} style={[styles.row, styles.rowLine]}>
-							<AppText variant="row">{nameOf(exerciseId)}</AppText>
+						<View
+							key={exerciseId}
+							style={[styles.row, styles.rowLine, styles.member]}
+						>
+							<AppText variant="row" style={styles.memberName}>
+								{nameOf(exerciseId)}
+							</AppText>
+							<SelectionMenu
+								trigger="ellipsis"
+								label={fmt(root.exerciseOptions, { name: nameOf(exerciseId) })}
+								accessibilityLabel={fmt(root.exerciseOptions, {
+									name: nameOf(exerciseId),
+								})}
+								groups={[
+									{
+										title: nameOf(exerciseId),
+										options: [
+											{ id: "takeOut", label: root.takeOutOfGroup },
+											{
+												id: "remove",
+												label: root.removeExercise,
+												destructive: true,
+											},
+										],
+									},
+								]}
+								onSelect={(id) => void onMember(exerciseId, id)}
+							/>
 						</View>
 					))}
 					<Pressable
@@ -317,6 +368,12 @@ const createStyles = (colors: Tokens) =>
 			justifyContent: "center",
 			paddingHorizontal: spacing.md,
 		},
+		member: {
+			flexDirection: "row",
+			alignItems: "center",
+			paddingRight: 0,
+		},
+		memberName: { flex: 1, minWidth: 0 },
 		rowLine: {
 			borderTopWidth: StyleSheet.hairlineWidth,
 			borderTopColor: colors.separator,
