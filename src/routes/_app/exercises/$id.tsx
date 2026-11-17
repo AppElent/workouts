@@ -1,6 +1,10 @@
 import { useAuth } from "@clerk/react";
 import { api } from "@convex/_generated/api";
-import { calculateOneRepMax, exerciseRecords } from "@foundry/core";
+import {
+	calculateOneRepMax,
+	exerciseRecords,
+	isTimedExercise,
+} from "@foundry/core";
 import type { ExerciseId } from "@foundry/core/exercises";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
@@ -20,7 +24,7 @@ import {
 import { MuscleMap } from "#/components/exercises/MuscleMap";
 import { PersonalRecords } from "#/components/exercises/PersonalRecords";
 import { useExercise } from "#/lib/exercises";
-import { displayLoad, setReference } from "#/lib/load";
+import { displayLoad, setCount, setReference } from "#/lib/load";
 import { cn } from "#/lib/utils";
 
 type Tab = "overview" | "progress" | "history";
@@ -373,7 +377,7 @@ function ExerciseDetailPage() {
 											"Set",
 											"Type",
 											"Weight",
-											"Reps",
+											isTimedExercise(id) ? "Seconds" : "Reps",
 											"RPE",
 											"Est. 1RM",
 										].map((h) => (
@@ -409,7 +413,7 @@ function ExerciseDetailPage() {
 														{set.unit}
 													</span>
 												</td>
-												<td className="py-2 pr-4 text-text">{set.reps}</td>
+												<td className="py-2 pr-4 text-text">{setCount(set)}</td>
 												<td className="py-2 pr-4 text-text-muted">
 													{set.rpe ?? "—"}
 												</td>

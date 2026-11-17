@@ -148,7 +148,7 @@ export function SessionRecap({
 									>
 										{plural(locale, row.sets, copy.rowSets)}
 										{row.topLoad
-											? ` · ${formatSetShort(row.topLoad, facts.bodyweight, locale)}`
+											? ` · ${formatSetShort(row.topLoad, facts, locale)}`
 											: ""}
 									</AppText>
 								</View>

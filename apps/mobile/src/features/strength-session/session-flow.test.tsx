@@ -480,6 +480,7 @@ it("won't close a group while one of its sets failed", async () => {
 	const facts = {
 		exercise: { equipment: "barbell" as const },
 		bodyweight: false,
+		timed: false,
 		stepKg: 2.5,
 		measured: 100,
 		estimated: null,
@@ -517,6 +518,7 @@ it("won't drop a failed set by shrinking its group or switching it to a clock", 
 	const facts = {
 		exercise: { equipment: "barbell" as const },
 		bodyweight: false,
+		timed: false,
 		stepKg: 2.5,
 		measured: 100,
 		estimated: null,
@@ -559,6 +561,7 @@ it("takes one exercise out of a group from the group sheet (APP-215)", async () 
 	const facts = {
 		exercise: { equipment: "barbell" as const },
 		bodyweight: false,
+		timed: false,
 		stepKg: 2.5,
 		measured: 100,
 		estimated: null,
@@ -604,6 +607,7 @@ it("asks before removing a grouped exercise with logged sets, and keeps it on Ke
 	const facts = {
 		exercise: { equipment: "barbell" as const },
 		bodyweight: false,
+		timed: false,
 		stepKg: 2.5,
 		measured: 100,
 		estimated: null,

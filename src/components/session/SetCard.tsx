@@ -1,6 +1,6 @@
 import type { Doc } from "@convex/_generated/dataModel";
 import { ChevronRight } from "lucide-react";
-import { setReference } from "#/lib/load";
+import { setCount, setReference } from "#/lib/load";
 
 interface Props {
 	set: Doc<"sets">;
@@ -45,7 +45,7 @@ export function SetCard({ set, onEdit }: Props) {
 					<span className="text-sm text-text-muted shrink-0">BW</span>
 				)}
 				<span className="text-sm text-text shrink-0 tabular-nums">
-					×{set.reps}
+					×{setCount(set)}
 				</span>
 				{set.rpe !== undefined && (
 					<span className="text-xs text-text-muted shrink-0">

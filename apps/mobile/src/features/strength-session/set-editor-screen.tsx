@@ -263,6 +263,9 @@ export function SetEditorScreen() {
 	}, [plan, router, stored]);
 	if (!plan || !row || !facts) return <Stack.Screen options={{ title: "" }} />;
 	const bodyweight = facts.bodyweight;
+	const timed = facts.timed;
+	/** Seconds move in fives on a hold; reps move one at a time. */
+	const countStep = timed ? 5 : 1;
 	const group = groupOfRow(plan, row.id);
 	const roundIndex = group
 		? group.rounds.findIndex((round) =>
@@ -320,8 +323,8 @@ export function SetEditorScreen() {
 	const custom = target !== null && !PRESETS.includes(target);
 	const clockIdle =
 		group?.mode === "amrap" && group.state === "idle" && !logged;
-	const fullLoad = formatSetFull(row, bodyweight, locale);
-	const loadOnly = formatLoadOnly(row, bodyweight, locale);
+	const fullLoad = formatSetFull(row, facts, locale);
+	const loadOnly = formatLoadOnly(row, facts, locale);
 
 	let referenceLine = "";
 	if (reference && !bodyweight && row.kg > 0) {
@@ -421,7 +424,7 @@ export function SetEditorScreen() {
 	const planLoad = row.plan
 		? formatSetShort(
 				{ ...row, kg: row.plan.kg, reps: row.plan.reps, typedLbs: undefined },
-				bodyweight,
+				facts,
 				locale,
 			)
 		: null;
@@ -484,7 +487,7 @@ export function SetEditorScreen() {
 			? fmt(text.previous, {
 					load: formatSetShort(
 						{ kg: facts.last.kg, reps: facts.last.reps, unit: "kg" },
-						bodyweight,
+						facts,
 						locale,
 					),
 				})
@@ -499,6 +502,7 @@ export function SetEditorScreen() {
 			? text.lockedUnknown
 			: [previousLine, restLine].filter(Boolean).join(" · ");
 
+	const enterCount = timed ? text.enterSeconds : text.enterReps;
 	let primary = fmt(text.logLoad, { load: fullLoad });
 	let primaryEnabled = true;
 	if (sending) {
@@ -511,7 +515,7 @@ export function SetEditorScreen() {
 		primaryEnabled = false;
 	} else if (typedEmpty) {
 		primaryEnabled = false;
-		primary = focus === "kg" ? text.enterLoad : text.enterReps;
+		primary = focus === "kg" ? text.enterLoad : enterCount;
 	} else if (!valid) {
 		primaryEnabled = false;
 		const noLoad = !bodyweight && !(row.kg > 0);
@@ -522,10 +526,12 @@ export function SetEditorScreen() {
 				: noLoad
 					? text.enterLoad
 					: noReps
-						? text.enterReps
+						? enterCount
 						: shownLoad(row) > SET_LIMITS.weight.max
 							? text.checkLoad
-							: text.checkReps;
+							: timed
+								? text.checkSeconds
+								: text.checkReps;
 	} else if (check)
 		primary =
 			check.kind === "reps"
@@ -1109,7 +1115,7 @@ export function SetEditorScreen() {
 							onBlur={() => setFocus(null)}
 						/>
 						<NumberField
-							label={text.reps}
+							label={timed ? text.seconds : text.reps}
 							value={repsShown}
 							placeholder="—"
 							decimal={false}
@@ -1142,19 +1148,31 @@ export function SetEditorScreen() {
 							</View>
 							<View style={styles.stepPair}>
 								<StepButton
-									label="−1"
-									spoken={text.repsDown}
+									label={`−${countStep}`}
+									spoken={
+										timed
+											? fmt(text.secondsDown, { step: countStep })
+											: text.repsDown
+									}
 									disabled={locked || row.reps <= 0}
 									onPress={() =>
-										change({ ...row, reps: Math.max(0, row.reps - 1) })
+										change({ ...row, reps: Math.max(0, row.reps - countStep) })
 									}
 								/>
 								<StepButton
-									label="+1"
-									spoken={text.repsUp}
+									label={`+${countStep}`}
+									spoken={
+										timed
+											? fmt(text.secondsUp, { step: countStep })
+											: text.repsUp
+									}
 									disabled={locked}
 									onPress={() =>
-										change({ ...row, reps: row.reps + 1, blank: undefined })
+										change({
+											...row,
+											reps: row.reps + countStep,
+											blank: undefined,
+										})
 									}
 								/>
 							</View>
