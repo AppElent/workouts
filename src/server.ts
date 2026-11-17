@@ -5,6 +5,7 @@ import {
 	sentryOptions,
 	withoutConsole,
 } from "./lib/observability/config";
+import { versionResponse } from "./lib/version/version";
 
 const instrumentedHandler = Sentry.withSentry(
 	() => ({ ...sentryOptions(), integrations: withoutConsole }),
@@ -26,6 +27,14 @@ const instrumentedHandler = Sentry.withSentry(
 
 export default {
 	fetch(request: Request, env: Env, ctx: ExecutionContext) {
+		// Answered before the app and Sentry: deploy smoke checks and the
+		// dashboard poll it, and it must work even when SSR is broken.
+		if (
+			request.method === "GET" &&
+			new URL(request.url).pathname === "/version"
+		) {
+			return Promise.resolve(versionResponse());
+		}
 		// Wrangler inherits production bindings even when serving localhost.
 		// Bypass instrumentation before it creates any spans or captures errors.
 		if (isLocalSentryUrl(request.url)) return handler.fetch(request);

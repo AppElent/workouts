@@ -1,12 +1,12 @@
 name: Convex drift
 
-# Flags when production Convex lacks Convex changes that are on main.
-# Production deploys only from a manual Deploy run, and this never deploys: it
-# compares the commit of the last successful `production` deployment with main
-# (scripts/convex-drift.mjs). After every Deploy run (each merge deploys
-# staging) it warns about undeployed changes; once one has waited longer than
-# the grace period the run fails, and the daily run keeps failing until
-# production catches up. GitHub emails failed scheduled runs. See
+# Flags when production Convex lacks Convex changes that are on main. Every
+# merge deploys production (deploy.yml), so drift now means a failed or
+# skipped production job. This never deploys: it compares the commit of the
+# last successful `production` deployment with main (scripts/convex-drift.mjs).
+# After every Deploy run it warns about undeployed changes; once one has waited
+# longer than the grace period the run fails, and the daily run keeps failing
+# until production catches up. GitHub emails failed scheduled runs. See
 # docs/runbooks/deploy.md.
 on:
   workflow_run:

@@ -1,0 +1,138 @@
+name: Deploy web
+
+# One web target: Convex functions, then the Worker, then a smoke check that
+# `/version` serves this commit. Called by deploy.yml for `staging` and then
+# `production`. Staging has its own Convex deployment (`fearless-mouse-671`);
+# production is `fine-akita-444`, which the installed apps also call. See
+# docs/runbooks/deploy.md.
+on:
+  workflow_call:
+    inputs:
+      # The GitHub Environment; also picks the Wrangler env (production = top level).
+      environment: { type: string, required: true }
+      # The Worker this target must build; the deploy refuses any other.
+      worker: { type: string, required: true }
+      # Where the smoke check reads /version.
+      url: { type: string, required: true }
+
+jobs:
+  # Runs queue per target, so an older run (a slow `checks`, or a re-run)
+  # could otherwise deploy over a newer commit. Only main's tip ships. This
+  # job has no environment, and a skipped deploy job records no deployment,
+  # so convex-drift.mjs never sees a deployment that did not ship.
+  fresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: { contents: read }
+    outputs:
+      stale: ${{ steps.tip.outputs.stale }}
+    steps:
+      - name: Guard superseded
+        id: tip
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET: ${{ inputs.environment }}
+        run: |
+          tip=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)
+          if [ "$tip" != "$GITHUB_SHA" ]; then
+            echo "::warning::main is at ${tip:0:7}; skipping ${GITHUB_SHA:0:7}, the newer run deploys."
+            echo "Skipped $TARGET: superseded by \`${tip:0:7}\`." >> "$GITHUB_STEP_SUMMARY"
+            echo "stale=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  deploy:
+    needs: fresh
+    if: needs.fresh.outputs.stale != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: ${{ inputs.environment }}
+      url: ${{ inputs.url }}
+    permissions: { contents: read }
+    env:
+      # Every value is scoped to the GitHub Environment, written by
+      # `pnpm env:apply <environment> --only github` from env.manifest.ts. This
+      # file names each once and never selects between environments.
+      ENVIRONMENT_NAME: ${{ inputs.environment }}
+      CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      # Public values are GitHub variables: the build inlines them.
+      VITE_CLERK_PUBLISHABLE_KEY: ${{ vars.VITE_CLERK_PUBLISHABLE_KEY }}
+      VITE_SENTRY_DSN: ${{ vars.VITE_SENTRY_DSN }}
+      # The client tags Sentry events with this; the Worker reads its own
+      # `environment_name` var from wrangler.jsonc.
+      VITE_SENTRY_ENVIRONMENT: ${{ inputs.environment }}
+      # The Cloudflare Vite plugin picks the Wrangler env at build time and
+      # `wrangler deploy` follows dist/server/wrangler.json; --env is ignored.
+      # wrangler.jsonc: top-level = foundry (production), env.staging =
+      # foundry-staging.
+      CLOUDFLARE_ENV: ${{ inputs.environment != 'production' && inputs.environment || '' }}
+      EXPECTED_WORKER: ${{ inputs.worker }}
+    steps:
+      # Only main reaches a deployed environment, also from a manual run.
+      - name: Guard ref
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "::error::Deploys run from main only (got ${GITHUB_REF})."
+          exit 1
+
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup
+
+      # An Environment without its own CONVEX_DEPLOY_KEY silently inherits a
+      # repository secret of that name, so check the prefix first. `--ci` checks
+      # the job env: a workflow cannot list GitHub secrets and holds them anyway.
+      - name: Check environment
+        run: |
+          case "$CONVEX_DEPLOY_KEY" in
+            prod:*) ;;
+            *) echo "::error::CONVEX_DEPLOY_KEY in the $ENVIRONMENT_NAME Environment is missing or not a prod: key."; exit 1 ;;
+          esac
+          node scripts/env.mjs check "$ENVIRONMENT_NAME" --ci
+
+      # Core exports compiled files; a fresh runner has no dist yet.
+      - run: pnpm build:packages
+
+      # The deploy key alone picks the Convex deployment, which exposes its URL
+      # to --cmd as $CONVEX_URL; the build reads VITE_CONVEX_URL. Both targets
+      # run `pnpm build`, so staging exercises the bundle production ships.
+      - name: Convex deploy + build
+        run: |
+          # shellcheck disable=SC2016 # $CONVEX_URL expands inside convex deploy
+          pnpm exec convex deploy \
+            --cmd-url-env-var-name CONVEX_URL \
+            --cmd 'VITE_CONVEX_URL=$CONVEX_URL pnpm build'
+
+      # A build for the wrong env would replace another environment's Worker.
+      - name: Guard Worker name
+        run: |
+          built=$(jq -r .name dist/server/wrangler.json)
+          if [ "$built" != "$EXPECTED_WORKER" ]; then
+            echo "::error::Built Worker is $built, expected $EXPECTED_WORKER. Check CLOUDFLARE_ENV."
+            exit 1
+          fi
+
+      - name: Deploy Worker
+        run: pnpm exec wrangler deploy
+
+      # The Worker answers /version before the app, so this proves the new
+      # bundle is live; the page fetch proves SSR renders.
+      - name: Smoke check
+        env:
+          URL: ${{ inputs.url }}
+        run: |
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            served=$(curl -fsS "$URL/version" | jq -r .commit || true)
+            [ "$served" = "$GITHUB_SHA" ] && break
+            echo "Attempt $attempt: $URL/version serves '${served:-nothing}', waiting for $GITHUB_SHA"
+            sleep 6
+          done
+          if [ "$served" != "$GITHUB_SHA" ]; then
+            echo "::error::$URL/version serves '${served:-nothing}', expected $GITHUB_SHA."
+            exit 1
+          fi
+          curl -fsS --retry 3 --retry-delay 3 --retry-all-errors -o /dev/null -w "%{http_code} $URL\n" "$URL/"
+          echo "$ENVIRONMENT_NAME: \`$(curl -fsS "$URL/version" | jq -r .release)\` live at $URL" >> "$GITHUB_STEP_SUMMARY"
