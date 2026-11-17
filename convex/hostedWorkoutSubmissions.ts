@@ -1,10 +1,11 @@
 import { validateWodScore } from "@foundry/core";
 import { type ObjectType, v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
-import type { MutationCtx } from "./_generated/server";
-import { mutation } from "./_generated/server";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 import { requireUserId } from "./lib/auth";
 import { appError, checked } from "./lib/errors";
+import { joinHosted, startHostedSession } from "./lib/hosted";
 import { hostedLevel, wodScoreFields } from "./lib/validators";
 import { recordWodResult, wodDefinitionOf } from "./lib/wods";
 
@@ -102,27 +103,75 @@ export const submitForSession = mutation({
 	},
 });
 
-/** One submission per guest name per WOD block; a re-submit updates it. */
+const GUEST_KEY = /^[A-Za-z0-9_-]{16,64}$/;
+
+function checkedGuestKey(guestKey: string) {
+	if (!GUEST_KEY.test(guestKey)) throw appError("invalid", "guestKey");
+	return guestKey;
+}
+
+async function hostedByToken(ctx: QueryCtx, token: string) {
+	const hosted = await ctx.db
+		.query("hostedWorkouts")
+		.withIndex("by_join_token", (q) => q.eq("joinToken", token))
+		.first();
+	if (!hosted) throw appError("notFound");
+	return hosted;
+}
+
+function checkedGuestName(guestName: string) {
+	const name = guestName.trim();
+	if (name.length < 2) throw appError("invalid", "guestName");
+	if (name.length > 80) throw appError("tooLong", "guestName");
+	return name;
+}
+
+/** The guest submissions sent from one browser, not yet claimed. */
+async function guestSubmissions(
+	ctx: QueryCtx,
+	hosted: Doc<"hostedWorkouts">,
+	guestKey: string,
+) {
+	const rows = await ctx.db
+		.query("hostedWorkoutSubmissions")
+		.withIndex("by_hosted_workout", (q) => q.eq("hostedWorkoutId", hosted._id))
+		.collect();
+	return rows.filter((row) => !row.participantId && row.guestKey === guestKey);
+}
+
+/**
+ * One submission per guest per WOD block, keyed by the browser's guest key
+ * and the typed name together: two guests called Sam on their own phones keep
+ * separate rows, so do Alex and Sam taking turns on one shared device, and a
+ * re-submit with the same name from the same browser corrects that score.
+ */
 export const submitGuest = mutation({
 	args: {
 		token: v.string(),
 		guestName: v.string(),
+		// Optional only for web clients loaded before the key shipped: without
+		// one, every submit adds a new row and nothing is ever overwritten.
+		guestKey: v.optional(v.string()),
 		wodBlockId: v.string(),
 		...scoreFields,
 	},
-	handler: async (ctx, { token, guestName, wodBlockId, ...score }) => {
-		const name = guestName.trim();
-		if (name.length < 2) throw appError("invalid", "guestName");
-		if (name.length > 80) throw appError("tooLong", "guestName");
-		const hosted = await ctx.db
-			.query("hostedWorkouts")
-			.withIndex("by_join_token", (q) => q.eq("joinToken", token))
-			.first();
-		if (!hosted) throw appError("notFound");
+	handler: async (
+		ctx,
+		{ token, guestName, guestKey, wodBlockId, ...score },
+	) => {
+		const name = checkedGuestName(guestName);
+		const key = guestKey === undefined ? undefined : checkedGuestKey(guestKey);
+		const hosted = await hostedByToken(ctx, token);
 		scoredLevel(hosted, wodBlockId, score);
-		const existing = (await blockSubmissions(ctx, hosted, wodBlockId)).find(
-			(row) => row.guestName === name,
-		);
+		const existing =
+			key === undefined
+				? undefined
+				: (await blockSubmissions(ctx, hosted, wodBlockId)).find(
+						(row) =>
+							!row.participantId &&
+							row.guestKey === key &&
+							row.guestName === name,
+					);
 		if (existing) {
 			await ctx.db.patch(existing._id, submissionFields(score));
 			return existing._id;
@@ -130,9 +179,121 @@ export const submitGuest = mutation({
 		return ctx.db.insert("hostedWorkoutSubmissions", {
 			hostedWorkoutId: hosted._id,
 			guestName: name,
+			guestKey: key,
 			wodBlockId,
 			...submissionFields(score),
 		});
+	},
+});
+
+/**
+ * Public: the guest names this browser scored under on the workout, with how
+ * many unclaimed scores each has, so the join page can offer to claim them
+ * after sign-up. More than one name means a shared device; each person claims
+ * only their own name.
+ */
+export const listGuestScores = query({
+	args: { token: v.string(), guestKey: v.string() },
+	handler: async (ctx, { token, guestKey }) => {
+		if (!GUEST_KEY.test(guestKey)) return [];
+		const hosted = await ctx.db
+			.query("hostedWorkouts")
+			.withIndex("by_join_token", (q) => q.eq("joinToken", token))
+			.first();
+		if (!hosted || hosted.status === "draft") return [];
+		const counts = new Map<string, number>();
+		for (const row of await guestSubmissions(ctx, hosted, guestKey))
+			if (row.guestName)
+				counts.set(row.guestName, (counts.get(row.guestName) ?? 0) + 1);
+		return [...counts].map(([guestName, count]) => ({ guestName, count }));
+	},
+});
+
+/**
+ * Turns this browser's guest scores under one name into the signed-in
+ * athlete's own Submissions (ADR 0008): joins them to the workout if needed,
+ * records each score as a WOD Result in their history, and links the
+ * leaderboard row. A WOD block the athlete already scored while signed in
+ * keeps that score; the guest row stays on the leaderboard as a plain guest
+ * score that can no longer be claimed or corrected.
+ */
+export const claimGuestSubmissions = mutation({
+	args: { token: v.string(), guestKey: v.string(), guestName: v.string() },
+	handler: async (ctx, { token, guestKey, guestName }) => {
+		const userId = await requireUserId(ctx);
+		const key = checkedGuestKey(guestKey);
+		const name = checkedGuestName(guestName);
+		const hosted = await hostedByToken(ctx, token);
+		if (hosted.status === "draft") throw appError("hostedNotOpen");
+		const rows = (await guestSubmissions(ctx, hosted, key)).filter(
+			(row) => row.guestName === name,
+		);
+		if (rows.length === 0) throw appError("notFound", "guestName");
+		let participant = await ctx.db
+			.query("hostedWorkoutParticipants")
+			.withIndex("by_hosted_workout_user", (q) =>
+				q.eq("hostedWorkoutId", hosted._id).eq("userId", userId),
+			)
+			.first();
+		// A new session is for the workout the guest already did: it starts at
+		// their first score, and on a closed workout it is recorded as finished,
+		// so another activity in progress does not block it.
+		const submitted = rows.map((row) => row.submittedAt);
+		const recorded = {
+			startTime: Math.min(...submitted),
+			endTime: hosted.status === "closed" ? Math.max(...submitted) : undefined,
+		};
+		if (!participant) {
+			const sessionId = await joinHosted(ctx, hosted, userId, name, recorded);
+			participant = await ctx.db
+				.query("hostedWorkoutParticipants")
+				.withIndex("by_session", (q) => q.eq("sessionId", sessionId))
+				.first();
+			if (!participant) throw appError("notFound");
+		} else if (!(await ctx.db.get(participant.sessionId))) {
+			// The athlete deleted the session they joined with; give the claimed
+			// scores a new one.
+			const sessionId = await startHostedSession(ctx, hosted, userId, recorded);
+			await ctx.db.patch(participant._id, { sessionId });
+			participant = { ...participant, sessionId };
+		}
+		const participantId = participant._id;
+		let claimed = 0;
+		let skipped = 0;
+		for (const row of rows) {
+			const alreadyScored = (
+				await blockSubmissions(ctx, hosted, row.wodBlockId)
+			).some((other) => other.participantId === participantId);
+			const block = hosted.template.wodBlocks.find(
+				(item) => item.blockId === row.wodBlockId,
+			);
+			const level = block?.levels.find((item) => item.level === row.level);
+			if (alreadyScored || !block || !level) {
+				await ctx.db.patch(row._id, { guestKey: undefined });
+				skipped += 1;
+				continue;
+			}
+			const recorded = await recordWodResult(ctx, userId, {
+				wod: { ...wodDefinitionOf(block), movements: level.movements },
+				sessionId: participant.sessionId,
+				rxScaled: row.level === "rx" ? "rx" : "scaled",
+				score: row,
+				date: row.submittedAt,
+			});
+			await ctx.db.patch(row._id, {
+				participantId,
+				guestName: undefined,
+				guestKey: undefined,
+				...recorded,
+			});
+			claimed += 1;
+		}
+		// Closing the workout cancels a joined session with nothing logged; the
+		// claimed scores now belong to it, so it counts as completed.
+		const session = await ctx.db.get(participant.sessionId);
+		if (claimed > 0 && session?.status === "cancelled")
+			await ctx.db.patch(session._id, { status: "completed" });
+		return { sessionId: participant.sessionId, claimed, skipped };
 	},
 });
 

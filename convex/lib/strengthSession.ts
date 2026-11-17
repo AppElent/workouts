@@ -69,6 +69,12 @@ export async function startSession(
 		date?: number;
 		/** When it started, for a session logged afterwards; defaults to now. */
 		startTime?: number;
+		/**
+		 * When it ended, for a session recorded only after the fact (a claimed
+		 * guest score): it is stored as completed, so an unrelated active
+		 * session does not block it.
+		 */
+		endTime?: number;
 		routineId?: Id<"routines">;
 		prescriptions: readonly Prescription[];
 	},
@@ -91,7 +97,7 @@ export async function startSession(
 		);
 		if (logged) return logged._id;
 	}
-	if (await getActiveSession(ctx, userId))
+	if (session.endTime === undefined && (await getActiveSession(ctx, userId)))
 		throw appError("activeSessionExists");
 	validatePrescriptions(session.prescriptions);
 	const exercises: NonNullable<Doc<"workoutSessions">["exercises"]> = [];
@@ -117,7 +123,9 @@ export async function startSession(
 		name: session.name,
 		routineId: session.routineId,
 		exercises,
-		status: "active",
+		...(session.endTime === undefined
+			? { status: "active" as const }
+			: { status: "completed" as const, endTime: session.endTime }),
 	});
 }
 

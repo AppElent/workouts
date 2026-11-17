@@ -1,16 +1,19 @@
 import { Show, useAuth, useUser } from "@clerk/react";
 import { api } from "@convex/_generated/api";
+import { plural } from "@foundry/core";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useMutation, useQuery } from "convex/react";
+import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { format } from "date-fns";
-import { LogIn, Play } from "lucide-react";
+import { History, LogIn, Play, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { GuestSubmissionForm } from "#/components/hosted/GuestSubmissionForm";
+import { getGuestKey } from "#/components/hosted/guestKey";
 import {
 	HostedStrengthBlocks,
 	HostedWodBlockCard,
 } from "#/components/hosted/HostedBlocks";
 import { useConvexErrorMessage } from "#/lib/convexError";
+import { fmt, useI18n } from "#/lib/i18n";
 
 export function JoinHostedWorkout({ token }: { token: string }) {
 	const navigate = useNavigate();
@@ -19,6 +22,11 @@ export function JoinHostedWorkout({ token }: { token: string }) {
 	const data = useQuery(api.hostedWorkouts.getByJoinToken, { token });
 	const join = useMutation(api.hostedWorkoutParticipants.join);
 	const submitGuest = useMutation(api.hostedWorkoutSubmissions.submitGuest);
+	const [guestKey] = useState(getGuestKey);
+	const guestScores = useQuery(api.hostedWorkoutSubmissions.listGuestScores, {
+		token,
+		guestKey,
+	});
 	const errorMessage = useConvexErrorMessage();
 	const [joining, setJoining] = useState(false);
 	const [joinError, setJoinError] = useState<string | null>(null);
@@ -105,6 +113,7 @@ export function JoinHostedWorkout({ token }: { token: string }) {
 					<Show when="signed-out">
 						<Link
 							to="/sign-in"
+							search={{ redirect: `/join/${token}` }}
 							className="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-semibold text-text"
 						>
 							<LogIn size={15} />
@@ -114,6 +123,14 @@ export function JoinHostedWorkout({ token }: { token: string }) {
 				</div>
 				{joinError && <p className="mt-3 text-sm text-danger">{joinError}</p>}
 			</header>
+
+			{guestScores && guestScores.length > 0 ? (
+				<ClaimGuestScores
+					token={token}
+					guestKey={guestKey}
+					guests={guestScores}
+				/>
+			) : null}
 
 			<HostedStrengthBlocks blocks={hosted.template.strengthBlocks} />
 
@@ -125,6 +142,7 @@ export function JoinHostedWorkout({ token }: { token: string }) {
 							submitGuest({
 								token,
 								guestName,
+								guestKey,
 								...payload,
 							})
 						}
@@ -158,5 +176,98 @@ export function JoinHostedWorkout({ token }: { token: string }) {
 				</div>
 			</section>
 		</div>
+	);
+}
+
+/**
+ * Offers a guest who scored from this browser to keep those scores: sign up
+ * (and come back here), then claim them into their own history. On a shared
+ * device each name is claimed on its own, so one athlete never takes another's
+ * scores.
+ */
+function ClaimGuestScores({
+	token,
+	guestKey,
+	guests,
+}: {
+	token: string;
+	guestKey: string;
+	guests: { guestName: string; count: number }[];
+}) {
+	const navigate = useNavigate();
+	const { locale, messages } = useI18n();
+	const t = messages.hosted.claim;
+	const claim = useMutation(api.hostedWorkoutSubmissions.claimGuestSubmissions);
+	// Clerk can report signed-in before Convex has the token, right after
+	// returning from sign-up; claiming then would be rejected.
+	const { isAuthenticated } = useConvexAuth();
+	const errorMessage = useConvexErrorMessage();
+	const [claiming, setClaiming] = useState<string | null>(null);
+	const [error, setError] = useState<string | null>(null);
+	const total = guests.reduce((sum, guest) => sum + guest.count, 0);
+	const shared = guests.length > 1;
+
+	async function handleClaim(guestName: string) {
+		if (claiming || !isAuthenticated) return;
+		setClaiming(guestName);
+		setError(null);
+		try {
+			const { sessionId } = await claim({ token, guestKey, guestName });
+			void navigate({ to: "/log/$sessionId", params: { sessionId } });
+		} catch (err) {
+			setError(errorMessage(err, t.failed));
+			setClaiming(null);
+		}
+	}
+
+	return (
+		<section className="flex flex-col gap-3 rounded-lg border border-border bg-surface p-4 sm:flex-row sm:items-center sm:justify-between">
+			<div>
+				<h2 className="text-sm font-bold text-text">
+					{plural(locale, total, t.title)}
+				</h2>
+				<Show when="signed-in">
+					<p className="mt-1 text-sm text-text-muted">
+						{shared ? t.signedInShared : plural(locale, total, t.signedIn)}
+					</p>
+				</Show>
+				<Show when="signed-out">
+					<p className="mt-1 text-sm text-text-muted">
+						{plural(locale, total, t.signedOut)}
+					</p>
+				</Show>
+				{error && <p className="mt-2 text-sm text-danger">{error}</p>}
+			</div>
+			<Show when="signed-in">
+				<div className="flex shrink-0 flex-col gap-2">
+					{guests.map(({ guestName, count }) => (
+						<button
+							key={guestName}
+							type="button"
+							onClick={() => void handleClaim(guestName)}
+							disabled={claiming !== null || !isAuthenticated}
+							className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent-fill px-4 py-2 text-sm font-bold text-on-accent disabled:opacity-50"
+						>
+							<History size={15} />
+							{claiming === guestName
+								? t.adding
+								: shared
+									? fmt(t.addAs, { name: guestName, count })
+									: t.add}
+						</button>
+					))}
+				</div>
+			</Show>
+			<Show when="signed-out">
+				<Link
+					to="/sign-up"
+					search={{ redirect: `/join/${token}` }}
+					className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-accent-fill px-4 py-2 text-sm font-bold text-on-accent"
+				>
+					<UserPlus size={15} />
+					{t.createAccount}
+				</Link>
+			</Show>
+		</section>
 	);
 }
