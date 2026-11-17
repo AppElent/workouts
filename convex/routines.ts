@@ -105,8 +105,12 @@ export const update = mutation({
 });
 
 export const startSession = mutation({
-	args: { routineId: v.id("routines") },
-	handler: async (ctx, { routineId }) => {
+	args: {
+		routineId: v.id("routines"),
+		/** For a session logged afterwards; defaults to now. */
+		startTime: v.optional(v.number()),
+	},
+	handler: async (ctx, { routineId, startTime }) => {
 		const userId = await requireUserId(ctx);
 		const routine = await requireOwned(ctx, userId, routineId);
 		const prescriptions: Prescription[] = [];
@@ -117,6 +121,7 @@ export const startSession = mutation({
 			});
 		return startStrengthSession(ctx, userId, {
 			name: routine.name,
+			startTime,
 			routineId,
 			prescriptions,
 		});
