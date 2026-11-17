@@ -679,13 +679,15 @@ export function fillFromLast(
 	};
 }
 
+/** Where a first hold starts, so the ±5 steps land on round numbers. */
+const TIMED_DEFAULT_SECONDS = 30;
 function setBlank(exerciseId: string, facts: ExerciseFacts): PlanSet {
 	const last = facts.last;
 	return {
 		id: newRowId(),
 		exerciseId,
 		kg: last?.kg ?? 0,
-		reps: last?.reps ?? 0,
+		reps: last?.reps ?? (facts.timed ? TIMED_DEFAULT_SECONDS : 0),
 		unit: "kg",
 		percent: null,
 		kind: "working",

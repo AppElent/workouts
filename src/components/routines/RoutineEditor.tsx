@@ -1,6 +1,6 @@
 import type { api } from "@convex/_generated/api";
 import type { Doc } from "@convex/_generated/dataModel";
-import { SET_LIMITS } from "@foundry/core";
+import { isTimedExercise, SET_LIMITS } from "@foundry/core";
 import type { FunctionReturnType } from "convex/server";
 import { Plus, X } from "lucide-react";
 import { useState } from "react";
@@ -104,7 +104,7 @@ export function RoutineEditor({
 						max={SET_LIMITS.plannedSets.max}
 					/>
 					<Stepper
-						label="Reps"
+						label={isTimedExercise(entry.exerciseId) ? "Seconds" : "Reps"}
 						value={entry.defaultReps}
 						onChange={(value) => updateEntry(index, { defaultReps: value })}
 						min={SET_LIMITS.plannedReps.min}
@@ -137,7 +137,7 @@ export function RoutineEditor({
 									exerciseId: exercise._id,
 									name: exercise.name,
 									defaultSets: 3,
-									defaultReps: 8,
+									defaultReps: isTimedExercise(exercise._id) ? 30 : 8,
 								},
 							]);
 							setPicking(false);
