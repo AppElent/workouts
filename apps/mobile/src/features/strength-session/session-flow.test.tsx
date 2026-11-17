@@ -17,6 +17,7 @@ import * as ProfileRoute from "../../../app/(app)/set-editor/strength-profile";
 import { renderApp } from "../../test-support/render-app";
 import { workspaceKey, workspaceStore } from "./data/session-workspace";
 import {
+	addToGroup,
 	allRows,
 	findRow,
 	groupWith,
@@ -24,6 +25,7 @@ import {
 	type PlanSet,
 	type SessionPlan,
 	seedPlan,
+	sessionExercises,
 	setGroupMode,
 	setGroupRounds,
 	startClock,
@@ -549,6 +551,51 @@ it("won't drop a failed set by shrinking its group or switching it to a clock", 
 	);
 	await fireEvent.press(await screen.findByLabelText("As many as possible"));
 	expect(workspaceStore.plan(planKey())?.groups[id]?.mode).toBe("rounds");
+});
+
+it("takes one exercise out of a group from the group sheet (APP-215)", async () => {
+	const facts = {
+		exercise: { equipment: "barbell" as const },
+		bodyweight: false,
+		stepKg: 2.5,
+		measured: 100,
+		estimated: null,
+		savedManual: null,
+		measuredDate: 1,
+		last: null,
+	};
+	const second = "shipped:exercise:barbell-bench-press";
+	const third = "shipped:exercise:barbell-deadlift";
+	const plannedSets = [{ weight: 60, reps: 8, unit: "kg" as const }];
+	const exercises = [
+		{ exerciseId, plannedSets },
+		{ exerciseId: second, plannedSets },
+		{ exerciseId: third, plannedSets },
+	];
+	currentSession = { ...currentSession, exercises };
+	const grouped = groupWith(
+		seedPlan(exercises, [], () => facts),
+		exerciseId,
+		second,
+	);
+	const id = grouped.groupId as string;
+	workspaceStore.setPlan(planKey(), addToGroup(grouped.plan, id, third).plan);
+	await mount();
+	await act(() =>
+		router.push(`/session-group?sessionId=session-1&groupId=${id}`),
+	);
+	await fireEvent.press(
+		await screen.findByLabelText(/^Options for Barbell Bench Press/),
+	);
+	await fireEvent.press(
+		await screen.findByRole("button", { name: "Remove from group" }),
+	);
+	const plan = workspaceStore.plan(planKey()) as SessionPlan;
+	expect(sessionExercises(plan)).toEqual([exerciseId, third, second]);
+	expect(plan.order).toEqual([
+		{ kind: "group", groupId: id },
+		{ kind: "exercise", exerciseId: second },
+	]);
 });
 
 it("undoes a removed set, unless the session changed since", async () => {
