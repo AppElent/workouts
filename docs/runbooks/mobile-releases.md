@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when building a development client, shipping to TestFlight, or publishing an OTA update.
-version: 2.0.0
+version: 2.1.0
 ---
 
 # iOS test builds and OTA updates
@@ -100,8 +100,13 @@ Developer account under Xcode → Settings → Accounts and create an Apple
 Development certificate through Manage Certificates before the first run.
 
 ```sh
+export LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8   # pod install crashes without a UTF-8 locale
 SENTRY_DISABLE_AUTO_UPLOAD=true pnpm devbuild:ios --device
 ```
+
+The build and `expo prebuild` run `pod install`, which fails with a Ruby
+`Encoding::CompatibilityError` when the terminal's locale is not UTF-8; the
+export (or the same line in your shell profile) prevents it.
 
 This compiles and installs the development client and starts Metro. JavaScript
 changes then use Fast Refresh. If another checkout already uses port 8081,
