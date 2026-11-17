@@ -15,6 +15,7 @@
 import {
 	calculateOneRepMax,
 	exerciseRecords,
+	isTimedExercise,
 	primaryMuscleGroup,
 	repMaxCurve,
 	roundLoad,
@@ -100,6 +101,7 @@ export function ExerciseDetailScreen() {
 		exerciseId ? { exerciseId } : "skip",
 	);
 
+	const timed = isTimedExercise(exerciseId);
 	const records = useMemo(
 		() =>
 			history?.length ? exerciseRecords(history, exercise, CURVE_REPS) : null,
@@ -244,7 +246,12 @@ export function ExerciseDetailScreen() {
 								/>
 								<StatBox
 									value={records.mostReps ? String(records.mostReps.reps) : "—"}
-									label={t.exercises.detail.mostReps}
+									unit={timed && records.mostReps ? "s" : undefined}
+									label={
+										timed
+											? t.exercises.detail.longestHold
+											: t.exercises.detail.mostReps
+									}
 								/>
 								<StatBox
 									value={
@@ -292,7 +299,7 @@ export function ExerciseDetailScreen() {
 					currentOrm={currentOrm ?? null}
 				/>
 			) : (
-				<HistoryTab history={history} />
+				<HistoryTab history={history} timed={timed} />
 			)}
 		</ScrollView>
 	);
@@ -386,8 +393,11 @@ function ProgressTab({
 
 function HistoryTab({
 	history,
+	timed,
 }: {
 	history: ReturnType<typeof useQuery<typeof api.exercises.getHistory>>;
+	/** A hold: the count column is seconds. */
+	timed: boolean;
 }) {
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
@@ -419,7 +429,7 @@ function HistoryTab({
 				<AppText style={[styles.th, styles.flex]}>{copy.date}</AppText>
 				<AppText style={[styles.th, styles.center, { width: 56 }]}>kg</AppText>
 				<AppText style={[styles.th, styles.center, { width: 44 }]}>
-					{copy.reps}
+					{timed ? copy.seconds : copy.reps}
 				</AppText>
 				<AppText style={[styles.th, styles.center, { width: 64 }]}>
 					{copy.estimate}
@@ -427,7 +437,9 @@ function HistoryTab({
 			</View>
 			{rows.map((set) => {
 				const estimate =
-					set.weight > 0 ? calculateOneRepMax(set.weight, set.reps) : null;
+					set.weight > 0 && !timed
+						? calculateOneRepMax(set.weight, set.reps)
+						: null;
 				return (
 					<View key={set._id} style={styles.historyRow}>
 						<View style={styles.flex}>

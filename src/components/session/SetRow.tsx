@@ -1,6 +1,6 @@
 import type { Doc } from "@convex/_generated/dataModel";
 import { Pencil } from "lucide-react";
-import { setReference } from "#/lib/load";
+import { setCount, setReference } from "#/lib/load";
 
 interface Props {
 	set: Doc<"sets">;
@@ -29,7 +29,7 @@ export function SetRow({ set, onEdit }: Props) {
 				)}
 			</td>
 			<td className="py-2 pr-3 w-16">
-				<span className="text-text">{set.reps}</span>
+				<span className="text-text">{setCount(set)}</span>
 			</td>
 			<td className="py-2 pr-3 w-16">
 				<span className="text-text-muted">{set.rpe ?? "—"}</span>

@@ -109,6 +109,8 @@ export interface ExerciseFacts {
 	/** Unknown while the catalog loads or after the exercise was deleted. */
 	exercise: { readonly equipment: Equipment } | null;
 	bodyweight: boolean;
+	/** A held time: the set's `reps` counts seconds (see `isTimedExercise`). */
+	timed: boolean;
 	stepKg: number;
 	measured: number | null;
 	estimated: number | null;
@@ -999,19 +1001,22 @@ export function typoCheck(
 	const baseKg = base.kg;
 	const baseReps = base.reps;
 	const free = Boolean(row.free);
-	if (row.reps > 30)
-		return { kind: "reps", code: "repsHigh", values: { reps: row.reps } };
-	if (
-		row.kind !== "failure" &&
-		row.reps > 10 &&
-		baseReps >= 1 &&
-		row.reps > baseReps * 2
-	)
-		return {
-			kind: "reps",
-			code: free ? "repsAbovePrevious" : "repsAbovePlan",
-			values: { reps: row.reps, base: baseReps },
-		};
+	// A hold's seconds would trip every rep-count check.
+	if (!facts.timed) {
+		if (row.reps > 30)
+			return { kind: "reps", code: "repsHigh", values: { reps: row.reps } };
+		if (
+			row.kind !== "failure" &&
+			row.reps > 10 &&
+			baseReps >= 1 &&
+			row.reps > baseReps * 2
+		)
+			return {
+				kind: "reps",
+				code: free ? "repsAbovePrevious" : "repsAbovePlan",
+				values: { reps: row.reps, base: baseReps },
+			};
+	}
 	if (facts.bodyweight)
 		return row.kg > Math.max(baseKg * 1.25, 50)
 			? { kind: "kg", code: "addedHigh", values: { kg: row.kg } }
@@ -2165,6 +2170,7 @@ export function recapOf(plan: SessionPlan, getFacts: PlanFacts) {
 	const rows = allRows(plan).filter((row) => row.done);
 	const volume = workingVolume(
 		rows.map((row) => ({
+			exerciseId: row.exerciseId,
 			weight: row.kg,
 			unit: "kg" as const,
 			reps: row.reps,

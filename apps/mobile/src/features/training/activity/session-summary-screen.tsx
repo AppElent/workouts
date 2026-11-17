@@ -5,6 +5,7 @@
 import {
 	formatDurationMinutes,
 	formatScore,
+	isTimedExercise,
 	workingVolume,
 } from "@foundry/core";
 import type { ExerciseId } from "@foundry/core/exercises";
@@ -159,6 +160,7 @@ export function SessionSummaryScreen() {
 								key={group.exerciseId}
 								name={group.name}
 								sets={group.sets}
+								timed={isTimedExercise(group.exerciseId)}
 							/>
 						))}
 					</View>
@@ -227,7 +229,16 @@ function SessionWodResults({
 	);
 }
 
-function ExerciseRecap({ name, sets }: { name: string; sets: Doc<"sets">[] }) {
+function ExerciseRecap({
+	name,
+	sets,
+	timed,
+}: {
+	name: string;
+	sets: Doc<"sets">[];
+	/** A hold: each set's count is seconds. */
+	timed: boolean;
+}) {
 	const styles = useThemedStyles(createStyles);
 	const copy = useI18n().t.workoutSummary;
 	// "Best" is the heaviest set, matching the web. Not the same as the highest
@@ -255,14 +266,18 @@ function ExerciseRecap({ name, sets }: { name: string; sets: Doc<"sets">[] }) {
 								s.setType === "warmup" && styles.warmupChipText,
 							]}
 						>
-							{s.weight > 0
-								? `${s.weight} × ${s.reps}`
-								: fmt(copy.repsOnly, { reps: s.reps })}
+							{timed
+								? s.weight > 0
+									? `+${s.weight} × ${fmt(copy.secondsOnly, { seconds: s.reps })}`
+									: fmt(copy.secondsOnly, { seconds: s.reps })
+								: s.weight > 0
+									? `${s.weight} × ${s.reps}`
+									: fmt(copy.repsOnly, { reps: s.reps })}
 						</AppText>
 					</View>
 				))}
 			</View>
-			{best && best.weight > 0 ? (
+			{best && best.weight > 0 && !timed ? (
 				<AppText style={styles.rowSub}>
 					{fmt(copy.best, { weight: best.weight, reps: best.reps })}
 				</AppText>

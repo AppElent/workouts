@@ -476,6 +476,7 @@ it("won't close a group while one of its sets failed", async () => {
 	const facts = {
 		exercise: { equipment: "barbell" as const },
 		bodyweight: false,
+		timed: false,
 		stepKg: 2.5,
 		measured: 100,
 		estimated: null,
@@ -513,6 +514,7 @@ it("won't drop a failed set by shrinking its group or switching it to a clock", 
 	const facts = {
 		exercise: { equipment: "barbell" as const },
 		bodyweight: false,
+		timed: false,
 		stepKg: 2.5,
 		measured: 100,
 		estimated: null,

@@ -35,6 +35,28 @@ export function isLoadedEquipment(equipment: Equipment): boolean {
 	return EQUIPMENT_TRAITS[equipment].loaded;
 }
 
+/**
+ * Shipped exercises measured as a held time. A Set on one of these records
+ * seconds in its count (`reps`) field: "45" on a Plank is a 45-second hold.
+ * Timed Sets never feed One-rep Max references, rep maxes, or work volume.
+ * Personal exercises are always counted in reps.
+ */
+const TIMED_EXERCISE_IDS: ReadonlySet<string> = new Set([
+	"shipped:exercise:plank",
+	"shipped:exercise:isometric-neck-exercise-front-and-back",
+	"shipped:exercise:isometric-neck-exercise-sides",
+]);
+
+/** The shipped exercises measured in seconds, for catalog checks. */
+export const TIMED_EXERCISES: readonly string[] = [...TIMED_EXERCISE_IDS];
+
+/** Whether a Set on this exercise counts seconds held instead of reps. */
+export function isTimedExercise(
+	exerciseId: string | null | undefined,
+): boolean {
+	return !!exerciseId && TIMED_EXERCISE_IDS.has(exerciseId);
+}
+
 export const EXERCISE_CATEGORIES = ["compound", "isolation"] as const;
 export type ExerciseCategory = (typeof EXERCISE_CATEGORIES)[number];
 
