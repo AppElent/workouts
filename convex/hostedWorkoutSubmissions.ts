@@ -5,7 +5,7 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
 import { requireUserId } from "./lib/auth";
 import { appError, checked } from "./lib/errors";
-import { joinHosted } from "./lib/hosted";
+import { joinHosted, startHostedSession } from "./lib/hosted";
 import { hostedLevel, wodScoreFields } from "./lib/validators";
 import { recordWodResult, wodDefinitionOf } from "./lib/wods";
 
@@ -235,21 +235,27 @@ export const claimGuestSubmissions = mutation({
 				q.eq("hostedWorkoutId", hosted._id).eq("userId", userId),
 			)
 			.first();
+		// A new session is for the workout the guest already did: it starts at
+		// their first score, and on a closed workout it is recorded as finished,
+		// so another activity in progress does not block it.
+		const submitted = rows.map((row) => row.submittedAt);
+		const recorded = {
+			startTime: Math.min(...submitted),
+			endTime: hosted.status === "closed" ? Math.max(...submitted) : undefined,
+		};
 		if (!participant) {
-			// The session is for the workout the guest already did: it starts at
-			// their first score, and on a closed workout it is recorded as
-			// finished, so another activity in progress does not block it.
-			const submitted = rows.map((row) => row.submittedAt);
-			const sessionId = await joinHosted(ctx, hosted, userId, name, {
-				startTime: Math.min(...submitted),
-				endTime:
-					hosted.status === "closed" ? Math.max(...submitted) : undefined,
-			});
+			const sessionId = await joinHosted(ctx, hosted, userId, name, recorded);
 			participant = await ctx.db
 				.query("hostedWorkoutParticipants")
 				.withIndex("by_session", (q) => q.eq("sessionId", sessionId))
 				.first();
 			if (!participant) throw appError("notFound");
+		} else if (!(await ctx.db.get(participant.sessionId))) {
+			// The athlete deleted the session they joined with; give the claimed
+			// scores a new one.
+			const sessionId = await startHostedSession(ctx, hosted, userId, recorded);
+			await ctx.db.patch(participant._id, { sessionId });
+			participant = { ...participant, sessionId };
 		}
 		const participantId = participant._id;
 		let claimed = 0;

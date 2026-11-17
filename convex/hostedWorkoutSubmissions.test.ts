@@ -393,3 +393,32 @@ it("completes a joined session that closing cancelled once scores are claimed in
 		"completed",
 	);
 });
+
+it("gives claimed scores a new session when the joined one was deleted", async () => {
+	const { t, host, id, token } = await openWorkout();
+	const sam = t.withIdentity({ subject: "sam" });
+	const joined = await sam.mutation(api.hostedWorkoutParticipants.join, {
+		token,
+		displayName: "Sam",
+	});
+	await t.run((ctx) => ctx.db.delete(joined));
+	await t.mutation(api.hostedWorkoutSubmissions.submitGuest, {
+		token,
+		guestName: "Sam",
+		guestKey: SAM_KEY,
+		...score(80),
+	});
+	await host.mutation(api.hostedWorkouts.close, { id });
+	const { sessionId, claimed } = await sam.mutation(
+		api.hostedWorkoutSubmissions.claimGuestSubmissions,
+		{ token, guestKey: SAM_KEY, guestName: "Sam" },
+	);
+	expect(claimed).toBe(1);
+	expect(sessionId).not.toBe(joined);
+	const state = await t.run(async (ctx) => ({
+		session: await ctx.db.get(sessionId),
+		participants: await ctx.db.query("hostedWorkoutParticipants").collect(),
+	}));
+	expect(state.session?.status).toBe("completed");
+	expect(state.participants.map((row) => row.sessionId)).toEqual([sessionId]);
+});
