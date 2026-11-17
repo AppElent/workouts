@@ -338,4 +338,6 @@ it("dates the claimed WOD Result at the original guest submit", async () => {
 			.collect(),
 	);
 	expect(result.date).toBe(1_000_000);
+	const session = await t.run((ctx) => ctx.db.get(result.sessionId!));
+	expect(session).toMatchObject({ date: 1_000_000, startTime: 1_000_000 });
 });

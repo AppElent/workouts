@@ -237,11 +237,17 @@ export const claimGuestSubmissions = mutation({
 			.first();
 		if (!participant) {
 			const sessionId = await joinHosted(ctx, hosted, userId, name);
-			if (hosted.status === "closed")
-				await ctx.db.patch(sessionId, {
-					status: "completed",
-					endTime: Date.now(),
-				});
+			// The session is for the workout the guest already did, so it is
+			// dated at their first score rather than at the claim.
+			const submitted = rows.map((row) => row.submittedAt);
+			const startTime = Math.min(...submitted);
+			await ctx.db.patch(sessionId, {
+				date: hosted.scheduledAt ?? startTime,
+				startTime,
+				...(hosted.status === "closed"
+					? { status: "completed" as const, endTime: Math.max(...submitted) }
+					: {}),
+			});
 			participant = await ctx.db
 				.query("hostedWorkoutParticipants")
 				.withIndex("by_session", (q) => q.eq("sessionId", sessionId))
