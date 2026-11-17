@@ -95,6 +95,10 @@ overrides:
   # GHSA-5x38-2vff-x55p, GHSA-86w9-cpqp-85rv and 11 lower-severity advisories;
   # all fixed by 1.4.3.
   "node-forge@1": "^1.4.3"
+  # APP-114. uuid <11.1.1 (xcode via @expo/config-plugins pins 7, and
+  # @expo/bunyan via eas-cli pins 8): GHSA-w5hq-g745-h8pq. Both only call
+  # uuid.v4(), which uuid 11 keeps in its CommonJS build.
+  "uuid@<11.1.1": "^11.1.1"
   # convex lists the deprecated @clerk/clerk-react as an optional peer next to
   # @clerk/react, and pnpm auto-installs optional peers. The app is on
   # @clerk/react (Clerk Core 3), so keep the old package out of the graph.
