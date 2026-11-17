@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when building a development client, shipping to TestFlight, or publishing an OTA update.
-version: 1.3.0
+version: 2.0.0
 ---
 
 # iOS test builds and OTA updates
@@ -191,13 +191,50 @@ profile's bundle ID must already exist on EAS, with your device registered
 Apple Configurator. EAS variables with Secret visibility do not reach local
 builds, and Sentry source-map upload is disabled in CI.
 
-## Publish subsequent OTA updates
+## Automatic OTA updates
 
-From the repository root, after `infisical login`:
+The release standard (developer-home `standards/releases.md`) ships the app's
+JavaScript without anyone running a command:
+
+| Channel | When | Workflow | Gates |
+| --- | --- | --- | --- |
+| `preview` | Every merge, after the production web and Convex deploy | `mobile-update.yml`, called by `deploy.yml` | Something under `apps/mobile`, `packages/core` or the lockfile changed since `ota-preview`; production Convex has the commit; per platform, an update or finished build on `preview` has this fingerprint |
+| `production` | Daily, 06:23 UTC (07:23 Amsterdam in winter) | `mobile-update-production.yml` | Publishes the newest commit that has been on `preview` for 24 hours; skips when nothing the app bundles changed since `ota-production`; production Convex has the commit; per platform, an update or finished build on `production` has this fingerprint, otherwise the run reports **store build due** |
+
+Both move their tag (`ota-preview`, `ota-production`) after publishing, and
+both publish through `publish-update.mjs` with `--without-build`, since the
+workflow already did the fingerprint check (`apps/mobile/scripts/channel-runtime.mjs`).
+The production run uploads source maps with the `production` Environment's
+Sentry token; preview updates publish without maps for now. Neither waits for a
+person. A forced production publish (dispatch with `force`, for a fingerprint
+mismatch) and every store build wait for Eric's decision card first.
+
+When one platform publishes and the other reports a store build due, the tag
+still moves, so the due platform is not retried until the app changes again:
+treat "store build due" as the trigger for a store release.
+
+Rollback: `pnpm exec eas update:rollback` (from `apps/mobile`) or republish the
+previous group, then fix forward. A local build (`eas build --local`) is not
+recorded on EAS; after installing one, run the matching workflow by hand with
+`force` to seed the channel.
+
+## Versioning
+
+`expo.version` in `apps/mobile/app.json` is the one SemVer version for web and
+mobile. Bump `MINOR` for each store build, `PATCH` for a hotfix store build;
+OTA updates and web deploys keep the version. Build numbers stay with EAS
+(`appVersionSource: remote`). Each store build's commit gets a `v<version>` tag.
+The web reports `<version>+<short sha>` at `/version` and as the Sentry release
+`foundry@<version>+<short sha>`.
+
+## Publish OTA updates by hand
+
+Only when the automatic flow above cannot, from the repository root, after
+`infisical login`:
 
 ```sh
 EXPO_NO_DOTENV=1 pnpm mobile:update:preview --platform ios --message "Describe the changes"
-# Production only when publishing to production is intended:
+# Production by hand only after Eric's decision card:
 EXPO_NO_DOTENV=1 pnpm mobile:update:production --platform ios --message "Describe the changes"
 ```
 

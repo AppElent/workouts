@@ -1,13 +1,17 @@
 ---
 type: runbook
 description: Read when deploying Foundry's web app and backend, or changing deploy.yml or the deploy scripts.
-version: 1.1.0
+version: 2.0.0
 ---
 
 # Deploy
 
-Foundry follows the [deployments standard](../standards/deployments.md): a merge to
-`main` deploys staging, and production deploys only from a manual run on `main`.
+Foundry follows the [deployments standard](../standards/deployments.md) and the
+release standard (developer-home `standards/releases.md`): every merge to `main`
+deploys staging, then production, then publishes the preview app update, in one
+Deploy run. Nothing waits for a person in GitHub: anything `high`, or anything
+that could break installed app builds, waits for Eric's decision card before the
+merge.
 Environment values and their routing are in [environment](environment.md); PR
 previews are in `.github/workflows/preview.yml`.
 
@@ -15,14 +19,16 @@ previews are in `.github/workflows/preview.yml`.
 
 | Fact | Value |
 | --- | --- |
-| Workflow | `.github/workflows/deploy.yml`: push to `main` → `staging`; **Actions → Deploy → Run workflow** on `main` → `production` (the job refuses another ref) |
+| Workflow | `.github/workflows/deploy.yml`: push to `main` → `checks` → `staging` → `production` → `mobile-preview` ([mobile releases](mobile-releases.md#automatic-ota-updates)). Each web target runs `.github/workflows/deploy-web.yml`. **Actions → Deploy → Run workflow** redeploys `main` the same way; any other ref fails at `Guard ref` |
+| Smoke check | After each Worker deploy, `<url>/version` must serve the run's commit (retried for a minute), and `/` must answer. Production runs only after staging's smoke check passed |
+| Version | `GET /version` returns `version` (`expo.version` in `apps/mobile/app.json`, the one version for web and mobile), `commit`, `environment`, `release` and `builtAt`. Answered by the Worker before the app, uncached |
 | Checks | The `checks` job calls `ci.yml` through `workflow_call`, the same suite as pull requests. It gets no secrets, so its build uploads no source maps |
 | Workers (`wrangler.jsonc`) | `foundry` (production), `foundry-staging` (Wrangler env `staging`, custom domain `foundry-stg.appelent.nl`), `foundry-dev` (manual `deploy:dev` only), `foundry-pr-<n>` (Wrangler env `pr`) |
 | Convex | Production: `fine-akita-444`. Staging: `fearless-mouse-671` (prod-type deployment `staging` in the same project), picked by its `prod:` key, `convex-staging-deploy-key` in Infisical `prod` |
 | Auth | Staging uses the production Clerk instance (Infisical `prod`), which accepts only `appelent.nl` hosts, so staging needs its custom domain rather than `workers.dev` |
 | Credentials | GitHub Environments `staging` and `production`, written by `pnpm env:apply <environment> --only github`. The `Check environment` step checks the `prod:` key prefix and every GitHub-routed name before anything ships |
 | Build | Both targets run `pnpm build:packages`, then `convex deploy --cmd` with `pnpm build`. `CLOUDFLARE_ENV` (`staging`, or empty for production) picks the Worker at build time; the `Guard Worker name` step compares `dist/server/wrangler.json` with the expected Worker |
-| Sentry | The client reads `VITE_SENTRY_ENVIRONMENT` (`staging` or `production`); the Worker reads its Wrangler var `environment_name` |
+| Sentry | Release `foundry@<version>+<short sha>` (or `SENTRY_RELEASE`) for the client, the Worker and the source maps. The client reads `VITE_SENTRY_ENVIRONMENT` (`staging` or `production`); the Worker reads its Wrangler var `environment_name` |
 | Mobile | The installed preview app (EAS `preview`) stays on the production backend; staging web does not change what it sees |
 | By hand | `pnpm deploy:staging` / `pnpm deploy:production` run the same steps through `env.mjs exec <environment> --only github`, with the values read from Infisical |
 
@@ -30,9 +36,10 @@ No seed runs on deploy: fresh databases need no exercise seeding.
 
 ## Production Convex drift
 
-Production deploys only when someone runs it, so a merged Convex change can wait
-while installed apps already call it (on 12 Nov 2026 food logging in TestFlight
-build 27 failed against a production deployment 11 commits behind `main`).
+Production deploys on every merge, but a failed or skipped production job can
+leave a merged Convex change undeployed while installed apps already call it (on
+12 Nov 2026, before the chain, food logging in TestFlight build 27 failed against
+a production deployment 11 commits behind `main`).
 [`scripts/convex-drift.mjs`](../../scripts/convex-drift.mjs) finds the commit of the
 last successful GitHub deployment to the `production` Environment and lists the
 commits after it that change `convex/` or `packages/core/` (tests excluded;
@@ -48,10 +55,11 @@ production secrets.
 | `pnpm convex:drift` | The same check from a checkout (needs `gh auth login`); `--target <ref>` compares another ref, `--deployed <sha>` a given commit |
 | Mobile release scripts | Refuse to build or publish when this checkout has Convex changes production lacks; see [mobile releases](mobile-releases.md#production-convex-first) |
 
-When it flags drift, run **Actions → Deploy → Run workflow** on `main`. The check
-never deploys; the manual gate stays. A `pnpm deploy:production` run from a laptop
-records no GitHub deployment, so the check keeps reporting drift until the next
-workflow run.
+When it flags drift, find out why the production job failed, fix it, and run
+**Actions → Deploy → Run workflow** on `main`. The check never deploys. A
+`pnpm deploy:production` run from a laptop records no GitHub deployment, so the
+check keeps reporting drift until the next workflow run. The daily production
+app update records no deployment either (`deployment: false`).
 
 ## Shared dev deployment
 
@@ -72,11 +80,11 @@ or uses an [isolated backend](worktree-setup.md#isolated-backends) instead.
 
 ## Verify
 
-- The Deploy run is green, and `https://foundry-stg.appelent.nl` serves the new build.
-- A manual run from a branch other than `main` fails at `Guard production ref`.
-- After a production run, the Convex dashboard for `fine-akita-444` shows the new
-  functions and `foundry` serves the new build, and the next Convex drift run is
-  green.
+- The Deploy run shows `staging`, then `production`, both with a green smoke check.
+- `curl https://foundry.appelent.nl/version` returns the merged commit, and
+  Sentry's latest `foundry` release matches its `release`.
+- A manual run from a branch other than `main` fails at `Guard ref`.
+- The next Convex drift run is green.
 
 ## Troubleshooting
 

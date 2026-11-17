@@ -1,0 +1,101 @@
+name: Mobile Update (preview)
+
+# Publishes the app's JavaScript to the `preview` channel, the one Eric's
+# daily-driver build (`preview-internal` / TestFlight preview) follows.
+# deploy.yml calls it after the production deploy, because preview builds call
+# production Convex. The daily production update (mobile-update-production.yml)
+# only ships commits that soaked here for 24 hours.
+#
+# Skipped when nothing the app bundles changed since the last publish (the
+# `ota-preview` tag), so a web-only merge does not show "Update ready" for
+# nothing.
+#
+# Gated by the runtime fingerprint, per platform: an update is published only
+# when something on the channel already runs this fingerprint, an earlier
+# update or a finished EAS build. A native change (new module, config plugin,
+# SDK bump) changes the fingerprint; the job then skips that platform and says
+# a `preview-internal` rebuild is due.
+#
+# Local builds (`eas build --local`) are not recorded on EAS, so after
+# installing one, run this workflow by hand with `force` to seed the channel.
+on:
+  workflow_call:
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Publish even when nothing changed or nothing on the channel has this fingerprint
+        type: boolean
+        default: false
+
+concurrency:
+  group: mobile-update-preview
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      # Moves the ota-preview tag.
+      contents: write
+      # convex-drift.mjs reads the production deployment records.
+      deployments: read
+    env:
+      # Repository scope, written by `pnpm env:apply preview --only github`.
+      EXPO_TOKEN: ${{ secrets.PREVIEW_EXPO_TOKEN }}
+      # Source maps for preview updates are not uploaded yet: GitHub's
+      # repository scope has no Sentry token for the app project.
+      SENTRY_DISABLE_AUTO_UPLOAD: "true"
+      CHANNEL: preview
+      TAG: ota-preview
+      FORCE: ${{ inputs.force && 'true' || 'false' }}
+    steps:
+      - name: Check Expo token
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::error::PREVIEW_EXPO_TOKEN is not set. Run pnpm env:apply preview --only github."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Changed since last publish
+        id: changed
+        run: |
+          if [ "$FORCE" != true ] && git rev-parse -q --verify "refs/tags/$TAG" >/dev/null &&
+            git diff --quiet "$TAG" HEAD -- apps/mobile packages/core pnpm-lock.yaml; then
+            echo "Nothing the app bundles changed since \`$TAG\`; no preview update published." >> "$GITHUB_STEP_SUMMARY"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: ./.github/actions/setup
+        if: steps.changed.outputs.changed == 'true'
+
+      # A manual run is not chained to a production deploy, so check here too.
+      - name: Production Convex has this commit
+        if: steps.changed.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/convex-drift.mjs --target HEAD
+
+      - name: Match fingerprints
+        id: match
+        if: steps.changed.outputs.changed == 'true'
+        working-directory: apps/mobile
+        run: node scripts/channel-runtime.mjs "$CHANNEL" --summary "$GITHUB_STEP_SUMMARY" --output "$GITHUB_OUTPUT" ${{ inputs.force && '--force' || '' }}
+
+      - name: eas update
+        if: steps.match.outputs.platforms != ''
+        run: |
+          message="$(git log -1 --format=%s) ($(jq -r .expo.version apps/mobile/app.json)+$(git rev-parse --short=7 HEAD))"
+          for platform in ${{ steps.match.outputs.platforms }}; do
+            EXPO_NO_DOTENV=1 node apps/mobile/scripts/publish-update.mjs "$CHANNEL" --without-build \
+              --platform "$platform" --non-interactive --message "$message"
+          done
+          git tag -f "$TAG"
+          git push -f origin "refs/tags/$TAG"
