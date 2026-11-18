@@ -133,6 +133,9 @@ export function StatBox({
 	return (
 		<View style={styles.statBox}>
 			<AppText
+				numberOfLines={1}
+				adjustsFontSizeToFit
+				minimumFontScale={0.7}
 				style={{
 					...type.stat,
 					color: color ?? colors.text,

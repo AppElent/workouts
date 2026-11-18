@@ -106,7 +106,10 @@ function statDeltas(
 						percent === null
 							? `${formatNumber(Math.abs(volumeDiff), locale)} kg`
 							: `${Math.abs(percent)}% · ${formatNumber(Math.abs(volumeDiff), locale)} kg`,
-						percent === null ? undefined : `${Math.abs(percent)}%`,
+						// Under half a percent reads as "0%", so say the kilograms instead.
+						percent === null || percent === 0
+							? `${formatNumber(Math.abs(volumeDiff), locale)} kg`
+							: `${Math.abs(percent)}%`,
 					)
 				: null,
 		sets: signed(
