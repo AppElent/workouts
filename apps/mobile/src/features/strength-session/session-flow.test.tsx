@@ -309,7 +309,7 @@ it("starts the next rest offline once the last one has run out", async () => {
 			(await screen.findAllByLabelText("Log Barbell Back Squat 60 × 8"))[1],
 		);
 		const hidden = { includeHiddenElements: true };
-		expect(await screen.findByText(/^Rest \d/, hidden)).toBeTruthy();
+		expect(await screen.findByText(/^Rest · of \d/, hidden)).toBeTruthy();
 		expect(screen.queryByText("Rest over", hidden)).toBeNull();
 	} finally {
 		later.mockRestore();

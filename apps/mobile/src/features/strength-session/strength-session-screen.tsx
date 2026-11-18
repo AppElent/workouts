@@ -25,6 +25,7 @@ import { SessionDock } from "./components/session-dock";
 import { SessionExerciseBlock } from "./components/session-exercise-block";
 import { SessionExercisePicker } from "./components/session-exercise-picker";
 import { SessionGroupBlock } from "./components/session-group-block";
+import { SessionProgress } from "./components/session-progress";
 import { SessionRecap } from "./components/session-recap";
 import { useSessionActions } from "./data/session-actions";
 import { useSessionWorkspace } from "./data/session-workspace";
@@ -473,6 +474,8 @@ export function StrengthSessionScreen() {
 				) : recapOpen ? (
 					<SessionRecap
 						name={name}
+						session={session}
+						plan={closeOpenClocks(plan)}
 						elapsedSeconds={Math.floor((Date.now() - session.startTime) / 1000)}
 						recap={recapOf(closeOpenClocks(plan), getFacts)}
 						getFacts={getFacts}
@@ -521,6 +524,7 @@ export function StrengthSessionScreen() {
 									</AppText>
 								</View>
 							) : null}
+							<SessionProgress />
 							{plan.order.map((entry) => {
 								if (entry.kind === "exercise")
 									return (

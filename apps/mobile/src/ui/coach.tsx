@@ -6,7 +6,8 @@
  * bearing primitives; these are the recurring compositions on top of them, kept
  * here only so seven screens don't each grow their own card.
  */
-import type { ReactNode } from "react";
+import { SymbolView } from "expo-symbols";
+import type { ComponentProps, ReactNode } from "react";
 import { Pressable, StyleSheet, View, type ViewStyle } from "react-native";
 import {
 	type SportKey,
@@ -100,9 +101,17 @@ export function SportIcon({
 				},
 			]}
 		>
-			<AppText style={{ color, fontWeight: "800", fontSize: size * 0.4 }}>
-				{meta.glyph}
-			</AppText>
+			<SymbolView
+				name={meta.symbol as ComponentProps<typeof SymbolView>["name"]}
+				size={size * 0.52}
+				weight="semibold"
+				tintColor={color}
+				fallback={
+					<AppText style={{ color, fontWeight: "800", fontSize: size * 0.4 }}>
+						{meta.glyph}
+					</AppText>
+				}
+			/>
 		</View>
 	);
 }
