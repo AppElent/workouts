@@ -4,11 +4,10 @@
  * the widget extension and can reach neither i18n nor the theme.
  */
 import { fmt, type Locale, type Messages, plural } from "../../../i18n";
-import { darkColors, lightColors } from "../../../theme/palette";
+import { darkColors } from "../../../theme/palette";
 import { formatNumber, formatSeconds } from "../session-format";
 import type { SessionNow } from "./use-session-now";
 
-type Scheme = { accent: string; text: string; muted: string };
 export interface LiveActivityProps {
 	title: string;
 	exercise: string | null;
@@ -22,21 +21,19 @@ export interface LiveActivityProps {
 	/** When this rest was last sent; the countdown's lower bound. */
 	restFrom: number;
 	labels: { rest: string; restOver: string; next: string };
-	colors: { light: Scheme; dark: Scheme };
+	colors: { bg: string; accent: string; text: string; muted: string };
 }
 
+/**
+ * Lime on dark, as on the session screen, in light and dark mode alike:
+ * expo-widgets 58.0.28 reads the colour scheme outside a view, so a Live
+ * Activity always sees "light" and cannot follow the system appearance.
+ */
 const COLORS: LiveActivityProps["colors"] = {
-	light: {
-		accent: lightColors.accent,
-		text: lightColors.text,
-		muted: lightColors.textMuted,
-	},
-	// Lime on dark, as on the session screen; the Dynamic Island is always dark.
-	dark: {
-		accent: darkColors.accent,
-		text: darkColors.text,
-		muted: darkColors.textMuted,
-	},
+	bg: darkColors.bg,
+	accent: darkColors.accent,
+	text: darkColors.text,
+	muted: darkColors.textMuted,
 };
 
 export type LiveActivityCopy = Messages["strength"]["plan"]["liveActivity"];

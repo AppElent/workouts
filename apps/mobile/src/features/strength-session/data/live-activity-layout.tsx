@@ -10,11 +10,13 @@
  */
 import { HStack, Image, Spacer, Text, VStack } from "@expo/ui/swift-ui";
 import {
+	activityBackgroundTint,
 	font,
 	foregroundStyle,
 	frame,
 	lineLimit,
 	monospacedDigit,
+	multilineTextAlignment,
 	padding,
 } from "@expo/ui/swift-ui/modifiers";
 import type { LiveActivityComponent } from "expo-widgets";
@@ -24,9 +26,7 @@ export const sessionLiveActivityLayout: LiveActivityComponent<
 	LiveActivityProps
 > = (props, environment) => {
 	"widget";
-	const scheme =
-		environment.colorScheme === "dark" ? props.colors.dark : props.colors.light;
-	const island = props.colors.dark;
+	const scheme = props.colors;
 	const resting = props.restEndsAt !== null && !environment.isStale;
 	const restOver = props.restEndsAt !== null && environment.isStale === true;
 	const elapsedFrom = new Date(props.startedAt);
@@ -39,6 +39,7 @@ export const sessionLiveActivityLayout: LiveActivityComponent<
 			: null;
 	const detail = [props.setLine, props.loadLine].filter(Boolean).join(" · ");
 
+	// Timer text takes all the width it is offered, so pin it to the trailing edge.
 	const elapsed = (color: string, size: number) => (
 		<Text
 			date={elapsedFrom}
@@ -47,10 +48,17 @@ export const sessionLiveActivityLayout: LiveActivityComponent<
 				font({ size, weight: "semibold" }),
 				monospacedDigit(),
 				foregroundStyle(color),
+				multilineTextAlignment("trailing"),
+				frame({ width: 72, alignment: "trailing" }),
 			]}
 		/>
 	);
-	const countdown = (color: string, size: number) =>
+	// Sized to fit "10:00" at this size, so the label beside it stays close.
+	const countdown = (
+		color: string,
+		size: number,
+		alignment: "leading" | "center" | "trailing" = "leading",
+	) =>
 		restRange ? (
 			<Text
 				timerInterval={restRange}
@@ -59,6 +67,7 @@ export const sessionLiveActivityLayout: LiveActivityComponent<
 					font({ size, weight: "bold" }),
 					monospacedDigit(),
 					foregroundStyle(color),
+					frame({ width: size * 2.9, alignment }),
 				]}
 			/>
 		) : null;
@@ -128,7 +137,12 @@ export const sessionLiveActivityLayout: LiveActivityComponent<
 			<VStack
 				alignment="leading"
 				spacing={8}
-				modifiers={[padding({ all: 16 })]}
+				modifiers={[
+					// Full width, so the header's Spacer pushes the clock right.
+					frame({ maxWidth: 10_000, alignment: "leading" }),
+					padding({ all: 16 }),
+					activityBackgroundTint(scheme.bg),
+				]}
 			>
 				<HStack spacing={6}>
 					{icon(scheme.accent)}
@@ -149,14 +163,14 @@ export const sessionLiveActivityLayout: LiveActivityComponent<
 		),
 		compactLeading: (
 			<HStack spacing={4}>
-				{icon(island.accent)}
+				{icon(scheme.accent)}
 				{props.exercise ? (
 					<Text
 						modifiers={[
 							font({ textStyle: "caption", weight: "semibold" }),
-							foregroundStyle(island.text),
+							foregroundStyle(scheme.text),
 							lineLimit(1),
-							frame({ maxWidth: 64, alignment: "leading" }),
+							frame({ maxWidth: 80, alignment: "leading" }),
 						]}
 					>
 						{props.exercise}
@@ -167,20 +181,22 @@ export const sessionLiveActivityLayout: LiveActivityComponent<
 		compactTrailing: (
 			<HStack modifiers={[frame({ width: 52, alignment: "trailing" })]}>
 				{resting
-					? countdown(island.accent, 15)
+					? countdown(scheme.accent, 15, "trailing")
 					: restOver
-						? icon(island.accent)
-						: elapsed(island.text, 15)}
+						? icon(scheme.accent)
+						: elapsed(scheme.text, 15)}
 			</HStack>
 		),
-		minimal: resting ? countdown(island.accent, 13) : icon(island.accent),
+		minimal: resting
+			? countdown(scheme.accent, 13, "center")
+			: icon(scheme.accent),
 		expandedLeading: (
 			<HStack spacing={6} modifiers={[padding({ leading: 4 })]}>
-				{icon(island.accent)}
+				{icon(scheme.accent)}
 				<Text
 					modifiers={[
 						font({ textStyle: "footnote", weight: "semibold" }),
-						foregroundStyle(island.muted),
+						foregroundStyle(scheme.muted),
 						lineLimit(1),
 					]}
 				>
@@ -190,12 +206,12 @@ export const sessionLiveActivityLayout: LiveActivityComponent<
 		),
 		expandedTrailing: (
 			<HStack modifiers={[padding({ trailing: 4 })]}>
-				{elapsed(island.muted, 15)}
+				{elapsed(scheme.muted, 15)}
 			</HStack>
 		),
 		expandedBottom: (
 			<HStack modifiers={[padding({ horizontal: 4, bottom: 4 })]}>
-				{body(island)}
+				{body(scheme)}
 				<Spacer />
 			</HStack>
 		),
