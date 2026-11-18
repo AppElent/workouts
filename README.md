@@ -43,5 +43,5 @@ workflow** on `main` ([deploy](docs/runbooks/deploy.md)). `pnpm deploy:staging` 
 Infisical ([environment](docs/runbooks/environment.md)).
 Add the `preview:web` label to a pull request for an isolated preview (per-PR
 Convex backend and Worker) from `.github/workflows/preview.yml`, linked in a PR
-comment. Removing the label or closing the PR deletes the Worker. Native builds
+comment. Removing the label or closing the PR deletes both. Native builds
 are opt-in too: see [CI builds](docs/runbooks/mobile-releases.md#ci-builds).
