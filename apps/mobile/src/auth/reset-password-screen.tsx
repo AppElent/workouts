@@ -13,7 +13,7 @@
  * the account needs a second factor, the screen ends with a way back.
  */
 import { useRouter } from "expo-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { TextInputInstance } from "react-native";
 import { fmt, useI18n } from "../i18n";
 import { PrimaryButton } from "../ui/button";
@@ -34,13 +34,24 @@ export function ResetPasswordScreen({ email }: { email: string }) {
 	const [password, setPassword] = useState("");
 	const [notice, setNotice] = useState<string | null>(null);
 	const passwordRef = useRef<TextInputInstance>(null);
+	// Leaving while Clerk works unmounts this screen; a late "Use a different
+	// email" must not then pop the screen underneath.
+	const mounted = useRef(true);
+	useEffect(
+		() => () => {
+			mounted.current = false;
+		},
+		[],
+	);
 
 	const ready = code.length === CODE_LENGTH && password.length > 0;
 
-	function submit() {
+	/** `typed` is the field's native text when the keyboard's Go submits. */
+	function submit(typed: string = password) {
 		if (locked) return;
 		if (stage === "saved") void finish();
-		else if (ready && entering) void reset(code, password);
+		else if (code.length === CODE_LENGTH && typed && entering)
+			void reset(code, typed);
 	}
 
 	async function onResend() {
@@ -64,7 +75,7 @@ export function ResetPasswordScreen({ email }: { email: string }) {
 							label={copy.changeEmail}
 							disabled={locked}
 							onPress={async () => {
-								if (await startOver()) router.back();
+								if ((await startOver()) && mounted.current) router.back();
 							}}
 						/>
 					</>
@@ -102,7 +113,10 @@ export function ResetPasswordScreen({ email }: { email: string }) {
 				autoComplete="new-password"
 				textContentType="newPassword"
 				returnKeyType="go"
-				onSubmitEditing={submit}
+				onSubmitEditing={(event) => {
+					setPassword(event.nativeEvent.text);
+					submit(event.nativeEvent.text);
+				}}
 			/>
 
 			<AuthMessage message={error} />
@@ -116,7 +130,7 @@ export function ResetPasswordScreen({ email }: { email: string }) {
 					label={stage === "saved" ? copy.finishSignIn : copy.submit}
 					loading={busy}
 					disabled={locked || (entering && !ready)}
-					onPress={submit}
+					onPress={() => submit()}
 				/>
 			)}
 		</AuthScreen>

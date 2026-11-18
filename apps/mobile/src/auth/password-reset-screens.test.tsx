@@ -289,3 +289,45 @@ it("shows a resend that throws and lets it be retried", async () => {
 	expect(await screen.findByText("A new code is on its way.")).toBeTruthy();
 	expect(screen.queryByText(/Network error/)).toBeNull();
 });
+
+it("does not go back for a start-over that finishes after leaving", async () => {
+	let release: (value: typeof ok) => void = () => {};
+	mockSignIn.reset.mockReturnValue(
+		new Promise((resolve) => {
+			release = resolve;
+		}),
+	);
+	const view = await renderScreen(
+		<ResetPasswordScreen email="sam@example.test" />,
+	);
+	// The handler stays pending until Clerk answers, so the press is awaited last.
+	const pressing = fireEvent.press(
+		screen.getByRole("link", { name: "Use a different email" }),
+	);
+	await waitFor(() => expect(mockSignIn.reset).toHaveBeenCalled());
+	await view.unmount();
+	release(ok);
+	await pressing;
+	expect(mockBack).not.toHaveBeenCalled();
+});
+
+it("submits the password the keyboard's Go reports", async () => {
+	mockSignIn.resetPasswordEmailCode.verifyCode.mockResolvedValue(ok);
+	mockSignIn.resetPasswordEmailCode.submitPassword.mockResolvedValue({
+		error: { code: "form_password_pwned" },
+	});
+	await renderScreen(<ResetPasswordScreen email="sam@example.test" />);
+	await fireEvent.changeText(screen.getByLabelText("Code"), "424242");
+	// AutoFill filled the field natively; no change event reached React yet.
+	await fireEvent(screen.getByLabelText("New password"), "submitEditing", {
+		nativeEvent: { text: "an-autofilled-password" },
+	});
+	await waitFor(() =>
+		expect(
+			mockSignIn.resetPasswordEmailCode.submitPassword,
+		).toHaveBeenCalledWith({
+			password: "an-autofilled-password",
+			signOutOfOtherSessions: true,
+		}),
+	);
+});
