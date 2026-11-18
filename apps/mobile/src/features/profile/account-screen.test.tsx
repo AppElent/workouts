@@ -142,8 +142,14 @@ describe("changing the password", () => {
 	});
 
 	it("shows a wrong current password on that field and keeps the input", async () => {
+		// Clerk's real response for a wrong current password (dev instance).
 		mockUser.updatePassword.mockRejectedValueOnce({
-			errors: [{ code: "form_password_incorrect" }],
+			errors: [
+				{
+					code: "form_password_validation_failed",
+					meta: { paramName: "current_password" },
+				},
+			],
 		});
 		await renderAccount();
 		await fill("wrong", "a-new-password");
@@ -156,7 +162,9 @@ describe("changing the password", () => {
 
 	it("explains a breached new password", async () => {
 		mockUser.updatePassword.mockRejectedValueOnce({
-			errors: [{ code: "form_password_pwned" }],
+			errors: [
+				{ code: "form_password_pwned", meta: { paramName: "new_password" } },
+			],
 		});
 		await renderAccount();
 		await fill("old-password", "password");

@@ -5,7 +5,7 @@ import * as ImagePicker from "expo-image-picker";
 import * as WebBrowser from "expo-web-browser";
 import { useRef, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
-import { clerkErrorKey } from "../../auth/clerk-errors";
+import { clerkErrorKey, clerkErrorParam } from "../../auth/clerk-errors";
 import { api } from "../../convex/api";
 import { useOnline } from "../../convex/online";
 import { useQuery } from "../../convex/query-cache";
@@ -93,7 +93,8 @@ export function AccountScreen() {
 
 	/**
 	 * Clerk's error lands on the field it is about: a wrong current password
-	 * on the first, everything else (too short, breached) on the new one.
+	 * (any error on `current_password`) on the first, everything else (too
+	 * short, breached) on the new one.
 	 * Signing out other sessions matches the reset flow.
 	 */
 	const changePassword = () =>
@@ -108,10 +109,13 @@ export function AccountScreen() {
 						signOutOfOtherSessions: true,
 					});
 				} catch (error) {
-					const key = clerkErrorKey(error);
+					const current = clerkErrorParam(error) === "current_password";
 					setPasswordError({
-						field: key === "passwordIncorrect" ? "current" : "new",
-						message: t.authErrors[key],
+						field: current ? "current" : "new",
+						message:
+							t.authErrors[
+								current ? "passwordIncorrect" : clerkErrorKey(error)
+							],
 					});
 					return;
 				}
