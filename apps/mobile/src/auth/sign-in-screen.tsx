@@ -20,6 +20,7 @@ import { AppText } from "../ui/text";
 import { AuthInput, AuthLink, AuthMessage, AuthScreen } from "./auth-form";
 import { devLogin } from "./config";
 import { SocialButtons } from "./social-buttons";
+import { useCredentialField } from "./use-credential-field";
 import { useEmailCodeSignIn } from "./use-email-code-sign-in";
 import { usePasswordSignIn } from "./use-password-sign-in";
 
@@ -30,8 +31,10 @@ export function SignInScreen() {
 	const { submit, busy, error } = usePasswordSignIn();
 	const emailCode = useEmailCodeSignIn();
 	const [codeHint, setCodeHint] = useState<string | null>(null);
-	const [email, setEmail] = useState(devLogin?.email ?? "");
-	const [password, setPassword] = useState(devLogin?.password ?? "");
+	const emailField = useCredentialField(devLogin?.email ?? "");
+	const passwordField = useCredentialField(devLogin?.password ?? "");
+	const email = emailField.value;
+	const password = passwordField.value;
 	const passwordRef = useRef<TextInputInstance>(null);
 
 	const ready = email.trim().length > 0 && password.length > 0;
@@ -49,6 +52,15 @@ export function SignInScreen() {
 				pathname: "/sign-in-code",
 				params: { email: email.trim() },
 			});
+		}
+	}
+
+	// AutoFill can fill a field without `onChangeText`; send the latest text.
+	function submitLatest() {
+		const latestEmail = emailField.latest();
+		const latestPassword = passwordField.latest();
+		if (latestEmail.trim() && latestPassword) {
+			void submit(latestEmail, latestPassword);
 		}
 	}
 
@@ -84,12 +96,11 @@ export function SignInScreen() {
 		>
 			<AuthInput
 				placeholder={copy.email}
-				value={email}
-				onChangeText={setEmail}
+				{...emailField.props}
 				autoCapitalize="none"
 				autoCorrect={false}
 				keyboardType="email-address"
-				autoComplete="email"
+				autoComplete="username"
 				textContentType="username"
 				returnKeyType="next"
 				submitBehavior="submit"
@@ -98,14 +109,16 @@ export function SignInScreen() {
 			<AuthInput
 				ref={passwordRef}
 				placeholder={copy.password}
-				value={password}
-				onChangeText={setPassword}
+				{...passwordField.props}
 				secureTextEntry
 				autoCapitalize="none"
 				autoComplete="current-password"
 				textContentType="password"
 				returnKeyType="go"
-				onSubmitEditing={() => ready && submit(email, password)}
+				onSubmitEditing={(event) => {
+					passwordField.sync(event.nativeEvent.text);
+					submitLatest();
+				}}
 			/>
 
 			<AuthMessage message={codeHint ?? emailCode.error ?? error} />
@@ -114,7 +127,7 @@ export function SignInScreen() {
 				label={copy.submit}
 				loading={busy || emailCode.busy}
 				disabled={!ready}
-				onPress={() => submit(email, password)}
+				onPress={submitLatest}
 				testID="sign-in-submit"
 			/>
 

@@ -81,6 +81,16 @@ describe("SignInForm", () => {
 		expect(onSuccess).toHaveBeenCalled();
 	});
 
+	it("marks the credential fields for password managers", () => {
+		renderForm();
+		expect(screen.getByLabelText("Email").getAttribute("autocomplete")).toBe(
+			"username",
+		);
+		expect(screen.getByLabelText("Password").getAttribute("autocomplete")).toBe(
+			"current-password",
+		);
+	});
+
 	it("does not activate a sign-in that needs another step", async () => {
 		password.mockImplementation(ok({ status: "needs_second_factor" }));
 		const onSuccess = vi.fn();

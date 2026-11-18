@@ -148,7 +148,7 @@ export function SignInForm({
 			<AuthField
 				label={auth.email}
 				type="email"
-				autoComplete="email"
+				autoComplete="username"
 				value={email}
 				onChange={setEmail}
 				required

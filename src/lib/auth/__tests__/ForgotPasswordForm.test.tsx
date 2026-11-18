@@ -83,6 +83,28 @@ describe("ForgotPasswordForm", () => {
 		expect(onSuccess).toHaveBeenCalled();
 	});
 
+	it("names the account for password managers on both steps", async () => {
+		create.mockImplementation(ok({ status: "needs_first_factor" }));
+		sendCode.mockImplementation(ok());
+		const { container } = renderForm();
+		expect(screen.getByLabelText("Email").getAttribute("autocomplete")).toBe(
+			"username",
+		);
+		fireEvent.change(screen.getByLabelText("Email"), {
+			target: { value: "a@b.com" },
+		});
+		fireEvent.click(screen.getByRole("button", { name: /send code/i }));
+		await screen.findByLabelText(/code/i);
+		const hint = container.querySelector<HTMLInputElement>(
+			'input[autocomplete="username"]',
+		);
+		expect(hint?.value).toBe("a@b.com");
+		expect(hint?.hidden).toBe(true);
+		expect(hint?.closest("form")).toBe(
+			screen.getByLabelText(/new password/i).closest("form"),
+		);
+	});
+
 	it("retries only the password after it is rejected", async () => {
 		create.mockImplementation(ok({ status: "needs_first_factor" }));
 		sendCode.mockImplementation(ok());
