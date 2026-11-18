@@ -267,13 +267,41 @@ describe("join link through auth", () => {
 		});
 	});
 
+	it("resets the password to the dashboard without a redirect", async () => {
+		const router = await visit("/forgot-password");
+		await screen.findByLabelText("Email");
+		await resetPassword();
+		await landsOn(router, "/dashboard");
+	});
+
+	it("finishes social sign-in on the dashboard without a redirect", async () => {
+		await visit("/sso-callback");
+		await vi.waitFor(() => expect(callbackProps).not.toBeNull());
+		expect(callbackProps).toMatchObject({
+			signInFallbackRedirectUrl: "/dashboard",
+			signUpFallbackRedirectUrl: "/dashboard",
+			signInUrl: "/sign-in",
+			signUpUrl: "/sign-up",
+		});
+	});
+
+	const once = (value: string) => encodeURIComponent(value);
+	const twice = (value: string) => once(once(value));
+
+	// Each entry is the raw query value, as it would appear in the address bar.
 	describe.each([
-		["another host", "//evil.example/join/x"],
-		["an absolute URL", "https://evil.example/join/x"],
-		["a backslash", "/\\evil.example"],
-		["a control character", "/\t/evil.example"],
-	])("with %s as the redirect", (_, unsafe) => {
-		const query = `?redirect=${encodeURIComponent(unsafe)}`;
+		["another host", once("//evil.example/join/x")],
+		["an absolute URL", once("https://evil.example/join/x")],
+		["a backslash", once("/\\evil.example")],
+		["a control character", once("/\t/evil.example")],
+		["encoded slashes", "%2F%2Fevil.example"],
+		["double-encoded slashes", twice("//evil.example")],
+		["a double-encoded host", "%252F%252Fevil"],
+		["a double-encoded backslash", twice("\\\\evil.example")],
+		["a double-encoded absolute URL", twice("https://evil.example")],
+		["a double-encoded control character", twice("\t/evil.example")],
+	])("with %s as the redirect", (_, value) => {
+		const query = `?redirect=${value}`;
 
 		it("signs in to the dashboard and drops it from the links", async () => {
 			const router = await visit(`/sign-in${query}`);
@@ -324,6 +352,45 @@ describe("join link through auth", () => {
 				signInUrl: "/sign-in",
 				signUpUrl: "/sign-up",
 			});
+		});
+	});
+
+	// `safeRedirect` keeps these: they start with one `/` and hold only
+	// percent-escapes, so the browser reads them as paths on this site.
+	describe.each([
+		["an encoded slash", `%2F${twice("/")}%2Fevil.example`],
+		["an encoded backslash", `%2F${twice("\\")}evil.example`],
+		["an encoded control character", `%2F${twice("\t")}%2Fevil.example`],
+	])("with %s inside a same-site path", (_, value) => {
+		const query = `?redirect=${value}`;
+		const sameSite = (href: unknown) =>
+			new URL(String(href), "https://foundry.test").origin ===
+			"https://foundry.test";
+
+		it("signs in to a path on this site", async () => {
+			const router = await visit(`/sign-in${query}`);
+			await screen.findByLabelText("Email");
+			signInWithEmail();
+			await vi.waitFor(() =>
+				expect(router.state.location.pathname).not.toBe("/sign-in"),
+			);
+			expect(router.state.location.href).toMatch(/^\/(?![/\\])/);
+			expect(sameSite(router.state.location.href)).toBe(true);
+		});
+
+		it("finishes social sign-in on a path on this site", async () => {
+			await visit(`/sso-callback${query}`);
+			await vi.waitFor(() => expect(callbackProps).not.toBeNull());
+			const props = callbackProps as Record<string, unknown>;
+			for (const key of [
+				"signInFallbackRedirectUrl",
+				"signUpFallbackRedirectUrl",
+				"signInUrl",
+				"signUpUrl",
+			]) {
+				expect(String(props[key])).toMatch(/^\/(?![/\\])/);
+				expect(sameSite(props[key])).toBe(true);
+			}
 		});
 	});
 });
