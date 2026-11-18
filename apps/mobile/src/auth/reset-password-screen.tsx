@@ -7,8 +7,9 @@
  * `textContentType="newPassword"` lets the platform suggest a strong password
  * and update the saved one for this account. Declining that suggestion can
  * clear the field natively without `onChangeText`, so the state also takes the
- * text from `onEndEditing`. Resend and "Use a different email" stay disabled
- * while a reset runs: all three act on the same Clerk attempt. After Clerk
+ * text from `onEndEditing`. Resend and "Use a different email" stay disabled,
+ * and the screen cannot be left, while any of them runs: all three act on the
+ * same Clerk attempt as sign-in. After Clerk
  * accepts the password the fields lock and the button only signs in; when
  * the account needs a second factor, the screen ends with a way back.
  */
@@ -18,6 +19,7 @@ import type { TextInputInstance } from "react-native";
 import { fmt, useI18n } from "../i18n";
 import { PrimaryButton } from "../ui/button";
 import { AuthInput, AuthLink, AuthMessage, AuthScreen } from "./auth-form";
+import { HoldWhileBusy } from "./hold-while-busy";
 import { usePasswordReset } from "./use-password-reset";
 
 const CODE_LENGTH = 6;
@@ -34,15 +36,12 @@ export function ResetPasswordScreen({ email }: { email: string }) {
 	const [password, setPassword] = useState("");
 	const [notice, setNotice] = useState<string | null>(null);
 	const passwordRef = useRef<TextInputInstance>(null);
-	// Leaving while Clerk works unmounts this screen; a late "Use a different
-	// email" must not then pop the screen underneath.
-	const mounted = useRef(true);
-	useEffect(
-		() => () => {
-			mounted.current = false;
-		},
-		[],
-	);
+	// "Use a different email" goes back once the start-over has released the
+	// hold; an effect never runs after unmount, so a late one pops nothing.
+	const [leaving, setLeaving] = useState(false);
+	useEffect(() => {
+		if (leaving && !locked) router.back();
+	}, [leaving, locked, router]);
 
 	const ready = code.length === CODE_LENGTH && password.length > 0;
 
@@ -75,7 +74,7 @@ export function ResetPasswordScreen({ email }: { email: string }) {
 							label={copy.changeEmail}
 							disabled={locked}
 							onPress={async () => {
-								if ((await startOver()) && mounted.current) router.back();
+								if (await startOver()) setLeaving(true);
 							}}
 						/>
 					</>
@@ -87,6 +86,7 @@ export function ResetPasswordScreen({ email }: { email: string }) {
 				) : null
 			}
 		>
+			<HoldWhileBusy busy={locked} />
 			<AuthInput
 				placeholder={copy.code}
 				value={code}

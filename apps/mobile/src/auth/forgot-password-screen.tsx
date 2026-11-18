@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from "react";
 import { useI18n } from "../i18n";
 import { PrimaryButton } from "../ui/button";
 import { AuthInput, AuthLink, AuthMessage, AuthScreen } from "./auth-form";
+import { HoldWhileBusy } from "./hold-while-busy";
 import { usePasswordReset } from "./use-password-reset";
 
 export function ForgotPasswordScreen({
@@ -19,8 +20,8 @@ export function ForgotPasswordScreen({
 	const copy = useI18n().t.resetPassword;
 	const { request, busy, error } = usePasswordReset();
 	const [email, setEmail] = useState(initialEmail);
-	// Going back while the request runs unmounts this screen; a late success
-	// must not then push the code screen.
+	// The screen holds while the request runs, but if it is gone anyway a late
+	// success must not then push the code screen.
 	const mounted = useRef(true);
 	useEffect(
 		() => () => {
@@ -53,6 +54,7 @@ export function ForgotPasswordScreen({
 				/>
 			}
 		>
+			<HoldWhileBusy busy={busy} />
 			<AuthInput
 				placeholder={copy.email}
 				value={email}

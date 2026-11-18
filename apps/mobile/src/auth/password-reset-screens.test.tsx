@@ -14,6 +14,8 @@ jest.mock("expo-router", () => ({
 		replace: jest.fn(),
 		dismissTo: mockDismissTo,
 	}),
+	usePreventRemove: jest.fn(),
+	Stack: { Screen: () => null },
 }));
 
 const ok = { error: null };
@@ -31,6 +33,7 @@ const mockSignIn = {
 	reset: jest.fn(),
 };
 jest.mock("@clerk/expo", () => ({
+	useAuth: () => ({ isSignedIn: false }),
 	useSignIn: () => ({
 		signIn: mockSignIn,
 		errors: { fields: {}, global: null },
