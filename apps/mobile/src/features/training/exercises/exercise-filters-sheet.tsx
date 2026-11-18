@@ -1,5 +1,4 @@
 import { EQUIPMENT, MUSCLE_GROUP_KEYS } from "@foundry/core";
-import { Modal } from "react-native";
 import {
 	modalAnimation,
 	useReduceMotion,
@@ -12,6 +11,7 @@ import {
 	FormSegmentedRow,
 	TextAction,
 } from "../../../ui/form";
+import { Modal } from "../../../ui/modal";
 import { emptyFilters, type Filters, toggleChoice } from "./exercise-filters";
 import { MuscleIcon } from "./muscle-icon";
 export function ExerciseFiltersSheet({

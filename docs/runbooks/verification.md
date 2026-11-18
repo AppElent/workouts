@@ -61,14 +61,13 @@ those under `_app/_authed/` need sign-in. Navigation comes from
 
 ## Mobile
 
-Use [mobile releases](mobile-releases.md) for a compatible development client and
-Metro. Select a free port, then confirm this checkout's bundle and backend with
-`node scripts/check-mobile-backend.mjs --port <port>`. Expo Go
-does not supply this app's custom native modules. Use host device tools when
-available; Device Hub is the local dashboard fallback.
-To launch, sign in, and drive the app on a simulator, use the `run-mobile` skill
-([`apps/mobile/.claude/skills/run-mobile`](../../apps/mobile/.claude/skills/run-mobile/SKILL.md)).
-It is only listed in sessions started from `apps/mobile`.
+Use [mobile releases](mobile-releases.md) for a compatible development client.
+To launch, sign in, drive and screenshot the app on an iOS simulator, use
+`node scripts/run-mobile.mjs` ([mobile run](../standards/mobile-run.md)), the
+same script every app uses. `up` claims a simulator, starts Metro on port 8090
+and stops when the bundle is not on the backend in `apps/mobile/.env.local`;
+`down` releases the simulator. Expo Go does not supply this app's custom
+native modules.
 
 Maestro smoke flows in `apps/mobile/.maestro/` drive the development client
 through sign-in, the tabs, and an empty strength session (started, then discarded).

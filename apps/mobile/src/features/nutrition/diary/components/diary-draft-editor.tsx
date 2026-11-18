@@ -1,6 +1,6 @@
 import { MEAL_SLOTS, type MealSlot } from "@foundry/core";
 import { useState } from "react";
-import { Modal, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import type { CaptureDraft } from "../../../../data/nutrition-capture-draft";
 import { useNutritionDrafts } from "../../../../data/nutrition-drafts";
 import {
@@ -15,6 +15,7 @@ import {
 	FormSegmentedRow,
 	FormTextField,
 } from "../../../../ui/form";
+import { Modal } from "../../../../ui/modal";
 import { AppText } from "../../../../ui/text";
 import { useScreenWrite } from "../../../../ui/use-screen-write";
 

@@ -108,6 +108,10 @@
 											"usePaginatedQuery"
 										],
 										"message": "Import query hooks from src/convex/query-cache (docs/standards/convex-query-caching.md)."
+									},
+									"react-native": {
+										"importNames": ["Modal"],
+										"message": "Import Modal from src/ui/modal: it pauses shake-to-report while visible (APP-216)."
 									}
 								}
 							}

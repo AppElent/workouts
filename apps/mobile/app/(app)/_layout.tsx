@@ -19,15 +19,32 @@
 
 import { useAuth } from "@clerk/expo";
 import { Redirect, Stack } from "expo-router";
+import type { ReactNode } from "react";
 import { Platform, View } from "react-native";
 import { AppDataProviders } from "../../src/app-data-providers";
 import { ConvexSessionGate } from "../../src/auth/convex-session-gate";
 import { AccountDataMaintenanceProvider } from "../../src/features/local-data/account-data-maintenance-provider";
 import { useI18n } from "../../src/i18n";
+import {
+	isPresentedRoute,
+	useShakeToReportBlocker,
+} from "../../src/observability/shake-to-report";
 import { useTokens } from "../../src/theme";
 import { ConfirmProvider } from "../../src/ui/confirm-dialog";
 import { OfflineBanner } from "../../src/ui/offline-banner";
 import { ToastProvider } from "../../src/ui/toast";
+
+// A shake must not open the feedback form under a presented sheet (APP-216).
+function ShakeToReportGate({
+	blocked,
+	children,
+}: {
+	blocked: boolean;
+	children: ReactNode;
+}) {
+	useShakeToReportBlocker(blocked);
+	return children;
+}
 
 // Keeps Coach beneath deep-linked app routes.
 export const unstable_settings = { anchor: "(coach)" };
@@ -49,6 +66,17 @@ export default function AppLayout() {
 							<View style={{ flex: 1, backgroundColor: colors.bg }}>
 								<OfflineBanner />
 								<Stack
+									layout={({ state, descriptors, children }) => (
+										<ShakeToReportGate
+											blocked={state.routes.some((route) =>
+												isPresentedRoute(
+													descriptors[route.key]?.options.presentation,
+												),
+											)}
+										>
+											{children}
+										</ShakeToReportGate>
+									)}
 									screenOptions={{
 										headerShown: true,
 										headerTintColor: colors.accent,

@@ -38,7 +38,6 @@ import {
 	type AccessibilityActionEvent,
 	ActionSheetIOS,
 	Animated,
-	Modal,
 	Platform,
 	Pressable,
 	ScrollView,
@@ -57,6 +56,7 @@ import {
 	useThemedStyles,
 	useTokens,
 } from "../theme";
+import { Modal } from "./modal";
 import { AppText } from "./text";
 
 export interface RowAction {
