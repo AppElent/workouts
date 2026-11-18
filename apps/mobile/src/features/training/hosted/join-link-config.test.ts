@@ -48,11 +48,12 @@ it("claims join links in production and preview, never development", () => {
 });
 
 it.each(claiming.map((config) => [config.ios?.bundleIdentifier, config]))(
-	"%s claims https://foundry.appelent.nl/join/ on iOS",
+	"%s claims https://foundry.appelent.nl/join/ and its passwords on iOS",
 	(_id, config) => {
 		expect(config.ios?.appleTeamId).toBe(APPLE_TEAM_ID);
 		expect(config.ios?.associatedDomains).toEqual([
 			`applinks:${JOIN_LINK_HOST}`,
+			`webcredentials:${JOIN_LINK_HOST}`,
 		]);
 	},
 );
@@ -68,12 +69,23 @@ it("claims no Android links while the site has no assetlinks.json", () => {
 	expect(filters).toEqual(VARIANTS.map((variant) => [variant, undefined]));
 });
 
-it("names exactly the claiming builds in apple-app-site-association", () => {
+// iOS follows `details` in order, so with both builds installed the link
+// opens Preview: one entry per build, Preview first (standards/app-links.md).
+const previewFirst = ["com.appelent.foundry.preview", "com.appelent.foundry"];
+const appIdsPreviewFirst = previewFirst.map((id) => `${APPLE_TEAM_ID}.${id}`);
+
+it("claims /join/* for each claiming build in apple-app-site-association, Preview first", () => {
 	const aasa = readJson("apple-app-site-association");
-	expect(aasa.applinks.details).toEqual([
-		{
-			appIDs: bundleIds.map((id) => `${APPLE_TEAM_ID}.${id}`),
+	expect([...previewFirst].sort()).toEqual([...bundleIds].sort());
+	expect(aasa.applinks.details).toEqual(
+		appIdsPreviewFirst.map((appId) => ({
+			appIDs: [appId],
 			components: [expect.objectContaining({ "/": "/join/*" })],
-		},
-	]);
+		})),
+	);
+});
+
+it("shares web credentials with each claiming build, Preview first", () => {
+	const aasa = readJson("apple-app-site-association");
+	expect(aasa.webcredentials).toEqual({ apps: appIdsPreviewFirst });
 });

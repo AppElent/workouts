@@ -72,8 +72,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 	// Hosted-workout join links (`https://foundry.appelent.nl/join/<token>`)
 	// open the installed app on iOS, in Production and Preview only: a local
 	// development build never claims real links. The site file that verifies
-	// the claim is `public/.well-known/apple-app-site-association`. Android
-	// claims nothing yet (APP-261).
+	// the claim is `public/.well-known/apple-app-site-association`, which also
+	// shares the site's saved passwords with the app (webcredentials, APP-95).
+	// Android claims nothing yet (APP-261).
 	const claimsJoinLinks = variant !== "development";
 	return {
 		...config,
@@ -92,7 +93,12 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 			bundleIdentifier: id,
 			appleTeamId: APPLE_TEAM_ID,
 			...(claimsJoinLinks
-				? { associatedDomains: [`applinks:${JOIN_LINK_HOST}`] }
+				? {
+						associatedDomains: [
+							`applinks:${JOIN_LINK_HOST}`,
+							`webcredentials:${JOIN_LINK_HOST}`,
+						],
+					}
 				: {}),
 		},
 		android: {
