@@ -15,31 +15,31 @@ import { AuthInput, AuthLink, AuthMessage, AuthScreen } from "./auth-form";
 import { SocialButtons } from "./social-buttons";
 import {
 	CLERK_PASSWORD_RULES,
-	useCredentialField,
-} from "./use-credential-field";
+	useCredentialFields,
+} from "./use-credential-fields";
 import { useSignUp } from "./use-sign-up";
 
 export function SignUpScreen() {
 	const router = useRouter();
 	const copy = useI18n().t.signUp;
 	const { create, busy, error } = useSignUp();
-	const email = useCredentialField();
-	const password = useCredentialField();
 	const passwordRef = useRef<TextInputInstance>(null);
+	// AutoFill can change a field without `onChangeText`; submit its final text.
+	const form = useCredentialFields(
+		{ email: "", password: "" },
+		async (latest) => {
+			if (busy || !latest.email.trim() || !latest.password) return;
+			if (await create(latest.email, latest.password)) {
+				router.push({
+					pathname: "/verify-email",
+					params: { email: latest.email.trim() },
+				});
+			}
+		},
+	);
+	const { email, password } = form.values;
 
-	const ready = email.value.trim().length > 0 && password.value.length > 0;
-
-	async function submit() {
-		const address = email.latest();
-		const secret = password.latest();
-		if (!address.trim() || !secret) return;
-		if (await create(address, secret)) {
-			router.push({
-				pathname: "/verify-email",
-				params: { email: address.trim() },
-			});
-		}
-	}
+	const ready = email.trim().length > 0 && password.length > 0;
 
 	return (
 		<AuthScreen
@@ -55,11 +55,11 @@ export function SignUpScreen() {
 		>
 			<AuthInput
 				placeholder={copy.email}
-				{...email.props}
+				{...form.field("email")}
 				autoCapitalize="none"
 				autoCorrect={false}
 				keyboardType="email-address"
-				autoComplete="username"
+				autoComplete="email"
 				textContentType="username"
 				returnKeyType="next"
 				submitBehavior="submit"
@@ -68,17 +68,14 @@ export function SignUpScreen() {
 			<AuthInput
 				ref={passwordRef}
 				placeholder={copy.password}
-				{...password.props}
+				{...form.field("password")}
 				secureTextEntry
 				autoCapitalize="none"
 				autoComplete="new-password"
 				textContentType="newPassword"
 				passwordRules={CLERK_PASSWORD_RULES}
 				returnKeyType="go"
-				onSubmitEditing={(event) => {
-					password.sync(event.nativeEvent.text);
-					if (!busy) void submit();
-				}}
+				onSubmitEditing={form.submitFrom("password")}
 			/>
 
 			<AuthMessage message={error} />
@@ -86,8 +83,8 @@ export function SignUpScreen() {
 			<PrimaryButton
 				label={copy.submit}
 				loading={busy}
-				disabled={!ready}
-				onPress={submit}
+				disabled={!ready && !form.editing}
+				onPress={form.press}
 			/>
 
 			<SocialButtons />
