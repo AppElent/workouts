@@ -14,36 +14,40 @@
  * unmounts.
  *
  * `request`, `reset`, `resend` and `startOver` all act on the one Clerk
- * attempt, so only one runs at a time; `locked` reports it to the screen.
+ * attempt, from both routes, so one module-wide lock lets only one run at a
+ * time; `locked` reports this hook's own pending action to its screen.
+ *
+ * Mobile sign-in does not do second factors. If Clerk asks for one after
+ * accepting the new password, the password has changed but no session
+ * follows, and the message says so and points to the web app.
  */
 import { useSignIn } from "@clerk/expo";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { useI18n } from "../i18n";
 import { useClerkFlow } from "./use-clerk-flow";
 
+/** One Clerk sign-in attempt is shared by both reset routes. */
+let attemptBusy = false;
+
+/** Runs `action` unless another action on the attempt is still pending. */
+async function exclusive<T>(blocked: T, action: () => Promise<T>): Promise<T> {
+	if (attemptBusy) return blocked;
+	attemptBusy = true;
+	try {
+		return await action();
+	} finally {
+		attemptBusy = false;
+	}
+}
+
 export function usePasswordReset() {
 	const { signIn, errors } = useSignIn();
-	const unsupportedText = useI18n().t.signIn.unsupportedStep;
+	const unsupportedText = useI18n().t.resetPassword.changedNeedsStep;
 	const flow = useClerkFlow(errors);
 	const { run, idle, fail, clear } = flow;
 	const [resending, setResending] = useState(false);
 	const [startingOver, setStartingOver] = useState(false);
 	const [unsupported, setUnsupported] = useState(false);
-	const inFlight = useRef(false);
-
-	/** Runs `action` unless another action on the attempt is still pending. */
-	const exclusive = useCallback(
-		async <T>(blocked: T, action: () => Promise<T>): Promise<T> => {
-			if (inFlight.current) return blocked;
-			inFlight.current = true;
-			try {
-				return await action();
-			} finally {
-				inFlight.current = false;
-			}
-		},
-		[],
-	);
 
 	const request = useCallback(
 		(email: string): Promise<boolean> =>
@@ -55,7 +59,7 @@ export function usePasswordReset() {
 				idle();
 				return sent;
 			}),
-		[signIn, run, idle, exclusive],
+		[signIn, run, idle],
 	);
 
 	const resend = useCallback(
@@ -63,15 +67,21 @@ export function usePasswordReset() {
 			exclusive(false, async () => {
 				setResending(true);
 				clear();
-				const sent = await signIn.resetPasswordEmailCode.sendCode();
-				setResending(false);
+				let sent: Awaited<
+					ReturnType<typeof signIn.resetPasswordEmailCode.sendCode>
+				>;
+				try {
+					sent = await signIn.resetPasswordEmailCode.sendCode();
+				} finally {
+					setResending(false);
+				}
 				if (sent.error) {
 					fail(sent.error);
 					return false;
 				}
 				return true;
 			}),
-		[signIn, clear, fail, exclusive],
+		[signIn, clear, fail],
 	);
 
 	/**
@@ -90,7 +100,7 @@ export function usePasswordReset() {
 				}
 				return true;
 			}),
-		[signIn, clear, exclusive],
+		[signIn, clear],
 	);
 
 	const reset = useCallback(
@@ -126,7 +136,7 @@ export function usePasswordReset() {
 
 				await run(() => signIn.finalize());
 			}),
-		[signIn, run, idle, exclusive],
+		[signIn, run, idle],
 	);
 
 	return {

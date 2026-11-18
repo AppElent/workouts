@@ -140,7 +140,8 @@ it("does not finalize a reset that needs a step the app cannot do", async () => 
 	const { result } = await renderReset();
 	await act(() => result.current.reset("424242", "a-new-password"));
 	expect(mockFinalize).not.toHaveBeenCalled();
-	expect(result.current.error).toMatch(/another step/);
+	expect(result.current.error).toMatch(/password is changed/);
+	expect(result.current.error).toMatch(/web app/);
 	expect(result.current.busy).toBe(false);
 	warn.mockRestore();
 });
@@ -211,4 +212,49 @@ it("runs one action on the attempt at a time", async () => {
 		await pending;
 	});
 	expect(mockFinalize).toHaveBeenCalled();
+});
+
+it("shares the lock with the other reset screen", async () => {
+	let release: (value: typeof ok) => void = () => {};
+	mockVerifyCode.mockImplementationOnce(
+		() =>
+			new Promise((resolve) => {
+				release = (value) => {
+					mockSignIn.status = "needs_new_password";
+					resolve(value);
+				};
+			}),
+	);
+	const codeScreen = await renderReset();
+	const requestScreen = await renderReset();
+	let pending: Promise<void> = Promise.resolve();
+	await act(async () => {
+		pending = codeScreen.result.current.reset("424242", "a-new-password");
+	});
+	let sent = true;
+	await act(async () => {
+		sent = await requestScreen.result.current.request("other@b.com");
+	});
+	expect(sent).toBe(false);
+	expect(mockCreate).not.toHaveBeenCalled();
+	await act(async () => {
+		release(ok);
+		await pending;
+	});
+});
+
+it("unlocks after a resend that throws", async () => {
+	mockSendCode.mockRejectedValueOnce(new Error("offline"));
+	const { result } = await renderReset();
+	await act(async () => {
+		await expect(result.current.resend()).rejects.toThrow("offline");
+	});
+	expect(result.current.resending).toBe(false);
+	expect(result.current.locked).toBe(false);
+	mockSendCode.mockResolvedValue(ok);
+	let sent = false;
+	await act(async () => {
+		sent = await result.current.resend();
+	});
+	expect(sent).toBe(true);
 });

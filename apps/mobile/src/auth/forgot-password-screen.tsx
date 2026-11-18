@@ -4,7 +4,7 @@
  * the code and the new password; see `usePasswordReset`.
  */
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useI18n } from "../i18n";
 import { PrimaryButton } from "../ui/button";
 import { AuthInput, AuthLink, AuthMessage, AuthScreen } from "./auth-form";
@@ -19,12 +19,21 @@ export function ForgotPasswordScreen({
 	const copy = useI18n().t.resetPassword;
 	const { request, busy, error } = usePasswordReset();
 	const [email, setEmail] = useState(initialEmail);
+	// Going back while the request runs unmounts this screen; a late success
+	// must not then push the code screen.
+	const mounted = useRef(true);
+	useEffect(
+		() => () => {
+			mounted.current = false;
+		},
+		[],
+	);
 
 	const ready = email.trim().length > 0;
 
 	async function sendCode() {
 		if (!ready || busy) return;
-		if (await request(email)) {
+		if ((await request(email)) && mounted.current) {
 			router.push({
 				pathname: "/reset-password",
 				params: { email: email.trim() },
@@ -36,7 +45,13 @@ export function ForgotPasswordScreen({
 		<AuthScreen
 			title={copy.title}
 			subtitle={copy.subtitle}
-			footer={<AuthLink label={copy.backToSignIn} onPress={router.back} />}
+			footer={
+				<AuthLink
+					label={copy.backToSignIn}
+					onPress={router.back}
+					disabled={busy}
+				/>
+			}
 		>
 			<AuthInput
 				placeholder={copy.email}
