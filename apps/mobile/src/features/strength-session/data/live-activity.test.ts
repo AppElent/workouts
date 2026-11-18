@@ -309,6 +309,30 @@ describe("session Live Activity", () => {
 		showSessionActivity(props({ setIndex: 4 }));
 		await flush();
 		expect(live()).toEqual([first]);
+		expect(first?.props.setLine).toBe("Set 4 of 4");
+	});
+
+	it("reports a failed setup once, then leaves Live Activities alone", async () => {
+		// A fresh driver (and its mocks) whose factory has not been created yet.
+		let driver: typeof import("./live-activity.ios") | undefined;
+		let widgets: { createLiveActivity: jest.Mock } | undefined;
+		let sentry: { captureException: jest.Mock } | undefined;
+		jest.isolateModules(() => {
+			widgets = jest.requireMock("expo-widgets");
+			sentry = jest.requireMock("@sentry/react-native");
+			widgets?.createLiveActivity.mockClear();
+			widgets?.createLiveActivity.mockImplementationOnce(() => {
+				throw new Error("no app group");
+			});
+			driver = require("./live-activity.ios");
+		});
+		sentry?.captureException.mockClear();
+		driver?.showSessionActivity(props());
+		await flush();
+		driver?.showSessionActivity(props({ setIndex: 4 }));
+		await flush();
+		expect(widgets?.createLiveActivity).toHaveBeenCalledTimes(1);
+		expect(sentry?.captureException).toHaveBeenCalledTimes(1);
 	});
 
 	it("does nothing when Live Activities are turned off", async () => {
