@@ -203,7 +203,12 @@ export const FEATURES = defineFeatures([
 		platforms: ["web", "mobile"],
 		routes: {
 			web: ["_app/exercises/*"],
-			mobile: ["(app)/exercises", "(app)/exercise/*", "(app)/exercise-new"],
+			mobile: [
+				"(app)/exercises",
+				"(app)/exercise/*",
+				"(app)/exercise-sheet/*",
+				"(app)/exercise-new",
+			],
 		},
 	},
 	{
