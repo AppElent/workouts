@@ -12,9 +12,25 @@
  */
 import type { ConfigContext, ExpoConfig } from "expo/config";
 import permissions from "./locales/en.json";
+import { JOIN_LINK_HOST } from "./src/features/training/hosted/join-link.ts";
 import { darkColors, lightColors } from "./src/theme/palette.ts";
 
 type AppVariant = "development" | "preview" | "production";
+
+/**
+ * The Apple Developer team that signs every variant (the same account as
+ * Gather). `public/.well-known/apple-app-site-association` names it in front
+ * of each bundle ID; keep the two in step.
+ */
+export const APPLE_TEAM_ID = "D8AMB5N29A";
+
+/**
+ * Hosted-workout join links (`https://foundry.appelent.nl/join/<token>`) open
+ * the installed app. Production and Preview only: the development build keeps
+ * opening them in the browser, so a local build never claims real links. The
+ * site files that verify the claim are in `public/.well-known/`.
+ */
+const JOIN_LINK_PATH_PREFIX = "/join/";
 
 const VARIANTS = {
 	production: { suffix: "", name: "Foundry", scheme: "foundry", icon: "" },
@@ -61,6 +77,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 	const variant = variantOf();
 	const { suffix, name, scheme, icon } = VARIANTS[variant];
 	const id = `com.appelent.foundry${suffix}`;
+	const claimsJoinLinks = variant !== "development";
 	return {
 		...config,
 		name,
@@ -73,10 +90,35 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 				? [plugin, PLUGIN_OPTIONS[plugin]]
 				: plugin,
 		),
-		ios: { ...config.ios, bundleIdentifier: id },
+		ios: {
+			...config.ios,
+			bundleIdentifier: id,
+			appleTeamId: APPLE_TEAM_ID,
+			...(claimsJoinLinks
+				? { associatedDomains: [`applinks:${JOIN_LINK_HOST}`] }
+				: {}),
+		},
 		android: {
 			...config.android,
 			package: id,
+			...(claimsJoinLinks
+				? {
+						intentFilters: [
+							{
+								action: "VIEW",
+								autoVerify: true,
+								data: [
+									{
+										scheme: "https",
+										host: JOIN_LINK_HOST,
+										pathPrefix: JOIN_LINK_PATH_PREFIX,
+									},
+								],
+								category: ["BROWSABLE", "DEFAULT"],
+							},
+						],
+					}
+				: {}),
 			backgroundColor: lightColors.bg,
 			adaptiveIcon: {
 				...config.android?.adaptiveIcon,

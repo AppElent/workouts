@@ -1,0 +1,18 @@
+[
+	{
+		"relation": ["delegate_permission/common.handle_all_urls"],
+		"target": {
+			"namespace": "android_app",
+			"package_name": "com.appelent.foundry",
+			"sha256_cert_fingerprints": ["PLACEHOLDER_PLAY_APP_SIGNING_SHA256"]
+		}
+	},
+	{
+		"relation": ["delegate_permission/common.handle_all_urls"],
+		"target": {
+			"namespace": "android_app",
+			"package_name": "com.appelent.foundry.preview",
+			"sha256_cert_fingerprints": ["PLACEHOLDER_PREVIEW_SIGNING_SHA256"]
+		}
+	}
+]

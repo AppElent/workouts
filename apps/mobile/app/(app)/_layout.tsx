@@ -18,11 +18,13 @@
  */
 
 import { useAuth } from "@clerk/expo";
-import { Redirect, Stack } from "expo-router";
+import { Redirect, Stack, usePathname } from "expo-router";
 import { Platform, View } from "react-native";
 import { AppDataProviders } from "../../src/app-data-providers";
 import { ConvexSessionGate } from "../../src/auth/convex-session-gate";
 import { AccountDataMaintenanceProvider } from "../../src/features/local-data/account-data-maintenance-provider";
+import { joinTokenFromUrl } from "../../src/features/training/hosted/join-link";
+import { rememberPendingJoin } from "../../src/features/training/hosted/pending-join";
 import { useI18n } from "../../src/i18n";
 import { useTokens } from "../../src/theme";
 import { ConfirmProvider } from "../../src/ui/confirm-dialog";
@@ -36,7 +38,11 @@ export default function AppLayout() {
 	const colors = useTokens();
 	const { isSignedIn } = useAuth();
 	const { t } = useI18n();
+	const pathname = usePathname();
 	if (!isSignedIn) {
+		// A join link survives sign-in; see `pending-join.ts`.
+		const joinToken = joinTokenFromUrl(pathname);
+		if (joinToken) rememberPendingJoin(joinToken);
 		return <Redirect href="/sign-in" />;
 	}
 
@@ -113,6 +119,10 @@ export default function AppLayout() {
 									/>
 									<Stack.Screen
 										name="hosted/[id]"
+										options={{ title: t.routes.hostedWorkout }}
+									/>
+									<Stack.Screen
+										name="join/[token]"
 										options={{ title: t.routes.hostedWorkout }}
 									/>
 									<Stack.Screen name="wods" options={{ title: t.wods.title }} />
