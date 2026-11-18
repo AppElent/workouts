@@ -8,7 +8,7 @@ import { fmt, useMessages } from "#/lib/i18n";
 import { AuthButton } from "./AuthButton";
 import { AuthError } from "./AuthError";
 import { orThrow, useClerkErrorMessage } from "./clerkError";
-import { AUTH_PATHS } from "./paths";
+import { AUTH_PATHS, withRedirect } from "./paths";
 
 const SOCIAL_PROVIDERS = [
 	{ id: "google", label: "Google", strategy: "oauth_google" },
@@ -24,7 +24,9 @@ const SOCIAL_PROVIDERS = [
  * One button per social provider. Each redirects to the provider and back to
  * the SSO callback route, where `AuthenticateWithRedirectCallback` finishes
  * the flow. Starting from sign-in is enough for sign-up too: Clerk transfers
- * an unknown account to a sign-up on the callback.
+ * an unknown account to a sign-up on the callback. That transfer lands on the
+ * callback's fallback URL, not `redirectUrl`, so the callback URL carries the
+ * return path too.
  */
 export function SocialButtons({ redirect }: { redirect?: string } = {}) {
 	const { signIn } = useSignIn();
@@ -45,7 +47,7 @@ export function SocialButtons({ redirect }: { redirect?: string } = {}) {
 			await orThrow(
 				signIn.sso({
 					strategy,
-					redirectCallbackUrl: AUTH_PATHS.ssoCallback,
+					redirectCallbackUrl: withRedirect(AUTH_PATHS.ssoCallback, redirect),
 					redirectUrl: redirect ?? AUTH_PATHS.afterAuth,
 				}),
 			);
