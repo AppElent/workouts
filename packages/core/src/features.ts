@@ -131,15 +131,14 @@ export const FEATURES = defineFeatures([
 		routes: { web: ["privacy"] },
 	},
 
-	// Share target: the hosted-workout join link must work in a phone browser.
+	// Share target: the hosted-workout join link opens the app when installed
+	// (APP-36), else the web, which works in a phone browser.
 	{
 		id: "hosted-workout-join",
 		kind: "share-target",
-		status: "pending-port",
-		platforms: ["web"],
-		reason:
-			"The app cannot open /join/<token> links: no join route, and the Hosted code box takes a bare token only (APP-36). Web gaps: token lost through sign-in (APP-37), same-name guests overwrite scores (APP-38).",
-		routes: { web: ["_app/join/$token"] },
+		status: "parity",
+		platforms: ["web", "mobile"],
+		routes: { web: ["_app/join/$token"], mobile: ["(app)/join/*"] },
 	},
 
 	// Product: shared training screens.
