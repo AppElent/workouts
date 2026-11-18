@@ -174,6 +174,15 @@ export default function AppLayout() {
 										}}
 									/>
 									<Stack.Screen
+										name="exercise-sheet/[id]"
+										options={{
+											title: t.routes.exercise,
+											presentation: "formSheet",
+											sheetAllowedDetents: [1],
+											sheetGrabberVisible: true,
+										}}
+									/>
+									<Stack.Screen
 										name="session-manual"
 										options={{
 											headerShown: false,

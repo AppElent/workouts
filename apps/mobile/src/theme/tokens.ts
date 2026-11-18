@@ -24,28 +24,38 @@ export { darkColors, lightColors, type Tokens } from "./palette";
 export const sportMeta = {
 	strength: {
 		glyph: "S",
+		symbol: "dumbbell.fill",
 		color: "#c8f73c",
 		dim: "rgba(200, 247, 60, 0.14)",
 	},
 	running: {
 		glyph: "R",
+		symbol: "figure.run",
 		color: "#ff8a4c",
 		dim: "rgba(255, 138, 76, 0.14)",
 	},
 	cycling: {
 		glyph: "C",
+		symbol: "bicycle",
 		color: "#4fd1e3",
 		dim: "rgba(79, 209, 227, 0.14)",
 	},
 	wod: {
 		glyph: "W",
+		symbol: "flame.fill",
 		color: "#ff5d73",
 		dim: "rgba(255, 93, 115, 0.14)",
 	},
 } as const;
 
 export type SportKey = keyof typeof sportMeta;
-type SportStyle = { glyph: string; color: string; dim: string };
+type SportStyle = {
+	glyph: string;
+	/** SF Symbol for the sport tile; the glyph stays as the non-iOS fallback. */
+	symbol: string;
+	color: string;
+	dim: string;
+};
 
 /** The same sports, darkened to stay legible on the light scheme. */
 export const lightSportMeta: Record<SportKey, SportStyle> = {

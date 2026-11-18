@@ -235,9 +235,12 @@ function rowSpeech(
 export function SessionSetRow({
 	row,
 	isNext,
+	showPercent = true,
 }: {
 	row: PlanSet;
 	isNext: boolean;
+	/** Off when nothing prices this exercise's sets, so no empty column. */
+	showPercent?: boolean;
 }) {
 	const { plan, workspace } = useSessionScreen();
 	const { copy, loadText, percent, percentText, pending, oneRm, facts } =
@@ -287,7 +290,7 @@ export function SessionSetRow({
 				>
 					{mark}
 				</AppText>
-				{facts.bodyweight ? (
+				{!showPercent ? null : facts.bodyweight ? (
 					<View style={styles.percentColumn} />
 				) : (
 					<AppText

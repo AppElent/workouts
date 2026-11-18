@@ -71,6 +71,7 @@ import type {
 	InsetListProps,
 	InsetRowProps,
 	RowLeading,
+	SFSymbol,
 } from "./inset-list.types";
 
 export type { InsetListProps, InsetRowProps, RowLeading };
@@ -157,7 +158,7 @@ function Leading({ leading }: { leading: RowLeading }) {
 	);
 }
 
-/** `SportIcon` in SwiftUI: a tinted continuous-corner tile with the letter glyph. */
+/** `SportIcon` in SwiftUI: a tinted continuous-corner tile with the sport symbol. */
 function SportTile({
 	sport,
 	size,
@@ -172,14 +173,11 @@ function SportTile({
 				cornerRadius={size * 0.32}
 				modifiers={[foregroundStyle(dim)]}
 			/>
-			<Text
-				modifiers={[
-					font({ size: size * 0.4, weight: "heavy" }),
-					foregroundStyle(color),
-				]}
-			>
-				{sportMeta[sport].glyph}
-			</Text>
+			<Image
+				systemName={sportMeta[sport].symbol as SFSymbol}
+				size={size * 0.5}
+				color={color}
+			/>
 		</ZStack>
 	);
 }
