@@ -184,11 +184,15 @@ export function useSessionActions(workspace: SessionWorkspace) {
 				number: Math.max(number, 1),
 			});
 		}
+		/** A rest belongs to its session; without one (no plan opens that way) there is none. */
+		function beginRest(seconds: number) {
+			if (sessionId) rest.start(sessionId, seconds, restBody());
+		}
 		function restIfIdle(rowId: string) {
 			const seconds = restAfterLog(plan(), rowId);
 			const current = rest.current();
 			if (seconds !== null && (current === null || current <= Date.now()))
-				rest.start(seconds, restBody());
+				beginRest(seconds);
 		}
 		function afterLogged(
 			row: PlanSet,
@@ -203,7 +207,7 @@ export function useSessionActions(workspace: SessionWorkspace) {
 			const result = markLogged(before, row.id, setId, setNumber, facts);
 			set(result.plan);
 			const previousRest = rest.current();
-			if (seconds !== null) rest.start(seconds, restBody());
+			if (seconds !== null) beginRest(seconds);
 			// A rest that has run out is done once the next set is logged.
 			else if (previousRest !== null && previousRest <= Date.now()) rest.stop();
 			if (record) haptics.sessionSuccess();
