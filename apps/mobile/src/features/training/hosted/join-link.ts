@@ -15,8 +15,8 @@ const TOKEN = "[A-Za-z0-9]+";
 const BARE_TOKEN = new RegExp(`^${TOKEN}$`);
 const LINK = new RegExp(
 	"^(?:" +
-		// https://foundry.appelent.nl/join/<token>
-		`https?://(?:www\\.)?${JOIN_LINK_HOST.replaceAll(".", "\\.")}(?::\\d+)?/` +
+		// https://foundry.appelent.nl/join/<token>: exactly the claimed origin
+		`https://${JOIN_LINK_HOST.replaceAll(".", "\\.")}/` +
 		// foundry://join/<token>, foundry-preview://…, foundry-dev://…
 		"|foundry(?:-preview|-dev)?:///?" +
 		// /join/<token>, as Expo Router hands over an already parsed path
@@ -28,6 +28,11 @@ const LINK = new RegExp(
 /** The token in a join link, or `null` when `url` is not one. */
 export function joinTokenFromUrl(url: string): string | null {
 	return LINK.exec(url.trim())?.[1] ?? null;
+}
+
+/** A bare join token, as the join route's `[token]` segment must be. */
+export function isJoinToken(value: string): boolean {
+	return BARE_TOKEN.test(value);
 }
 
 /** The join code typed or pasted into the Hosted screen: a bare token or a full link. */

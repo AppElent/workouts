@@ -1,5 +1,6 @@
 import { redirectSystemPath } from "../../../../app/+native-intent";
 import {
+	isJoinToken,
 	joinRouteFromUrl,
 	joinTokenFromUrl,
 	parseJoinInput,
@@ -14,7 +15,6 @@ describe("joinTokenFromUrl", () => {
 		`https://foundry.appelent.nl/join/${TOKEN}?utm_source=whatsapp`,
 		`https://foundry.appelent.nl/join/${TOKEN}#leaderboard`,
 		`HTTPS://Foundry.Appelent.NL/join/${TOKEN}`,
-		`http://www.foundry.appelent.nl/join/${TOKEN}`,
 		`foundry://join/${TOKEN}`,
 		`foundry:///join/${TOKEN}`,
 		`foundry-preview://join/${TOKEN}`,
@@ -33,12 +33,28 @@ describe("joinTokenFromUrl", () => {
 		`https://evil.example/join/${TOKEN}`,
 		`https://foundry.appelent.nl.evil.example/join/${TOKEN}`,
 		`https://foundry-stg.appelent.nl/join/${TOKEN}`,
+		`http://foundry.appelent.nl/join/${TOKEN}`,
+		`https://www.foundry.appelent.nl/join/${TOKEN}`,
+		`https://foundry.appelent.nl:8443/join/${TOKEN}`,
+		`https://user@foundry.appelent.nl/join/${TOKEN}`,
 		`gather://join/${TOKEN}`,
 		`https://foundry.appelent.nl/join/${TOKEN}%2F..`,
 		"foundry://session?id=abc",
 		"",
 	])("rejects %s", (url) => {
 		expect(joinTokenFromUrl(url)).toBeNull();
+	});
+});
+
+describe("isJoinToken", () => {
+	it("accepts only a bare token", () => {
+		expect(isJoinToken(TOKEN)).toBe(true);
+		expect(isJoinToken(`https://foundry.appelent.nl/join/${TOKEN}`)).toBe(
+			false,
+		);
+		expect(isJoinToken(`/join/${TOKEN}`)).toBe(false);
+		expect(isJoinToken(` ${TOKEN}`)).toBe(false);
+		expect(isJoinToken("")).toBe(false);
 	});
 });
 

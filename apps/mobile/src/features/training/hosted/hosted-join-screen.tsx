@@ -12,7 +12,7 @@
  */
 import { useMutation } from "convex/react";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { api } from "../../../convex/api";
 import { useI18n } from "../../../i18n";
@@ -20,7 +20,7 @@ import { spacing, useTokens } from "../../../theme";
 import { PrimaryButton } from "../../../ui/button";
 import { AppText } from "../../../ui/text";
 import { useWriteFailureMessage } from "../../../ui/use-screen-write";
-import { parseJoinInput } from "./join-link";
+import { isJoinToken } from "./join-link";
 import { clearPendingJoin } from "./pending-join";
 
 export function HostedJoinScreen() {
@@ -30,9 +30,9 @@ export function HostedJoinScreen() {
 	const errorMessage = useWriteFailureMessage();
 	const join = useMutation(api.hostedWorkoutParticipants.join);
 	const params = useLocalSearchParams<{ token?: string }>();
-	const token = parseJoinInput(params.token ?? "");
+	// The segment must be the token itself, never a link or path inside it.
+	const token = isJoinToken(params.token ?? "") ? (params.token ?? "") : null;
 	const [failure, setFailure] = useState<string | null>(null);
-	const started = useRef<string | null>(null);
 
 	useEffect(() => {
 		clearPendingJoin();
@@ -40,17 +40,23 @@ export function HostedJoinScreen() {
 			setFailure(copy.joinLinkInvalid);
 			return;
 		}
-		// One join per token, even when the effect runs again.
-		if (started.current === token) return;
-		started.current = token;
+		// A join that finishes after the screen left, or after another link
+		// replaced its token, must not navigate. Running it again is safe: the
+		// mutation returns the session the first call created.
+		let current = true;
 		setFailure(null);
 		join({ token })
-			.then((sessionId) =>
-				router.replace({ pathname: "/session", params: { id: sessionId } }),
-			)
-			.catch((error: unknown) =>
-				setFailure(errorMessage(error, copy.joinLinkInvalid)),
-			);
+			.then((sessionId) => {
+				if (current) {
+					router.replace({ pathname: "/session", params: { id: sessionId } });
+				}
+			})
+			.catch((error: unknown) => {
+				if (current) setFailure(errorMessage(error, copy.joinLinkInvalid));
+			});
+		return () => {
+			current = false;
+		};
 	}, [token, join, router, errorMessage, copy.joinLinkInvalid]);
 
 	return (

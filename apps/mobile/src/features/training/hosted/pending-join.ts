@@ -8,7 +8,8 @@
  */
 let pending: string | null = null;
 
-export function rememberPendingJoin(token: string): void {
+/** `null` forgets an earlier link: the latest link opened wins, valid or not. */
+export function rememberPendingJoin(token: string | null): void {
 	pending = token;
 }
 
