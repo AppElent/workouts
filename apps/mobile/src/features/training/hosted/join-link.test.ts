@@ -61,13 +61,15 @@ describe("isJoinToken", () => {
 });
 
 describe("joinTokenFromPathname", () => {
-	it.each([`/join/${TOKEN}`, `/join/${TOKEN}/`])("reads %s", (pathname) => {
-		expect(joinTokenFromPathname(pathname)).toBe(TOKEN);
+	it("reads the token", () => {
+		expect(joinTokenFromPathname(`/join/${TOKEN}`)).toBe(TOKEN);
 	});
 
 	it.each([
 		// usePathname() decodes %23 and %3F, so these are whole segments.
 		`/join/${TOKEN}#extra`,
+		`/join/${TOKEN}/`,
+		"/",
 		`/join/${TOKEN}?x=1`,
 		`/join/${TOKEN}/more`,
 		"/join/",

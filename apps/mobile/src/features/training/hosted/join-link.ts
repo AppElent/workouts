@@ -43,7 +43,9 @@ export function isJoinToken(value: string): boolean {
  * would read as a fragment.
  */
 export function joinTokenFromPathname(pathname: string): string | null {
-	const segment = /^\/join\/([^/]*)\/?$/.exec(pathname)?.[1] ?? "";
+	// No trailing slash: Expo Router never adds one, so `/join/ABC/` is the
+	// decoded segment `ABC/` (from `ABC%2F`), not the token `ABC`.
+	const segment = /^\/join\/([^/]*)$/.exec(pathname)?.[1] ?? "";
 	return isJoinToken(segment) ? segment : null;
 }
 

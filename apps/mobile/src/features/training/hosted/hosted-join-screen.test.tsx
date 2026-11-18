@@ -78,7 +78,7 @@ describe("HostedJoinScreen", () => {
 		expect(join).not.toHaveBeenCalled();
 	});
 
-	it("ignores a join that finishes while another screen covers it", async () => {
+	it("ignores a join that finishes while covered, and joins again on return", async () => {
 		let resolve: (sessionId: string) => void = () => {};
 		const join = jest.fn(
 			() =>
@@ -91,6 +91,11 @@ describe("HostedJoinScreen", () => {
 		await act(async () => router.push("/hosted"));
 		await act(async () => resolve("session-1"));
 		expect(app.getPathname()).toBe("/hosted");
+
+		await act(async () => router.back());
+		await waitFor(() => expect(join).toHaveBeenCalledTimes(2));
+		await act(async () => resolve("session-1"));
+		await waitFor(() => expect(app.getPathname()).toBe("/session"));
 	});
 
 	it("ignores a join that finishes after the user left", async () => {

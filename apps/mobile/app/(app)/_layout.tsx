@@ -40,11 +40,9 @@ export default function AppLayout() {
 	const { t } = useI18n();
 	const pathname = usePathname();
 	if (!isSignedIn) {
-		// A join link survives sign-in; see `pending-join.ts`.
-		// A later invalid link replaces an earlier one rather than joining it.
-		if (pathname.startsWith("/join/")) {
-			rememberPendingJoin(joinTokenFromPathname(pathname));
-		}
+		// A join link survives sign-in; see `pending-join.ts`. Whatever was
+		// opened last wins: another route or an invalid link forgets it.
+		rememberPendingJoin(joinTokenFromPathname(pathname));
 		return <Redirect href="/sign-in" />;
 	}
 
