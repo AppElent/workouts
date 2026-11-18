@@ -116,7 +116,7 @@ export function NowCard() {
 	const setText = formatSetFull(row, facts, locale);
 	const last = facts.last
 		? formatSetShort(
-				{ kg: facts.last.kg, reps: facts.last.reps, unit: "kg" },
+				{ kg: facts.last.kg, reps: facts.last.reps, unit: row.unit },
 				facts,
 				locale,
 			)
@@ -144,35 +144,39 @@ export function NowCard() {
 				style={styles.card}
 			>
 				<View style={styles.inner}>
-					<View
-						style={styles.restRow}
-						accessible
-						accessibilityRole="timer"
-						accessibilityLabel={
-							rest.over
-								? copy.restOver
-								: fmt(copy.spokenRest, { time: formatClock(rest.remaining) })
-						}
-					>
-						{rest.over ? null : (
-							<RestRing remaining={rest.remaining} total={total} />
-						)}
-						<View style={styles.restText}>
-							<AppText variant="eyebrow" style={{ color: colors.accent }}>
-								{rest.over
+					<View style={styles.restRow}>
+						<View
+							style={styles.restInfo}
+							accessible
+							accessibilityRole="timer"
+							accessibilityLabel={[
+								rest.over
 									? copy.restOver
-									: fmt(copy.restOf, { time: formatClock(total) })}
-							</AppText>
-							<AppText variant="label" style={{ color: colors.textMuted }}>
-								{then}
-							</AppText>
-							<AppText
-								variant="heading"
-								numberOfLines={large ? undefined : 2}
-								style={styles.tabular}
-							>
-								{`${name} · ${setText}`}
-							</AppText>
+									: fmt(copy.spokenRest, { time: formatClock(rest.remaining) }),
+								then,
+								`${name} · ${setText}`,
+							].join(", ")}
+						>
+							{rest.over ? null : (
+								<RestRing remaining={rest.remaining} total={total} />
+							)}
+							<View style={styles.restText}>
+								<AppText variant="eyebrow" style={{ color: colors.accent }}>
+									{rest.over
+										? copy.restOver
+										: fmt(copy.restOf, { time: formatClock(total) })}
+								</AppText>
+								<AppText variant="label" style={{ color: colors.textMuted }}>
+									{then}
+								</AppText>
+								<AppText
+									variant="heading"
+									numberOfLines={large ? undefined : 2}
+									style={styles.tabular}
+								>
+									{`${name} · ${setText}`}
+								</AppText>
+							</View>
 						</View>
 						<Pressable
 							accessibilityRole="button"
@@ -186,6 +190,7 @@ export function NowCard() {
 								size={15}
 								weight="semibold"
 								tintColor={colors.textMuted}
+								fallback={<AppText variant="control">✕</AppText>}
 							/>
 						</Pressable>
 					</View>
@@ -237,6 +242,7 @@ export function NowCard() {
 							size={17}
 							weight="semibold"
 							tintColor={colors.text}
+							fallback={<AppText variant="control">✎</AppText>}
 						/>
 					</Pressable>
 				</View>
@@ -298,6 +304,7 @@ function LogButton({
 				size={17}
 				weight="bold"
 				tintColor={colors.onAccent}
+				fallback={null}
 			/>
 			<AppText variant="control" style={styles.logText}>
 				{label}
@@ -385,6 +392,13 @@ const createStyles = (colors: Tokens) =>
 			alignItems: "center",
 			gap: spacing.md - 2,
 			paddingHorizontal: spacing.xs,
+		},
+		restInfo: {
+			flex: 1,
+			minWidth: 0,
+			flexDirection: "row",
+			alignItems: "center",
+			gap: spacing.md - 2,
 		},
 		restText: { flex: 1, minWidth: 0, gap: 2 },
 		stop: {

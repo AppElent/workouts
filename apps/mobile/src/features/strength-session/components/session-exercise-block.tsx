@@ -271,6 +271,11 @@ function StatusTile({
 					size={17}
 					weight="bold"
 					tintColor={colors.accentInk}
+					fallback={
+						<AppText variant="label" style={{ color: colors.accentInk }}>
+							✓
+						</AppText>
+					}
 				/>
 			</View>
 		);
@@ -282,6 +287,11 @@ function StatusTile({
 					size={18}
 					weight="semibold"
 					tintColor={colors.onAccent}
+					fallback={
+						<AppText variant="label" style={{ color: colors.onAccent }}>
+							{String(number)}
+						</AppText>
+					}
 				/>
 			</View>
 		);
@@ -352,6 +362,7 @@ function DoneSummary({
 						name="trophy.fill"
 						size={12}
 						tintColor={colors.accentInk}
+						fallback={null}
 					/>
 					<AppText variant="caption" style={styles.badgeText}>
 						{copy.now.recordBadge}
@@ -382,7 +393,8 @@ export function SessionExerciseBlock({ exerciseId }: { exerciseId: string }) {
 		plan.order.findIndex(
 			(entry) => entry.kind === "exercise" && entry.exerciseId === exerciseId,
 		) + 1;
-	const allDone = rows.length > 0 && rows.every((row) => row.done);
+	const allDone =
+		rows.some((row) => row.kind !== "warmup") && rows.every((row) => row.done);
 	const current = next?.exerciseId === exerciseId;
 	// The % column only earns its width when a reference prices the sets.
 	const showPercent =

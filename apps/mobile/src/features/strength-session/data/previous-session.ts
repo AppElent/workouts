@@ -7,7 +7,7 @@ import { isTimedExercise, toKg, workingVolume } from "@foundry/core";
 import { api, type Doc, type Id } from "../../../convex/api";
 import { useQuery } from "../../../convex/query-cache";
 
-const LOOKBACK = 20;
+const LOOKBACK = 50;
 
 export type SessionTotals = {
 	durationSeconds: number | null;

@@ -1,4 +1,4 @@
-import { formatClock } from "@foundry/core";
+import { formatClock, isTimedExercise } from "@foundry/core";
 /**
  * The end of a session, before it is saved (APP-255): what you did, how it
  * compares with last time, and the records first. Back to session reopens it.
@@ -105,6 +105,8 @@ function exerciseDelta(
 	const was = before.top[exerciseId];
 	if (!now) return null;
 	if (!was) return { text: copy.deltaNew, tone: "flat" };
+	// A timed set's reps are seconds; a "+n reps" chip would misread them.
+	if (isTimedExercise(exerciseId)) return null;
 	const kg = Math.round((now.kg - was.kg) * 100) / 100;
 	if (kg > 0)
 		return {
@@ -228,6 +230,11 @@ export function SessionRecap({
 							size={28}
 							weight="semibold"
 							tintColor={colors.onAccent}
+							fallback={
+								<AppText variant="title" style={{ color: colors.onAccent }}>
+									✓
+								</AppText>
+							}
 						/>
 					</View>
 					<AppText
@@ -348,6 +355,7 @@ export function SessionRecap({
 											name="dumbbell.fill"
 											size={17}
 											tintColor={colors.textMuted}
+											fallback={null}
 										/>
 									</View>
 									<View style={styles.rowText}>
@@ -484,6 +492,11 @@ function RecordRow({
 					size={16}
 					weight="bold"
 					tintColor={colors.onAccent}
+					fallback={
+						<AppText variant="label" style={{ color: colors.onAccent }}>
+							↑
+						</AppText>
+					}
 				/>
 			</View>
 			<View style={styles.rowText}>
