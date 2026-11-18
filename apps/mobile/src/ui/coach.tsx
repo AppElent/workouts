@@ -103,6 +103,7 @@ export function SportIcon({
 		>
 			<SymbolView
 				name={meta.symbol as ComponentProps<typeof SymbolView>["name"]}
+				testID="sport-icon-symbol"
 				size={size * 0.52}
 				weight="semibold"
 				tintColor={color}
