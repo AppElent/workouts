@@ -34,6 +34,8 @@ const asKey = (key: string) => key as LocalKey;
 export const PREFERENCE_KEYS = {
 	locale: asKey("workouts:locale"),
 	exerciseLibraryLayout: asKey("workouts:exercise-library-layout"),
+	/** The set editor shows only weight, reps and type ("simple") or everything. */
+	setEditorMode: asKey("workouts:set-editor-mode"),
 	appearance: asKey("workouts:appearance"),
 	/**
 	 * Consent to send text and photos to the nutrition AI provider. Per phone,
