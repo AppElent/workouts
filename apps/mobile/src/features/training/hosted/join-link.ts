@@ -3,6 +3,9 @@
  * same link in the app's own schemes (`foundry://join/<token>`), or a bare
  * join code.
  *
+ * Case-sensitive, like the claimed `/join/*` path: a link that would not open
+ * the app does not work when pasted either.
+ *
  * Regular expressions rather than `URL`: React Native's `URL` polyfill does
  * not implement `pathname`, and `+native-intent` must never throw.
  */
@@ -22,7 +25,6 @@ const LINK = new RegExp(
 		// /join/<token>, as Expo Router hands over an already parsed path
 		"|/" +
 		`)join/(${TOKEN})/?(?:[?#].*)?$`,
-	"i",
 );
 
 /** The token in a join link, or `null` when `url` is not one. */
@@ -33,6 +35,16 @@ export function joinTokenFromUrl(url: string): string | null {
 /** A bare join token, as the join route's `[token]` segment must be. */
 export function isJoinToken(value: string): boolean {
 	return BARE_TOKEN.test(value);
+}
+
+/**
+ * The token of an app route path (`/join/<token>`), validating the whole
+ * decoded segment: `usePathname()` decodes `%23` to `#`, which a link parser
+ * would read as a fragment.
+ */
+export function joinTokenFromPathname(pathname: string): string | null {
+	const segment = /^\/join\/([^/]*)\/?$/.exec(pathname)?.[1] ?? "";
+	return isJoinToken(segment) ? segment : null;
 }
 
 /** The join code typed or pasted into the Hosted screen: a bare token or a full link. */

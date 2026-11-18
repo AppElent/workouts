@@ -2,6 +2,7 @@ import { redirectSystemPath } from "../../../../app/+native-intent";
 import {
 	isJoinToken,
 	joinRouteFromUrl,
+	joinTokenFromPathname,
 	joinTokenFromUrl,
 	parseJoinInput,
 } from "./join-link";
@@ -14,7 +15,6 @@ describe("joinTokenFromUrl", () => {
 		`https://foundry.appelent.nl/join/${TOKEN}/`,
 		`https://foundry.appelent.nl/join/${TOKEN}?utm_source=whatsapp`,
 		`https://foundry.appelent.nl/join/${TOKEN}#leaderboard`,
-		`HTTPS://Foundry.Appelent.NL/join/${TOKEN}`,
 		`foundry://join/${TOKEN}`,
 		`foundry:///join/${TOKEN}`,
 		`foundry-preview://join/${TOKEN}`,
@@ -37,6 +37,8 @@ describe("joinTokenFromUrl", () => {
 		`https://www.foundry.appelent.nl/join/${TOKEN}`,
 		`https://foundry.appelent.nl:8443/join/${TOKEN}`,
 		`https://user@foundry.appelent.nl/join/${TOKEN}`,
+		`https://foundry.appelent.nl/JOIN/${TOKEN}`,
+		`HTTPS://Foundry.Appelent.NL/join/${TOKEN}`,
 		`gather://join/${TOKEN}`,
 		`https://foundry.appelent.nl/join/${TOKEN}%2F..`,
 		"foundry://session?id=abc",
@@ -55,6 +57,23 @@ describe("isJoinToken", () => {
 		expect(isJoinToken(`/join/${TOKEN}`)).toBe(false);
 		expect(isJoinToken(` ${TOKEN}`)).toBe(false);
 		expect(isJoinToken("")).toBe(false);
+	});
+});
+
+describe("joinTokenFromPathname", () => {
+	it.each([`/join/${TOKEN}`, `/join/${TOKEN}/`])("reads %s", (pathname) => {
+		expect(joinTokenFromPathname(pathname)).toBe(TOKEN);
+	});
+
+	it.each([
+		// usePathname() decodes %23 and %3F, so these are whole segments.
+		`/join/${TOKEN}#extra`,
+		`/join/${TOKEN}?x=1`,
+		`/join/${TOKEN}/more`,
+		"/join/",
+		`/hosted/${TOKEN}`,
+	])("rejects %s", (pathname) => {
+		expect(joinTokenFromPathname(pathname)).toBeNull();
 	});
 });
 
@@ -96,9 +115,17 @@ describe("+native-intent redirectSystemPath", () => {
 	it.each([
 		"foundry://session?id=abc",
 		"/hosted",
-		"https://foundry.appelent.nl/privacy",
 		"foundry://oauth-native-callback?code=x",
 	])("leaves %s unchanged", (path) => {
 		expect(redirectSystemPath({ path, initial: false })).toBe(path);
+	});
+
+	it.each([
+		`https://foundry.appelent.nl:8443/join/${TOKEN}`,
+		`http://foundry.appelent.nl/join/${TOKEN}`,
+		`https://evil.example/join/${TOKEN}`,
+		"https://foundry.appelent.nl/privacy",
+	])("opens Coach for the unclaimed web link %s", (path) => {
+		expect(redirectSystemPath({ path, initial: true })).toBe("/");
 	});
 });

@@ -23,7 +23,7 @@ import { Platform, View } from "react-native";
 import { AppDataProviders } from "../../src/app-data-providers";
 import { ConvexSessionGate } from "../../src/auth/convex-session-gate";
 import { AccountDataMaintenanceProvider } from "../../src/features/local-data/account-data-maintenance-provider";
-import { joinTokenFromUrl } from "../../src/features/training/hosted/join-link";
+import { joinTokenFromPathname } from "../../src/features/training/hosted/join-link";
 import { rememberPendingJoin } from "../../src/features/training/hosted/pending-join";
 import { useI18n } from "../../src/i18n";
 import { useTokens } from "../../src/theme";
@@ -43,7 +43,7 @@ export default function AppLayout() {
 		// A join link survives sign-in; see `pending-join.ts`.
 		// A later invalid link replaces an earlier one rather than joining it.
 		if (pathname.startsWith("/join/")) {
-			rememberPendingJoin(joinTokenFromUrl(pathname));
+			rememberPendingJoin(joinTokenFromPathname(pathname));
 		}
 		return <Redirect href="/sign-in" />;
 	}

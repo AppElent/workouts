@@ -11,8 +11,8 @@
  * "not found" to everyone else.
  */
 import { useMutation } from "convex/react";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { api } from "../../../convex/api";
 import { useI18n } from "../../../i18n";
@@ -34,30 +34,32 @@ export function HostedJoinScreen() {
 	const token = isJoinToken(params.token ?? "") ? (params.token ?? "") : null;
 	const [failure, setFailure] = useState<string | null>(null);
 
-	useEffect(() => {
-		clearPendingJoin();
-		if (!token) {
-			setFailure(copy.joinLinkInvalid);
-			return;
-		}
-		// A join that finishes after the screen left, or after another link
-		// replaced its token, must not navigate. Running it again is safe: the
-		// mutation returns the session the first call created.
-		let current = true;
-		setFailure(null);
-		join({ token })
-			.then((sessionId) => {
-				if (current) {
-					router.replace({ pathname: "/session", params: { id: sessionId } });
-				}
-			})
-			.catch((error: unknown) => {
-				if (current) setFailure(errorMessage(error, copy.joinLinkInvalid));
-			});
-		return () => {
-			current = false;
-		};
-	}, [token, join, router, errorMessage, copy.joinLinkInvalid]);
+	useFocusEffect(
+		useCallback(() => {
+			clearPendingJoin();
+			if (!token) {
+				setFailure(copy.joinLinkInvalid);
+				return;
+			}
+			// A join that finishes after the screen lost focus (left, covered by a
+			// pushed screen, or replaced by another link) must not navigate. Joining
+			// again on refocus is safe: the mutation returns the existing session.
+			let current = true;
+			setFailure(null);
+			join({ token })
+				.then((sessionId) => {
+					if (current) {
+						router.replace({ pathname: "/session", params: { id: sessionId } });
+					}
+				})
+				.catch((error: unknown) => {
+					if (current) setFailure(errorMessage(error, copy.joinLinkInvalid));
+				});
+			return () => {
+				current = false;
+			};
+		}, [token, join, router, errorMessage, copy.joinLinkInvalid]),
+	);
 
 	return (
 		<View style={[styles.root, { backgroundColor: colors.bg }]}>
