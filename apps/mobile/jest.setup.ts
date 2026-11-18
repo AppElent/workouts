@@ -110,6 +110,8 @@ jest.mock("@sentry/react-native", () => ({
 	setTag: jest.fn(),
 	addEventProcessor: jest.fn(),
 	showFeedbackForm: jest.fn(),
+	enableFeedbackOnShake: jest.fn(),
+	disableFeedbackOnShake: jest.fn(),
 	setUser: jest.fn(),
 	captureException: jest.fn(),
 	logger: { error: jest.fn() },

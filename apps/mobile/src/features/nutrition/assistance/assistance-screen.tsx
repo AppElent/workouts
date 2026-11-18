@@ -14,7 +14,6 @@ import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import {
 	ActivityIndicator,
 	Alert,
-	Modal,
 	Pressable,
 	ScrollView,
 	Switch,
@@ -39,6 +38,7 @@ import { PrimaryButton } from "../../../ui/button";
 import { DatePickerSheet } from "../../../ui/date-picker-sheet";
 import { TextAction } from "../../../ui/form";
 import type { SFSymbol } from "../../../ui/inset-list.types";
+import { Modal } from "../../../ui/modal";
 import { SkeletonBlock, SkeletonGroup } from "../../../ui/skeleton";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";

@@ -56,24 +56,30 @@ export const FEATURES = defineFeatures([
 		platforms: ["web", "mobile"],
 		routes: {
 			web: ["sign-in", "sign-up", "sso-callback"],
-			mobile: ["(auth)/**"],
+			mobile: [
+				"(auth)/sign-in",
+				"(auth)/sign-in-code",
+				"(auth)/sign-up",
+				"(auth)/verify-email",
+			],
 		},
 	},
 	{
 		id: "password-reset",
 		kind: "floor",
-		status: "pending-port",
-		platforms: ["web"],
-		reason: "Mobile sign-in has no forgot-password flow (APP-35).",
-		routes: { web: ["forgot-password"] },
+		status: "parity",
+		platforms: ["web", "mobile"],
+		routes: {
+			web: ["forgot-password"],
+			mobile: ["(auth)/forgot-password", "(auth)/reset-password"],
+		},
 	},
 	{
 		id: "password-change",
 		kind: "floor",
-		status: "pending-port",
-		platforms: ["web"],
-		reason: "Only the web Account page can change a password (APP-35).",
-		routes: {},
+		status: "parity",
+		platforms: ["web", "mobile"],
+		routes: { mobile: ["(app)/change-password"] },
 	},
 	{
 		id: "account-profile",
@@ -86,12 +92,11 @@ export const FEATURES = defineFeatures([
 		},
 	},
 	{
+		// Both platforms delete through account.deleteData and Clerk self-deletion.
 		id: "account-deletion",
 		kind: "floor",
-		status: "pending-port",
-		platforms: ["mobile"],
-		reason:
-			"Only the mobile Account screen deletes data or the account (APP-34).",
+		status: "parity",
+		platforms: ["web", "mobile"],
 		routes: {},
 	},
 	{
@@ -126,15 +131,14 @@ export const FEATURES = defineFeatures([
 		routes: { web: ["privacy"] },
 	},
 
-	// Share target: the hosted-workout join link must work in a phone browser.
+	// Share target: the hosted-workout join link opens the app when installed
+	// (APP-36), else the web, which works in a phone browser.
 	{
 		id: "hosted-workout-join",
 		kind: "share-target",
-		status: "pending-port",
-		platforms: ["web"],
-		reason:
-			"The app cannot open /join/<token> links: no join route, and the Hosted code box takes a bare token only (APP-36). Web gaps: token lost through sign-in (APP-37), same-name guests overwrite scores (APP-38).",
-		routes: { web: ["_app/join/$token"] },
+		status: "parity",
+		platforms: ["web", "mobile"],
+		routes: { web: ["_app/join/$token"], mobile: ["(app)/join/*"] },
 	},
 
 	// Product: shared training screens.
@@ -203,7 +207,12 @@ export const FEATURES = defineFeatures([
 		platforms: ["web", "mobile"],
 		routes: {
 			web: ["_app/exercises/*"],
-			mobile: ["(app)/exercises", "(app)/exercise/*", "(app)/exercise-new"],
+			mobile: [
+				"(app)/exercises",
+				"(app)/exercise/*",
+				"(app)/exercise-sheet/*",
+				"(app)/exercise-new",
+			],
 		},
 	},
 	{

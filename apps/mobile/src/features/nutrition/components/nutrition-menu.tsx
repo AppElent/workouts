@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import {
 	ActionSheetIOS,
-	Modal,
 	Platform,
 	Pressable,
 	ScrollView,
@@ -23,6 +22,7 @@ import {
 	useThemedStyles,
 	useTokens,
 } from "../../../theme";
+import { Modal } from "../../../ui/modal";
 import { AppText } from "../../../ui/text";
 
 /** A visible, compact entry point for secondary nutrition actions. */

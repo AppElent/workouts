@@ -24,7 +24,7 @@ export function SignInForm({
 	redirect,
 }: {
 	onSuccess?: () => void;
-	/** Where to land after signing in, carried to social sign-in and sign-up. */
+	/** Where to land after signing in, carried to social sign-in, sign-up, and password reset. */
 	redirect?: string;
 }) {
 	const { signIn } = useSignIn();
@@ -173,7 +173,10 @@ export function SignInForm({
 			</AuthButton>
 			<TestLoginButton onSuccess={onSuccess} />
 			<div className="mt-1 flex justify-between text-xs text-text-muted">
-				<a href={AUTH_PATHS.forgotPassword} className="hover:underline">
+				<a
+					href={withRedirect(AUTH_PATHS.forgotPassword, redirect)}
+					className="hover:underline"
+				>
 					{auth.signIn.forgotPassword}
 				</a>
 				<a

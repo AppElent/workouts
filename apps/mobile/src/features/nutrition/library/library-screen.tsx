@@ -2,7 +2,7 @@ import type { LibraryCategory } from "@foundry/core";
 import { router, Stack } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useRef, useState } from "react";
-import { Modal, Platform, Pressable, ScrollView, View } from "react-native";
+import { Platform, Pressable, ScrollView, View } from "react-native";
 import type { SearchBarCommands } from "react-native-screens";
 import { useStalledOffline } from "../../../convex/stalled-offline";
 import {
@@ -18,6 +18,7 @@ import { EmptyState } from "../../../ui/empty-state";
 import { FormSearchField } from "../../../ui/form";
 import { GlassSurface } from "../../../ui/glass-surface";
 import { InsetList, InsetRow } from "../../../ui/inset-list";
+import { Modal } from "../../../ui/modal";
 import { isIOS26OrLater } from "../../../ui/platform";
 import type { RowAction } from "../../../ui/swipeable-row";
 import { AppText } from "../../../ui/text";

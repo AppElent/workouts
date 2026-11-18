@@ -42,6 +42,7 @@ export const auth = {
 		currentPassword: "Huidig wachtwoord",
 		newPassword: "Nieuw wachtwoord",
 		changePassword: "Wachtwoord wijzigen",
+		passwordChanged: "Wachtwoord gewijzigd. Andere apparaten zijn uitgelogd.",
 		session: "Sessie",
 		signOut: "Uitloggen",
 	},

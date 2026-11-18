@@ -39,6 +39,7 @@ export const auth = {
 		currentPassword: "Current password",
 		newPassword: "New password",
 		changePassword: "Change password",
+		passwordChanged: "Password changed. Other devices were signed out.",
 		session: "Session",
 		signOut: "Sign out",
 	},

@@ -1,0 +1,30 @@
+{
+	"applinks": {
+		"details": [
+			{
+				"appIDs": ["D8AMB5N29A.com.appelent.foundry.preview"],
+				"components": [
+					{
+						"/": "/join/*",
+						"comment": "Hosted-workout join links (APP-36)"
+					}
+				]
+			},
+			{
+				"appIDs": ["D8AMB5N29A.com.appelent.foundry"],
+				"components": [
+					{
+						"/": "/join/*",
+						"comment": "Hosted-workout join links (APP-36)"
+					}
+				]
+			}
+		]
+	},
+	"webcredentials": {
+		"apps": [
+			"D8AMB5N29A.com.appelent.foundry.preview",
+			"D8AMB5N29A.com.appelent.foundry"
+		]
+	}
+}

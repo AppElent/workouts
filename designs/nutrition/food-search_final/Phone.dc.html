@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Food picker phone</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/foundry/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+svg{flex:none}
+</style>
+</helmet>
+<div class="{{themeClass}}" style="{{g.root}}">
+<div style="position: absolute; inset: 0; background: var(--bg); color: var(--text); font-family: -apple-system, 'SF Pro Text', system-ui, sans-serif; overflow: hidden;">
+
+<!-- Navigation bar -->
+<div style="{{g.nav}}">
+<div style="display: flex; align-items: center; height: 52px; padding: 0 8px;">
+<button aria-label="Terug" style="width: 44px; height: 44px; border-radius: 22px; border: 0; background: var(--surface-2); color: var(--text); display: flex; align-items: center; justify-content: center;">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>
+</button>
+<div style="flex: 1; display: flex; flex-direction: column; align-items: center;">
+<div style="display: flex; align-items: center; gap: 4px; font-size: 17px; font-weight: 600;">{{title}}<sc-if value="{{isLog}}" hint-placeholder-val="{{ true }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></sc-if></div>
+<sc-if value="{{isLog}}" hint-placeholder-val="{{ true }}"><div style="font-size: 12px; color: var(--text-muted);">Vandaag</div></sc-if>
+</div>
+<button aria-label="{{navRightLabel}}" style="width: 44px; height: 44px; border-radius: 22px; border: 0; background: var(--surface-2); color: var(--accent-ink); display: flex; align-items: center; justify-content: center;">
+<sc-if value="{{isLog}}" hint-placeholder-val="{{ true }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg></sc-if>
+<sc-if value="{{isLibrary}}" hint-placeholder-val="{{ false }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M9 12l2 2 4-4"></path></svg></sc-if>
+</button>
+</div>
+<!-- A: stacked search under the title -->
+<sc-if value="{{topSearch}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; align-items: center; gap: 10px; padding: 4px 16px 8px;">
+<label style="flex: 1; min-width: 0; height: 36px; border-radius: 10px; background: var(--surface-2); display: flex; align-items: center; gap: 6px; padding: 0 10px; color: var(--text-faint);">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4-4"></path></svg>
+<input aria-label="{{searchLabel}}" value="kip" readonly style="flex: 1; min-width: 0; width: 0; border: 0; background: transparent; color: var(--text); font: inherit; font-size: 16px; outline: none; caret-color: var(--accent-ink);">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M9 9l6 6M15 9l-6 6" stroke="var(--surface-2)" stroke-width="2" stroke-linecap="round"></path></svg>
+</label>
+<button style="flex: none; border: 0; background: transparent; color: var(--accent-ink); font: inherit; font-size: 17px; min-height: 44px; padding: 0;">Annuleer</button>
+</div>
+</sc-if>
+</div>
+
+<!-- List header -->
+<div style="{{g.header}}">
+<sc-if value="{{showNote}}" hint-placeholder-val="{{ true }}">
+<button style="border: 0; background: transparent; text-align: left; padding: 0 16px; min-height: 44px; color: var(--accent-ink); font: inherit; font-size: 15px; font-weight: 600;">Opslaan als notitie</button>
+</sc-if>
+<div style="display: flex; gap: 8px; padding: 0 16px; overflow: hidden;">
+<sc-for list="{{chips}}" as="c" hint-placeholder-count="5">
+<span style="{{c.style}}">{{c.label}}</span>
+</sc-for>
+</div>
+<sc-if value="{{showSummary}}" hint-placeholder-val="{{ true }}">
+<div style="margin: 0 16px; min-height: 48px; border-radius: 14px; background: var(--surface); border: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 14px; box-sizing: border-box;">
+<span style="font-size: 15px; color: var(--text-muted);">{{summary}}</span>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-faint)" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+</div>
+</sc-if>
+</div>
+
+<!-- Results -->
+<div style="{{g.list}}">
+<div style="margin: 0 16px; border-radius: 14px; background: var(--surface); overflow: hidden;">
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
+<div style="display: flex; align-items: center; gap: 12px; height: 60px; padding-left: 12px; box-sizing: border-box; border-bottom: 0.5px solid var(--border);">
+<div style="width: 40px; height: 40px; border-radius: 8px; background: var(--surface-2); color: var(--text-faint); display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600;">{{r.initial}}</div>
+<div style="flex: 1; min-width: 0;">
+<div style="font-size: 17px; font-weight: 600; letter-spacing: -0.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{r.name}}</div>
+<div style="font-size: 13px; color: var(--text-muted); white-space: nowrap;">{{r.cap}}</div>
+</div>
+<div style="position: relative; width: 52px; height: 52px; display: flex; align-items: center; justify-content: center;">
+<sc-if value="{{r.chevron}}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-faint)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></sc-if>
+<sc-if value="{{r.add}}" hint-placeholder-val="{{ true }}">
+<button aria-label="{{r.addLabel}}" style="width: 32px; height: 32px; border-radius: 16px; border: 0; background: var(--accent-dim); color: var(--accent-ink); display: flex; align-items: center; justify-content: center;">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+</button>
+</sc-if>
+<sc-if value="{{r.marked}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; left: 2px; top: 2px; width: 44px; height: 44px; border-radius: 22px; border: 2px dashed var(--danger); box-sizing: border-box;"></div>
+</sc-if>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+
+<!-- B: plain band behind the floating field -->
+<sc-if value="{{showBand}}" hint-placeholder-val="{{ false }}">
+<div style="{{g.band}}"></div>
+</sc-if>
+
+<!-- Floating search above the keyboard (now and B) -->
+<sc-if value="{{bottomSearch}}" hint-placeholder-val="{{ true }}">
+<div style="{{g.field}}">
+<label style="flex: 1; min-width: 0; height: 50px; border-radius: 25px; background: var(--glass-chrome); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); border: 1px solid var(--border-strong); display: flex; align-items: center; gap: 8px; padding: 0 16px; box-sizing: border-box; color: var(--text-faint);">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4-4"></path></svg>
+<input aria-label="{{searchLabel}}" value="kip" readonly style="flex: 1; min-width: 0; width: 0; border: 0; background: transparent; color: var(--text); font: inherit; font-size: 17px; outline: none;">
+</label>
+<button aria-label="Zoeken sluiten" style="flex: none; width: 50px; height: 50px; border-radius: 25px; background: var(--glass-chrome); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); border: 1px solid var(--border-strong); color: var(--text); display: flex; align-items: center; justify-content: center;">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+</button>
+</div>
+</sc-if>
+
+<!-- Keyboard -->
+<div style="{{g.kb}}">
+<sc-for list="{{kbRows}}" as="k" hint-placeholder-count="3">
+<div style="display: flex; justify-content: center; gap: 6px;">
+<sc-for list="{{k.keys}}" as="key" hint-placeholder-count="9">
+<span style="{{k.keyStyle}}">{{key}}</span>
+</sc-for>
+</div>
+</sc-for>
+<div style="display: flex; gap: 6px; padding: 0 3px;">
+<span style="width: 88px; height: 42px; border-radius: 8px; background: var(--surface-2); display: flex; align-items: center; justify-content: center; font-size: 15px; color: var(--text);">123</span>
+<span style="flex: 1; height: 42px; border-radius: 8px; background: var(--surface); display: flex; align-items: center; justify-content: center; font-size: 15px; color: var(--text-muted);">spatie</span>
+<span style="width: 88px; height: 42px; border-radius: 8px; background: var(--accent); color: var(--on-accent); display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 600;">zoek</span>
+</div>
+</div>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["now","A","B"],"default":"now"},"theme":{"editor":"enum","options":["dark","light"],"default":"dark"},"device":{"editor":"enum","options":["pro","se"],"default":"pro"},"screen":{"editor":"enum","options":["log","library"],"default":"log"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+const variant = this.props.variant ?? 'now';
+const theme = this.props.theme ?? 'dark';
+const device = this.props.device ?? 'pro';
+const screen = this.props.screen ?? 'log';
+const se = device === 'se';
+const W = se ? 375 : 390, H = se ? 667 : 844;
+const top = se ? 20 : 62;
+const kbH = se ? 216 : 291;
+const kbTop = H - kbH - (se ? 0 : 34);
+const fieldH = 50, fieldGap = 8;
+const fieldTop = kbTop - fieldGap - fieldH;
+const isLog = screen === 'log';
+const topSearch = variant === 'A';
+const compact = variant === 'B';
+const navH = 52 + (topSearch ? 48 : 0);
+const headerTop = top + navH + 4;
+const showNote = isLog && variant === 'now';
+const showSummary = isLog && !compact;
+let headerH = 36 + 12;
+if (showNote) headerH += 44 + 12;
+if (showSummary) headerH += 48 + 12;
+if (!isLog) headerH = 36 + 12;
+const listTop = headerTop + headerH;
+const listBottom = variant === 'B' ? fieldTop - 8 : kbTop;
+const visible = listBottom - listTop;
+const n = Math.max(1, Math.ceil(visible / 60) + 1);
+const foods = isLog ? [
+['K','Kipfilet, gebakken','100 g · 165 kcal'],
+['K','Kippendij zonder vel','100 g · 177 kcal'],
+['K','Kipkerriesalade','75 g · 198 kcal'],
+['K','Kippensoep','250 ml · 88 kcal'],
+['K','Kipnuggets','6 stuks · 290 kcal'],
+['K','Kipshoarma','100 g · 182 kcal'],
+['K','Kippenbouillon','250 ml · 13 kcal'],
+['K','Kip tandoori','100 g · 151 kcal']
+] : [
+['K','Kipfilet, gebakken','Eigen · per 100 g · 165 kcal'],
+['K','Kipkerriesalade','Aangepast uit NEVO · per 100 g · 264 kcal'],
+['K','Kip met rijst','2 onderdelen · hele combo · 540 kcal'],
+['K','Kipwrap','Recept · per stuk · 410 kcal'],
+['K','Kipsaté','Eigen · per 100 g · 220 kcal'],
+['K','Kipnuggets','Eigen · per 100 g · 280 kcal'],
+['K','Kipshoarma','Eigen · per 100 g · 182 kcal'],
+['K','Kippenbouillon','Eigen · per 100 ml · 5 kcal']
+];
+const markedIndex = variant === 'now' ? Math.ceil((fieldTop - listTop - 30) / 60) : -1;
+const rows = foods.slice(0, n).map((f, i) => ({ initial: f[0], name: f[1], cap: f[2], addLabel: (isLog ? 'Log ' : 'Voeg toe: ') + f[1], marked: i === markedIndex, add: isLog, chevron: !isLog }));
+const chipBase = 'flex: none; height: 36px; border-radius: 18px; padding: 0 14px; display: flex; align-items: center; font-size: 15px; font-weight: 600; ';
+const chipLabels = isLog ? ['Alles','Recent','Favorieten',"Combo's",'Recepten'] : ['Alles','Voeding','Recepten',"Combo's",'Favorieten'];
+const chips = chipLabels.map((label, i) => ({ label, style: chipBase + (i === 0 ? 'background: var(--accent); color: var(--on-accent);' : 'background: var(--surface-2); color: var(--text);') }));
+const keyW = se ? 31 : 33;
+const keyStyle = 'width: ' + keyW + 'px; height: 42px; border-radius: 8px; background: var(--surface); display: flex; align-items: center; justify-content: center; font-size: 20px; color: var(--text);';
+const kbRows = [
+{ keys: 'qwertyuiop'.split(''), keyStyle },
+{ keys: 'asdfghjkl'.split(''), keyStyle },
+{ keys: 'zxcvbnm'.split(''), keyStyle }
+];
+return {
+themeClass: theme === 'light' ? 'theme-light' : 'theme-dark',
+isLog, isLibrary: !isLog,
+title: isLog ? 'Lunch' : 'Bibliotheek',
+navRightLabel: isLog ? 'Kies datum' : 'Selecteren',
+searchLabel: isLog ? 'Zoek eten' : 'Zoek in bibliotheek',
+topSearch, bottomSearch: !topSearch, showBand: variant === 'B',
+showNote, showSummary,
+summary: 'Lunch · 2 items · 540 kcal',
+chips, rows, kbRows,
+g: {
+root: 'position: relative; width: ' + W + 'px; height: ' + H + 'px;',
+nav: 'position: absolute; left: 0; right: 0; top: ' + top + 'px;',
+header: 'position: absolute; left: 0; right: 0; top: ' + headerTop + 'px; display: flex; flex-direction: column; gap: 12px;',
+list: 'position: absolute; left: 0; right: 0; top: ' + listTop + 'px; height: ' + visible + 'px; overflow: hidden;',
+band: 'position: absolute; left: 0; right: 0; top: ' + (fieldTop - 8) + 'px; height: ' + (kbTop - fieldTop + 8) + 'px; background: var(--bg); border-top: 0.5px solid var(--border);',
+field: 'position: absolute; left: 16px; right: 16px; top: ' + fieldTop + 'px; display: flex; gap: 10px; align-items: center;',
+kb: 'position: absolute; left: 0; right: 0; top: ' + kbTop + 'px; bottom: 0; background: var(--surface-2); padding: 10px 3px 0; display: flex; flex-direction: column; gap: 12px; box-sizing: border-box;'
+}
+};
+}
+}
+</script>
+</body>
+</html>

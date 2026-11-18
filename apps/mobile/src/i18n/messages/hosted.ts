@@ -3,9 +3,12 @@ export const hostedEn = {
 	status: { draft: "Draft", open: "Open", closed: "Closed" },
 	joinHeading: "Join with a code",
 	joinCode: "Join code",
+	joinPlaceholder: "Join code or link",
 	join: "Join",
 	joining: "Joining…",
 	joinError: "Could not join that workout.",
+	joinLinkInvalid: "Check the link, or ask the host for the join code.",
+	joinWithCode: "Join with a code",
 	joinHint:
 		"Joining starts a session for you. Finish or cancel any workout you already have running first.",
 	hosting: "Hosting",
@@ -45,9 +48,13 @@ export const hostedNl: typeof hostedEn = {
 	status: { draft: "Concept", open: "Open", closed: "Gesloten" },
 	joinHeading: "Deelnemen met een code",
 	joinCode: "Deelnamecode",
+	joinPlaceholder: "Deelnamecode of link",
 	join: "Deelnemen",
 	joining: "Deelnemen…",
 	joinError: "Kon niet deelnemen aan die training.",
+	joinLinkInvalid:
+		"Controleer de link, of vraag de organisator om de deelnamecode.",
+	joinWithCode: "Deelnemen met een code",
 	joinHint:
 		"Deelnemen start een sessie voor je. Rond eerst een lopende training af of annuleer die.",
 	hosting: "Organiseren",

@@ -88,5 +88,9 @@
 				"@sentry/react-native"
 			]
 		}
+	},
+	"runMobile": {
+		"bundleId": "com.appelent.foundry.dev",
+		"port": 8090
 	}
 }
