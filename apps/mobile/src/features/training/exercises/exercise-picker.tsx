@@ -12,7 +12,6 @@ import type { Exercise, ExerciseId } from "@foundry/core/exercises";
 import { useMemo, useState } from "react";
 import {
 	FlatList,
-	Modal,
 	Platform,
 	Pressable,
 	StyleSheet,
@@ -33,6 +32,7 @@ import {
 	useThemedStyles,
 	useTokens,
 } from "../../../theme";
+import { Modal } from "../../../ui/modal";
 import { AppText } from "../../../ui/text";
 
 export function ExercisePicker({

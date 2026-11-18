@@ -13,7 +13,6 @@ import {
 	ActionSheetIOS,
 	BackHandler,
 	LayoutAnimation,
-	Modal,
 	PanResponder,
 	Platform,
 	Pressable,
@@ -36,6 +35,7 @@ import {
 	useTokens,
 } from "../../../../theme";
 import { GroupedSurface } from "../../../../ui/form";
+import { Modal } from "../../../../ui/modal";
 import { AppText } from "../../../../ui/text";
 import { useToast } from "../../../../ui/toast";
 import { useWriteFailureMessage } from "../../../../ui/use-screen-write";

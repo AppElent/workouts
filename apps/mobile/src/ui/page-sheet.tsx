@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect, useRef } from "react";
-import { Modal } from "react-native";
 import { modalAnimation, useReduceMotion } from "../feedback/reduce-motion";
+import { Modal } from "./modal";
 
 export function PageSheet({
 	visible,

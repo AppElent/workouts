@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Modal, Pressable, View } from "react-native";
+import { Pressable, View } from "react-native";
 import { useI18n } from "../../../i18n";
 import { useTokens } from "../../../theme";
+import { Modal } from "../../../ui/modal";
 import { AppText } from "../../../ui/text";
 import {
 	type ExerciseLayoutMenuProps,
