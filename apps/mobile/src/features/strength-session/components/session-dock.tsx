@@ -31,7 +31,7 @@ import {
 	type SetGroup,
 } from "../session-plan";
 import { useSessionScreen } from "../session-screen-context";
-import { NowCard, nowSet } from "./now-card";
+import { NowCard, nowTarget } from "./now-card";
 
 /** The one action a group's clock offers right now. */
 export function useClockControls(group: SetGroup) {
@@ -297,7 +297,7 @@ export function SessionDock({
 		>
 			<Notice />
 			{running ? <ClockPill group={running} /> : null}
-			{!running && nowSet(plan) ? (
+			{!running && nowTarget(plan) ? (
 				<NowCard />
 			) : state.running ? (
 				<RestPill />

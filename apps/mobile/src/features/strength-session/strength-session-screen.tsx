@@ -26,6 +26,7 @@ import { SessionExerciseBlock } from "./components/session-exercise-block";
 import { SessionExercisePicker } from "./components/session-exercise-picker";
 import { SessionGroupBlock } from "./components/session-group-block";
 import { SessionProgress } from "./components/session-progress";
+import { SessionQuickStart } from "./components/session-quick-start";
 import { SessionRecap } from "./components/session-recap";
 import { useSessionActions } from "./data/session-actions";
 import { useSessionWorkspace } from "./data/session-workspace";
@@ -514,15 +515,7 @@ export function StrengthSessionScreen() {
 								</AppText>
 							) : null}
 							{plan.order.length === 0 && workspace.sets && wods === 0 ? (
-								<View style={styles.empty}>
-									<AppText variant="heading">{copy.emptyTitle}</AppText>
-									<AppText
-										variant="secondary"
-										style={{ color: colors.textMuted }}
-									>
-										{copy.emptyBody}
-									</AppText>
-								</View>
+								<SessionQuickStart fallback={copy.emptyBody} />
 							) : null}
 							<SessionProgress />
 							{plan.order.map((entry) => {
@@ -645,7 +638,6 @@ const styles = StyleSheet.create({
 	title: { minWidth: 0, maxWidth: 200 },
 	message: { padding: spacing.md },
 	content: { padding: spacing.md, gap: spacing.lg },
-	empty: { gap: spacing.xs, paddingTop: spacing.xl, alignItems: "center" },
 	emptyFooter: { paddingHorizontal: spacing.md, paddingTop: spacing.sm },
 	emptyButton: {
 		minHeight: 56,

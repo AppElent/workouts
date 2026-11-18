@@ -18,13 +18,22 @@ import {
 import { GlassSurface } from "../../../ui/glass-surface";
 import { AppText } from "../../../ui/text";
 import { useRestState, useRestTimer } from "../data/rest-timer";
-import { formatSetFull, formatSetShort } from "../session-format";
+import { formatNumber, formatSetFull, formatSetShort } from "../session-format";
 import {
+	addSet,
+	addSetTemplate,
+	findRow,
 	groupOfRow,
+	loadStep,
 	nextOpenRow,
+	type PlanSet,
 	REST_STEP_SECONDS,
 	rowsOf,
+	runningGroup,
 	type SessionPlan,
+	shownLoad,
+	stepLoad,
+	updateRow,
 } from "../session-plan";
 import { useSessionScreen } from "../session-screen-context";
 
@@ -41,6 +50,36 @@ export function nowSet(plan: SessionPlan) {
 		warmup: row.kind === "warmup",
 		number: index + 1,
 		total: working.length,
+	};
+}
+
+export type NowTarget = NonNullable<ReturnType<typeof nowSet>> & {
+	/** Not in the plan yet: the next set of an ad-hoc exercise, added on first touch. */
+	draft: boolean;
+};
+/**
+ * What the card offers: the next open set, or, once a free exercise has no
+ * open set left, one more like its last work set. Planned exercises don't get
+ * extra sets offered, so a finished plan leaves the card away.
+ */
+export function nowTarget(plan: SessionPlan): NowTarget | null {
+	const now = nowSet(plan);
+	if (now) return { ...now, draft: false };
+	if (runningGroup(plan)) return null;
+	const entry = plan.order.at(-1);
+	if (entry?.kind !== "exercise") return null;
+	const rows = plan.sets[entry.exerciseId] ?? [];
+	if (!rows.some((row) => row.done) || rows.some((row) => row.plan))
+		return null;
+	const template = addSetTemplate(rows);
+	if (!template) return null;
+	const number = rows.filter((row) => row.kind !== "warmup").length + 1;
+	return {
+		row: { ...template, kind: "working", done: false },
+		warmup: false,
+		number,
+		total: number,
+		draft: true,
 	};
 }
 
@@ -76,7 +115,7 @@ function RestRing({ remaining, total }: { remaining: number; total: number }) {
 					cx={size / 2}
 					cy={size / 2}
 					r={r}
-					stroke={colors.accentFill}
+					stroke={colors.accent}
 					strokeWidth={stroke}
 					strokeLinecap="round"
 					fill="none"
@@ -99,19 +138,36 @@ function RestRing({ remaining, total }: { remaining: number; total: number }) {
 const ringCenter = { alignItems: "center", justifyContent: "center" } as const;
 
 export function NowCard() {
-	const { plan, workspace, openEditor, toggleRow } = useSessionScreen();
+	const { plan, workspace, actions, openEditor, openPicker, toggleRow } =
+		useSessionScreen();
 	const rest = useRestState();
 	const timer = useRestTimer();
 	const { locale, t } = useI18n();
 	const copy = t.strength.plan.now;
 	const restCopy = t.strength.plan.rest;
+	const editorCopy = t.strength.plan.editor;
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
 	const large = useWindowDimensions().fontScale >= 1.35;
-	const now = nowSet(plan);
+	const now = nowTarget(plan);
 	if (!now) return null;
 	const { row } = now;
 	const facts = workspace.getFacts(row.exerciseId);
+	/** The row to act on: a draft joins the plan on first touch. */
+	const materialize = () => {
+		if (!now.draft) return row.id;
+		const result = addSet(actions.plan(), row.exerciseId, facts);
+		actions.set(result.plan);
+		return result.rowId;
+	};
+	const edit = (map: (current: PlanSet) => PlanSet) => {
+		const id = materialize();
+		const current = findRow(actions.plan(), id);
+		if (current) actions.set(updateRow(actions.plan(), id, map(current)));
+	};
+	const locked = Boolean(row.attempt) || !workspace.writable;
+	const countStep = facts.timed ? 5 : 1;
+	const steppers = !large && !facts.bodyweight && !facts.timed;
 	const name = workspace.nameOf(row.exerciseId);
 	const setText = formatSetFull(row, facts, locale);
 	const last = facts.last
@@ -124,11 +180,16 @@ export function NowCard() {
 	const logLabel = now.warmup
 		? copy.logWarmup
 		: fmt(copy.log, { number: now.number });
+	const eyebrow = now.warmup
+		? copy.nextWarmup
+		: now.draft
+			? fmt(copy.adhocSet, { number: now.number })
+			: fmt(copy.nextSet, { number: now.number, total: now.total });
 	const logButton = (
 		<LogButton
 			label={logLabel}
 			disabled={!workspace.writable}
-			onPress={() => toggleRow(row.id)}
+			onPress={() => toggleRow(materialize())}
 			flex={rest.running}
 		/>
 	);
@@ -136,7 +197,9 @@ export function NowCard() {
 		const total = Math.max(plan.restDefault, rest.remaining);
 		const then = now.warmup
 			? copy.thenWarmup
-			: fmt(copy.nextUp, { number: now.number, total: now.total });
+			: now.draft
+				? fmt(copy.adhocSet, { number: now.number })
+				: fmt(copy.nextUp, { number: now.number, total: now.total });
 		return (
 			<GlassSurface
 				cornerRadius={radius.contentCard}
@@ -170,11 +233,19 @@ export function NowCard() {
 									{then}
 								</AppText>
 								<AppText
+									variant="label"
+									numberOfLines={large ? undefined : 1}
+									style={{ color: colors.textMuted }}
+								>
+									{name}
+								</AppText>
+								<AppText
 									variant="heading"
-									numberOfLines={large ? undefined : 2}
+									numberOfLines={large ? undefined : 1}
+									adjustsFontSizeToFit={!large}
 									style={styles.tabular}
 								>
-									{`${name} · ${setText}`}
+									{setText}
 								</AppText>
 							</View>
 						</View>
@@ -212,28 +283,39 @@ export function NowCard() {
 			</GlassSurface>
 		);
 	}
+	const stepText = formatNumber(loadStep(row.unit, facts.stepKg), locale);
 	return (
 		<GlassSurface cornerRadius={radius.contentCard} style={styles.card}>
 			<View style={styles.inner}>
 				<View style={styles.head}>
 					<View style={styles.headText}>
 						<AppText variant="eyebrow" style={{ color: colors.accent }}>
-							{now.warmup
-								? copy.nextWarmup
-								: fmt(copy.nextSet, { number: now.number, total: now.total })}
+							{eyebrow}
 						</AppText>
 						<AppText
 							variant="label"
 							numberOfLines={1}
 							style={{ color: colors.textMuted }}
 						>
-							{name}
+							{last ? `${name} · ${copy.lastTime} ${last}` : name}
 						</AppText>
 					</View>
+					{now.draft ? (
+						<Pressable
+							accessibilityRole="button"
+							accessibilityLabel={copy.spokenOther}
+							disabled={!workspace.online}
+							onPress={() => openPicker({ mode: "add" })}
+							style={[styles.pill, !workspace.online && styles.off]}
+							testID="session-now-other"
+						>
+							<AppText variant="label">{copy.otherExercise}</AppText>
+						</Pressable>
+					) : null}
 					<Pressable
 						accessibilityRole="button"
 						accessibilityLabel={fmt(copy.edit, { number: now.number })}
-						onPress={() => openEditor(row.id)}
+						onPress={() => openEditor(materialize())}
 						style={styles.edit}
 						testID="session-now-edit"
 					>
@@ -246,29 +328,129 @@ export function NowCard() {
 						/>
 					</Pressable>
 				</View>
-				<View style={styles.loadRow}>
+				{steppers ? (
+					<View style={styles.steppers}>
+						<Stepper
+							value={formatNumber(
+								shownLoad(row),
+								locale,
+								row.unit === "lbs" ? 1 : 2,
+							)}
+							unit={row.unit}
+							spokenValue={formatSetFull(row, facts, locale)}
+							less={fmt(editorCopy.stepDown, { step: stepText })}
+							more={fmt(editorCopy.stepUp, { step: stepText })}
+							disabled={locked}
+							onLess={() => edit((current) => stepLoad(current, -1, facts))}
+							onMore={() => edit((current) => stepLoad(current, 1, facts))}
+							testID="session-now-load"
+						/>
+						<Stepper
+							value={String(row.reps)}
+							unit={editorCopy.reps.toLocaleLowerCase(locale)}
+							less={editorCopy.repsDown}
+							more={editorCopy.repsUp}
+							disabled={locked}
+							lessDisabled={row.reps <= 1}
+							onLess={() =>
+								edit((current) => ({
+									...current,
+									reps: Math.max(1, current.reps - countStep),
+								}))
+							}
+							onMore={() =>
+								edit((current) => ({
+									...current,
+									reps: current.reps + countStep,
+									blank: undefined,
+								}))
+							}
+							testID="session-now-reps"
+						/>
+					</View>
+				) : (
 					<AppText
 						variant={large ? "title" : "quantityCompact"}
-						numberOfLines={1}
-						adjustsFontSizeToFit
+						numberOfLines={large ? undefined : 1}
+						adjustsFontSizeToFit={!large}
 						style={[styles.load, styles.tabular]}
 					>
 						{setText}
 					</AppText>
-					{last ? (
-						<View style={styles.last}>
-							<AppText variant="caption" style={{ color: colors.textMuted }}>
-								{copy.lastTime}
-							</AppText>
-							<AppText variant="label" style={styles.tabular}>
-								{last}
-							</AppText>
-						</View>
-					) : null}
-				</View>
+				)}
 				{logButton}
 			</View>
 		</GlassSurface>
+	);
+}
+
+function Stepper({
+	value,
+	unit,
+	spokenValue,
+	less,
+	more,
+	disabled,
+	lessDisabled,
+	onLess,
+	onMore,
+	testID,
+}: {
+	value: string;
+	unit: string;
+	spokenValue?: string;
+	less: string;
+	more: string;
+	disabled: boolean;
+	lessDisabled?: boolean;
+	onLess: () => void;
+	onMore: () => void;
+	testID: string;
+}) {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
+	const step = (
+		label: string,
+		glyph: string,
+		off: boolean,
+		onPress: () => void,
+	) => (
+		<Pressable
+			accessibilityRole="button"
+			accessibilityLabel={label}
+			accessibilityState={{ disabled: off }}
+			disabled={off}
+			onPress={onPress}
+			style={({ pressed }) => [
+				styles.stepButton,
+				(pressed || off) && { opacity: off ? 0.4 : 0.7 },
+			]}
+		>
+			<AppText variant="heading">{glyph}</AppText>
+		</Pressable>
+	);
+	return (
+		<View style={styles.stepper} testID={testID}>
+			{step(less, "−", disabled || Boolean(lessDisabled), onLess)}
+			<View
+				style={styles.stepValue}
+				accessible
+				accessibilityLabel={spokenValue ?? `${value} ${unit}`}
+			>
+				<AppText
+					variant="metric"
+					numberOfLines={1}
+					adjustsFontSizeToFit
+					style={styles.tabular}
+				>
+					{value}
+				</AppText>
+				<AppText variant="caption" style={{ color: colors.textMuted }}>
+					{unit}
+				</AppText>
+			</View>
+			{step(more, "+", disabled, onMore)}
+		</View>
 	);
 }
 
@@ -367,14 +549,37 @@ const createStyles = (colors: Tokens) =>
 			justifyContent: "center",
 			backgroundColor: colors.surface2,
 		},
-		loadRow: {
-			flexDirection: "row",
-			alignItems: "flex-end",
-			gap: spacing.sm,
-			paddingHorizontal: spacing.xs,
+		load: { fontWeight: "800", paddingHorizontal: spacing.xs },
+		pill: {
+			minHeight: 44,
+			marginTop: -6,
+			paddingHorizontal: spacing.md - 4,
+			borderRadius: 22,
+			alignItems: "center",
+			justifyContent: "center",
+			backgroundColor: colors.surface2,
 		},
-		load: { flex: 1, minWidth: 0, fontWeight: "800" },
-		last: { alignItems: "flex-end", paddingBottom: 4 },
+		off: { opacity: 0.5 },
+		steppers: { flexDirection: "row", gap: spacing.sm },
+		stepper: {
+			flex: 1,
+			minWidth: 0,
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 4,
+			padding: 4,
+			borderRadius: radius.lg,
+			backgroundColor: colors.surface2,
+		},
+		stepButton: {
+			width: 44,
+			height: 52,
+			borderRadius: radius.lg,
+			alignItems: "center",
+			justifyContent: "center",
+			backgroundColor: colors.surface,
+		},
+		stepValue: { flex: 1, minWidth: 0, alignItems: "center" },
 		tabular: { fontVariant: ["tabular-nums"] },
 		log: {
 			minHeight: 56,
