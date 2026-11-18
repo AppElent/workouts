@@ -37,11 +37,11 @@ jobs:
             exit 1
           fi
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: ./.github/actions/setup
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         if: inputs.platform == 'android'
         with:
           distribution: temurin
@@ -64,7 +64,7 @@ jobs:
         id: name
         run: echo "artifact=$ARTIFACT-${{ github.event.pull_request.number && format('pr{0}', github.event.pull_request.number) || format('run{0}', github.run_id) }}" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         id: upload
         with:
           name: ${{ steps.name.outputs.artifact }}

@@ -45,11 +45,11 @@ jobs:
       EXPO_TOKEN: ${{ secrets.PREVIEW_EXPO_TOKEN }}
       METRO_PORT: "8090"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: ./.github/actions/setup
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           name: ${{ needs.build.outputs.artifact }}
           path: ${{ runner.temp }}/build
@@ -130,7 +130,7 @@ jobs:
           xcrun simctl io "$UDID" screenshot "$RUNNER_TEMP/maestro/final-screen.png" || true
 
       - if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: maestro-${{ github.event.pull_request.number && format('pr{0}', github.event.pull_request.number) || format('run{0}', github.run_id) }}
           path: ${{ runner.temp }}/maestro

@@ -78,7 +78,7 @@ jobs:
           echo "::error::Deploys run from main only (got ${GITHUB_REF})."
           exit 1
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: ./.github/actions/setup
 
