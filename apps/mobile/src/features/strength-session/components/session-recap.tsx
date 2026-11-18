@@ -50,7 +50,12 @@ const SAME_SECONDS = 30;
 /** Below this height, the stats share a row and the buttons do too. */
 const COMPACT_HEIGHT = 700;
 type Copy = ReturnType<typeof useI18n>["t"]["strength"]["plan"]["finish"];
-type Delta = { text: string; tone: "up" | "flat" | "down" } | null;
+/** `short` fits a quarter-width tile on a small phone. */
+type Delta = {
+	text: string;
+	short?: string;
+	tone: "up" | "flat" | "down";
+} | null;
 
 function oneRm(value: number, measured: boolean, locale: string) {
 	return formatNumber(
@@ -66,11 +71,12 @@ function statDeltas(
 	locale: string,
 ): Record<"duration" | "volume" | "sets" | "reps", Delta> {
 	if (!before) return { duration: null, volume: null, sets: null, reps: null };
-	const signed = (diff: number, text: string): Delta =>
+	const signed = (diff: number, text: string, short?: string): Delta =>
 		diff === 0
-			? { text: copy.sameAsLast, tone: "flat" }
+			? { text: copy.sameAsLast, short: "=", tone: "flat" }
 			: {
 					text: fmt(diff > 0 ? copy.up : copy.down, { value: text }),
+					short: fmt(diff > 0 ? copy.up : copy.down, { value: short ?? text }),
 					tone: diff > 0 ? "up" : "down",
 				};
 	let duration: Delta = null;
@@ -79,10 +85,14 @@ function statDeltas(
 		const time = formatClock(Math.abs(diff));
 		duration =
 			Math.abs(diff) < SAME_SECONDS
-				? { text: copy.sameAsLast, tone: "flat" }
+				? { text: copy.sameAsLast, short: "=", tone: "flat" }
 				: diff < 0
-					? { text: fmt(copy.faster, { time }), tone: "up" }
-					: { text: fmt(copy.slower, { time }), tone: "flat" };
+					? { text: fmt(copy.faster, { time }), short: `−${time}`, tone: "up" }
+					: {
+							text: fmt(copy.slower, { time }),
+							short: `+${time}`,
+							tone: "flat",
+						};
 	}
 	const volumeDiff = Math.round(today.volume - before.volume);
 	const percent =
@@ -96,6 +106,7 @@ function statDeltas(
 						percent === null
 							? `${formatNumber(Math.abs(volumeDiff), locale)} kg`
 							: `${Math.abs(percent)}% · ${formatNumber(Math.abs(volumeDiff), locale)} kg`,
+						percent === null ? undefined : `${Math.abs(percent)}%`,
 					)
 				: null,
 		sets: signed(
@@ -231,7 +242,7 @@ export function SessionRecap({
 		},
 		{
 			key: "sets",
-			label: copy.statSets,
+			label: compact ? copy.statSetsShort : copy.statSets,
 			value: String(today.workingSets),
 			delta: deltas.sets,
 		},
@@ -299,7 +310,12 @@ export function SessionRecap({
 								.filter(Boolean)
 								.join(", ")}
 						>
-							<AppText variant="eyebrow" style={{ color: colors.textMuted }}>
+							<AppText
+								variant="eyebrow"
+								numberOfLines={1}
+								adjustsFontSizeToFit
+								style={{ color: colors.textMuted }}
+							>
 								{stat.label}
 							</AppText>
 							<AppText
@@ -317,10 +333,11 @@ export function SessionRecap({
 							</AppText>
 							{stat.delta ? (
 								<AppText
-									variant="label"
+									variant={compact ? "caption" : "label"}
+									numberOfLines={compact ? 2 : undefined}
 									style={[styles.tabular, { color: deltaColor(stat.delta) }]}
 								>
-									{stat.delta.text}
+									{compact ? stat.delta.short : stat.delta.text}
 								</AppText>
 							) : null}
 						</View>

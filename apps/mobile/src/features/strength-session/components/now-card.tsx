@@ -75,7 +75,16 @@ export function nowTarget(plan: SessionPlan): NowTarget | null {
 	if (!template) return null;
 	const number = rows.filter((row) => row.kind !== "warmup").length + 1;
 	return {
-		row: { ...template, kind: "working", done: false },
+		// Its own id: the template is a logged row that must stay untouched.
+		row: {
+			...template,
+			id: `draft:${template.id}`,
+			kind: "working",
+			done: false,
+			setId: undefined,
+			setNumber: undefined,
+			attempt: undefined,
+		},
 		warmup: false,
 		number,
 		total: number,
@@ -303,7 +312,7 @@ export function NowCard() {
 							{last ? `${name} · ${copy.lastTime} ${last}` : name}
 						</AppText>
 					</View>
-					{now.draft ? (
+					{now.draft || !row.plan ? (
 						<Pressable
 							accessibilityRole="button"
 							accessibilityLabel={copy.spokenOther}

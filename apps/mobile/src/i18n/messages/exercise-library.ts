@@ -114,7 +114,7 @@ export const exerciseLibraryEn = {
 		level: "Level",
 		levelNext: "{next} kg of 1RM to {level}",
 		levelTop: "The top level for your bodyweight",
-		sessionBest: "e1RM {value}",
+		sessionBest: "Best ≈ 1RM {value}",
 		record: "Record",
 	},
 	picker: {
@@ -243,7 +243,7 @@ export const exerciseLibraryNl: typeof exerciseLibraryEn = {
 		level: "Niveau",
 		levelNext: "nog {next} kg 1RM tot {level}",
 		levelTop: "Het hoogste niveau voor je gewicht",
-		sessionBest: "e1RM {value}",
+		sessionBest: "Beste ≈ 1RM {value}",
 		record: "Record",
 	},
 	picker: {

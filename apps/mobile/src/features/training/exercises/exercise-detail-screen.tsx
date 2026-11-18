@@ -73,7 +73,7 @@ const shortDate = (time: number, locale: Locale) =>
 export function ExerciseDetailScreen() {
 	const errorMessage = useWriteFailureMessage();
 	const colors = useTokens();
-	const { t } = useI18n();
+	const { t, locale } = useI18n();
 	const router = useRouter();
 	const confirm = useConfirm();
 	const toast = useToast();
@@ -249,7 +249,7 @@ export function ExerciseDetailScreen() {
 								<StatBox
 									value={
 										records.heaviest
-											? String(roundLoad(records.heaviest.valueKg, 0.1))
+											? formatKg(records.heaviest.valueKg, locale, 2)
 											: "—"
 									}
 									unit={records.heaviest ? "kg" : undefined}
@@ -267,7 +267,7 @@ export function ExerciseDetailScreen() {
 								<StatBox
 									value={
 										records.bestEstimate
-											? String(roundLoad(records.bestEstimate.valueKg, 0.1))
+											? formatKg(records.bestEstimate.valueKg, locale)
 											: "—"
 									}
 									unit={records.bestEstimate ? "kg" : undefined}
@@ -509,7 +509,7 @@ function OverviewInsight({
 					<StatBox
 						value={
 							insight.best
-								? `${formatKg(insight.best.kg, locale)} × ${insight.best.reps}`
+								? `${formatKg(insight.best.kg, locale, 2)} × ${insight.best.reps}`
 								: "—"
 						}
 						label={copy.bestSet}
