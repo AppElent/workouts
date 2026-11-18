@@ -1,4 +1,5 @@
 /** An exercise on its own: name, references, its menu, and the set table. */
+import { useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useMemo, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
@@ -386,6 +387,7 @@ export function SessionExerciseBlock({ exerciseId }: { exerciseId: string }) {
 	const info = useReferenceLine(exerciseId);
 	const menu = useExerciseMenu(exerciseId);
 	const name = workspace.nameOf(exerciseId);
+	const router = useRouter();
 	// Rows carry their own labels at large text; narrow column heads would break.
 	const large = useLargeText();
 	const last = addSetTemplate(rows);
@@ -422,16 +424,25 @@ export function SessionExerciseBlock({ exerciseId }: { exerciseId: string }) {
 					state={allDone ? "done" : current ? "current" : "open"}
 					number={number}
 				/>
-				<View style={styles.headText}>
-					<AppText variant="title" accessibilityRole="header">
-						{name}
-					</AppText>
+				<Pressable
+					accessibilityRole="button"
+					accessibilityLabel={fmt(copy.now.openOverview, { name })}
+					onPress={() =>
+						router.push({
+							pathname: "/exercise-sheet/[id]",
+							params: { id: exerciseId },
+						})
+					}
+					style={styles.headText}
+					testID="session-exercise-overview"
+				>
+					<AppText variant="title">{name} ›</AppText>
 					<AppText variant="secondary" style={{ color: colors.textMuted }}>
 						{working.length > 0
 							? `${fmt(copy.now.progress, { done: doneCount, total: working.length })} · ${info.line}`
 							: info.line}
 					</AppText>
-				</View>
+				</Pressable>
 				<SelectionMenu
 					trigger="ellipsis"
 					label={fmt(copy.exerciseOptions, { name })}

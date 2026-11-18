@@ -16,6 +16,8 @@ export type SessionTotals = {
 	reps: number;
 	/** Heaviest working set per exercise, ties to more reps. */
 	top: Record<string, { kg: number; reps: number }>;
+	/** Working sets and kilograms moved per exercise. */
+	byExercise: Record<string, { sets: number; volume: number }>;
 };
 
 type SetLike = {
@@ -32,8 +34,16 @@ export function totalsOf(
 ): SessionTotals {
 	const working = sets.filter((set) => set.setType !== "warmup");
 	const top: SessionTotals["top"] = {};
+	const byExercise: SessionTotals["byExercise"] = {};
 	for (const set of working) {
 		const kg = toKg(set.weight, set.unit);
+		const sum = byExercise[set.exerciseId] ?? { sets: 0, volume: 0 };
+		byExercise[set.exerciseId] = {
+			sets: sum.sets + 1,
+			volume:
+				sum.volume +
+				(isTimedExercise(set.exerciseId) ? 0 : Math.max(0, kg) * set.reps),
+		};
 		const best = top[set.exerciseId];
 		if (!best || kg > best.kg || (kg === best.kg && set.reps > best.reps))
 			top[set.exerciseId] = { kg, reps: set.reps };
@@ -51,6 +61,7 @@ export function totalsOf(
 			.filter((set) => !isTimedExercise(set.exerciseId))
 			.reduce((sum, set) => sum + set.reps, 0),
 		top,
+		byExercise,
 	};
 }
 

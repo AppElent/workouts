@@ -1,10 +1,22 @@
-import { formatClock, isTimedExercise } from "@foundry/core";
+import {
+	formatClock,
+	isTimedExercise,
+	primaryMuscleGroup,
+} from "@foundry/core";
+import type { Exercise } from "@foundry/core/exercises";
+import { useRouter } from "expo-router";
 /**
  * The end of a session, before it is saved (APP-255): what you did, how it
  * compares with last time, and the records first. Back to session reopens it.
  */
 import { SymbolView } from "expo-symbols";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import {
+	Pressable,
+	ScrollView,
+	StyleSheet,
+	useWindowDimensions,
+	View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { Doc } from "../../../convex/api";
 import { formatSessionDate } from "../../../data/session-data";
@@ -18,6 +30,7 @@ import {
 	useTokens,
 } from "../../../theme";
 import { AppText } from "../../../ui/text";
+import { MuscleIcon } from "../../training/exercises/muscle-icon";
 import {
 	type SessionTotals,
 	totalsOf,
@@ -32,6 +45,10 @@ import {
 	type SessionPlan,
 } from "../session-plan";
 
+/** Under this many seconds apart, two sessions took as long. */
+const SAME_SECONDS = 30;
+/** Below this height, the stats share a row and the buttons do too. */
+const COMPACT_HEIGHT = 700;
 type Copy = ReturnType<typeof useI18n>["t"]["strength"]["plan"]["finish"];
 type Delta = { text: string; tone: "up" | "flat" | "down" } | null;
 
@@ -58,15 +75,14 @@ function statDeltas(
 				};
 	let duration: Delta = null;
 	if (today.durationSeconds !== null && before.durationSeconds !== null) {
-		const minutes = Math.round(
-			(today.durationSeconds - before.durationSeconds) / 60,
-		);
+		const diff = today.durationSeconds - before.durationSeconds;
+		const time = formatClock(Math.abs(diff));
 		duration =
-			minutes === 0
+			Math.abs(diff) < SAME_SECONDS
 				? { text: copy.sameAsLast, tone: "flat" }
-				: minutes < 0
-					? { text: fmt(copy.faster, { minutes: -minutes }), tone: "up" }
-					: { text: fmt(copy.slower, { minutes }), tone: "flat" };
+				: diff < 0
+					? { text: fmt(copy.faster, { time }), tone: "up" }
+					: { text: fmt(copy.slower, { time }), tone: "flat" };
 	}
 	const volumeDiff = Math.round(today.volume - before.volume);
 	const percent =
@@ -118,6 +134,22 @@ function exerciseDelta(
 			text: plural(locale, now.reps - was.reps, copy.deltaReps),
 			tone: "up",
 		};
+	// Same top set: more work still counts.
+	const sum = today.byExercise[exerciseId];
+	const prior = before.byExercise[exerciseId];
+	if (kg === 0 && now.reps === was.reps && sum && prior) {
+		if (sum.sets > prior.sets)
+			return {
+				text: plural(locale, sum.sets - prior.sets, copy.deltaSets),
+				tone: "up",
+			};
+		const volume = Math.round(sum.volume - prior.volume);
+		if (volume > 0)
+			return {
+				text: fmt(copy.deltaVolume, { value: formatNumber(volume, locale) }),
+				tone: "up",
+			};
+	}
 	if (kg === 0 && now.reps === was.reps)
 		return { text: copy.deltaEqual, tone: "flat" };
 	return null;
@@ -131,6 +163,7 @@ export function SessionRecap({
 	recap,
 	getFacts,
 	nameOf,
+	exerciseOf,
 	busy,
 	onConfirm,
 	onBack,
@@ -145,6 +178,7 @@ export function SessionRecap({
 	recap: ReturnType<typeof recapOf>;
 	getFacts: PlanFacts;
 	nameOf: (exerciseId: string) => string;
+	exerciseOf: (exerciseId: string) => Exercise | undefined;
 	busy: boolean;
 	onConfirm: () => void;
 	onBack: () => void;
@@ -155,6 +189,8 @@ export function SessionRecap({
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
 	const insets = useSafeAreaInsets();
+	const router = useRouter();
+	const compact = useWindowDimensions().height < COMPACT_HEIGHT;
 	const previous = usePreviousSession(session);
 	const today = totalsOf(
 		allRows(plan)
@@ -253,7 +289,7 @@ export function SessionRecap({
 					{stats.map((stat) => (
 						<View
 							key={stat.key}
-							style={styles.stat}
+							style={[styles.stat, compact && styles.statCompact]}
 							accessible
 							accessibilityLabel={[
 								stat.label,
@@ -266,7 +302,12 @@ export function SessionRecap({
 							<AppText variant="eyebrow" style={{ color: colors.textMuted }}>
 								{stat.label}
 							</AppText>
-							<AppText variant="metric" style={styles.tabular}>
+							<AppText
+								variant={compact ? "heading" : "metric"}
+								numberOfLines={1}
+								adjustsFontSizeToFit
+								style={styles.tabular}
+							>
 								{stat.value}
 								{stat.unit ? (
 									<AppText variant="label" style={{ color: colors.textMuted }}>
@@ -338,9 +379,9 @@ export function SessionRecap({
 								.filter(Boolean)
 								.join(" · ");
 							return (
-								<View
+								<Pressable
 									key={row.exerciseId}
-									accessible
+									accessibilityRole="button"
 									accessibilityLabel={[
 										nameOf(row.exerciseId),
 										line,
@@ -348,14 +389,28 @@ export function SessionRecap({
 									]
 										.filter(Boolean)
 										.join(", ")}
-									style={[styles.row, index > 0 && styles.rowLine]}
+									onPress={() =>
+										router.push({
+											pathname: "/exercise-sheet/[id]",
+											params: { id: row.exerciseId },
+										})
+									}
+									style={({ pressed }) => [
+										styles.row,
+										index > 0 && styles.rowLine,
+										pressed && { opacity: opacity.pressed },
+									]}
+									testID="session-recap-exercise"
 								>
-									<View style={styles.tile}>
-										<SymbolView
-											name="dumbbell.fill"
-											size={17}
-											tintColor={colors.textMuted}
-											fallback={null}
+									<View style={styles.iconTile}>
+										<MuscleIcon
+											group={(() => {
+												const exercise = exerciseOf(row.exerciseId);
+												return exercise
+													? primaryMuscleGroup(exercise)
+													: "other";
+											})()}
+											size={34}
 										/>
 									</View>
 									<View style={styles.rowText}>
@@ -394,7 +449,10 @@ export function SessionRecap({
 											</AppText>
 										</View>
 									) : null}
-								</View>
+									<AppText variant="row" style={{ color: colors.textFaint }}>
+										›
+									</AppText>
+								</Pressable>
 							);
 						})}
 						{recap.groups.map((group) => (
@@ -421,13 +479,21 @@ export function SessionRecap({
 				</View>
 			</ScrollView>
 			<View
-				style={[styles.footer, { paddingBottom: insets.bottom + spacing.sm }]}
+				style={[
+					styles.footer,
+					compact && styles.footerCompact,
+					{ paddingBottom: insets.bottom + spacing.sm },
+				]}
 			>
 				<Pressable
 					accessibilityRole="button"
 					disabled={busy}
 					onPress={onConfirm}
-					style={[styles.primary, busy && { opacity: opacity.disabled }]}
+					style={[
+						styles.primary,
+						compact && styles.grow,
+						busy && { opacity: opacity.disabled },
+					]}
 					testID="session-recap-confirm"
 				>
 					<AppText
@@ -441,7 +507,7 @@ export function SessionRecap({
 					accessibilityRole="button"
 					disabled={busy}
 					onPress={onBack}
-					style={styles.secondary}
+					style={[styles.secondary, compact && styles.secondaryCompact]}
 				>
 					<AppText variant="control" style={{ color: colors.text }}>
 						{copy.back}
@@ -549,7 +615,25 @@ const createStyles = (colors: Tokens) =>
 			borderRadius: radius.contentCard,
 			borderCurve: "continuous",
 		},
+		statCompact: { flexBasis: "22%", padding: spacing.sm, gap: 2 },
 		tabular: { fontVariant: ["tabular-nums"] },
+		iconTile: {
+			width: 40,
+			height: 40,
+			borderRadius: 11,
+			borderCurve: "continuous",
+			alignItems: "center",
+			justifyContent: "center",
+			backgroundColor: colors.surface2,
+		},
+		footerCompact: { flexDirection: "row-reverse", gap: spacing.sm },
+		grow: { flex: 1 },
+		secondaryCompact: {
+			minHeight: 56,
+			paddingHorizontal: spacing.md,
+			borderRadius: radius.pill,
+			backgroundColor: colors.surface2,
+		},
 		section: { gap: spacing.sm },
 		sectionHead: { color: colors.textMuted, paddingHorizontal: spacing.xs },
 		card: {

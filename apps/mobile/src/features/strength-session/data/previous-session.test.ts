@@ -87,6 +87,8 @@ describe("totalsOf", () => {
 		expect(totals.reps).toBe(27);
 		expect(totals.volume).toBe(80 * 8 + 80 * 9 + 60 * 10);
 		expect(totals.top.bench).toEqual({ kg: 80, reps: 9 });
+		expect(totals.byExercise.bench).toEqual({ sets: 2, volume: 80 * 17 });
+		expect(totals.byExercise.row).toEqual({ sets: 1, volume: 600 });
 		expect(totals.durationSeconds).toBe(3600);
 	});
 });

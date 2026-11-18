@@ -481,6 +481,9 @@ export function StrengthSessionScreen() {
 						recap={recapOf(closeOpenClocks(plan), getFacts)}
 						getFacts={getFacts}
 						nameOf={nameOf}
+						exerciseOf={(exerciseId) =>
+							catalog.find((item) => item._id === exerciseId)
+						}
 						busy={finishing}
 						onConfirm={() => void confirmRecap()}
 						onBack={() => setRecapOpen(false)}
