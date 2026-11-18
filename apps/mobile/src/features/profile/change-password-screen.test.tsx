@@ -196,3 +196,28 @@ describe("errors go to the field each Clerk entry names", () => {
 		expect(mockBack).not.toHaveBeenCalled();
 	});
 });
+
+it("does not go back for a change that finishes after leaving the screen", async () => {
+	let release: () => void = () => {};
+	mockUser.updatePassword.mockReturnValueOnce(
+		new Promise<void>((resolve) => {
+			release = resolve;
+		}),
+	);
+	const view = await renderScreen(<ChangePasswordScreen />);
+	await fireEvent.changeText(
+		screen.getByLabelText("Current password"),
+		"old-password",
+	);
+	await fireEvent.changeText(
+		screen.getByLabelText("New password"),
+		"a-new-password",
+	);
+	// The handler stays pending until Clerk answers, so the press is awaited last.
+	const pressing = fireEvent.press(submit());
+	await waitFor(() => expect(mockUser.updatePassword).toHaveBeenCalled());
+	await view.unmount();
+	release();
+	await pressing;
+	expect(mockBack).not.toHaveBeenCalled();
+});

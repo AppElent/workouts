@@ -19,7 +19,7 @@
 import { useUser } from "@clerk/expo";
 import type { ClerkErrorMessageKey } from "@foundry/core";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { TextInputProps } from "react-native";
 import { clerkErrorEntries, clerkErrorKey } from "../../auth/clerk-errors";
 import { useI18n } from "../../i18n";
@@ -83,6 +83,15 @@ export function ChangePasswordScreen() {
 	const [currentPassword, setCurrentPassword] = useState("");
 	const [newPassword, setNewPassword] = useState("");
 	const [errors, setErrors] = useState<FieldErrors>({});
+	// Swiping back while Clerk works unmounts this screen; a late success must
+	// not then pop the screen underneath.
+	const mounted = useRef(true);
+	useEffect(
+		() => () => {
+			mounted.current = false;
+		},
+		[],
+	);
 
 	if (!user?.passwordEnabled) return null;
 	const busy = screenWrite.isPending("password");
@@ -105,7 +114,7 @@ export function ChangePasswordScreen() {
 					return;
 				}
 				toast.success(c.passwordChanged);
-				router.back();
+				if (mounted.current) router.back();
 			},
 			{ key: "password" },
 		);

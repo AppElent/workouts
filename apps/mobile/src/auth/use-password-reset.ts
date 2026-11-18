@@ -8,8 +8,9 @@
  * password may also have lost a device.
  *
  * A rejected password (too short, breached) leaves the code verified, so a
- * retry only resubmits the password; a failed `finalize()` leaves the attempt
- * complete, so a retry only finalizes. `finalize()` turns the completed
+ * retry only resubmits the password. Once Clerk accepts the password the
+ * stage is `saved`: the password can no longer change here, and a failed
+ * `finalize()` is retried with `finish`. `finalize()` turns the completed
  * sign-in into a session; the `(auth)` layout then redirects and this screen
  * unmounts.
  *
@@ -18,8 +19,11 @@
  * time; `locked` reports this hook's own pending action to its screen.
  *
  * Mobile sign-in does not do second factors. If Clerk asks for one after
- * accepting the new password, the password has changed but no session
- * follows, and the message says so and points to the web app.
+ * accepting the new password, the stage is `needsWeb`: the password has
+ * changed but no session follows, and the message points to the web app.
+ *
+ * Resend and start-over turn a thrown SDK failure (no network) into the
+ * catalog's network message instead of rejecting.
  */
 import { useSignIn } from "@clerk/expo";
 import { useCallback, useState } from "react";
@@ -40,6 +44,11 @@ async function exclusive<T>(blocked: T, action: () => Promise<T>): Promise<T> {
 	}
 }
 
+/** `entering` until Clerk accepts the new password. */
+export type ResetStage = "entering" | "saved" | "needsWeb";
+
+const THROWN = { code: "network_error" };
+
 export function usePasswordReset() {
 	const { signIn, errors } = useSignIn();
 	const unsupportedText = useI18n().t.resetPassword.changedNeedsStep;
@@ -47,7 +56,7 @@ export function usePasswordReset() {
 	const { run, idle, fail, clear } = flow;
 	const [resending, setResending] = useState(false);
 	const [startingOver, setStartingOver] = useState(false);
-	const [unsupported, setUnsupported] = useState(false);
+	const [stage, setStage] = useState<ResetStage>("entering");
 
 	const request = useCallback(
 		(email: string): Promise<boolean> =>
@@ -72,6 +81,9 @@ export function usePasswordReset() {
 				>;
 				try {
 					sent = await signIn.resetPasswordEmailCode.sendCode();
+				} catch {
+					fail(THROWN);
+					return false;
 				} finally {
 					setResending(false);
 				}
@@ -95,33 +107,42 @@ export function usePasswordReset() {
 				clear();
 				try {
 					await signIn.reset();
+				} catch {
+					fail(THROWN);
+					return false;
 				} finally {
 					setStartingOver(false);
 				}
+				setStage("entering");
 				return true;
 			}),
-		[signIn, clear],
+		[signIn, clear, fail],
+	);
+
+	/** Turns the completed attempt into a session; retried after a failure. */
+	const finish = useCallback(
+		(): Promise<void> =>
+			exclusive(undefined, async () => {
+				await run(() => signIn.finalize());
+			}),
+		[signIn, run],
 	);
 
 	const reset = useCallback(
 		(code: string, password: string): Promise<void> =>
 			exclusive(undefined, async () => {
-				setUnsupported(false);
-				// A previous submit already set the password; only finalize is left.
-				if (signIn.status !== "complete") {
-					const verify = () =>
-						signIn.resetPasswordEmailCode.verifyCode({ code });
-					const submit = () =>
-						signIn.resetPasswordEmailCode.submitPassword({
-							password,
-							signOutOfOtherSessions: true,
-						});
-					const saved = await run(
-						...(signIn.status === "needs_new_password" ? [] : [verify]),
-						submit,
-					);
-					if (!saved) return;
-				}
+				if (stage !== "entering") return;
+				const verify = () => signIn.resetPasswordEmailCode.verifyCode({ code });
+				const submit = () =>
+					signIn.resetPasswordEmailCode.submitPassword({
+						password,
+						signOutOfOtherSessions: true,
+					});
+				const saved = await run(
+					...(signIn.status === "needs_new_password" ? [] : [verify]),
+					submit,
+				);
+				if (!saved) return;
 
 				if (signIn.status !== "complete") {
 					if (__DEV__) {
@@ -129,14 +150,15 @@ export function usePasswordReset() {
 							`[auth] password reset stopped at an unhandled status: ${signIn.status}`,
 						);
 					}
-					setUnsupported(true);
+					setStage("needsWeb");
 					idle();
 					return;
 				}
 
+				setStage("saved");
 				await run(() => signIn.finalize());
 			}),
-		[signIn, run, idle],
+		[signIn, run, idle, stage],
 	);
 
 	return {
@@ -145,9 +167,11 @@ export function usePasswordReset() {
 		resending,
 		startOver,
 		reset,
+		finish,
+		stage,
 		busy: flow.busy,
 		/** True while any action on the attempt is pending. */
 		locked: flow.busy || resending || startingOver,
-		error: unsupported ? unsupportedText : flow.error,
+		error: stage === "needsWeb" ? unsupportedText : flow.error,
 	};
 }

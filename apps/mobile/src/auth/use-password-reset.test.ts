@@ -140,6 +140,7 @@ it("does not finalize a reset that needs a step the app cannot do", async () => 
 	const { result } = await renderReset();
 	await act(() => result.current.reset("424242", "a-new-password"));
 	expect(mockFinalize).not.toHaveBeenCalled();
+	expect(result.current.stage).toBe("needsWeb");
 	expect(result.current.error).toMatch(/password is changed/);
 	expect(result.current.error).toMatch(/web app/);
 	expect(result.current.busy).toBe(false);
@@ -165,19 +166,25 @@ it("starts over so a corrected address gets a fresh reset", async () => {
 	expect(mockReset).toHaveBeenCalled();
 });
 
-it("retries a failed finalize without reusing the code or the password", async () => {
+it("locks the saved password and retries only the sign-in after finalize fails", async () => {
 	mockFinalize.mockResolvedValueOnce({ error: { code: "network_error" } });
 	const { result } = await renderReset();
 	await act(() => result.current.reset("424242", "a-new-password"));
-	expect(result.current.error).not.toBeNull();
+	expect(result.current.stage).toBe("saved");
+	expect(result.current.error).toBe(
+		"Network error. Check your connection and try again.",
+	);
 	expect(result.current.busy).toBe(false);
 
-	await act(() => result.current.reset("424242", "a-new-password"));
-	expect(mockVerifyCode).toHaveBeenCalledTimes(1);
+	// A different password typed now is not sent: Clerk already has one.
+	await act(() => result.current.reset("424242", "another-password"));
 	expect(mockSubmitPassword).toHaveBeenCalledTimes(1);
+	expect(mockFinalize).toHaveBeenCalledTimes(1);
+
+	await act(() => result.current.finish());
+	expect(mockVerifyCode).toHaveBeenCalledTimes(1);
 	expect(mockFinalize).toHaveBeenCalledTimes(2);
 });
-
 it("runs one action on the attempt at a time", async () => {
 	let release: (value: typeof ok) => void = () => {};
 	mockVerifyCode.mockImplementationOnce(
@@ -243,18 +250,34 @@ it("shares the lock with the other reset screen", async () => {
 	});
 });
 
-it("unlocks after a resend that throws", async () => {
+it("explains a resend that throws and lets it be retried", async () => {
 	mockSendCode.mockRejectedValueOnce(new Error("offline"));
 	const { result } = await renderReset();
+	let sent = true;
 	await act(async () => {
-		await expect(result.current.resend()).rejects.toThrow("offline");
+		sent = await result.current.resend();
 	});
-	expect(result.current.resending).toBe(false);
+	expect(sent).toBe(false);
+	expect(result.current.error).toBe(
+		"Network error. Check your connection and try again.",
+	);
 	expect(result.current.locked).toBe(false);
 	mockSendCode.mockResolvedValue(ok);
-	let sent = false;
 	await act(async () => {
 		sent = await result.current.resend();
 	});
 	expect(sent).toBe(true);
+	expect(result.current.error).toBeNull();
+});
+
+it("explains a start-over that throws and stays", async () => {
+	mockReset.mockRejectedValueOnce(new Error("offline"));
+	const { result } = await renderReset();
+	let left = true;
+	await act(async () => {
+		left = await result.current.startOver();
+	});
+	expect(left).toBe(false);
+	expect(result.current.error).toMatch(/Network error/);
+	expect(result.current.locked).toBe(false);
 });

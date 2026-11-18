@@ -8,7 +8,9 @@
  * and update the saved one for this account. Declining that suggestion can
  * clear the field natively without `onChangeText`, so the state also takes the
  * text from `onEndEditing`. Resend and "Use a different email" stay disabled
- * while a reset runs: all three act on the same Clerk attempt.
+ * while a reset runs: all three act on the same Clerk attempt. After Clerk
+ * accepts the password the fields lock and the button only signs in; when
+ * the account needs a second factor, the screen ends with a way back.
  */
 import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
@@ -23,7 +25,11 @@ const CODE_LENGTH = 6;
 export function ResetPasswordScreen({ email }: { email: string }) {
 	const router = useRouter();
 	const copy = useI18n().t.resetPassword;
-	const { reset, resend, startOver, busy, locked, error } = usePasswordReset();
+	const { reset, finish, stage, resend, startOver, busy, locked, error } =
+		usePasswordReset();
+	// Once Clerk has the new password, the fields are final: the button only
+	// signs in, and the code links no longer apply.
+	const entering = stage === "entering";
 	const [code, setCode] = useState("");
 	const [password, setPassword] = useState("");
 	const [notice, setNotice] = useState<string | null>(null);
@@ -32,7 +38,9 @@ export function ResetPasswordScreen({ email }: { email: string }) {
 	const ready = code.length === CODE_LENGTH && password.length > 0;
 
 	function submit() {
-		if (ready && !locked) void reset(code, password);
+		if (locked) return;
+		if (stage === "saved") void finish();
+		else if (ready && entering) void reset(code, password);
 	}
 
 	async function onResend() {
@@ -45,16 +53,27 @@ export function ResetPasswordScreen({ email }: { email: string }) {
 			title={copy.codeTitle}
 			subtitle={fmt(copy.codeSubtitle, { email })}
 			footer={
-				<>
-					<AuthLink label={copy.resend} onPress={onResend} disabled={locked} />
+				entering ? (
+					<>
+						<AuthLink
+							label={copy.resend}
+							onPress={onResend}
+							disabled={locked}
+						/>
+						<AuthLink
+							label={copy.changeEmail}
+							disabled={locked}
+							onPress={async () => {
+								if (await startOver()) router.back();
+							}}
+						/>
+					</>
+				) : stage === "needsWeb" ? (
 					<AuthLink
-						label={copy.changeEmail}
-						disabled={locked}
-						onPress={async () => {
-							if (await startOver()) router.back();
-						}}
+						label={copy.backToSignIn}
+						onPress={() => router.dismissTo("/sign-in")}
 					/>
-				</>
+				) : null
 			}
 		>
 			<AuthInput
@@ -65,6 +84,7 @@ export function ResetPasswordScreen({ email }: { email: string }) {
 				autoComplete="one-time-code"
 				textContentType="oneTimeCode"
 				maxLength={CODE_LENGTH}
+				editable={entering}
 				autoFocus
 				returnKeyType="next"
 				submitBehavior="submit"
@@ -76,6 +96,7 @@ export function ResetPasswordScreen({ email }: { email: string }) {
 				value={password}
 				onChangeText={setPassword}
 				onEndEditing={(event) => setPassword(event.nativeEvent.text)}
+				editable={entering}
 				secureTextEntry
 				autoCapitalize="none"
 				autoComplete="new-password"
@@ -85,14 +106,19 @@ export function ResetPasswordScreen({ email }: { email: string }) {
 			/>
 
 			<AuthMessage message={error} />
-			<AuthMessage message={notice} tone="muted" />
-
-			<PrimaryButton
-				label={copy.submit}
-				loading={busy}
-				disabled={!ready || locked}
-				onPress={submit}
+			<AuthMessage
+				message={stage === "saved" ? copy.saved : notice}
+				tone="muted"
 			/>
+
+			{stage === "needsWeb" ? null : (
+				<PrimaryButton
+					label={stage === "saved" ? copy.finishSignIn : copy.submit}
+					loading={busy}
+					disabled={locked || (entering && !ready)}
+					onPress={submit}
+				/>
+			)}
 		</AuthScreen>
 	);
 }

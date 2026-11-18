@@ -6,8 +6,14 @@ import { SignInScreen } from "./sign-in-screen";
 
 const mockPush = jest.fn();
 const mockBack = jest.fn();
+const mockDismissTo = jest.fn();
 jest.mock("expo-router", () => ({
-	useRouter: () => ({ push: mockPush, back: mockBack, replace: jest.fn() }),
+	useRouter: () => ({
+		push: mockPush,
+		back: mockBack,
+		replace: jest.fn(),
+		dismissTo: mockDismissTo,
+	}),
 }));
 
 const ok = { error: null };
@@ -208,4 +214,78 @@ it("disables the reset when iOS clears the new password without a change event",
 	expect(submit().props.accessibilityState.disabled).toBe(false);
 	await fireEvent(password, "endEditing", { nativeEvent: { text: "" } });
 	expect(submit().props.accessibilityState.disabled).toBe(true);
+});
+
+async function enterCodeAndPassword() {
+	await fireEvent.changeText(screen.getByLabelText("Code"), "424242");
+	await fireEvent.changeText(
+		screen.getByLabelText("New password"),
+		"a-new-password",
+	);
+	await fireEvent.press(screen.getByRole("button", { name: "Reset password" }));
+}
+
+it("after a saved password, only signs in again when that fails", async () => {
+	mockSignIn.resetPasswordEmailCode.verifyCode.mockImplementation(async () => {
+		mockSignIn.status = "needs_new_password";
+		return ok;
+	});
+	mockSignIn.resetPasswordEmailCode.submitPassword.mockImplementation(
+		async () => {
+			mockSignIn.status = "complete";
+			return ok;
+		},
+	);
+	mockSignIn.finalize
+		.mockResolvedValueOnce({ error: { code: "network_error" } })
+		.mockResolvedValueOnce(ok);
+	await renderScreen(<ResetPasswordScreen email="sam@example.test" />);
+	await enterCodeAndPassword();
+
+	expect(await screen.findByText("Your password is changed.")).toBeTruthy();
+	expect(screen.getByText(/Network error/)).toBeTruthy();
+	expect(screen.getByLabelText("New password").props.editable).toBe(false);
+	expect(screen.getByLabelText("Code").props.editable).toBe(false);
+	expect(screen.queryByRole("link", { name: "Send a new code" })).toBeNull();
+	expect(screen.queryByRole("button", { name: "Reset password" })).toBeNull();
+
+	await fireEvent.press(screen.getByRole("button", { name: "Sign in" }));
+	await waitFor(() => expect(mockSignIn.finalize).toHaveBeenCalledTimes(2));
+	expect(
+		mockSignIn.resetPasswordEmailCode.submitPassword,
+	).toHaveBeenCalledTimes(1);
+});
+
+it("ends a reset that needs a second factor with a way back to sign in", async () => {
+	mockSignIn.resetPasswordEmailCode.verifyCode.mockResolvedValue(ok);
+	mockSignIn.resetPasswordEmailCode.submitPassword.mockImplementation(
+		async () => {
+			mockSignIn.status = "needs_second_factor";
+			return ok;
+		},
+	);
+	const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+	await renderScreen(<ResetPasswordScreen email="sam@example.test" />);
+	await enterCodeAndPassword();
+
+	expect(
+		await screen.findByText(/sign in with the new password in the web app/),
+	).toBeTruthy();
+	expect(screen.queryByRole("button", { name: "Reset password" })).toBeNull();
+	await fireEvent.press(screen.getByRole("link", { name: "Back to sign in" }));
+	expect(mockDismissTo).toHaveBeenCalledWith("/sign-in");
+	expect(mockSignIn.finalize).not.toHaveBeenCalled();
+	warn.mockRestore();
+});
+
+it("shows a resend that throws and lets it be retried", async () => {
+	mockSignIn.resetPasswordEmailCode.sendCode
+		.mockRejectedValueOnce(new Error("offline"))
+		.mockResolvedValueOnce(ok);
+	await renderScreen(<ResetPasswordScreen email="sam@example.test" />);
+	await fireEvent.press(screen.getByRole("link", { name: "Send a new code" }));
+	expect(await screen.findByText(/Network error/)).toBeTruthy();
+	await fireEvent.press(screen.getByRole("link", { name: "Send a new code" }));
+	expect(await screen.findByText("A new code is on its way.")).toBeTruthy();
+	expect(screen.queryByText(/Network error/)).toBeNull();
 });
