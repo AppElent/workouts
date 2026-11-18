@@ -476,15 +476,21 @@ jest.mock("expo-widgets", () => {
 		}[],
 		enabled: true,
 		next: 0,
+		/** Set to hold every end() open until it resolves. */
+		endGate: null as Promise<void> | null,
 	};
 	const wrap = (fake: (typeof state.activities)[number]) => ({
 		getId: () => fake.id,
 		update: jest.fn(async (props: unknown, staleDate?: Date) => {
-			if (fake.ended) throw new Error("Live Activity not found");
+			if (fake.ended)
+				throw Object.assign(new Error("Live Activity not found"), {
+					code: "ERR_LIVE_ACTIVITY_NOT_FOUND",
+				});
 			fake.props = props;
 			fake.staleDate = staleDate;
 		}),
 		end: jest.fn(async () => {
+			await state.endGate;
 			fake.ended = true;
 		}),
 	});

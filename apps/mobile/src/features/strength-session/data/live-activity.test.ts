@@ -17,6 +17,7 @@ type FakeState = {
 		staleDate?: Date;
 	}[];
 	enabled: boolean;
+	endGate: Promise<void> | null;
 };
 const fake = (
 	jest.requireMock("expo-widgets") as { __liveActivities: FakeState }
@@ -195,6 +196,7 @@ describe("session Live Activity", () => {
 		endSessionActivity();
 		fake.activities.length = 0;
 		fake.enabled = true;
+		fake.endGate = null;
 		jest.mocked(Sentry.captureException).mockClear();
 	});
 	const props = (over: Partial<SessionNow> = {}) =>
@@ -235,14 +237,33 @@ describe("session Live Activity", () => {
 		expect(Sentry.captureException).not.toHaveBeenCalled();
 	});
 
-	it("starts afresh when a session comes back while the last one is still ending", async () => {
+	it("finishes an end before the next session's activity starts", async () => {
 		showSessionActivity(props());
 		await flush();
+		let release: () => void = () => undefined;
+		fake.endGate = new Promise((resolve) => {
+			release = resolve;
+		});
 		endSessionActivity();
 		showSessionActivity(props({ exerciseName: "Squat" }));
 		await flush();
 		expect(live()).toHaveLength(1);
+		expect(live()[0]?.props.exercise).toBe("Bench press");
+		release();
+		await flush();
+		expect(live()).toHaveLength(1);
 		expect(live()[0]?.props.exercise).toBe("Squat");
+		fake.endGate = null;
+	});
+
+	it("treats a dismissed activity as gone, without reporting it", async () => {
+		showSessionActivity(props());
+		await flush();
+		const [activity] = live();
+		if (activity) activity.ended = true;
+		showSessionActivity(props({ setIndex: 4 }));
+		await flush();
+		expect(Sentry.captureException).not.toHaveBeenCalled();
 	});
 
 	it("applies quick changes in order", async () => {

@@ -3,7 +3,8 @@
  * session is active (also after a restart), updates it when the next set or
  * the rest changes, and ends it when the session finishes or is discarded.
  */
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { AppState } from "react-native";
 import { useActiveSession } from "../../../data/session-data";
 import { useI18n } from "../../../i18n";
 import { endSessionActivity, showSessionActivity } from "./live-activity";
@@ -24,12 +25,21 @@ export function SessionLiveActivity() {
 		}),
 		[t],
 	);
+	// iOS starts an activity only from the foreground: try again on coming back.
+	const [foregrounds, setForegrounds] = useState(0);
 	useEffect(() => {
+		const sub = AppState.addEventListener("change", (state) => {
+			if (state === "active") setForegrounds((count) => count + 1);
+		});
+		return () => sub.remove();
+	}, []);
+	useEffect(() => {
+		void foregrounds; // a retry trigger only
 		// Keep whatever runs while the session is still loading (or offline).
 		if (loading) return;
 		if (!now) endSessionActivity();
 		else showSessionActivity(liveActivityProps(now, copy, locale, over));
-	}, [loading, now, over, copy, locale]);
+	}, [loading, now, over, copy, locale, foregrounds]);
 	// Unmounts only when the account changes: a signed-out phone shows no session.
 	useEffect(() => endSessionActivity, []);
 	return null;
