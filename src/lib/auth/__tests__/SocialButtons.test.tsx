@@ -60,6 +60,20 @@ describe("SocialButtons", () => {
 		});
 	});
 
+	it("returns to the given path, also through the SSO callback", () => {
+		sso.mockResolvedValue({ error: null });
+		render(<SocialButtons redirect="/join/tok-1" />);
+		fireEvent.click(
+			screen.getByRole("button", { name: "Continue with Microsoft" }),
+		);
+		expect(sso).toHaveBeenCalledWith({
+			strategy: "oauth_microsoft",
+			// A sign-in Clerk transfers to a sign-up only sees the callback URL.
+			redirectCallbackUrl: "/sso-callback?redirect=%2Fjoin%2Ftok-1",
+			redirectUrl: "/join/tok-1",
+		});
+	});
+
 	it("shows a readable error when the redirect cannot start", async () => {
 		sso.mockResolvedValue({
 			error: { errors: [{ message: "Provider disabled." }] },
