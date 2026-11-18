@@ -3,6 +3,10 @@
  * time, not decremented on a tick, so a lock or a restart leaves it correct.
  * A foreground end gives a haptic and a lime pill; a background end is a local
  * notification, which every adjustment reschedules or cancels.
+ *
+ * A rest belongs to the session it began in. Anything that reads the timer
+ * sees it idle unless that session is the active one, and a rest left behind
+ * by a session that ended elsewhere is cleared, with its notification.
  */
 import {
 	createContext,
@@ -29,14 +33,29 @@ import {
 const restKeys = accountKeyspace("strength-rest:v1");
 const ALERT_ID = "strength-rest";
 
-type Stored = { endsAt: number | null; body: string | null };
-const IDLE: Stored = { endsAt: null, body: null };
+type Stored = {
+	endsAt: number | null;
+	body: string | null;
+	/** The session the rest began in; null on an entry written before rests had one. */
+	sessionId: string | null;
+};
+const IDLE: Stored = { endsAt: null, body: null, sessionId: null };
 function parseStored(value: unknown): Stored {
 	const stored = value as Partial<Stored> | null;
 	return {
 		endsAt: typeof stored?.endsAt === "number" ? stored.endsAt : null,
 		body: typeof stored?.body === "string" ? stored.body : null,
+		sessionId: typeof stored?.sessionId === "string" ? stored.sessionId : null,
 	};
+}
+/**
+ * What the active session may see of a stored rest. `undefined` means the
+ * active session is still loading: nothing shows until it is known.
+ */
+function visibleTo(stored: Stored, activeSessionId: string | null | undefined) {
+	return stored.sessionId !== null && stored.sessionId === activeSessionId
+		? stored
+		: IDLE;
 }
 function load(subject: string | null): Stored {
 	if (!subject) return IDLE;
@@ -45,8 +64,8 @@ function load(subject: string | null): Stored {
 }
 
 export type RestTimerApi = {
-	/** Starts or restarts a countdown. */
-	start: (seconds: number, body?: string) => void;
+	/** Starts or restarts a countdown for the session it runs in. */
+	start: (sessionId: string, seconds: number, body?: string) => void;
 	stop: () => void;
 	adjust: (delta: number) => void;
 	/** Puts back a previous end time, for undoing a log. */
@@ -68,19 +87,31 @@ const RestStateContext = createContext<RestState>({
 	over: false,
 });
 
-/** One countdown per account; `subject` is null while signed out. */
+/**
+ * One countdown per account; `subject` is null while signed out.
+ * `activeSessionId` is the account's running session: null when there is none,
+ * undefined while that is still loading.
+ */
 export function RestTimerProvider({
 	subject,
+	activeSessionId,
 	children,
 }: {
 	subject: string | null;
+	activeSessionId: string | null | undefined;
 	children: ReactNode;
 }) {
 	const copy = useI18n().t.strength.plan.rest;
-	const [stored, setStored] = useState(() => load(subject));
+	const [raw, setStored] = useState(() => load(subject));
 	const [now, setNow] = useState(() => Date.now());
-	const current = useRef(stored);
-	current.current = stored;
+	const stored = useMemo(
+		() => visibleTo(raw, activeSessionId),
+		[raw, activeSessionId],
+	);
+	const current = useRef(raw);
+	current.current = raw;
+	const visible = useRef(stored);
+	visible.current = stored;
 	const previousRemaining = useRef<number | null>(null);
 	const running = stored.endsAt !== null;
 	useEffect(() => {
@@ -110,6 +141,7 @@ export function RestTimerProvider({
 	const api = useMemo<RestTimerApi>(() => {
 		const write = (next: Stored) => {
 			current.current = next;
+			visible.current = next;
 			// Rest still runs from memory when the store fails.
 			if (subject) writeLocalJson(restKeys.key(subject), next);
 			setStored(next);
@@ -123,9 +155,9 @@ export function RestTimerProvider({
 				body ?? copy.notificationPlain,
 			);
 		return {
-			start(seconds, body) {
+			start(sessionId, seconds, body) {
 				const endsAt = Date.now() + seconds * 1000;
-				write({ endsAt, body: body ?? null });
+				write({ endsAt, body: body ?? null, sessionId });
 				schedule(endsAt, body ?? null);
 			},
 			stop() {
@@ -133,23 +165,45 @@ export function RestTimerProvider({
 				void cancelSessionAlert(ALERT_ID);
 			},
 			adjust(delta) {
-				const { endsAt, body } = current.current;
+				const { endsAt, body, sessionId } = visible.current;
 				if (endsAt === null) return;
 				const nowMs = Date.now();
 				// Once rest is over −15 has nothing to take away; +15 starts it again.
 				if (endsAt <= nowMs && delta < 0) return;
 				const next = Math.max(nowMs, endsAt) + delta * 1000;
-				write({ endsAt: Math.max(nowMs, next), body });
+				write({ endsAt: Math.max(nowMs, next), body, sessionId });
 				schedule(Math.max(nowMs, next), body);
 			},
 			restore(endsAt) {
-				write({ ...current.current, endsAt });
+				const { body, sessionId } = visible.current;
+				if (endsAt !== null && sessionId === null) return;
+				write({ endsAt, body, sessionId });
 				if (endsAt === null) void cancelSessionAlert(ALERT_ID);
-				else schedule(endsAt, current.current.body);
+				else schedule(endsAt, body);
 			},
-			current: () => current.current.endsAt,
+			current: () => visible.current.endsAt,
 		};
 	}, [copy, subject]);
+	// A rest left by another session is cleared once the active one is known.
+	// An entry from before rests carried a session id is taken over by the
+	// active session while it still runs, so shipping this mid-rest keeps it.
+	useEffect(() => {
+		if (activeSessionId === undefined || raw.endsAt === null) return;
+		if (raw.sessionId === activeSessionId) return;
+		if (
+			raw.sessionId === null &&
+			activeSessionId !== null &&
+			raw.endsAt > Date.now()
+		) {
+			const adopted = { ...raw, sessionId: activeSessionId };
+			if (subject) writeLocalJson(restKeys.key(subject), adopted);
+			setStored(adopted);
+			return;
+		}
+		if (subject) writeLocalJson(restKeys.key(subject), IDLE);
+		setStored(IDLE);
+		void cancelSessionAlert(ALERT_ID);
+	}, [raw, activeSessionId, subject]);
 	const state = useMemo(
 		() => ({ running, endsAt: stored.endsAt, remaining, over }),
 		[running, stored.endsAt, remaining, over],

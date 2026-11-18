@@ -56,7 +56,9 @@ references. Studies: [training](../../designs/app/training_final.html),
   routes. Clearing a saved RPE leaves other fields unchanged.
 - **Default rest** is per session and set from session options; a new session
   starts from the account's last choice on this device. A running rest timer
-  belongs to the account and stops when the session ends anywhere.
+  belongs to the session it began in: another session, including a new one, never
+  shows it, and it is cleared when the session ends anywhere. It survives an app
+  restart in its own session.
 - **Set groups** repeat generically. Rounds rest between rounds; AMRAP runs a clock
   and scores rounds plus sets, with no rest. Group classes are out of scope.
 - Finish confirms leaving unfinished targets or drafts and counts only logged Sets;
