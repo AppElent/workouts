@@ -67,7 +67,8 @@ async function sync(props: LiveActivityProps | null) {
 		const key = contentKey(props);
 		if (!keep) {
 			// iOS starts activities only from the foreground; becoming active retries.
-			if (AppState.currentState === "background") return;
+			const state = AppState.currentState;
+			if (state === "background" || state === "inactive") return;
 			currentId = getFactory()
 				.start(props, undefined, staleDateOf(props))
 				.getId();

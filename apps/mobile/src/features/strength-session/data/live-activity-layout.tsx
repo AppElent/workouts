@@ -16,6 +16,7 @@ import {
 	foregroundStyle,
 	frame,
 	lineLimit,
+	minimumScaleFactor,
 	monospacedDigit,
 	multilineTextAlignment,
 	padding,
@@ -53,6 +54,9 @@ export const sessionLiveActivityLayout: LiveActivityComponent<
 				monospacedDigit(),
 				foregroundStyle(color),
 				multilineTextAlignment("trailing"),
+				// Past an hour "1:02:03" shrinks to fit instead of being cut off.
+				lineLimit(1),
+				minimumScaleFactor(0.75),
 				frame({ width, alignment: "trailing" }),
 			]}
 		/>

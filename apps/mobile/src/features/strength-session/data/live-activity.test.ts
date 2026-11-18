@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/react-native";
+import { AppState } from "react-native";
 import { DICTIONARIES } from "../../../i18n/dictionaries";
 import { type ExerciseFacts, seedPlan } from "../session-plan";
 import { endSessionActivity, showSessionActivity } from "./live-activity.ios";
@@ -264,6 +265,29 @@ describe("session Live Activity", () => {
 		showSessionActivity(props({ setIndex: 4 }));
 		await flush();
 		expect(Sentry.captureException).not.toHaveBeenCalled();
+		expect(live()).toHaveLength(1);
+	});
+
+	it("starts only in the foreground, and retries once active", async () => {
+		// The jest mock has a function here; the native AppState has a string.
+		const original = Object.getOwnPropertyDescriptor(AppState, "currentState");
+		const setState = (value: string) =>
+			Object.defineProperty(AppState, "currentState", {
+				value,
+				configurable: true,
+			});
+		try {
+			setState("background");
+			showSessionActivity(props());
+			await flush();
+			expect(live()).toHaveLength(0);
+			setState("active");
+			showSessionActivity(props());
+			await flush();
+			expect(live()).toHaveLength(1);
+		} finally {
+			if (original) Object.defineProperty(AppState, "currentState", original);
+		}
 	});
 
 	it("applies quick changes in order", async () => {
