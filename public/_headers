@@ -1,7 +1,5 @@
-# Cloudflare Workers static-asset headers. The app-link files have no
-# extension (AASA) or must be served as JSON for iOS and Android to verify
-# them; see apps/mobile/app.config.ts.
+# Cloudflare Workers static-asset headers. The iOS app-link file has no
+# extension, so it needs an explicit JSON type for iOS to verify it; see
+# apps/mobile/app.config.ts.
 /.well-known/apple-app-site-association
-  Content-Type: application/json
-/.well-known/assetlinks.json
   Content-Type: application/json

@@ -24,14 +24,6 @@ type AppVariant = "development" | "preview" | "production";
  */
 export const APPLE_TEAM_ID = "D8AMB5N29A";
 
-/**
- * Hosted-workout join links (`https://foundry.appelent.nl/join/<token>`) open
- * the installed app. Production and Preview only: the development build keeps
- * opening them in the browser, so a local build never claims real links. The
- * site files that verify the claim are in `public/.well-known/`.
- */
-const JOIN_LINK_PATH_PREFIX = "/join/";
-
 const VARIANTS = {
 	production: { suffix: "", name: "Foundry", scheme: "foundry", icon: "" },
 	preview: {
@@ -77,6 +69,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 	const variant = variantOf();
 	const { suffix, name, scheme, icon } = VARIANTS[variant];
 	const id = `com.appelent.foundry${suffix}`;
+	// Hosted-workout join links (`https://foundry.appelent.nl/join/<token>`)
+	// open the installed app on iOS, in Production and Preview only: a local
+	// development build never claims real links. The site file that verifies
+	// the claim is `public/.well-known/apple-app-site-association`. Android
+	// claims nothing yet (APP-261).
 	const claimsJoinLinks = variant !== "development";
 	return {
 		...config,
@@ -101,24 +98,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 		android: {
 			...config.android,
 			package: id,
-			...(claimsJoinLinks
-				? {
-						intentFilters: [
-							{
-								action: "VIEW",
-								autoVerify: true,
-								data: [
-									{
-										scheme: "https",
-										host: JOIN_LINK_HOST,
-										pathPrefix: JOIN_LINK_PATH_PREFIX,
-									},
-								],
-								category: ["BROWSABLE", "DEFAULT"],
-							},
-						],
-					}
-				: {}),
 			backgroundColor: lightColors.bg,
 			adaptiveIcon: {
 				...config.android?.adaptiveIcon,

@@ -1,9 +1,12 @@
 /**
  * The app half of hosted-workout join links must match the site half: the
- * production and preview builds claim `foundry.appelent.nl/join/*`, and the
- * site's `.well-known` files name exactly those builds. A mismatch fails
- * silently on a phone (the link keeps opening the browser), so it fails here.
- * The fingerprint and header checks live in `scripts/app-links.test.ts`.
+ * production and preview iOS builds claim `foundry.appelent.nl/join/*`, and
+ * the site's `apple-app-site-association` names exactly those builds. A
+ * mismatch fails silently on a phone (the link keeps opening the browser), so
+ * it fails here. The header check lives in `scripts/app-links.test.ts`.
+ *
+ * Android claims nothing yet (APP-261): an intent filter without a verified
+ * `assetlinks.json` would show a chooser or keep opening the browser.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -42,27 +45,28 @@ it("claims join links in production and preview, never development", () => {
 	]);
 	const development = configFor("development");
 	expect(development.ios?.associatedDomains).toBeUndefined();
-	expect(development.android?.intentFilters).toBeUndefined();
 });
 
 it.each(claiming.map((config) => [config.ios?.bundleIdentifier, config]))(
-	"%s claims https://foundry.appelent.nl/join/ on iOS and Android",
+	"%s claims https://foundry.appelent.nl/join/ on iOS",
 	(_id, config) => {
 		expect(config.ios?.appleTeamId).toBe(APPLE_TEAM_ID);
 		expect(config.ios?.associatedDomains).toEqual([
 			`applinks:${JOIN_LINK_HOST}`,
 		]);
-		expect(config.android?.package).toBe(config.ios?.bundleIdentifier);
-		expect(config.android?.intentFilters).toEqual([
-			{
-				action: "VIEW",
-				autoVerify: true,
-				data: [{ scheme: "https", host: JOIN_LINK_HOST, pathPrefix: "/join/" }],
-				category: ["BROWSABLE", "DEFAULT"],
-			},
-		]);
 	},
 );
+
+// Android link claims and `assetlinks.json` ship together (APP-261), so
+// neither can land without the other.
+it("claims no Android links while the site has no assetlinks.json", () => {
+	expect(fs.existsSync(path.join(WELL_KNOWN, "assetlinks.json"))).toBe(false);
+	const filters = VARIANTS.map((variant) => [
+		variant,
+		configFor(variant).android?.intentFilters,
+	]);
+	expect(filters).toEqual(VARIANTS.map((variant) => [variant, undefined]));
+});
 
 it("names exactly the claiming builds in apple-app-site-association", () => {
 	const aasa = readJson("apple-app-site-association");
@@ -72,17 +76,4 @@ it("names exactly the claiming builds in apple-app-site-association", () => {
 			components: [expect.objectContaining({ "/": "/join/*" })],
 		},
 	]);
-});
-
-it("names exactly the claiming builds in assetlinks.json", () => {
-	const links: { relation: string[]; target: { package_name: string } }[] =
-		readJson("assetlinks.json");
-	expect(links.map((link) => link.target.package_name)).toEqual(
-		claiming.map((config) => config.android?.package),
-	);
-	for (const link of links) {
-		expect(link.relation).toEqual([
-			"delegate_permission/common.handle_all_urls",
-		]);
-	}
 });
