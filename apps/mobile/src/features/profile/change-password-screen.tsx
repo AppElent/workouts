@@ -10,21 +10,60 @@
  * never enabled while a field shows blank.
  *
  * Clerk reports a wrong current password as `form_password_validation_failed`
- * on `current_password`, the same code as a weak new password, so the
- * parameter decides which field shows the error. Changing signs out the
- * account's other sessions, like the reset flow.
+ * on `current_password`, the same code as a weak new password, so each error
+ * entry goes to the field its own `meta.paramName` names (`fieldErrors`).
+ * Entries about no field, and failures that are not Clerk API errors (no
+ * network), show as a toast. Changing signs out the account's other sessions,
+ * like the reset flow.
  */
 import { useUser } from "@clerk/expo";
+import type { ClerkErrorMessageKey } from "@foundry/core";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import type { TextInputProps } from "react-native";
-import { clerkErrorKey, clerkErrorParam } from "../../auth/clerk-errors";
+import { clerkErrorEntries, clerkErrorKey } from "../../auth/clerk-errors";
 import { useI18n } from "../../i18n";
 import { FormScreen, FormSection, FormTextField } from "../../ui/form";
 import { useToast } from "../../ui/toast";
 import { useScreenWrite } from "../../ui/use-screen-write";
 
 type Field = "current" | "new";
+type FieldErrors = Partial<Record<Field, ClerkErrorMessageKey>>;
+
+const FIELD_BY_PARAM: Record<string, Field> = {
+	current_password: "current",
+	new_password: "new",
+	password: "new",
+};
+
+/** Codes Clerk uses on `current_password` when that password is wrong. */
+const WRONG_CURRENT = new Set([
+	"form_password_validation_failed",
+	"form_password_incorrect",
+]);
+
+/** Sorts a failed `updatePassword` by field: the first entry per field wins. */
+function fieldErrors(failure: unknown): {
+	fields: FieldErrors;
+	form: ClerkErrorMessageKey | null;
+} {
+	const fields: FieldErrors = {};
+	let form: ClerkErrorMessageKey | null = null;
+	const entries = clerkErrorEntries(failure);
+	for (const entry of entries) {
+		const field = entry.param ? FIELD_BY_PARAM[entry.param] : undefined;
+		if (!field) {
+			form ??= clerkErrorKey(entry);
+		} else if (!fields[field]) {
+			fields[field] =
+				field === "current" && WRONG_CURRENT.has(entry.code)
+					? "passwordIncorrect"
+					: clerkErrorKey(entry);
+		}
+	}
+	if (entries.length === 0) form = clerkErrorKey(failure);
+	return { fields, form };
+}
 
 /** Keeps state on the field's native text, including clears iOS makes silently. */
 function nativeText(set: (text: string) => void): TextInputProps {
@@ -43,9 +82,7 @@ export function ChangePasswordScreen() {
 	const screenWrite = useScreenWrite();
 	const [currentPassword, setCurrentPassword] = useState("");
 	const [newPassword, setNewPassword] = useState("");
-	const [error, setError] = useState<{ field: Field; message: string } | null>(
-		null,
-	);
+	const [errors, setErrors] = useState<FieldErrors>({});
 
 	if (!user?.passwordEnabled) return null;
 	const busy = screenWrite.isPending("password");
@@ -54,7 +91,7 @@ export function ChangePasswordScreen() {
 		screenWrite.run(
 			c.passwordError,
 			async () => {
-				setError(null);
+				setErrors({});
 				try {
 					await user.updatePassword({
 						currentPassword,
@@ -62,14 +99,9 @@ export function ChangePasswordScreen() {
 						signOutOfOtherSessions: true,
 					});
 				} catch (failure) {
-					const current = clerkErrorParam(failure) === "current_password";
-					setError({
-						field: current ? "current" : "new",
-						message:
-							t.authErrors[
-								current ? "passwordIncorrect" : clerkErrorKey(failure)
-							],
-					});
+					const { fields, form } = fieldErrors(failure);
+					setErrors(fields);
+					if (form) toast.error(t.authErrors[form]);
 					return;
 				}
 				toast.success(c.passwordChanged);
@@ -78,8 +110,10 @@ export function ChangePasswordScreen() {
 			{ key: "password" },
 		);
 
-	const errorFor = (field: Field) =>
-		error?.field === field ? error.message : undefined;
+	const errorFor = (field: Field) => {
+		const key = errors[field];
+		return key ? t.authErrors[key] : undefined;
+	};
 
 	return (
 		<FormScreen

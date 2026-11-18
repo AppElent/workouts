@@ -1,4 +1,9 @@
-import { fireEvent, screen, waitFor } from "@testing-library/react-native";
+import {
+	fireEvent,
+	screen,
+	waitFor,
+	within,
+} from "@testing-library/react-native";
 import { renderScreen } from "../../test-support/render-screen";
 import { ChangePasswordScreen } from "./change-password-screen";
 
@@ -122,4 +127,72 @@ it("renders nothing for an account without a password", async () => {
 	mockUser.passwordEnabled = false;
 	await renderScreen(<ChangePasswordScreen />);
 	expect(screen.queryByLabelText("Current password")).toBeNull();
+});
+
+describe("errors go to the field each Clerk entry names", () => {
+	const reject = (...errors: object[]) =>
+		mockUser.updatePassword.mockRejectedValueOnce({ errors });
+	/** The alert inside the row of the field with this label, if any. */
+	const errorOn = (label: string) => {
+		const row = screen.getByLabelText(label).parent;
+		if (!row) throw new Error(`no row for ${label}`);
+		return within(row).queryByRole("alert")?.props.children ?? null;
+	};
+	const WRONG = "That password is not right.";
+	const WEAK = "That password is not strong enough.";
+
+	it("puts a current_password entry on Current password", async () => {
+		reject({
+			code: "form_password_validation_failed",
+			meta: { paramName: "current_password" },
+		});
+		await renderScreen(<ChangePasswordScreen />);
+		await fill("wrong", "a-new-password");
+		await screen.findByText(WRONG);
+		expect(errorOn("Current password")).toBe(WRONG);
+		expect(errorOn("New password")).toBeNull();
+	});
+
+	it("puts a password entry on New password", async () => {
+		reject({
+			code: "form_password_validation_failed",
+			meta: { paramName: "password" },
+		});
+		await renderScreen(<ChangePasswordScreen />);
+		await fill("old-password", "weak");
+		await screen.findByText(WEAK);
+		expect(errorOn("New password")).toBe(WEAK);
+		expect(errorOn("Current password")).toBeNull();
+	});
+
+	it("shows each entry on its own field when Clerk reports both", async () => {
+		// Same code twice: only each entry's paramName tells the fields apart.
+		reject(
+			{
+				code: "form_password_validation_failed",
+				meta: { paramName: "new_password" },
+			},
+			{
+				code: "form_password_validation_failed",
+				meta: { paramName: "current_password" },
+			},
+		);
+		await renderScreen(<ChangePasswordScreen />);
+		await fill("wrong", "weak");
+		await screen.findByText(WRONG);
+		expect(errorOn("Current password")).toBe(WRONG);
+		expect(errorOn("New password")).toBe(WEAK);
+	});
+
+	it("shows an error about no field as a toast and stays", async () => {
+		reject({ code: "too_many_requests" });
+		await renderScreen(<ChangePasswordScreen />);
+		await fill("old-password", "a-new-password");
+		expect(
+			await screen.findByText("Too many attempts. Try again in a moment."),
+		).toBeTruthy();
+		expect(errorOn("Current password")).toBeNull();
+		expect(errorOn("New password")).toBeNull();
+		expect(mockBack).not.toHaveBeenCalled();
+	});
 });

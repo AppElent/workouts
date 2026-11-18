@@ -35,21 +35,37 @@ export function clerkErrorKey(error: unknown): ClerkErrorMessageKey {
 	return key;
 }
 
+/** One entry of a thrown Clerk API error, with the form parameter it is about. */
+export interface ClerkErrorEntry {
+	code: string;
+	/** `meta.paramName`, e.g. `current_password`; null for a form-level error. */
+	param: string | null;
+}
+
 /**
- * The form parameter a thrown Clerk API error is about (`meta.paramName`),
- * e.g. `current_password`: Clerk reports a wrong current password on
- * `user.updatePassword` as `form_password_validation_failed`, the same code
- * as a weak new one, so only the parameter tells them apart.
+ * The entries of a thrown Clerk API error (`errors[]`), each with its own
+ * `meta.paramName`. Clerk reports a wrong current password on
+ * `user.updatePassword` as `form_password_validation_failed` on
+ * `current_password`, the same code as a weak new one, so only the entry's
+ * parameter tells them apart. Empty for anything that is not a Clerk API error.
  */
-export function clerkErrorParam(error: unknown): string | null {
+export function clerkErrorEntries(error: unknown): ClerkErrorEntry[] {
 	const errors = (error as { errors?: unknown } | null)?.errors;
-	if (!Array.isArray(errors)) return null;
-	for (const item of errors) {
-		const param = (item as { meta?: { paramName?: unknown } } | null)?.meta
-			?.paramName;
-		if (typeof param === "string" && param) return param;
-	}
-	return null;
+	if (!Array.isArray(errors)) return [];
+	return errors.flatMap((item) => {
+		const entry = item as {
+			code?: unknown;
+			meta?: { paramName?: unknown };
+		} | null;
+		if (typeof entry?.code !== "string") return [];
+		const param = entry.meta?.paramName;
+		return [
+			{
+				code: entry.code,
+				param: typeof param === "string" && param ? param : null,
+			},
+		];
+	});
 }
 
 /**
