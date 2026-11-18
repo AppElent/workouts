@@ -4,6 +4,7 @@
  */
 import {
 	calcPlates,
+	convertLoad,
 	DEFAULT_BAR,
 	estimatedMaxReps,
 	formatClock,
@@ -240,7 +241,7 @@ export function SetEditorScreen() {
 		setMode(next);
 		writeLocal(PREFERENCE_KEYS.setEditorMode, next);
 	};
-	const bodyMetrics = useQuery(api.bodyMetrics.list, {});
+	const bodyMetrics = useQuery(api.bodyMetrics.list, advanced ? {} : "skip");
 	const keyboard = useKeyboardHeight();
 	const loadRef = useRef<ComponentRef<typeof TextInput>>(null);
 	const repsRef = useRef<ComponentRef<typeof TextInput>>(null);
@@ -1012,9 +1013,10 @@ export function SetEditorScreen() {
 												change({
 													...withTypedLoad(
 														row,
-														row.unit === "lbs" ? Math.round(kg * 2.20462) : kg,
+														row.unit === "lbs"
+															? Math.round(convertLoad(kg, "kg", "lbs"))
+															: kg,
 													),
-													kg,
 													reps: row.reps >= 1 ? row.reps : START_REPS,
 													blank: undefined,
 												});
@@ -1144,9 +1146,9 @@ export function SetEditorScreen() {
 											variant="label"
 											style={{ color: colors.textMuted }}
 										>
-											{fmt(text.rpeLeft, {
+											{fmt(text.rpeLeftShort, {
 												count: formatNumber(10 - row.rpe, locale, 1),
-											}).replace(/^ · /, "")}
+											})}
 										</AppText>
 									)}
 								</View>

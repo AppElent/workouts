@@ -2,7 +2,8 @@
  * An empty session starts from what you train most lately (APP-255): one tap
  * adds the exercise with last time's set ready, so ad-hoc logging needs no plan.
  */
-import { primaryMuscleGroup } from "@foundry/core";
+import { convertLoad, primaryMuscleGroup } from "@foundry/core";
+import type { Exercise } from "@foundry/core/exercises";
 import { useMemo } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { api } from "../../../convex/api";
@@ -15,26 +16,58 @@ import { formatSetShort } from "../session-format";
 import { useSessionScreen } from "../session-screen-context";
 
 const QUICK_COUNT = 6;
+const RECENT_SESSIONS = 20;
+
+/** Exercise ids from recent finished sessions, newest first, then from records. */
+export function recentExerciseIds(
+	sessions: readonly {
+		status: string;
+		exercises?: readonly { exerciseId: string }[];
+	}[],
+	records: readonly { exerciseId: string; date: number }[],
+) {
+	const ids: string[] = [];
+	const add = (id: string) => {
+		if (!ids.includes(id)) ids.push(id);
+	};
+	for (const session of sessions)
+		if (session.status === "completed")
+			for (const item of session.exercises ?? []) add(item.exerciseId);
+	for (const record of [...records].sort((a, b) => b.date - a.date))
+		add(record.exerciseId);
+	return ids;
+}
 
 export function SessionQuickStart({ fallback }: { fallback: string }) {
-	const { workspace, actions, openEditor } = useSessionScreen();
-	const { locale, t } = useI18n();
+	const { workspace } = useSessionScreen();
+	const { t } = useI18n();
 	const copy = t.strength.plan.now;
 	const styles = useThemedStyles(createStyles);
+	const sessions = useQuery(api.workoutSessions.listRecent, {
+		limit: RECENT_SESSIONS,
+	});
 	const records = useQuery(api.oneRepMaxes.listCurrentForUser, {});
-	const recent = useMemo(() => {
-		const seen = new Set<string>();
-		return [...(records ?? [])]
-			.sort((a, b) => b.date - a.date)
-			.flatMap((record) => {
-				const id = record.exerciseId as string;
-				const exercise = workspace.catalog.find((item) => item._id === id);
-				if (!exercise || seen.has(id)) return [];
-				seen.add(id);
-				return [exercise];
-			})
-			.slice(0, QUICK_COUNT);
-	}, [records, workspace.catalog]);
+	const recent = useMemo(
+		() =>
+			recentExerciseIds(
+				(sessions ?? []).map((session) => ({
+					status: session.status,
+					exercises: session.exercises?.map((item) => ({
+						exerciseId: item.exerciseId as string,
+					})),
+				})),
+				(records ?? []).map((record) => ({
+					exerciseId: record.exerciseId as string,
+					date: record.date,
+				})),
+			)
+				.flatMap((id) => {
+					const exercise = workspace.catalog.find((item) => item._id === id);
+					return exercise ? [exercise] : [];
+				})
+				.slice(0, QUICK_COUNT),
+		[records, sessions, workspace.catalog],
+	);
 	return (
 		<View style={styles.wrap}>
 			<AppText variant="title" accessibilityRole="header">
@@ -42,46 +75,9 @@ export function SessionQuickStart({ fallback }: { fallback: string }) {
 			</AppText>
 			{recent.length ? (
 				<View style={styles.grid}>
-					{recent.map((exercise) => {
-						const facts = workspace.getFacts(exercise._id);
-						const last = facts.last
-							? fmt(copy.quickLast, {
-									load: formatSetShort(
-										{ kg: facts.last.kg, reps: facts.last.reps, unit: "kg" },
-										facts,
-										locale,
-									),
-								})
-							: copy.quickNew;
-						return (
-							<Pressable
-								key={exercise._id}
-								accessibilityRole="button"
-								accessibilityLabel={`${exercise.name}, ${last}`}
-								disabled={!workspace.online}
-								onPress={() =>
-									void actions.addExercise(
-										exercise._id,
-										openEditor,
-										exercise.name,
-									)
-								}
-								style={({ pressed }) => [
-									styles.tile,
-									(pressed || !workspace.online) && styles.dim,
-								]}
-								testID="session-quick-exercise"
-							>
-								<MuscleIcon group={primaryMuscleGroup(exercise)} size={40} />
-								<AppText variant="row" numberOfLines={2} style={styles.name}>
-									{exercise.name}
-								</AppText>
-								<AppText variant="caption" style={styles.last}>
-									{last}
-								</AppText>
-							</Pressable>
-						);
-					})}
+					{recent.map((exercise) => (
+						<QuickTile key={exercise._id} exercise={exercise} />
+					))}
 				</View>
 			) : (
 				<AppText variant="secondary" style={styles.last}>
@@ -89,6 +85,58 @@ export function SessionQuickStart({ fallback }: { fallback: string }) {
 				</AppText>
 			)}
 		</View>
+	);
+}
+
+function QuickTile({ exercise }: { exercise: Exercise }) {
+	const { workspace, actions, openEditor } = useSessionScreen();
+	const { locale, t } = useI18n();
+	const copy = t.strength.plan.now;
+	const styles = useThemedStyles(createStyles);
+	const sessionId = workspace.session?._id;
+	const lastSet = useQuery(
+		api.sets.getLastForExercise,
+		sessionId
+			? { exerciseId: exercise._id, excludeSessionId: sessionId }
+			: { exerciseId: exercise._id },
+	);
+	const facts = workspace.getFacts(exercise._id);
+	const last = lastSet
+		? fmt(copy.quickLast, {
+				load: formatSetShort(
+					{
+						kg: convertLoad(lastSet.weight, lastSet.unit, "kg"),
+						typedLbs: lastSet.unit === "lbs" ? lastSet.weight : undefined,
+						reps: lastSet.reps,
+						unit: lastSet.unit,
+					},
+					facts,
+					locale,
+				),
+			})
+		: copy.quickNew;
+	return (
+		<Pressable
+			accessibilityRole="button"
+			accessibilityLabel={`${exercise.name}, ${last}`}
+			disabled={!workspace.online}
+			onPress={() =>
+				void actions.addExercise(exercise._id, openEditor, exercise.name)
+			}
+			style={({ pressed }) => [
+				styles.tile,
+				(pressed || !workspace.online) && styles.dim,
+			]}
+			testID="session-quick-exercise"
+		>
+			<MuscleIcon group={primaryMuscleGroup(exercise)} size={40} />
+			<AppText variant="row" numberOfLines={2} style={styles.name}>
+				{exercise.name}
+			</AppText>
+			<AppText variant="caption" style={styles.last}>
+				{last}
+			</AppText>
+		</Pressable>
 	);
 }
 

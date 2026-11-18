@@ -156,6 +156,9 @@ export function NowCard() {
 	/** The row to act on: a draft joins the plan on first touch. */
 	const materialize = () => {
 		if (!now.draft) return row.id;
+		// A second press before the re-render must not add a second set.
+		const open = nextOpenRow(actions.plan());
+		if (open?.exerciseId === row.exerciseId) return open.id;
 		const result = addSet(actions.plan(), row.exerciseId, facts);
 		actions.set(result.plan);
 		return result.rowId;
