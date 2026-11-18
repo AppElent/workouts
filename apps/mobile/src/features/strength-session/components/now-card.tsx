@@ -21,15 +21,14 @@ import { useRestState, useRestTimer } from "../data/rest-timer";
 import { formatNumber, formatSetFull, formatSetShort } from "../session-format";
 import {
 	addSet,
-	addSetTemplate,
 	findRow,
 	groupOfRow,
 	loadStep,
 	nextOpenRow,
 	type PlanSet,
 	REST_STEP_SECONDS,
+	repeatSetOf,
 	rowsOf,
-	runningGroup,
 	type SessionPlan,
 	shownLoad,
 	stepLoad,
@@ -65,15 +64,9 @@ export type NowTarget = NonNullable<ReturnType<typeof nowSet>> & {
 export function nowTarget(plan: SessionPlan): NowTarget | null {
 	const now = nowSet(plan);
 	if (now) return { ...now, draft: false };
-	if (runningGroup(plan)) return null;
-	const entry = plan.order.at(-1);
-	if (entry?.kind !== "exercise") return null;
-	const rows = plan.sets[entry.exerciseId] ?? [];
-	if (!rows.some((row) => row.done) || rows.some((row) => row.plan))
-		return null;
-	const template = addSetTemplate(rows);
-	if (!template) return null;
-	const number = rows.filter((row) => row.kind !== "warmup").length + 1;
+	const repeat = repeatSetOf(plan);
+	if (!repeat) return null;
+	const { template, number } = repeat;
 	return {
 		// Its own id: the template is a logged row that must stay untouched.
 		row: {

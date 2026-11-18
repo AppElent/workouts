@@ -34,6 +34,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { publishableKey } from "../src/auth/config";
 import { AppConvexProvider } from "../src/convex/provider";
+import { useEndActivityWhenSignedOut } from "../src/features/strength-session/data/session-live-activity";
 import { LocaleProvider, useI18n } from "../src/i18n";
 import { configureFeedbackLanguage } from "../src/observability/sentry";
 import { AppearanceProvider, useAppearance, useTokens } from "../src/theme";
@@ -124,6 +125,8 @@ function RootNavigator({ windowReady }: { windowReady: boolean }) {
 		Sentry.setUser(isLoaded && userId ? { id: userId } : null);
 		return () => Sentry.setUser(null);
 	}, [isLoaded, userId]);
+
+	useEndActivityWhenSignedOut(isLoaded, userId);
 
 	useEffect(() => {
 		if (isLoaded && windowReady) {

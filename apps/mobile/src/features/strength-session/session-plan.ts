@@ -770,6 +770,28 @@ export function resetToPlan(row: PlanSet): PlanSet {
 			}
 		: row;
 }
+/**
+ * Once a free exercise (the last in the session, nothing planned) has no open
+ * set left, the set the session offers next: one more like its last work set.
+ * Planned exercises don't get extra sets offered. The row is the template, a
+ * logged row; callers must not change it.
+ */
+export function repeatSetOf(
+	plan: SessionPlan,
+): { template: PlanSet; number: number } | null {
+	if (runningGroup(plan)) return null;
+	const entry = plan.order.at(-1);
+	if (entry?.kind !== "exercise") return null;
+	const rows = plan.sets[entry.exerciseId] ?? [];
+	if (!rows.some((row) => row.done) || rows.some((row) => row.plan))
+		return null;
+	const template = addSetTemplate(rows);
+	if (!template) return null;
+	return {
+		template,
+		number: rows.filter((row) => row.kind !== "warmup").length + 1,
+	};
+}
 /** A new set repeats the last work set, not a trailing warm-up. */
 export function addSetTemplate(rows: PlanSet[]): PlanSet | undefined {
 	return rows.findLast((row) => row.kind !== "warmup") ?? rows.at(-1);

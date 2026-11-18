@@ -204,6 +204,8 @@ export function useSessionActions(workspace: SessionWorkspace) {
 			set(result.plan);
 			const previousRest = rest.current();
 			if (seconds !== null) rest.start(seconds, restBody());
+			// A rest that has run out is done once the next set is logged.
+			else if (previousRest !== null && previousRest <= Date.now()) rest.stop();
 			if (record) haptics.sessionSuccess();
 			else haptics.setLogged();
 			const rm = rowOneRepMax(row, facts);

@@ -480,6 +480,13 @@ export const strengthSessionEn = {
 		lineRestOver: "{time} · rest over",
 		label: "Back to {name}",
 	},
+	liveActivity: {
+		setOf: "Set {index} of {count}",
+		reps: { one: "1 rep", other: "{count} reps" },
+		rest: "Rest",
+		restOver: "Rest over",
+		next: "Next",
+	},
 };
 
 export const strengthSessionNl: typeof strengthSessionEn = {
@@ -964,5 +971,12 @@ export const strengthSessionNl: typeof strengthSessionEn = {
 		lineRest: "{time} · rust {rest}",
 		lineRestOver: "{time} · rust voorbij",
 		label: "Terug naar {name}",
+	},
+	liveActivity: {
+		setOf: "Set {index} van {count}",
+		reps: { one: "1 herhaling", other: "{count} herhalingen" },
+		rest: "Rust",
+		restOver: "Rust voorbij",
+		next: "Hierna",
 	},
 };
