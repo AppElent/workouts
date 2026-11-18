@@ -25,12 +25,14 @@ const mockUser = {
 	update: jest.fn().mockResolvedValue(undefined),
 	delete: jest.fn().mockResolvedValue(undefined),
 	setProfileImage: jest.fn().mockResolvedValue(undefined),
-	updatePassword: jest.fn().mockResolvedValue(undefined),
 };
 jest.mock("@clerk/expo", () => ({
 	useAuth: () => ({ userId: "test-user", sessionId: "s1", isSignedIn: true }),
 	useUser: () => ({ user: mockUser }),
 }));
+
+const mockPush = jest.fn();
+jest.mock("expo-router", () => ({ useRouter: () => ({ push: mockPush }) }));
 
 jest.mock("expo-apple-authentication", () => ({ signInAsync: jest.fn() }));
 jest.mock("expo-constants", () => ({
@@ -111,70 +113,18 @@ it("saves an edited name through Clerk", async () => {
 	expect(await screen.findByText("Name saved.")).toBeTruthy();
 });
 
-describe("changing the password", () => {
-	const fill = async (current: string, next: string) => {
-		await fireEvent.changeText(
-			screen.getByLabelText("Current password"),
-			current,
-		);
-		await fireEvent.changeText(screen.getByLabelText("New password"), next);
+describe("the Change password row", () => {
+	it("opens the Change password screen for an account with a password", async () => {
+		await renderAccount();
 		await fireEvent.press(
 			screen.getByRole("button", { name: "Change password" }),
 		);
-	};
-
-	it("changes it through Clerk, signs out other sessions, and clears the form", async () => {
-		await renderAccount();
-		const button = screen.getByRole("button", { name: "Change password" });
-		expect(button.props.accessibilityState.disabled).toBe(true);
-		expect(screen.getByLabelText("New password").props.textContentType).toBe(
-			"newPassword",
-		);
-		await fill("old-password", "a-new-password");
-		expect(await screen.findByText("Password changed.")).toBeTruthy();
-		expect(mockUser.updatePassword).toHaveBeenCalledWith({
-			currentPassword: "old-password",
-			newPassword: "a-new-password",
-			signOutOfOtherSessions: true,
-		});
-		expect(screen.getByLabelText("Current password").props.value).toBe("");
-		expect(screen.getByLabelText("New password").props.value).toBe("");
-	});
-
-	it("shows a wrong current password on that field and keeps the input", async () => {
-		// Clerk's real response for a wrong current password (dev instance).
-		mockUser.updatePassword.mockRejectedValueOnce({
-			errors: [
-				{
-					code: "form_password_validation_failed",
-					meta: { paramName: "current_password" },
-				},
-			],
-		});
-		await renderAccount();
-		await fill("wrong", "a-new-password");
-		expect(await screen.findByText("That password is not right.")).toBeTruthy();
-		expect(screen.getByLabelText("New password").props.value).toBe(
-			"a-new-password",
-		);
-		expect(screen.queryByText("Password changed.")).toBeNull();
-	});
-
-	it("explains a breached new password", async () => {
-		mockUser.updatePassword.mockRejectedValueOnce({
-			errors: [
-				{ code: "form_password_pwned", meta: { paramName: "new_password" } },
-			],
-		});
-		await renderAccount();
-		await fill("old-password", "password");
-		expect(await screen.findByText(/appeared in a data breach/)).toBeTruthy();
+		expect(mockPush).toHaveBeenCalledWith("/change-password");
 	});
 
 	it("is absent for an account without a password", async () => {
 		mockUser.passwordEnabled = false;
 		await renderAccount();
-		expect(screen.queryByLabelText("Current password")).toBeNull();
 		expect(
 			screen.queryByRole("button", { name: "Change password" }),
 		).toBeNull();

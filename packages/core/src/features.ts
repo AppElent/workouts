@@ -79,7 +79,7 @@ export const FEATURES = defineFeatures([
 		kind: "floor",
 		status: "parity",
 		platforms: ["web", "mobile"],
-		routes: {},
+		routes: { mobile: ["(app)/change-password"] },
 	},
 	{
 		id: "account-profile",

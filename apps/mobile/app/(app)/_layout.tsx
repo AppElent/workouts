@@ -191,6 +191,10 @@ export default function AppLayout() {
 										options={{ title: t.language.title }}
 									/>
 									<Stack.Screen
+										name="change-password"
+										options={{ title: t.account.changePassword }}
+									/>
+									<Stack.Screen
 										name="personal-measures"
 										options={{
 											title: t.nutrition.personalMeasures.title,

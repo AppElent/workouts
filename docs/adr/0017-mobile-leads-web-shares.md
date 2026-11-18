@@ -34,9 +34,11 @@ even though the web does not show them. Foundry does not reduce the floor. The
 gaps open today are `pending-port` entries with follow-up issues:
 
 - Web account deletion: [APP-34](https://linear.app/appelent/issue/APP-34).
-- Mobile password reset and password change: [APP-35](https://linear.app/appelent/issue/APP-35).
 - Web theme choice (the web is dark only): [APP-39](https://linear.app/appelent/issue/APP-39). Closing it as "dark only"
   means reducing the floor in this record first.
+
+Closed since: mobile password reset and password change
+([APP-35](https://linear.app/appelent/issue/APP-35), November 2026) are `parity`.
 
 **Share target.** The Hosted Workout join link `https://foundry.appelent.nl/join/<token>`
 is the share target. People who receive it often do not have the app and open it
