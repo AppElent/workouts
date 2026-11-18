@@ -27,6 +27,10 @@ tap. Study: [profile](../../designs/app/profile_final.html).
   to export first.
   - *Details.* First and last name and the photo are edited through Clerk; email
     addresses and sign-in methods are read-only.
+  - *Password.* Only for accounts with a password: current and new password,
+    changed through Clerk, which signs out the account's other sessions. Clerk's
+    error shows on the field it concerns. Accounts that sign in only with a
+    social provider or an emailed code see no password section.
   - *Export.* An online JSON file of every personal table, shared through the
     system share sheet. Receipts and counters are omitted; Food photo files are
     not included.

@@ -56,23 +56,29 @@ export const FEATURES = defineFeatures([
 		platforms: ["web", "mobile"],
 		routes: {
 			web: ["sign-in", "sign-up", "sso-callback"],
-			mobile: ["(auth)/**"],
+			mobile: [
+				"(auth)/sign-in",
+				"(auth)/sign-in-code",
+				"(auth)/sign-up",
+				"(auth)/verify-email",
+			],
 		},
 	},
 	{
 		id: "password-reset",
 		kind: "floor",
-		status: "pending-port",
-		platforms: ["web"],
-		reason: "Mobile sign-in has no forgot-password flow (APP-35).",
-		routes: { web: ["forgot-password"] },
+		status: "parity",
+		platforms: ["web", "mobile"],
+		routes: {
+			web: ["forgot-password"],
+			mobile: ["(auth)/forgot-password", "(auth)/reset-password"],
+		},
 	},
 	{
 		id: "password-change",
 		kind: "floor",
-		status: "pending-port",
-		platforms: ["web"],
-		reason: "Only the web Account page can change a password (APP-35).",
+		status: "parity",
+		platforms: ["web", "mobile"],
 		routes: {},
 	},
 	{

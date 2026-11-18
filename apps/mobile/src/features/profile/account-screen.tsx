@@ -5,6 +5,7 @@ import * as ImagePicker from "expo-image-picker";
 import * as WebBrowser from "expo-web-browser";
 import { useRef, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { clerkErrorKey } from "../../auth/clerk-errors";
 import { api } from "../../convex/api";
 import { useOnline } from "../../convex/online";
 import { useQuery } from "../../convex/query-cache";
@@ -26,7 +27,7 @@ import { exportAccountData } from "./account-export";
 import { revokeAppleSignIn } from "./apple-revocation";
 
 const PRIVACY_STATEMENT_URL = "https://foundry.appelent.nl/privacy";
-const ACCOUNT_TASKS = ["name", "photo", "export"] as const;
+const ACCOUNT_TASKS = ["name", "photo", "password", "export"] as const;
 type AccountTask = (typeof ACCOUNT_TASKS)[number];
 
 export function AccountScreen() {
@@ -42,6 +43,12 @@ export function AccountScreen() {
 	const blocker = useQuery(api.account.deletionBlocker, {});
 	const [firstName, setFirstName] = useState(user?.firstName ?? "");
 	const [lastName, setLastName] = useState(user?.lastName ?? "");
+	const [currentPassword, setCurrentPassword] = useState("");
+	const [newPassword, setNewPassword] = useState("");
+	const [passwordError, setPasswordError] = useState<{
+		field: "current" | "new";
+		message: string;
+	} | null>(null);
 	const screenWrite = useScreenWrite();
 	const busy =
 		ACCOUNT_TASKS.find((task) => screenWrite.isPending(task)) ?? null;
@@ -82,6 +89,37 @@ export function AccountScreen() {
 				toast.success(c.saved);
 			},
 			c.saveError,
+		);
+
+	/**
+	 * Clerk's error lands on the field it is about: a wrong current password
+	 * on the first, everything else (too short, breached) on the new one.
+	 * Signing out other sessions matches the reset flow.
+	 */
+	const changePassword = () =>
+		run(
+			"password",
+			async () => {
+				setPasswordError(null);
+				try {
+					await user.updatePassword({
+						currentPassword,
+						newPassword,
+						signOutOfOtherSessions: true,
+					});
+				} catch (error) {
+					const key = clerkErrorKey(error);
+					setPasswordError({
+						field: key === "passwordIncorrect" ? "current" : "new",
+						message: t.authErrors[key],
+					});
+					return;
+				}
+				setCurrentPassword("");
+				setNewPassword("");
+				toast.success(c.passwordChanged);
+			},
+			c.passwordError,
 		);
 
 	const changePhoto = () =>
@@ -210,6 +248,42 @@ export function AccountScreen() {
 					</View>
 				) : null}
 			</FormSection>
+
+			{user.passwordEnabled ? (
+				<FormSection title={c.password} footer={c.passwordFooter}>
+					<FormTextField
+						label={c.currentPassword}
+						value={currentPassword}
+						onChangeText={setCurrentPassword}
+						error={
+							passwordError?.field === "current"
+								? passwordError.message
+								: undefined
+						}
+						secureTextEntry
+						autoCapitalize="none"
+						autoComplete="current-password"
+						textContentType="password"
+					/>
+					<FormTextField
+						label={c.newPassword}
+						value={newPassword}
+						onChangeText={setNewPassword}
+						error={
+							passwordError?.field === "new" ? passwordError.message : undefined
+						}
+						secureTextEntry
+						autoCapitalize="none"
+						autoComplete="new-password"
+						textContentType="newPassword"
+					/>
+					<TextAction
+						label={c.changePassword}
+						disabled={!currentPassword || !newPassword || busy !== null}
+						onPress={() => void changePassword()}
+					/>
+				</FormSection>
+			) : null}
 
 			<FormSection
 				title={c.exportTitle}

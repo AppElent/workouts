@@ -17,6 +17,7 @@ import { nutritionEn } from "./nutrition";
 import { preferencesEn } from "./preferences";
 import { profileEn } from "./profile";
 import { progressEn } from "./progress";
+import { resetPasswordEn } from "./reset-password";
 import { routesEn } from "./routes";
 import { signInEn } from "./sign-in";
 import { signUpEn } from "./sign-up";
@@ -52,6 +53,7 @@ export const en = {
 	authErrors: authErrorsEn,
 	signUp: signUpEn,
 	verifyEmail: verifyEmailEn,
+	resetPassword: resetPasswordEn,
 	profile: profileEn,
 	account: accountEn,
 	training: trainingEn,
