@@ -5,9 +5,15 @@
  */
 import { isTimedExercise } from "@foundry/core";
 import { useMemo, useSyncExternalStore } from "react";
-import { useExercises } from "../../../data/exercises";
+import { useExercise } from "../../../data/exercises";
 import { useActiveSession } from "../../../data/session-data";
-import { nextOpenRow, rowsOf, type SessionPlan } from "../session-plan";
+import {
+	nextOpenRow,
+	type PlanSet,
+	repeatSetOf,
+	rowsOf,
+	type SessionPlan,
+} from "../session-plan";
 import { useRestState } from "./rest-timer";
 import { workspaceKey, workspaceStore } from "./session-workspace";
 import { useStrengthSessions } from "./strength-session-context";
@@ -45,18 +51,33 @@ type NextSet = Pick<
 export function nextSetOf(plan: SessionPlan | null): NextSet | null {
 	if (!plan) return null;
 	const row = nextOpenRow(plan);
-	if (!row) return null;
+	if (!row) {
+		// A free exercise offers one more set like its last, as the Now card does.
+		const repeat = repeatSetOf(plan);
+		if (!repeat) return null;
+		return {
+			...loadOf(repeat.template),
+			setIndex: repeat.number,
+			setCount: repeat.number,
+		};
+	}
 	const working = rowsOf(plan, row.exerciseId).filter(
 		(item) => item.kind !== "warmup",
 	);
 	const warmup = row.kind === "warmup";
-	const timed = isTimedExercise(row.exerciseId);
 	return {
-		exerciseId: row.exerciseId,
+		...loadOf(row),
 		setIndex: warmup
 			? null
 			: working.findIndex((item) => item.id === row.id) + 1,
 		setCount: warmup ? null : working.length,
+	};
+}
+
+function loadOf(row: PlanSet) {
+	const timed = isTimedExercise(row.exerciseId);
+	return {
+		exerciseId: row.exerciseId,
 		kg: row.kg,
 		reps: timed ? null : row.reps,
 		durationSeconds: timed ? row.reps : null,
@@ -70,7 +91,6 @@ export function useSessionNow(): SessionNow | null {
 	const { subject } = useStrengthSessions();
 	const active = useActiveSession();
 	const rest = useRestState();
-	const catalog = useExercises();
 	const key = subject && active ? workspaceKey(subject, active._id) : "";
 	const subscribe = useMemo(
 		() =>
@@ -83,9 +103,8 @@ export function useSessionNow(): SessionNow | null {
 		key ? workspaceStore.plan(key) : null,
 	);
 	const next = useMemo(() => nextSetOf(plan), [plan]);
-	const exerciseName = next
-		? (catalog.find((item) => item._id === next.exerciseId)?.name ?? null)
-		: null;
+	// Only the current exercise: the whole catalog pages in otherwise.
+	const exerciseName = useExercise(next?.exerciseId)?.name ?? null;
 	const sessionName = active?.name ?? null;
 	const startedAt = active?.startTime;
 	return useMemo(() => {

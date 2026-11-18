@@ -177,6 +177,31 @@ describe("nextSetOf", () => {
 		plan.sets.squat = [{ ...warmup, kind: "warmup", done: true }, ...working];
 		expect(nextSetOf(plan)).toMatchObject({ setIndex: 1, setCount: 2 });
 	});
+	it("offers one more set like the last once a free exercise is done", () => {
+		const plan = seedPlan(
+			[
+				{
+					exerciseId: "squat",
+					plannedSets: [{ reps: 5, weight: 100, unit: "kg" }],
+				},
+			],
+			[],
+			facts,
+		);
+		plan.sets.squat = (plan.sets.squat ?? []).map((row) => ({
+			...row,
+			plan: undefined,
+			done: true,
+		}));
+		expect(nextSetOf(plan)).toEqual({
+			exerciseId: "squat",
+			setIndex: 2,
+			setCount: 2,
+			kg: 100,
+			reps: 5,
+			durationSeconds: null,
+		});
+	});
 	it("reads a timed hold's reps as seconds", () => {
 		const plan = seedPlan(
 			[
@@ -222,15 +247,36 @@ describe("session Live Activity", () => {
 		expect(live()[0]?.staleDate).toEqual(new Date(T0 + 60_000));
 	});
 
-	it("adopts a running activity after a restart and ends extras", async () => {
+	it("replaces activities it did not start for this session", async () => {
 		fake.activities.push(
 			{ id: "old-1", props: props(), ended: false },
 			{ id: "old-2", props: props(), ended: false },
 		);
 		showSessionActivity(props({ exerciseName: "Squat" }));
 		await flush();
-		expect(live().map((item) => item.id)).toEqual(["old-1"]);
+		expect(live()).toHaveLength(1);
+		expect(live()[0]?.id).not.toMatch(/^old-/);
 		expect(live()[0]?.props.exercise).toBe("Squat");
+	});
+
+	it("gives a session that directly follows another its own activity", async () => {
+		showSessionActivity(props());
+		await flush();
+		const [first] = live();
+		showSessionActivity(props({ sessionName: "Leg day", startedAt: T0 + 1 }));
+		await flush();
+		expect(first?.ended).toBe(true);
+		expect(live()).toHaveLength(1);
+		expect(live()[0]?.props.title).toBe("Leg day");
+	});
+
+	it("updates its own activity in place", async () => {
+		showSessionActivity(props());
+		await flush();
+		const [first] = live();
+		showSessionActivity(props({ setIndex: 4 }));
+		await flush();
+		expect(live()).toEqual([first]);
 	});
 
 	it("does nothing when Live Activities are turned off", async () => {

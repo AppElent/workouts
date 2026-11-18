@@ -1,8 +1,9 @@
 /**
- * The strength session's Live Activity on iOS. One activity at a time: a
- * running one (from before a restart) is adopted, extras are ended. When the
- * user turned Live Activities off, `start` throws and the session carries on
- * without one.
+ * The strength session's Live Activity on iOS. One activity at a time, owned
+ * by one session (its start time): an activity this run did not start for the
+ * current session, such as one left from before a restart or from a session
+ * finished on another device, is ended and replaced. When the user turned
+ * Live Activities off, `start` throws and the session carries on without one.
  *
  * Every change runs one at a time against the latest wanted state, so an end
  * finishes before a new activity starts and a later change never lands first.
@@ -22,6 +23,8 @@ type Activity = LiveActivity<LiveActivityProps>;
 const NAME = "StrengthSession";
 let factory: LiveActivityFactory<LiveActivityProps> | null = null;
 let currentId: string | null = null;
+/** The `startedAt` of the session the current activity shows. */
+let currentSession: number | null = null;
 let sentKey = "";
 
 // Created on first use: creating it writes the layout to the app group.
@@ -50,38 +53,44 @@ async function end(activity: Activity) {
 	}
 }
 
+function forget() {
+	currentId = null;
+	currentSession = null;
+	sentKey = "";
+}
+
 /** Brings the system's activities in line with `props`; null ends them all. */
 async function sync(props: LiveActivityProps | null) {
 	try {
 		const instances = getFactory().getInstances();
-		const keep = props
-			? (instances.find((item) => item.getId() === currentId) ?? instances[0])
-			: undefined;
-		const extras = instances.filter((item) => item !== keep);
+		const owned =
+			props && currentSession === props.startedAt
+				? instances.find((item) => item.getId() === currentId)
+				: undefined;
+		// iOS starts activities only from the foreground; becoming active
+		// retries. Until then a replaced activity stays as it is, rather than
+		// leaving the Lock Screen empty after a background launch.
+		if (props && !owned && AppState.currentState !== "active") return;
+		const extras = instances.filter((item) => item !== owned);
 		if (extras.length) await Promise.all(extras.map(end));
 		if (!props) {
-			currentId = null;
-			sentKey = "";
+			forget();
 			return;
 		}
 		const key = contentKey(props);
-		if (!keep) {
-			// iOS starts activities only from the foreground; becoming active retries.
-			if (AppState.currentState !== "active") return;
+		if (!owned) {
 			currentId = getFactory()
 				.start(props, undefined, staleDateOf(props))
 				.getId();
+			currentSession = props.startedAt;
 			sentKey = key;
 			return;
 		}
-		if (keep.getId() !== currentId) sentKey = "";
-		currentId = keep.getId();
 		if (key === sentKey) return;
-		await keep.update(props, staleDateOf(props));
+		await owned.update(props, staleDateOf(props));
 		sentKey = key;
 	} catch (error) {
-		currentId = null;
-		sentKey = "";
+		forget();
 		if (!isUnsupported(error) && !isGone(error))
 			reportError(error, "live-activity.show");
 	}
