@@ -492,7 +492,10 @@ jest.mock("expo-widgets", () => {
 		__liveActivities: state,
 		createLiveActivity: jest.fn(() => ({
 			start: jest.fn((props: unknown, _url?: string, staleDate?: Date) => {
-				if (!state.enabled) throw new Error("Live Activities are disabled");
+				if (!state.enabled)
+					throw Object.assign(new Error("Live Activities are disabled"), {
+						code: "ERR_LIVE_ACTIVITIES_NOT_SUPPORTED",
+					});
 				state.next += 1;
 				const fake = { id: `la-${state.next}`, props, staleDate, ended: false };
 				state.activities.push(fake);

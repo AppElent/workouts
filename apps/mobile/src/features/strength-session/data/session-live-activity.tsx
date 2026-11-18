@@ -22,11 +22,9 @@ export function SessionLiveActivity() {
 		// Keep whatever runs while the session is still loading (or offline).
 		if (loading) return;
 		if (!now) endSessionActivity();
-		else {
-			// A finished rest clears the countdown; until then the system timer runs it.
-			const shown = over ? { ...now, restEndsAt: null } : now;
-			showSessionActivity(liveActivityProps(shown, copy, locale));
-		}
+		else showSessionActivity(liveActivityProps(now, copy, locale, over));
 	}, [loading, now, over, copy, locale]);
+	// Unmounts only when the account changes: a signed-out phone shows no session.
+	useEffect(() => endSessionActivity, []);
 	return null;
 }

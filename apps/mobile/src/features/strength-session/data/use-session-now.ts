@@ -26,7 +26,7 @@ export interface SessionNow {
 	reps: number | null;
 	/** Planned seconds on a timed hold; null otherwise. */
 	durationSeconds: number | null;
-	/** Epoch ms the rest countdown ends at; null while not resting. */
+	/** Epoch ms the rest countdown ends at; null while not resting, and once it has run out. */
 	restEndsAt: number | null;
 	/** Epoch ms the session started. */
 	startedAt: number;
@@ -89,8 +89,8 @@ export function useSessionNow(): SessionNow | null {
 			kg: next?.kg ?? null,
 			reps: next?.reps ?? null,
 			durationSeconds: next?.durationSeconds ?? null,
-			restEndsAt: rest.endsAt,
+			restEndsAt: rest.over ? null : rest.endsAt,
 			startedAt,
 		};
-	}, [sessionName, exerciseName, next, rest.endsAt, startedAt]);
+	}, [sessionName, exerciseName, next, rest.endsAt, rest.over, startedAt]);
 }

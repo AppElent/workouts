@@ -6,7 +6,8 @@
  * over anything in this module: copy and colours arrive formatted in props
  * (see `live-activity-props.ts`). Both clocks are system timer texts, so they
  * keep counting while the app is suspended; `isStale` turns true at the end of
- * the rest (the app passes it as the stale date) and swaps in "Rest over".
+ * the rest (the app passes it as the stale date) and swaps in "Rest over";
+ * `restOver` keeps it there once the app has seen the rest run out.
  */
 import { HStack, Image, Spacer, Text, VStack } from "@expo/ui/swift-ui";
 import {
@@ -27,8 +28,11 @@ export const sessionLiveActivityLayout: LiveActivityComponent<
 > = (props, environment) => {
 	"widget";
 	const scheme = props.colors;
+	// The app says so while it runs; the stale date says so while it is suspended.
 	const resting = props.restEndsAt !== null && !environment.isStale;
-	const restOver = props.restEndsAt !== null && environment.isStale === true;
+	const restOver =
+		props.restOver ||
+		(props.restEndsAt !== null && environment.isStale === true);
 	const elapsedFrom = new Date(props.startedAt);
 	const restRange =
 		props.restEndsAt !== null

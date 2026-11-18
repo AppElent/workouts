@@ -9,6 +9,7 @@ import {
 	type LiveActivity,
 	type LiveActivityFactory,
 } from "expo-widgets";
+import { reportError } from "../../../observability/errors";
 import { sessionLiveActivityLayout } from "./live-activity-layout";
 import { contentKey, type LiveActivityProps } from "./live-activity-props";
 
@@ -24,6 +25,17 @@ function getFactory() {
 }
 const ignore = () => undefined;
 
+/** Updates and ends run one at a time, so a later change never lands first. */
+let queue: Promise<unknown> = Promise.resolve();
+const enqueue = (task: () => Promise<unknown>) => {
+	queue = queue.then(task).catch(ignore);
+};
+
+/** Off in Settings, or no Live Activities on this device: carry on without one. */
+const isUnsupported = (error: unknown) =>
+	(error as { code?: string } | null)?.code ===
+	"ERR_LIVE_ACTIVITIES_NOT_SUPPORTED";
+
 /** The rest's end makes the content stale, which the layout reads as "Rest over". */
 const staleDateOf = (props: LiveActivityProps) =>
 	props.restEndsAt === null ? undefined : new Date(props.restEndsAt);
@@ -36,7 +48,7 @@ export function showSessionActivity(props: LiveActivityProps): void {
 			instances[0];
 		for (const extra of instances)
 			if (extra.getId() !== keep?.getId())
-				void extra.end("immediate").catch(ignore);
+				enqueue(() => extra.end("immediate"));
 		const key = contentKey(props);
 		if (!keep) {
 			current = getFactory().start(props, undefined, staleDateOf(props));
@@ -48,15 +60,17 @@ export function showSessionActivity(props: LiveActivityProps): void {
 		if (key === sentKey) return;
 		sentKey = key;
 		const id = keep.getId();
-		void keep.update(props, staleDateOf(props)).catch(() => {
-			// Gone underneath us (the user dismissed it): start fresh next time.
-			if (current?.getId() === id) current = null;
-			sentKey = "";
-		});
-	} catch {
-		// Live Activities are off, or not supported on this device.
+		enqueue(() =>
+			keep.update(props, staleDateOf(props)).catch(() => {
+				// Gone underneath us (the user dismissed it): start fresh next time.
+				if (current?.getId() === id) current = null;
+				sentKey = "";
+			}),
+		);
+	} catch (error) {
 		current = null;
 		sentKey = "";
+		if (!isUnsupported(error)) reportError(error, "live-activity.show");
 	}
 }
 
@@ -65,8 +79,8 @@ export function endSessionActivity(): void {
 	sentKey = "";
 	try {
 		for (const instance of getFactory().getInstances())
-			void instance.end("immediate").catch(ignore);
-	} catch {
-		// Nothing to end.
+			enqueue(() => instance.end("immediate"));
+	} catch (error) {
+		if (!isUnsupported(error)) reportError(error, "live-activity.end");
 	}
 }

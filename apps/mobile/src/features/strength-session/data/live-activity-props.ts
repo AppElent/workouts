@@ -13,13 +13,15 @@ export interface LiveActivityProps {
 	exercise: string | null;
 	/** "Set 3 of 4". */
 	setLine: string | null;
-	/** "80 kg × 8", "+10 kg × 12", "45 s". */
+	/** "80 kg × 8", "8 reps", "45 s", "10 kg × 45 s". */
 	loadLine: string | null;
 	startedAt: number;
 	/** Null when not resting, or once the rest has ended. */
 	restEndsAt: number | null;
 	/** When this rest was last sent; the countdown's lower bound. */
 	restFrom: number;
+	/** The rest ran out and no set has been logged since. */
+	restOver: boolean;
 	labels: { rest: string; restOver: string; next: string };
 	colors: { bg: string; accent: string; text: string; muted: string };
 }
@@ -57,9 +59,11 @@ export function liveActivityProps(
 	now: SessionNow,
 	copy: LiveActivityCopy,
 	locale: Locale,
+	restOver = false,
 	at = Date.now(),
 ): LiveActivityProps {
 	const resting = now.restEndsAt !== null && now.restEndsAt > at;
+	const ranOut = now.restEndsAt !== null && !resting;
 	return {
 		title: now.sessionName ?? copy.freeSession,
 		exercise: now.exerciseName,
@@ -71,6 +75,7 @@ export function liveActivityProps(
 		startedAt: now.startedAt,
 		restEndsAt: resting ? now.restEndsAt : null,
 		restFrom: at,
+		restOver: restOver || ranOut,
 		labels: { rest: copy.rest, restOver: copy.restOver, next: copy.next },
 		colors: COLORS,
 	};

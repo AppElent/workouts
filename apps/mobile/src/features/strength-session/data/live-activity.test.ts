@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/react-native";
 import { DICTIONARIES } from "../../../i18n/dictionaries";
 import { type ExerciseFacts, seedPlan } from "../session-plan";
 import { endSessionActivity, showSessionActivity } from "./live-activity.ios";
@@ -40,7 +41,7 @@ const lifting: SessionNow = {
 
 describe("Live Activity props", () => {
 	it("reads a lifting set as exercise, set n of m and load × reps", () => {
-		const props = liveActivityProps(lifting, en, "en", T0);
+		const props = liveActivityProps(lifting, en, "en", false, T0);
 		expect(props).toMatchObject({
 			title: "Push day",
 			exercise: "Bench press",
@@ -53,27 +54,32 @@ describe("Live Activity props", () => {
 
 	it("keeps the rest end while resting and drops it once the rest is over", () => {
 		const resting = { ...lifting, restEndsAt: T0 + 90_000 };
-		expect(liveActivityProps(resting, en, "en", T0).restEndsAt).toBe(
+		expect(liveActivityProps(resting, en, "en", false, T0).restEndsAt).toBe(
 			T0 + 90_000,
 		);
 		expect(
-			liveActivityProps(resting, en, "en", T0 + 90_001).restEndsAt,
-		).toBeNull();
+			liveActivityProps(resting, en, "en", false, T0 + 90_001),
+		).toMatchObject({ restEndsAt: null, restOver: true });
+		// Once the app has seen it run out, it says so until the next set.
+		expect(liveActivityProps(lifting, en, "en", true, T0).restOver).toBe(true);
+		expect(liveActivityProps(lifting, en, "en", false, T0).restOver).toBe(
+			false,
+		);
 	});
 
 	it("shows seconds for a hold, reps on bodyweight, and Dutch copy", () => {
 		const hold = { ...lifting, kg: 0, reps: null, durationSeconds: 45 };
-		expect(liveActivityProps(hold, en, "en", T0).loadLine).toBe("45 s");
-		expect(liveActivityProps({ ...hold, kg: 10 }, en, "en", T0).loadLine).toBe(
-			"10 kg × 45 s",
-		);
+		expect(liveActivityProps(hold, en, "en", false, T0).loadLine).toBe("45 s");
+		expect(
+			liveActivityProps({ ...hold, kg: 10 }, en, "en", false, T0).loadLine,
+		).toBe("10 kg × 45 s");
 		const pullup = { ...lifting, kg: 0, reps: 8 };
-		expect(liveActivityProps(pullup, nl, "nl", T0)).toMatchObject({
+		expect(liveActivityProps(pullup, nl, "nl", false, T0)).toMatchObject({
 			loadLine: "8 herhalingen",
 			setLine: "Set 3 van 4",
 		});
 		expect(
-			liveActivityProps({ ...lifting, kg: 82.5 }, nl, "nl", T0).loadLine,
+			liveActivityProps({ ...lifting, kg: 82.5 }, nl, "nl", false, T0).loadLine,
 		).toBe("82,5 kg × 8");
 	});
 
@@ -87,7 +93,7 @@ describe("Live Activity props", () => {
 			kg: null,
 			reps: null,
 		};
-		expect(liveActivityProps(free, en, "en", T0)).toMatchObject({
+		expect(liveActivityProps(free, en, "en", false, T0)).toMatchObject({
 			title: "Free session",
 			exercise: null,
 			setLine: null,
@@ -161,9 +167,10 @@ describe("session Live Activity", () => {
 		endSessionActivity();
 		fake.activities.length = 0;
 		fake.enabled = true;
+		jest.mocked(Sentry.captureException).mockClear();
 	});
 	const props = (over: Partial<SessionNow> = {}) =>
-		liveActivityProps({ ...lifting, ...over }, en, "en", T0);
+		liveActivityProps({ ...lifting, ...over }, en, "en", false, T0);
 
 	it("starts one activity, updates it, and ends it", async () => {
 		showSessionActivity(props());
@@ -197,11 +204,21 @@ describe("session Live Activity", () => {
 		fake.enabled = false;
 		expect(() => showSessionActivity(props())).not.toThrow();
 		expect(live()).toHaveLength(0);
+		expect(Sentry.captureException).not.toHaveBeenCalled();
+	});
+
+	it("applies quick changes in order", async () => {
+		showSessionActivity(props());
+		await flush();
+		showSessionActivity(props({ setIndex: 2 }));
+		showSessionActivity(props({ setIndex: 3 }));
+		await flush();
+		expect(live()[0]?.props.setLine).toBe("Set 3 of 4");
 	});
 
 	it("ignores the send time when deciding whether anything changed", () => {
-		const a = liveActivityProps(lifting, en, "en", T0);
-		const b = liveActivityProps(lifting, en, "en", T0 + 5_000);
+		const a = liveActivityProps(lifting, en, "en", false, T0);
+		const b = liveActivityProps(lifting, en, "en", false, T0 + 5_000);
 		expect(contentKey(a)).toBe(contentKey(b));
 	});
 });
