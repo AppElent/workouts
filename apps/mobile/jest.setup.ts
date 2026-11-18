@@ -466,6 +466,18 @@ jest.mock("@expo/ui/swift-ui/modifiers", () => {
 	return modifier("");
 });
 
+// React Native's mock makes `currentState` a function; the app reads the
+// string, and a Live Activity starts only while it is "active".
+Object.defineProperty(
+	jest.requireActual("react-native").AppState,
+	"currentState",
+	{
+		value: "active",
+		configurable: true,
+		writable: true,
+	},
+);
+
 // Live Activities are native-only. The fake keeps the running activities in
 // memory so tests can assert on starts, updates and ends.
 jest.mock("expo-widgets", () => {
@@ -480,10 +492,13 @@ jest.mock("expo-widgets", () => {
 		next: 0,
 		/** Set to hold every end() open until it resolves. */
 		endGate: null as Promise<void> | null,
+		/** Set to hold every update() open until it resolves. */
+		updateGate: null as Promise<void> | null,
 	};
 	const wrap = (fake: (typeof state.activities)[number]) => ({
 		getId: () => fake.id,
 		update: jest.fn(async (props: unknown, staleDate?: Date) => {
+			await state.updateGate;
 			if (fake.ended)
 				throw Object.assign(new Error("Live Activity not found"), {
 					code: "ERR_LIVE_ACTIVITY_NOT_FOUND",

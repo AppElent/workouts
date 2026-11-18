@@ -34,6 +34,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { publishableKey } from "../src/auth/config";
 import { AppConvexProvider } from "../src/convex/provider";
+import { endSessionActivity } from "../src/features/strength-session/data/live-activity";
 import { LocaleProvider, useI18n } from "../src/i18n";
 import { configureFeedbackLanguage } from "../src/observability/sentry";
 import { AppearanceProvider, useAppearance, useTokens } from "../src/theme";
@@ -123,6 +124,12 @@ function RootNavigator({ windowReady }: { windowReady: boolean }) {
 	useEffect(() => {
 		Sentry.setUser(isLoaded && userId ? { id: userId } : null);
 		return () => Sentry.setUser(null);
+	}, [isLoaded, userId]);
+
+	// A Live Activity can outlive the app; once Clerk says nobody is signed in,
+	// none may keep showing the last user's workout.
+	useEffect(() => {
+		if (isLoaded && !userId) endSessionActivity();
 	}, [isLoaded, userId]);
 
 	useEffect(() => {

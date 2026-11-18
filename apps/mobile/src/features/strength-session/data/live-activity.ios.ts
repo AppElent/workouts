@@ -67,8 +67,7 @@ async function sync(props: LiveActivityProps | null) {
 		const key = contentKey(props);
 		if (!keep) {
 			// iOS starts activities only from the foreground; becoming active retries.
-			const state = AppState.currentState;
-			if (state === "background" || state === "inactive") return;
+			if (AppState.currentState !== "active") return;
 			currentId = getFactory()
 				.start(props, undefined, staleDateOf(props))
 				.getId();
@@ -90,18 +89,26 @@ async function sync(props: LiveActivityProps | null) {
 
 /** Undefined: nothing waiting. */
 let wanted: LiveActivityProps | null | undefined;
+/** An end asked for since the last drain; a later show must not replace it. */
+let endWanted = false;
 let draining = false;
 async function drain() {
 	draining = true;
-	while (wanted !== undefined) {
+	while (endWanted || wanted !== undefined) {
+		if (endWanted) {
+			endWanted = false;
+			await sync(null);
+			continue;
+		}
 		const next = wanted;
 		wanted = undefined;
-		await sync(next);
+		if (next !== undefined) await sync(next);
 	}
 	draining = false;
 }
 function request(next: LiveActivityProps | null) {
-	wanted = next;
+	if (next === null) endWanted = true;
+	wanted = next ?? undefined;
 	if (!draining) void drain();
 }
 

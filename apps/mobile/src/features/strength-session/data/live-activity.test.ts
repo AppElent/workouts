@@ -19,6 +19,7 @@ type FakeState = {
 	}[];
 	enabled: boolean;
 	endGate: Promise<void> | null;
+	updateGate: Promise<void> | null;
 };
 const fake = (
 	jest.requireMock("expo-widgets") as { __liveActivities: FakeState }
@@ -198,6 +199,7 @@ describe("session Live Activity", () => {
 		fake.activities.length = 0;
 		fake.enabled = true;
 		fake.endGate = null;
+		fake.updateGate = null;
 		jest.mocked(Sentry.captureException).mockClear();
 	});
 	const props = (over: Partial<SessionNow> = {}) =>
@@ -231,9 +233,10 @@ describe("session Live Activity", () => {
 		expect(live()[0]?.props.exercise).toBe("Squat");
 	});
 
-	it("does nothing when Live Activities are turned off", () => {
+	it("does nothing when Live Activities are turned off", async () => {
 		fake.enabled = false;
 		expect(() => showSessionActivity(props())).not.toThrow();
+		await flush();
 		expect(live()).toHaveLength(0);
 		expect(Sentry.captureException).not.toHaveBeenCalled();
 	});
@@ -268,26 +271,48 @@ describe("session Live Activity", () => {
 		expect(live()).toHaveLength(1);
 	});
 
-	it("starts only in the foreground, and retries once active", async () => {
-		// The jest mock has a function here; the native AppState has a string.
-		const original = Object.getOwnPropertyDescriptor(AppState, "currentState");
-		const setState = (value: string) =>
+	it("starts only while the app is active, and retries once it is", async () => {
+		const setState = (value: string | null) =>
 			Object.defineProperty(AppState, "currentState", {
 				value,
 				configurable: true,
+				writable: true,
 			});
 		try {
-			setState("background");
-			showSessionActivity(props());
-			await flush();
-			expect(live()).toHaveLength(0);
+			for (const state of ["background", "inactive", "unknown", null]) {
+				setState(state);
+				showSessionActivity(props());
+				await flush();
+				expect(live()).toHaveLength(0);
+			}
 			setState("active");
 			showSessionActivity(props());
 			await flush();
 			expect(live()).toHaveLength(1);
 		} finally {
-			if (original) Object.defineProperty(AppState, "currentState", original);
+			setState("active");
 		}
+	});
+
+	it("keeps an end asked for while an update is still running", async () => {
+		showSessionActivity(props());
+		await flush();
+		const [first] = live();
+		let release: () => void = () => undefined;
+		fake.updateGate = new Promise<void>((resolve) => {
+			release = resolve;
+		});
+		showSessionActivity(props({ setIndex: 2 }));
+		await flush();
+		endSessionActivity();
+		showSessionActivity(props({ exerciseName: "Squat" }));
+		release();
+		await flush();
+		fake.updateGate = null;
+		expect(first?.ended).toBe(true);
+		expect(live()).toHaveLength(1);
+		expect(live()[0]?.id).not.toBe(first?.id);
+		expect(live()[0]?.props.exercise).toBe("Squat");
 	});
 
 	it("applies quick changes in order", async () => {
