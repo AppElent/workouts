@@ -55,12 +55,15 @@ export type RestTimerApi = {
 };
 type RestState = {
 	running: boolean;
+	/** Epoch ms the countdown ends at; null when no rest runs. */
+	endsAt: number | null;
 	remaining: number;
 	over: boolean;
 };
 const RestApiContext = createContext<RestTimerApi | null>(null);
 const RestStateContext = createContext<RestState>({
 	running: false,
+	endsAt: null,
 	remaining: 0,
 	over: false,
 });
@@ -148,8 +151,8 @@ export function RestTimerProvider({
 		};
 	}, [copy, subject]);
 	const state = useMemo(
-		() => ({ running, remaining, over }),
-		[running, remaining, over],
+		() => ({ running, endsAt: stored.endsAt, remaining, over }),
+		[running, stored.endsAt, remaining, over],
 	);
 	return (
 		<RestApiContext.Provider value={api}>

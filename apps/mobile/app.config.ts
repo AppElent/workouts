@@ -68,11 +68,20 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 		scheme,
 		icon: `./assets/icon${icon}.png`,
 		backgroundColor: lightColors.bg,
-		plugins: config.plugins?.map((plugin) =>
-			typeof plugin === "string" && plugin in PLUGIN_OPTIONS
+		plugins: config.plugins?.map((plugin) => {
+			// The Live Activity extension and its app group follow the variant's ID.
+			if (plugin === "expo-widgets")
+				return [
+					plugin,
+					{
+						bundleIdentifier: `${id}.ExpoWidgetsTarget`,
+						groupIdentifier: `group.${id}`,
+					},
+				];
+			return typeof plugin === "string" && plugin in PLUGIN_OPTIONS
 				? [plugin, PLUGIN_OPTIONS[plugin]]
-				: plugin,
-		),
+				: plugin;
+		}),
 		ios: { ...config.ios, bundleIdentifier: id },
 		android: {
 			...config.android,

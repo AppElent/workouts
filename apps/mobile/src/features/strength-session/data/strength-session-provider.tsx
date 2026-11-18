@@ -6,6 +6,7 @@ import { useAuth } from "@clerk/expo";
 import { type ReactNode, useMemo, useRef, useState } from "react";
 import type { Id } from "../../../convex/api";
 import { RestTimerProvider } from "./rest-timer";
+import { SessionLiveActivity } from "./session-live-activity";
 import { SessionSync } from "./session-sync";
 import {
 	StrengthSessionContext,
@@ -64,6 +65,7 @@ function AccountSessions({
 		<StrengthSessionContext.Provider value={value}>
 			<RestTimerProvider subject={subject}>
 				{children}
+				{subject ? <SessionLiveActivity /> : null}
 				{subject
 					? [...open.keys()].map((sessionId) => (
 							<SessionSync

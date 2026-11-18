@@ -464,6 +464,47 @@ jest.mock("@expo/ui/swift-ui/modifiers", () => {
 	return modifier("");
 });
 
+// Live Activities are native-only. The fake keeps the running activities in
+// memory so tests can assert on starts, updates and ends.
+jest.mock("expo-widgets", () => {
+	const state = {
+		activities: [] as {
+			id: string;
+			props: unknown;
+			staleDate?: Date;
+			ended: boolean;
+		}[],
+		enabled: true,
+		next: 0,
+	};
+	const wrap = (fake: (typeof state.activities)[number]) => ({
+		getId: () => fake.id,
+		update: jest.fn(async (props: unknown, staleDate?: Date) => {
+			if (fake.ended) throw new Error("Live Activity not found");
+			fake.props = props;
+			fake.staleDate = staleDate;
+		}),
+		end: jest.fn(async () => {
+			fake.ended = true;
+		}),
+	});
+	return {
+		__liveActivities: state,
+		createLiveActivity: jest.fn(() => ({
+			start: jest.fn((props: unknown, _url?: string, staleDate?: Date) => {
+				if (!state.enabled) throw new Error("Live Activities are disabled");
+				state.next += 1;
+				const fake = { id: `la-${state.next}`, props, staleDate, ended: false };
+				state.activities.push(fake);
+				return wrap(fake);
+			}),
+			getInstances: jest.fn(() =>
+				state.activities.filter((item) => !item.ended).map(wrap),
+			),
+		})),
+	};
+});
+
 // UIKit's menu host is absent in Jest. Keep Expo's real Link, routing and menu
 // declarations; drive only the native presentation/selection boundary here.
 jest.mock("expo-router/build/link/preview/native", () => {
