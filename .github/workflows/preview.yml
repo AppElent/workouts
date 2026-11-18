@@ -43,7 +43,7 @@ jobs:
       # clears the production routes, so a preview never claims the domain.
       CLOUDFLARE_ENV: pr
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: ./.github/actions/setup
 
@@ -80,7 +80,7 @@ jobs:
           fi
 
       - name: Upsert PR comment
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         env:
           URL: ${{ steps.deploy.outputs.url }}
           PR: ${{ github.event.pull_request.number }}
@@ -213,7 +213,7 @@ jobs:
           echo "::error::Convex preview $PREVIEW is still listed after delete: $LEFT"
           exit 1
       # The Worker is deleted even when the Convex step failed.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         if: ${{ !cancelled() }}
       - uses: ./.github/actions/setup
         if: ${{ !cancelled() }}
