@@ -1,8 +1,9 @@
 import { SymbolView } from "expo-symbols";
 import { useState } from "react";
-import { Modal, Pressable, View } from "react-native";
+import { Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTokens } from "../../../../theme";
+import { Modal } from "../../../../ui/modal";
 import { DiaryCalendar } from "./diary-calendar";
 export interface DiaryDatePickerProps {
 	date: string;

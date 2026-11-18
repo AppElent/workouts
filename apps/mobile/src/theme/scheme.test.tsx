@@ -58,8 +58,8 @@ describe("scheme plumbing follows the device by default", () => {
 	it("SportIcon draws the darkened hue on the light scheme", async () => {
 		scheme.mockReturnValue("light");
 		await render(<SportIcon sport="running" />);
-		const glyph = screen.getByText(sportMeta.running.glyph);
-		const color = ReactNative.StyleSheet.flatten(glyph.props.style).color;
+		const symbol = screen.getByTestId("sport-icon-symbol");
+		const color = symbol.props.tintColor;
 		expect(color).toBe(lightSportMeta.running.color);
 		expect(color).not.toBe(sportMeta.running.color);
 	});

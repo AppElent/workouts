@@ -1,14 +1,7 @@
 /** Choosing an exercise mid-session: add it, swap to it, or put it in a group. */
 import type { Exercise } from "@foundry/core/exercises";
 import { useMemo, useState } from "react";
-import {
-	FlatList,
-	Modal,
-	Pressable,
-	StyleSheet,
-	TextInput,
-	View,
-} from "react-native";
+import { FlatList, Pressable, StyleSheet, TextInput, View } from "react-native";
 import { api } from "../../../convex/api";
 import { useQuery } from "../../../convex/query-cache";
 import {
@@ -24,6 +17,7 @@ import {
 	useThemedStyles,
 	useTokens,
 } from "../../../theme";
+import { Modal } from "../../../ui/modal";
 import { AppText } from "../../../ui/text";
 import { formatNumber } from "../session-format";
 

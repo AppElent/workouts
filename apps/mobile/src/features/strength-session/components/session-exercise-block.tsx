@@ -1,5 +1,7 @@
 /** An exercise on its own: name, references, its menu, and the set table. */
-import { useMemo } from "react";
+import { useRouter } from "expo-router";
+import { SymbolView } from "expo-symbols";
+import { useMemo, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { fmt, plural, useI18n } from "../../../i18n";
 import {
@@ -12,7 +14,7 @@ import {
 import { SelectionMenu } from "../../../ui/selection-menu";
 import { AppText } from "../../../ui/text";
 import { useChoice } from "../../../ui/use-choice";
-import { formatNumber, formatSetShort } from "../session-format";
+import { formatNumber, formatSetFull, formatSetShort } from "../session-format";
 import {
 	addSet,
 	addSetTemplate,
@@ -252,50 +254,195 @@ function useExerciseMenu(exerciseId: string) {
 		rowsOf(plan, id).find((row) => !row.done)?.id;
 	return { groups, onSelect };
 }
-export function SessionExerciseBlock({ exerciseId }: { exerciseId: string }) {
-	const { actions, openEditor, openManual, plan, workspace } =
-		useSessionScreen();
+/** Done, in progress, or its place in the order: never a letter tile. */
+function StatusTile({
+	state,
+	number,
+}: {
+	state: "done" | "current" | "open";
+	number: number;
+}) {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
+	if (state === "done")
+		return (
+			<View style={[styles.tile, { backgroundColor: colors.accentDim }]}>
+				<SymbolView
+					name="checkmark"
+					size={17}
+					weight="bold"
+					tintColor={colors.accentInk}
+					fallback={
+						<AppText variant="label" style={{ color: colors.accentInk }}>
+							✓
+						</AppText>
+					}
+				/>
+			</View>
+		);
+	if (state === "current")
+		return (
+			<View style={[styles.tile, { backgroundColor: colors.accentFill }]}>
+				<SymbolView
+					name="dumbbell.fill"
+					size={18}
+					weight="semibold"
+					tintColor={colors.onAccent}
+					fallback={
+						<AppText variant="label" style={{ color: colors.onAccent }}>
+							{String(number)}
+						</AppText>
+					}
+				/>
+			</View>
+		);
+	return (
+		<View style={[styles.tile, styles.tileOpen]}>
+			<AppText variant="label" style={{ color: colors.textMuted }}>
+				{String(number)}
+			</AppText>
+		</View>
+	);
+}
+
+/** A finished exercise folds to one line until it is tapped open. */
+function DoneSummary({
+	exerciseId,
+	number,
+	onOpen,
+}: {
+	exerciseId: string;
+	number: number;
+	onOpen: () => void;
+}) {
+	const { plan, workspace } = useSessionScreen();
 	const { locale, t } = useI18n();
 	const copy = t.strength.plan;
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
+	const facts = workspace.getFacts(exerciseId);
+	const rows = (plan.sets[exerciseId] ?? []).filter(
+		(row) => row.kind !== "warmup",
+	);
+	const top = [...rows].sort((a, b) => b.kg - a.kg || b.reps - a.reps)[0];
+	const today = bestToday(plan, exerciseId, facts);
+	const record =
+		(today.measured !== null &&
+			(facts.measured === null || today.measured > facts.measured)) ||
+		(today.estimated !== null &&
+			facts.estimated !== null &&
+			Math.round(today.estimated) > Math.round(facts.estimated));
+	const name = workspace.nameOf(exerciseId);
+	const line = top
+		? fmt(copy.now.doneLine, {
+				sets: plural(locale, rows.length, copy.finish.rowSets),
+				load: formatSetFull(top, facts, locale),
+			})
+		: plural(locale, rows.length, copy.finish.rowSets);
+	return (
+		<Pressable
+			accessibilityRole="button"
+			accessibilityLabel={[name, line, record ? copy.now.recordBadge : null]
+				.filter(Boolean)
+				.join(", ")}
+			onPress={onOpen}
+			style={styles.summary}
+		>
+			<StatusTile state="done" number={number} />
+			<View style={styles.headText}>
+				<AppText variant="row" numberOfLines={1}>
+					{name}
+				</AppText>
+				<AppText variant="footnote" style={{ color: colors.textMuted }}>
+					{line}
+				</AppText>
+			</View>
+			{record ? (
+				<View style={styles.badge}>
+					<SymbolView
+						name="trophy.fill"
+						size={12}
+						tintColor={colors.accentInk}
+						fallback={null}
+					/>
+					<AppText variant="caption" style={styles.badgeText}>
+						{copy.now.recordBadge}
+					</AppText>
+				</View>
+			) : null}
+		</Pressable>
+	);
+}
+
+export function SessionExerciseBlock({ exerciseId }: { exerciseId: string }) {
+	const { actions, openEditor, plan, workspace } = useSessionScreen();
+	const { locale, t } = useI18n();
+	const copy = t.strength.plan;
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
+	const [open, setOpen] = useState(false);
 	const rows = plan.sets[exerciseId] ?? [];
 	const facts = workspace.getFacts(exerciseId);
 	const next = nextOpenRow(plan);
 	const info = useReferenceLine(exerciseId);
 	const menu = useExerciseMenu(exerciseId);
 	const name = workspace.nameOf(exerciseId);
+	const router = useRouter();
 	// Rows carry their own labels at large text; narrow column heads would break.
 	const large = useLargeText();
 	const last = addSetTemplate(rows);
+	const number =
+		plan.order.findIndex(
+			(entry) => entry.kind === "exercise" && entry.exerciseId === exerciseId,
+		) + 1;
+	const allDone =
+		rows.some((row) => row.kind !== "warmup") && rows.every((row) => row.done);
+	const current = next?.exerciseId === exerciseId;
+	// The % column only earns its width when a reference prices the sets.
+	const showPercent =
+		!facts.bodyweight && referenceFor(plan, facts, exerciseId) !== null;
+	const working = rows.filter((row) => row.kind !== "warmup");
+	const doneCount = working.filter((row) => row.done).length;
 	const addLabel =
 		last && !last.blank && (facts.bodyweight || last.kg > 0)
 			? fmt(copy.addSetLoad, {
 					load: formatSetShort(last, facts, locale),
 				})
 			: copy.addSet;
+	if (allDone && !open)
+		return (
+			<DoneSummary
+				exerciseId={exerciseId}
+				number={number}
+				onOpen={() => setOpen(true)}
+			/>
+		);
 	return (
 		<View style={styles.block}>
 			<View style={styles.head}>
-				<View style={styles.headText}>
-					<AppText variant="title" accessibilityRole="header">
-						{name}
-					</AppText>
+				<StatusTile
+					state={allDone ? "done" : current ? "current" : "open"}
+					number={number}
+				/>
+				<Pressable
+					accessibilityRole="button"
+					accessibilityLabel={fmt(copy.now.openOverview, { name })}
+					onPress={() =>
+						router.push({
+							pathname: "/exercise-sheet/[id]",
+							params: { id: exerciseId },
+						})
+					}
+					style={styles.headText}
+					testID="session-exercise-overview"
+				>
+					<AppText variant="title">{name} ›</AppText>
 					<AppText variant="secondary" style={{ color: colors.textMuted }}>
-						{info.line}
+						{working.length > 0
+							? `${fmt(copy.now.progress, { done: doneCount, total: working.length })} · ${info.line}`
+							: info.line}
 					</AppText>
-					{info.needsOneRm || info.hasManual ? (
-						<Pressable
-							accessibilityRole="button"
-							hitSlop={8}
-							onPress={() => openManual(exerciseId)}
-						>
-							<AppText variant="secondary" style={styles.link}>
-								{info.hasManual ? copy.refChange : copy.refEnter}
-							</AppText>
-						</Pressable>
-					) : null}
-				</View>
+				</Pressable>
 				<SelectionMenu
 					trigger="ellipsis"
 					label={fmt(copy.exerciseOptions, { name })}
@@ -304,10 +451,15 @@ export function SessionExerciseBlock({ exerciseId }: { exerciseId: string }) {
 					onSelect={(id) => void menu.onSelect(id)}
 				/>
 			</View>
-			<View style={styles.card}>
-				{large ? null : <ColumnHeads facts={facts} />}
+			<View style={[styles.card, current && styles.cardCurrent]}>
+				{large ? null : <ColumnHeads facts={facts} showPercent={showPercent} />}
 				{rows.map((row) => (
-					<SessionSetRow key={row.id} row={row} isNext={next?.id === row.id} />
+					<SessionSetRow
+						key={row.id}
+						row={row}
+						isNext={next?.id === row.id}
+						showPercent={showPercent}
+					/>
 				))}
 				<Pressable
 					accessibilityRole="button"
@@ -329,8 +481,10 @@ export function SessionExerciseBlock({ exerciseId }: { exerciseId: string }) {
 }
 function ColumnHeads({
 	facts: { bodyweight, timed },
+	showPercent,
 }: {
 	facts: Pick<ExerciseFacts, "bodyweight" | "timed">;
+	showPercent: boolean;
 }) {
 	const { t } = useI18n();
 	const copy = t.strength.plan;
@@ -344,9 +498,11 @@ function ColumnHeads({
 			<AppText variant="caption" style={styles.headSet}>
 				{copy.columnSet}
 			</AppText>
-			<AppText variant="caption" style={styles.headPercent}>
-				{bodyweight ? "" : "%"}
-			</AppText>
+			{showPercent ? (
+				<AppText variant="caption" style={styles.headPercent}>
+					%
+				</AppText>
+			) : null}
 			<AppText variant="caption" style={styles.headLoad}>
 				{timed
 					? copy.columnLoadTimed
@@ -370,6 +526,43 @@ const createStyles = (colors: Tokens) =>
 			paddingHorizontal: spacing.xs,
 		},
 		headText: { flex: 1, minWidth: 0, gap: 2 },
+		tile: {
+			width: 36,
+			height: 36,
+			borderRadius: 10,
+			borderCurve: "continuous",
+			alignItems: "center",
+			justifyContent: "center",
+		},
+		tileOpen: {
+			borderWidth: 1.5,
+			borderColor: colors.borderStrong,
+		},
+		summary: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: spacing.md - 4,
+			minHeight: 64,
+			paddingHorizontal: spacing.md - 2,
+			paddingVertical: spacing.sm,
+			borderRadius: radius.contentCard,
+			borderCurve: "continuous",
+			backgroundColor: colors.surface,
+		},
+		badge: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 4,
+			minHeight: 26,
+			paddingHorizontal: 10,
+			borderRadius: radius.pill,
+			backgroundColor: colors.accentDim,
+		},
+		badgeText: { color: colors.accentInk, fontWeight: "700" },
+		cardCurrent: {
+			borderWidth: StyleSheet.hairlineWidth * 2,
+			borderColor: colors.borderStrong,
+		},
 		link: { color: colors.accent, fontWeight: "600" },
 		card: {
 			backgroundColor: colors.surface,

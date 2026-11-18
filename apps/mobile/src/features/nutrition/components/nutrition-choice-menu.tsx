@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Modal, Pressable, ScrollView, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 import { radius, spacing, useTokens } from "../../../theme";
+import { Modal } from "../../../ui/modal";
 import { AppText } from "../../../ui/text";
 import type { NutritionChoiceMenuProps } from "./nutrition-choice-menu-props";
 

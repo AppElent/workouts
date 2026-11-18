@@ -2,7 +2,7 @@
 import { convexTest } from "convex-test";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { api } from "./_generated/api";
-import { clientSecret } from "./lib/appleSignIn";
+import { clientSecret, revokeAppleAuthorization } from "./lib/appleSignIn";
 import schema from "./schema";
 
 const modules = import.meta.glob("./**/*.*s");
@@ -203,5 +203,70 @@ describe("account.revokeAppleSignIn", () => {
 			}),
 		).rejects.toMatchObject({ data: { code: "failed" } });
 		expect(calls.map(({ path }) => path)).toEqual(["/auth/token"]);
+	});
+});
+
+describe("web Apple revocation", () => {
+	it("refuses a web code without a registered return URL, before calling Apple", async () => {
+		await configure();
+		const { calls } = appleResponses({});
+		const alice = convexTest(schema, modules).withIdentity({
+			subject: "alice",
+		});
+		for (const redirectUri of [undefined, "https://evil.example/account"])
+			await expect(
+				alice.action(api.account.revokeAppleSignIn, {
+					authorizationCode: "code",
+					bundleId: "nl.appelent.web",
+					redirectUri,
+				}),
+			).rejects.toMatchObject({
+				data: { code: "invalid", field: "redirectUri" },
+			});
+		expect(calls).toEqual([]);
+	});
+
+	it("refuses a return URL on a native code", async () => {
+		await configure();
+		const { calls } = appleResponses({});
+		const alice = convexTest(schema, modules).withIdentity({
+			subject: "alice",
+		});
+		await expect(
+			alice.action(api.account.revokeAppleSignIn, {
+				authorizationCode: "code",
+				bundleId: "com.appelent.foundry",
+				redirectUri: "https://foundry.appelent.nl/account",
+			}),
+		).rejects.toMatchObject({
+			data: { code: "invalid", field: "redirectUri" },
+		});
+		expect(calls).toEqual([]);
+	});
+
+	it("exchanges a web code for the Services ID with its return URL", async () => {
+		const key = await appleKey();
+		const { calls } = appleResponses({
+			"/auth/token": Response.json({ refresh_token: "refresh" }),
+			"/auth/revoke": new Response(null, { status: 200 }),
+		});
+		await revokeAppleAuthorization(
+			{ teamId: "TEAM123456", keyId: "KEY1234567", privateKey: key.pem },
+			"code",
+			"nl.appelent.web",
+			"https://foundry.appelent.nl/account",
+		);
+		const [exchange, revoke] = calls.map(({ form }) =>
+			Object.fromEntries(form),
+		);
+		expect(exchange).toMatchObject({
+			client_id: "nl.appelent.web",
+			redirect_uri: "https://foundry.appelent.nl/account",
+		});
+		expect(revoke).toMatchObject({
+			client_id: "nl.appelent.web",
+			token: "refresh",
+		});
+		expect(revoke.redirect_uri).toBeUndefined();
 	});
 });

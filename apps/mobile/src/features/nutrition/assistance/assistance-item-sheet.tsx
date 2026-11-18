@@ -7,7 +7,7 @@ import {
 } from "@foundry/core";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useState } from "react";
-import { Alert, Modal, Pressable, ScrollView, View } from "react-native";
+import { Alert, Pressable, ScrollView, View } from "react-native";
 import {
 	modalAnimation,
 	useReduceMotion,
@@ -15,6 +15,7 @@ import {
 import { localizeDecimal, useI18n } from "../../../i18n";
 import { spacing, useTokens } from "../../../theme";
 import { InlineNumberFieldRow, TextAction } from "../../../ui/form";
+import { Modal } from "../../../ui/modal";
 import { AppText } from "../../../ui/text";
 import {
 	FoodFormCard,

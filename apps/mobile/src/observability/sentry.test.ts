@@ -18,7 +18,12 @@ it("redacts events and never attaches personal data or automatic screenshots", (
 	);
 	expect(Sentry.addEventProcessor).toHaveBeenCalledWith(sanitizeFeedbackEvent);
 	expect(Sentry.feedbackIntegration).toHaveBeenCalledWith(
-		expect.objectContaining({ showEmail: false, showName: false }),
+		expect.objectContaining({
+			showEmail: false,
+			showName: false,
+			// Started by shake-to-report instead, which pauses under sheets.
+			enableShakeToReport: false,
+		}),
 	);
 });
 

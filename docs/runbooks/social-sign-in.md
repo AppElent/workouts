@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when enabling, configuring, or debugging Apple, Google, or Microsoft sign-in on the shared Appelent Clerk application.
-version: 2.2.2
+version: 2.3.4
 ---
 
 # Social sign-in
@@ -175,8 +175,13 @@ grant when the account is deleted. Clerk does not do this, so Foundry does:
 1. On iOS, Delete account opens the native Apple sheet once more for an
    Apple-linked account (`apps/mobile/src/features/profile/apple-revocation.ts`).
    Dismissing the sheet cancels the deletion.
+   On the web, it opens an Apple JS popup for the Services ID
+   (`src/lib/auth/appleRevocation.ts`), but only from an origin whose
+   `<origin>/account` is in `APPLE_WEB_RETURN_URLS`
+   (`packages/core/src/auth.ts`). Closing the popup cancels the deletion.
 2. Convex `account.revokeAppleSignIn` exchanges the code at Apple's
-   `/auth/token` and revokes the refresh token at `/auth/revoke`.
+   `/auth/token` (a web code with its return URL) and revokes the refresh
+   token at `/auth/revoke`.
 3. Any other failure is reported to Sentry, and the account is deleted anyway.
 
 The action signs Apple's client secret with the Sign in with Apple key from
@@ -191,6 +196,41 @@ it and Convex uses it as `client_id` after checking it against
 Android has no native sheet, so an Apple-linked account deleted there is not
 revoked.
 
+### Enabling web revocation
+
+Apple JS shows its popup only for a domain and return URL registered on the
+Services ID, so web revocation is off until both are added. For each web
+origin (production `https://foundry.appelent.nl`, optionally staging):
+
+1. Apple Developer → Identifiers → `nl.appelent.web` → Sign in with Apple →
+   Configure: add the host (for example `foundry.appelent.nl`) under Domains
+   and `https://foundry.appelent.nl/account` under Return URLs. Keep the Clerk
+   entries. Save.
+2. Add the same URL to `APPLE_WEB_RETURN_URLS` in `packages/core/src/auth.ts`
+   and deploy web and Convex together.
+
+No new secret should be needed if the existing Sign in with Apple key is valid
+for the Services ID's primary App ID. Check this first: `nl.appelent.web` is
+shared by every Appelent web app, and Apple groups consent by the primary App
+ID. Revoking from Foundry ends the grant for that whole group. That could sign
+the person out of Sign in with Apple in other Appelent apps, or leave
+Foundry's iOS grant in place if the Services ID is grouped under another app.
+Confirm the grouping in Apple Developer and decide whether that reach is
+acceptable before adding a return URL. Web Apple sign-in on the development
+Clerk instance with Clerk's shared credentials has another Apple team's user
+ID, so the popup's account never matches and nothing is revoked there.
+
+The `state` and Apple-account checks run in the browser. Convex checks that
+the caller is signed in and that the return URL is registered, but it does not
+tie the code to this Foundry account. That matches native revocation. In the
+normal flow a code only comes from the person's own signed-in Apple popup,
+but a signed-in caller holding any valid code for this Services ID could
+revoke that grant. Before adding a return URL, Convex must bind the code's
+Apple user to the caller and check the deletion blocker before exchanging the
+code. Also test in Safari that the card asks for one more click before Apple's
+popup opens, and that Clerk asks to confirm the sign-in again when Apple's step
+takes longer than the card's 5-minute sign-in check.
+
 ## Verify
 
 - Web: each button lands on `/dashboard`; an unknown email creates an
@@ -200,6 +240,9 @@ revoked.
 - Cancelling any flow returns to the form without an error.
 - Account deletion (iOS, Apple-linked account): after Delete account, Foundry
   disappears from Settings → Apple ID → Sign in with Apple.
+- Account deletion (web, production, once `APPLE_WEB_RETURN_URLS` lists it):
+  Delete account opens the Apple popup; afterwards Foundry disappears from
+  account.apple.com → Sign in with Apple. Closing the popup keeps the account.
 
 ## Troubleshooting
 
@@ -212,6 +255,10 @@ revoked.
   Testing mode.
 - Microsoft rejects personal accounts: registration's account types exclude
   personal Microsoft accounts.
+- Web Delete account says "Allow pop-ups for this site": the browser blocked
+  Apple's revocation popup, often in Safari when the Account page was opened
+  moments before. Allowing pop-ups or retrying once Apple JS has loaded fixes
+  it; nothing was deleted.
 - Microsoft stops working everywhere: client secret expired; create a new one
   and update Clerk.
 - Mobile button fails at once with "Redirect url mismatch" (often on a
