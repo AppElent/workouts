@@ -7,7 +7,7 @@ import {
 } from "convex/react";
 import { getFunctionName } from "convex/server";
 import { router } from "expo-router";
-import { act, fireEvent, screen } from "expo-router/testing-library";
+import { act, fireEvent, screen, waitFor } from "expo-router/testing-library";
 import { ActionSheetIOS } from "react-native";
 import * as SessionRoute from "../../../app/(app)/session";
 import * as GroupRoute from "../../../app/(app)/session-group";
@@ -853,4 +853,57 @@ it("starts empty and offers to delete a session with nothing in it", async () =>
 		await screen.findByRole("button", { name: "Delete session" }),
 	);
 	expect(cancel).toHaveBeenCalled();
+});
+
+describe("Live Activity", () => {
+	type Activity = { props: Record<string, unknown>; ended: boolean };
+	const fake = (
+		jest.requireMock("expo-widgets") as {
+			__liveActivities: { activities: Activity[] };
+		}
+	).__liveActivities;
+	const running = () => fake.activities.filter((item) => !item.ended);
+	beforeEach(() => {
+		fake.activities.length = 0;
+	});
+
+	it("shows the session, follows a logged set into rest, and ends once the session is saved", async () => {
+		await mount();
+		await waitFor(() => expect(running()).toHaveLength(1));
+		expect(running()[0]?.props).toMatchObject({
+			title: "Lower A",
+			exercise: "Barbell Back Squat",
+			setLine: expect.stringMatching(/^Set 1 of /),
+			loadLine: "60 kg × 8",
+			restEndsAt: null,
+		});
+		await fireEvent.press(await firstCheck());
+		await waitFor(() =>
+			expect(running()[0]?.props).toMatchObject({
+				setLine: expect.stringMatching(/^Set 2 of /),
+				restEndsAt: expect.any(Number),
+			}),
+		);
+		expect(running()).toHaveLength(1);
+
+		await fireEvent.press(await screen.findByRole("button", { name: "Done" }));
+		await fireEvent.press(
+			await screen.findByRole("button", { name: /Finish · 1 set/ }),
+		);
+		// The recap can still go back to the session, so the activity stays.
+		expect(await screen.findByText("Lower A done")).toBeTruthy();
+		expect(running()).toHaveLength(1);
+		finish.mockImplementation(async () => {
+			currentSession = null as never;
+		});
+		await fireEvent.press(await screen.findByTestId("session-recap-confirm"));
+		await waitFor(() => expect(running()).toHaveLength(0));
+	});
+
+	it("ends when the account signs out mid-session", async () => {
+		await mount();
+		await waitFor(() => expect(running()).toHaveLength(1));
+		screen.unmount();
+		await waitFor(() => expect(running()).toHaveLength(0));
+	});
 });
