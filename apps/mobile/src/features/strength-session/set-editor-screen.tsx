@@ -34,8 +34,14 @@ import {
 	View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import type { Id } from "../../convex/api";
+import { api, type Id } from "../../convex/api";
+import { useQuery } from "../../convex/query-cache";
 import { fmt, parseLocalizedDecimal, useI18n } from "../../i18n";
+import {
+	PREFERENCE_KEYS,
+	readLocal,
+	writeLocal,
+} from "../../local-store/local-store";
 import {
 	opacity,
 	radius,
@@ -75,6 +81,7 @@ import {
 	rowsOf,
 	sameSet,
 	shownLoad,
+	snapLoad,
 	stepLoad,
 	switchUnit,
 	targetPercent,
@@ -82,9 +89,24 @@ import {
 	updateRow,
 	withTypedLoad,
 } from "./session-plan";
+import {
+	latestBodyweightKg,
+	levelKey,
+	levelOf,
+	startLoadKg,
+	strengthLevels,
+} from "./strength-levels";
 import { useKeyboardHeight } from "./use-keyboard-height";
 
 const PRESETS = [60, 65, 70, 75, 80, 85, 90];
+const RPE_CHIPS = [6, 7, 7.5, 8, 8.5, 9, 9.5, 10];
+type EditorMode = "simple" | "advanced";
+const readMode = (): EditorMode =>
+	readLocal(PREFERENCE_KEYS.setEditorMode) === "advanced"
+		? "advanced"
+		: "simple";
+/** Reps a starting weight from a level is meant for. */
+const START_REPS = 8;
 const near = (a: number, b: number) => Math.abs(a - b) < 0.01;
 type FieldRef = RefObject<ComponentRef<typeof TextInput> | null>;
 const parseNumber = (text: string) => parseLocalizedDecimal(text) ?? Number.NaN;
@@ -211,7 +233,14 @@ export function SetEditorScreen() {
 	const [repsText, setRepsText] = useState("");
 	const [percentText, setPercentText] = useState("");
 	const [customOpen, setCustomOpen] = useState(false);
-	const [more, setMore] = useState(false);
+	const [mode, setMode] = useState<EditorMode>(readMode);
+	const advanced = mode === "advanced";
+	const toggleMode = () => {
+		const next: EditorMode = advanced ? "simple" : "advanced";
+		setMode(next);
+		writeLocal(PREFERENCE_KEYS.setEditorMode, next);
+	};
+	const bodyMetrics = useQuery(api.bodyMetrics.list, {});
 	const keyboard = useKeyboardHeight();
 	const loadRef = useRef<ComponentRef<typeof TextInput>>(null);
 	const repsRef = useRef<ComponentRef<typeof TextInput>>(null);
@@ -406,6 +435,34 @@ export function SetEditorScreen() {
 		);
 
 	const exercise = catalog.find((item) => item._id === row.exerciseId);
+	const bodyweightKg = latestBodyweightKg(bodyMetrics);
+	const levels =
+		bodyweight || reference
+			? null
+			: strengthLevels(levelKey(row.exerciseId), bodyweightKg);
+	const where =
+		levels && estimate && bodyweightKg
+			? levelOf(levels, estimate.value, bodyweightKg)
+			: null;
+	const levelName = (index: number) => {
+		const level = levels?.[index];
+		return level ? text.levels[level.id] : "";
+	};
+	const levelLine = where
+		? where.toNextKg === null
+			? fmt(text.levelWhereTop, {
+					value: Math.round(estimate?.value ?? 0),
+					level: levelName(where.index),
+				})
+			: fmt(text.levelWhere, {
+					value: Math.round(estimate?.value ?? 0),
+					level: levelName(where.index),
+					next: where.toNextKg,
+					nextLevel: levelName(where.index + 1),
+				})
+		: bodyweightKg
+			? text.levelGuide
+			: text.levelsNoWeight;
 	const plateLine =
 		exercise?.equipment === "barbell" &&
 		row.unit === "kg" &&
@@ -431,16 +488,6 @@ export function SetEditorScreen() {
 	const onPlan =
 		row.plan && near(row.plan.kg, row.kg) && row.plan.reps === row.reps;
 
-	const kindLabel = {
-		warmup: text.kindWarmup,
-		working: text.kindWorking,
-		drop: text.kindDrop,
-		failure: text.kindFailure,
-	}[row.kind];
-	const rpeSummary =
-		row.rpe === null
-			? text.noRpe
-			: fmt(text.rpeValue, { value: formatNumber(row.rpe, locale, 1) });
 	const detailValues = {
 		load: loadOnly,
 		measured: reference ? Math.round((row.kg / reference.value) * 100) : 0,
@@ -593,6 +640,10 @@ export function SetEditorScreen() {
 	const menuGroups = [
 		{
 			options: [
+				{
+					id: "mode",
+					label: advanced ? text.modeSimple : text.modeAdvanced,
+				},
 				...(group
 					? []
 					: [
@@ -614,7 +665,8 @@ export function SetEditorScreen() {
 	];
 	async function onMenu(id: string) {
 		if (!row) return;
-		if (id === "repeat") {
+		if (id === "mode") toggleMode();
+		else if (id === "repeat") {
 			actions.apply(repeatRow(actions.plan(), row.id));
 			close();
 		} else if (id === "profile") {
@@ -708,6 +760,16 @@ export function SetEditorScreen() {
 					</Stack.Toolbar>
 					<Stack.Toolbar placement="right">
 						<Stack.Toolbar.Menu icon="ellipsis" accessibilityLabel={title}>
+							<Stack.Toolbar.MenuAction
+								icon={
+									advanced
+										? "slider.horizontal.below.rectangle"
+										: "slider.horizontal.3"
+								}
+								onPress={toggleMode}
+							>
+								{advanced ? text.modeSimple : text.modeAdvanced}
+							</Stack.Toolbar.MenuAction>
 							{group ? null : (
 								<Stack.Toolbar.MenuAction
 									disabled={!valid}
@@ -741,7 +803,7 @@ export function SetEditorScreen() {
 					contentInsetAdjustmentBehavior="automatic"
 					keyboardShouldPersistTaps="handled"
 				>
-					{bodyweight ? (
+					{!advanced ? null : bodyweight ? (
 						<AppText variant="secondary" style={{ color: colors.textMuted }}>
 							{text.bodyweightNote}
 						</AppText>
@@ -763,7 +825,7 @@ export function SetEditorScreen() {
 								</AppText>
 							</Pressable>
 						</View>
-					) : (
+					) : levels ? null : (
 						<View style={styles.noReference}>
 							<View style={styles.lineText}>
 								<AppText variant="row" style={{ fontWeight: "600" }}>
@@ -803,7 +865,7 @@ export function SetEditorScreen() {
 							</Pressable>
 						</View>
 					)}
-					{reference ? (
+					{advanced && reference ? (
 						<View style={styles.chips}>
 							{PRESETS.map((percent) => {
 								const on = target === percent;
@@ -877,7 +939,7 @@ export function SetEditorScreen() {
 							</Pressable>
 						</View>
 					) : null}
-					{customOpen ? (
+					{advanced && customOpen ? (
 						<View style={styles.customRow}>
 							<TextInput
 								ref={percentRef}
@@ -902,7 +964,95 @@ export function SetEditorScreen() {
 							</Pressable>
 						</View>
 					) : null}
-					{bodyweight ? null : (
+					{advanced && levels ? (
+						<View style={styles.levels}>
+							<View style={styles.lineRow}>
+								<AppText
+									variant="label"
+									style={[styles.lineText, { color: colors.textMuted }]}
+								>
+									{bodyweightKg
+										? fmt(text.levelsTitle, {
+												weight: Math.round(bodyweightKg),
+											})
+										: text.levelsTitleRatio}
+								</AppText>
+								{bodyweightKg ? (
+									<AppText variant="label" style={{ color: colors.textMuted }}>
+										{text.levelsHint}
+									</AppText>
+								) : null}
+							</View>
+							<View style={styles.levelRow}>
+								{levels.map((level, index) => {
+									const on = where?.index === index;
+									const range =
+										level.fromKg !== null
+											? level.toKg !== null
+												? `${level.fromKg}–${level.toKg}`
+												: `${level.fromKg}+`
+											: level.to !== null
+												? `${formatNumber(level.from, locale)}–${formatNumber(level.to, locale)}×`
+												: `${formatNumber(level.from, locale)}×+`;
+									const off = !bodyweightKg || locked;
+									return (
+										<Pressable
+											key={level.id}
+											accessibilityRole="button"
+											accessibilityState={{ selected: on, disabled: off }}
+											accessibilityLabel={`${text.levels[level.id]}, ${range}${level.fromKg !== null ? " kg" : ""}`}
+											disabled={off}
+											onPress={() => {
+												if (!bodyweightKg) return;
+												const kg = snapLoad(
+													startLoadKg(level, bodyweightKg),
+													facts.stepKg,
+													row.unit,
+												);
+												change({
+													...withTypedLoad(
+														row,
+														row.unit === "lbs" ? Math.round(kg * 2.20462) : kg,
+													),
+													kg,
+													reps: row.reps >= 1 ? row.reps : START_REPS,
+													blank: undefined,
+												});
+											}}
+											style={[styles.level, on && styles.levelOn]}
+											testID={`session-level-${level.id}`}
+										>
+											<AppText
+												variant="caption"
+												numberOfLines={1}
+												adjustsFontSizeToFit
+												style={{ fontWeight: "700" }}
+											>
+												{text.levels[level.id]}
+											</AppText>
+											<AppText
+												variant="row"
+												numberOfLines={1}
+												adjustsFontSizeToFit
+												style={styles.chipTop}
+											>
+												{range}
+											</AppText>
+										</Pressable>
+									);
+								})}
+							</View>
+							<AppText variant="secondary" style={{ color: colors.textMuted }}>
+								{levelLine}
+							</AppText>
+						</View>
+					) : null}
+					{!advanced && check && note ? (
+						<AppText variant="secondary" style={{ color: colors.warn }}>
+							{note}
+						</AppText>
+					) : null}
+					{!advanced || bodyweight ? null : (
 						<View style={[styles.card, highlight && styles.cardHighlight]}>
 							<AppText variant="label" style={{ color: colors.textMuted }}>
 								{text.oneRmFromSet}
@@ -938,12 +1088,12 @@ export function SetEditorScreen() {
 							{note}
 						</AppText>
 					) : null}
-					{plateLine ? (
+					{advanced && plateLine ? (
 						<AppText variant="row" style={{ fontWeight: "600" }}>
 							{plateLine}
 						</AppText>
 					) : null}
-					{planLoad ? (
+					{advanced && planLoad ? (
 						<Pressable
 							accessibilityRole={onPlan ? undefined : "button"}
 							disabled={Boolean(onPlan) || locked}
@@ -959,93 +1109,75 @@ export function SetEditorScreen() {
 							</AppText>
 						</Pressable>
 					) : null}
-					<Pressable
-						accessibilityRole="button"
-						accessibilityState={{ expanded: more }}
-						onPress={() => setMore((value) => !value)}
-						style={styles.moreRow}
-						testID="session-editor-more"
-					>
-						<AppText variant="row" style={{ fontWeight: "600" }}>
-							{more ? text.less : text.more}
+					<View style={styles.section}>
+						<AppText variant="label" style={{ color: colors.textMuted }}>
+							{text.kindTitle}
 						</AppText>
-						<AppText variant="secondary" style={{ color: colors.textMuted }}>
-							{fmt(text.moreSummary, { kind: kindLabel, rpe: rpeSummary })}
-						</AppText>
-					</Pressable>
-					{more ? (
+						<Segmented
+							options={SET_TYPES.map((kind) => ({
+								value: kind,
+								label: {
+									warmup: text.kindWarmup,
+									working: text.kindWorking,
+									drop: text.kindDrop,
+									failure: text.kindFailure,
+								}[kind],
+							}))}
+							value={row.kind}
+							onChange={(kind) => {
+								if (!locked) change({ ...row, kind });
+							}}
+						/>
+					</View>
+					{advanced ? (
 						<View style={styles.moreBody}>
-							<View style={styles.rpeRow}>
-								<View style={styles.lineText}>
-									<AppText variant="row">
-										{row.rpe === null
-											? text.rpeNone
-											: fmt(text.rpeValue, {
-													value: formatNumber(row.rpe, locale, 1),
-												})}
-										{row.rpe === null
-											? ""
-											: fmt(text.rpeLeft, {
-													count: formatNumber(10 - row.rpe, locale, 1),
-												})}
-									</AppText>
-								</View>
-								<StepButton
-									label="−"
-									spoken={
-										row.rpe !== null && row.rpe <= 6
-											? text.rpeClear
-											: text.rpeLower
-									}
-									disabled={locked || row.rpe === null}
-									onPress={() =>
-										change({
-											...row,
-											rpe:
-												row.rpe === null || row.rpe <= 6 ? null : row.rpe - 0.5,
-										})
-									}
-								/>
-								<StepButton
-									label="+"
-									spoken={text.rpeRaise}
-									disabled={locked || row.rpe === 10}
-									onPress={() =>
-										change({
-											...row,
-											rpe: row.rpe === null ? 8 : Math.min(10, row.rpe + 0.5),
-										})
-									}
-								/>
-							</View>
-							<View style={styles.kinds}>
-								{SET_TYPES.map((kind) => (
-									<Pressable
-										key={kind}
-										accessibilityRole="button"
-										accessibilityState={{ selected: row.kind === kind }}
-										disabled={locked}
-										onPress={() => change({ ...row, kind })}
-										style={[styles.kind, row.kind === kind && styles.kindOn]}
+							<View style={styles.section}>
+								<View style={styles.lineRow}>
+									<AppText
+										variant="label"
+										style={[styles.lineText, { color: colors.textMuted }]}
 									>
+										{text.rpeTitle}
+									</AppText>
+									{row.rpe === null ? null : (
 										<AppText
-											variant="secondary"
-											style={{
-												color: row.kind === kind ? colors.bg : colors.text,
-												fontWeight: "600",
-											}}
+											variant="label"
+											style={{ color: colors.textMuted }}
 										>
-											{
-												{
-													warmup: text.kindWarmup,
-													working: text.kindWorking,
-													drop: text.kindDrop,
-													failure: text.kindFailure,
-												}[kind]
-											}
+											{fmt(text.rpeLeft, {
+												count: formatNumber(10 - row.rpe, locale, 1),
+											}).replace(/^ · /, "")}
 										</AppText>
-									</Pressable>
-								))}
+									)}
+								</View>
+								<View style={styles.chips}>
+									{RPE_CHIPS.map((value) => {
+										const on = row.rpe === value;
+										return (
+											<Pressable
+												key={value}
+												accessibilityRole="button"
+												accessibilityState={{ selected: on }}
+												accessibilityLabel={fmt(text.rpeValue, {
+													value: formatNumber(value, locale, 1),
+												})}
+												disabled={locked}
+												onPress={() =>
+													change({ ...row, rpe: on ? null : value })
+												}
+												style={[styles.rpeChip, on && styles.chipOn]}
+												testID={`session-rpe-${value}`}
+											>
+												<AppText
+													variant="row"
+													style={[styles.chipTop, on && styles.chipInk]}
+												>
+													{formatNumber(value, locale, 1)}
+												</AppText>
+											</Pressable>
+										);
+									})}
+								</View>
 							</View>
 							{bodyweight ? null : (
 								<Segmented
@@ -1073,17 +1205,6 @@ export function SetEditorScreen() {
 									{detailReps}
 								</AppText>
 							) : null}
-							<Pressable
-								accessibilityRole="button"
-								accessibilityState={{ disabled: locked }}
-								disabled={locked}
-								onPress={() => void onMenu("delete")}
-								style={[styles.deleteRow, locked && styles.primaryOff]}
-							>
-								<AppText variant="control" style={{ color: colors.danger }}>
-									{copy.rowDelete}
-								</AppText>
-							</Pressable>
 						</View>
 					) : null}
 				</ScrollView>
@@ -1314,26 +1435,37 @@ const createStyles = (colors: Tokens) =>
 			borderCurve: "continuous",
 		},
 		cardHighlight: { backgroundColor: colors.accentDim },
-		moreRow: {
-			minHeight: 48,
-			flexDirection: "row",
-			alignItems: "center",
-			justifyContent: "space-between",
-			flexWrap: "wrap",
-			gap: spacing.xs,
-		},
 		moreBody: { gap: spacing.md },
-		rpeRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
-		kinds: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs },
-		kind: {
+		section: { gap: spacing.xs },
+		rpeChip: {
+			flexGrow: 1,
+			minWidth: 44,
 			minHeight: 44,
+			alignItems: "center",
 			justifyContent: "center",
-			paddingHorizontal: spacing.md,
+			paddingHorizontal: spacing.xs,
 			backgroundColor: colors.surface2,
 			borderRadius: radius.pill,
 		},
-		kindOn: { backgroundColor: colors.text },
-		deleteRow: { minHeight: 48, justifyContent: "center" },
+		levels: { gap: spacing.xs },
+		levelRow: { flexDirection: "row", gap: spacing.xs },
+		level: {
+			flex: 1,
+			minWidth: 0,
+			minHeight: 56,
+			alignItems: "center",
+			justifyContent: "center",
+			paddingHorizontal: 2,
+			borderRadius: radius.lg,
+			borderCurve: "continuous",
+			borderWidth: 1,
+			borderColor: colors.border,
+		},
+		levelOn: {
+			borderWidth: 2,
+			borderColor: colors.accentFill,
+			backgroundColor: colors.accentDim,
+		},
 		footer: {
 			paddingHorizontal: spacing.md,
 			paddingTop: spacing.sm,

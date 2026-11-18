@@ -15,6 +15,11 @@ import * as ManualRoute from "../../../app/(app)/session-manual";
 import * as EditorLayout from "../../../app/(app)/set-editor/_layout";
 import * as EditorRoute from "../../../app/(app)/set-editor/index";
 import * as ProfileRoute from "../../../app/(app)/set-editor/strength-profile";
+import {
+	PREFERENCE_KEYS,
+	removeLocal,
+	writeLocal,
+} from "../../local-store/local-store";
 import { renderApp } from "../../test-support/render-app";
 import { workspaceKey, workspaceStore } from "./data/session-workspace";
 import {
@@ -116,6 +121,7 @@ const serverSet = (id: string, reps: number, setNumber: number) => ({
 });
 
 beforeEach(() => {
+	removeLocal(PREFERENCE_KEYS.setEditorMode);
 	mockSubject = `test-user-${Math.random().toString(36).slice(2)}`;
 	currentSession = { ...session, userId: mockSubject };
 	loggedSets = [];
@@ -401,6 +407,8 @@ it("won't finish on a send left unresolved by a restart, and retries it", async 
 });
 
 it("won't take a Krachtprofiel value onto a set with an unresolved send", async () => {
+	// The 1RM line and the profile link live in the advanced editor.
+	writeLocal(PREFERENCE_KEYS.setEditorMode, "advanced");
 	receipt = undefined;
 	add.mockRejectedValueOnce(new Error("Connection lost"));
 	await mount();
@@ -792,6 +800,8 @@ it("says so at Finish when a correction to a logged set isn't saved", async () =
 });
 
 it("applies a Krachtprofiel row only at Apply, and logs nothing", async () => {
+	// The 1RM line and the profile link live in the advanced editor.
+	writeLocal(PREFERENCE_KEYS.setEditorMode, "advanced");
 	await mount();
 	await fireEvent.press(await firstRow());
 	await fireEvent.press(
