@@ -1,6 +1,7 @@
 /**
- * The reset screens under the real router and `(auth)` layout: leaving while
- * Clerk works would let ordinary sign-in overlap the reset on one attempt.
+ * Sign-in and the reset screens under the real router and `(auth)` layout.
+ * Both use one Clerk sign-in attempt, so neither may start while the other
+ * has a call pending.
  */
 import { router } from "expo-router";
 import {
@@ -10,16 +11,19 @@ import {
 	screen,
 	waitFor,
 } from "expo-router/testing-library";
-import { Text } from "react-native";
 import * as AuthLayout from "../../app/(auth)/_layout";
 import * as ForgotPassword from "../../app/(auth)/forgot-password";
 import * as ResetPassword from "../../app/(auth)/reset-password";
+import * as SignIn from "../../app/(auth)/sign-in";
 import { LocaleProvider } from "../i18n";
 import { AppearanceProvider } from "../theme";
 
 const mockSignIn = {
 	status: "needs_first_factor",
 	create: jest.fn(),
+	password: jest.fn(),
+	emailCode: { sendCode: jest.fn() },
+	finalize: jest.fn(),
 	resetPasswordEmailCode: { sendCode: jest.fn() },
 	reset: jest.fn(),
 };
@@ -30,6 +34,12 @@ jest.mock("@clerk/expo", () => ({
 		errors: { fields: {}, global: null },
 	}),
 }));
+jest.mock("./config", () => ({ devLogin: null }));
+jest.mock("./social-buttons", () => ({ SocialButtons: () => null }));
+
+beforeEach(() => {
+	jest.clearAllMocks();
+});
 
 function RootLayout() {
 	const { Stack } = jest.requireActual("expo-router");
@@ -47,7 +57,7 @@ async function mount() {
 		{
 			_layout: RootLayout as never,
 			"(auth)/_layout": AuthLayout as never,
-			"(auth)/sign-in": (() => <Text>Sign-in screen</Text>) as never,
+			"(auth)/sign-in": SignIn as never,
 			"(auth)/forgot-password": ForgotPassword as never,
 			"(auth)/reset-password": ResetPassword as never,
 		},
@@ -94,4 +104,35 @@ it("still goes back for a different email once the start-over settles", async ()
 	);
 	expect(mockSignIn.reset).toHaveBeenCalled();
 	await waitFor(() => expect(app.getPathname()).toBe("/forgot-password"));
+});
+
+it("keeps Forgot password? closed while a password sign-in is pending", async () => {
+	let settle: (result: { error: { code: string } }) => void = () => {};
+	mockSignIn.password.mockImplementation(
+		() =>
+			new Promise((resolve) => {
+				settle = resolve;
+			}),
+	);
+	const app = await mount();
+	await fireEvent.changeText(
+		await screen.findByLabelText("Email"),
+		"sam@example.test",
+	);
+	await fireEvent.changeText(screen.getByLabelText("Password"), "secret-1");
+	const signingIn = fireEvent.press(screen.getByTestId("sign-in-submit"));
+	// Let the press's own act() settle so only the sign-in stays pending.
+	for (let tick = 0; tick < 20; tick++) await Promise.resolve();
+	expect(mockSignIn.password).toHaveBeenCalled();
+
+	const link = screen.getByRole("link", { name: "Forgot password?" });
+	expect(link).toBeDisabled();
+	await fireEvent.press(link);
+	expect(app.getPathname()).toBe("/sign-in");
+
+	await act(async () => settle({ error: { code: "form_password_incorrect" } }));
+	await signingIn;
+	await fireEvent.press(screen.getByRole("link", { name: "Forgot password?" }));
+	await waitFor(() => expect(app.getPathname()).toBe("/forgot-password"));
+	expect(mockSignIn.create).not.toHaveBeenCalled();
 });
