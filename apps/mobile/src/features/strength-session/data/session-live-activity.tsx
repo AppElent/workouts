@@ -3,7 +3,7 @@
  * session is active (also after a restart), updates it when the next set or
  * the rest changes, and ends it when the session finishes or is discarded.
  */
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useActiveSession } from "../../../data/session-data";
 import { useI18n } from "../../../i18n";
 import { endSessionActivity, showSessionActivity } from "./live-activity";
@@ -17,7 +17,13 @@ export function SessionLiveActivity() {
 	const { over } = useRestState();
 	const { t, locale } = useI18n();
 	const loading = active === undefined;
-	const copy = t.strength.plan.liveActivity;
+	const copy = useMemo(
+		() => ({
+			...t.strength.plan.liveActivity,
+			freeSession: t.strength.freeSession,
+		}),
+		[t],
+	);
 	useEffect(() => {
 		// Keep whatever runs while the session is still loading (or offline).
 		if (loading) return;

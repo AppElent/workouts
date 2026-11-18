@@ -413,7 +413,6 @@ export const strengthSessionEn = {
 		label: "Back to {name}",
 	},
 	liveActivity: {
-		freeSession: "Free session",
 		setOf: "Set {index} of {count}",
 		reps: { one: "1 rep", other: "{count} reps" },
 		rest: "Rest",
@@ -837,7 +836,6 @@ export const strengthSessionNl: typeof strengthSessionEn = {
 		label: "Terug naar {name}",
 	},
 	liveActivity: {
-		freeSession: "Vrije sessie",
 		setOf: "Set {index} van {count}",
 		reps: { one: "1 herhaling", other: "{count} herhalingen" },
 		rest: "Rust",

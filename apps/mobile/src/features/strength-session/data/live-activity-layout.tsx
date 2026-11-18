@@ -44,7 +44,7 @@ export const sessionLiveActivityLayout: LiveActivityComponent<
 	const detail = [props.setLine, props.loadLine].filter(Boolean).join(" · ");
 
 	// Timer text takes all the width it is offered, so pin it to the trailing edge.
-	const elapsed = (color: string, size: number) => (
+	const elapsed = (color: string, size: number, width = 72) => (
 		<Text
 			date={elapsedFrom}
 			dateStyle="timer"
@@ -53,7 +53,7 @@ export const sessionLiveActivityLayout: LiveActivityComponent<
 				monospacedDigit(),
 				foregroundStyle(color),
 				multilineTextAlignment("trailing"),
-				frame({ width: 72, alignment: "trailing" }),
+				frame({ width, alignment: "trailing" }),
 			]}
 		/>
 	);
@@ -188,7 +188,7 @@ export const sessionLiveActivityLayout: LiveActivityComponent<
 					? countdown(scheme.accent, 15, "trailing")
 					: restOver
 						? icon(scheme.accent)
-						: elapsed(scheme.text, 15)}
+						: elapsed(scheme.text, 15, 52)}
 			</HStack>
 		),
 		minimal: resting

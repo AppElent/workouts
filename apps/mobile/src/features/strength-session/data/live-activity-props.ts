@@ -38,7 +38,10 @@ const COLORS: LiveActivityProps["colors"] = {
 	muted: darkColors.textMuted,
 };
 
-export type LiveActivityCopy = Messages["strength"]["plan"]["liveActivity"];
+/** The Live Activity's copy, plus the shared name of a session without one. */
+export type LiveActivityCopy = Messages["strength"]["plan"]["liveActivity"] & {
+	freeSession: string;
+};
 
 export function loadLineOf(
 	now: Pick<SessionNow, "kg" | "reps" | "durationSeconds">,

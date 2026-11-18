@@ -24,8 +24,14 @@ const fake = (
 const live = () => fake.activities.filter((item) => !item.ended);
 const flush = () => new Promise((resolve) => setImmediate(resolve));
 
-const en = DICTIONARIES.en.strength.plan.liveActivity;
-const nl = DICTIONARIES.nl.strength.plan.liveActivity;
+const en = {
+	...DICTIONARIES.en.strength.plan.liveActivity,
+	freeSession: DICTIONARIES.en.strength.freeSession,
+};
+const nl = {
+	...DICTIONARIES.nl.strength.plan.liveActivity,
+	freeSession: DICTIONARIES.nl.strength.freeSession,
+};
 const T0 = 1_700_000_000_000;
 const lifting: SessionNow = {
 	sessionName: "Push day",
@@ -146,6 +152,28 @@ describe("nextSetOf", () => {
 			durationSeconds: null,
 		});
 	});
+	it("counts working sets only, as the rest notification does", () => {
+		const plan = seedPlan(
+			[
+				{
+					exerciseId: "squat",
+					plannedSets: [
+						{ reps: 5, weight: 40, unit: "kg" },
+						{ reps: 5, weight: 100, unit: "kg" },
+						{ reps: 5, weight: 100, unit: "kg" },
+					],
+				},
+			],
+			[],
+			facts,
+		);
+		const [warmup, ...working] = plan.sets.squat ?? [];
+		if (!warmup) throw new Error("no rows");
+		plan.sets.squat = [{ ...warmup, kind: "warmup" }, ...working];
+		expect(nextSetOf(plan)).toMatchObject({ setIndex: null, setCount: null });
+		plan.sets.squat = [{ ...warmup, kind: "warmup", done: true }, ...working];
+		expect(nextSetOf(plan)).toMatchObject({ setIndex: 1, setCount: 2 });
+	});
 	it("reads a timed hold's reps as seconds", () => {
 		const plan = seedPlan(
 			[
@@ -205,6 +233,16 @@ describe("session Live Activity", () => {
 		expect(() => showSessionActivity(props())).not.toThrow();
 		expect(live()).toHaveLength(0);
 		expect(Sentry.captureException).not.toHaveBeenCalled();
+	});
+
+	it("starts afresh when a session comes back while the last one is still ending", async () => {
+		showSessionActivity(props());
+		await flush();
+		endSessionActivity();
+		showSessionActivity(props({ exerciseName: "Squat" }));
+		await flush();
+		expect(live()).toHaveLength(1);
+		expect(live()[0]?.props.exercise).toBe("Squat");
 	});
 
 	it("applies quick changes in order", async () => {

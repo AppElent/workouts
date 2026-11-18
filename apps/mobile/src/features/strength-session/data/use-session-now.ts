@@ -17,8 +17,12 @@ export interface SessionNow {
 	sessionName: string | null;
 	/** The next open set's exercise; null when every set is done or no plan is on this device. */
 	exerciseName: string | null;
-	/** 1-based position of the next open set among its exercise's sets. */
+	/**
+	 * 1-based position of the next open set among its exercise's working sets,
+	 * as the rest notification counts; null while the next set is a warm-up.
+	 */
 	setIndex: number | null;
+	/** Working sets of that exercise; null while the next set is a warm-up. */
 	setCount: number | null;
 	/** Planned load in kg; 0 on bodyweight. */
 	kg: number | null;
@@ -42,12 +46,17 @@ export function nextSetOf(plan: SessionPlan | null): NextSet | null {
 	if (!plan) return null;
 	const row = nextOpenRow(plan);
 	if (!row) return null;
-	const rows = rowsOf(plan, row.exerciseId);
+	const working = rowsOf(plan, row.exerciseId).filter(
+		(item) => item.kind !== "warmup",
+	);
+	const warmup = row.kind === "warmup";
 	const timed = isTimedExercise(row.exerciseId);
 	return {
 		exerciseId: row.exerciseId,
-		setIndex: rows.findIndex((item) => item.id === row.id) + 1,
-		setCount: rows.length,
+		setIndex: warmup
+			? null
+			: working.findIndex((item) => item.id === row.id) + 1,
+		setCount: warmup ? null : working.length,
 		kg: row.kg,
 		reps: timed ? null : row.reps,
 		durationSeconds: timed ? row.reps : null,
