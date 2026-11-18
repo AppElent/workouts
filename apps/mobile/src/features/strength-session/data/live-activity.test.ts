@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/react-native";
+import { renderHook } from "@testing-library/react-native";
 import { AppState } from "react-native";
 import { DICTIONARIES } from "../../../i18n/dictionaries";
 import { type ExerciseFacts, seedPlan } from "../session-plan";
@@ -8,6 +9,7 @@ import {
 	type LiveActivityProps,
 	liveActivityProps,
 } from "./live-activity-props";
+import { useEndActivityWhenSignedOut } from "./session-live-activity";
 import { nextSetOf, type SessionNow } from "./use-session-now";
 
 type FakeState = {
@@ -268,6 +270,36 @@ describe("session Live Activity", () => {
 		expect(first?.ended).toBe(true);
 		expect(live()).toHaveLength(1);
 		expect(live()[0]?.props.title).toBe("Leg day");
+	});
+
+	it("clears the stale date once the rest is over", async () => {
+		showSessionActivity(props({ restEndsAt: T0 + 60_000 }));
+		await flush();
+		expect(live()[0]?.staleDate).toEqual(new Date(T0 + 60_000));
+		showSessionActivity(
+			liveActivityProps({ ...lifting, restEndsAt: null }, en, "en", true, T0),
+		);
+		await flush();
+		expect(live()[0]?.staleDate).toBeUndefined();
+		expect(live()[0]?.props.restOver).toBe(true);
+	});
+
+	it("ends a surviving activity once Clerk loads with nobody signed in", async () => {
+		showSessionActivity(props());
+		await flush();
+		const hook = await renderHook(
+			({ loaded, user }: { loaded: boolean; user: string | null }) =>
+				useEndActivityWhenSignedOut(loaded, user),
+			{ initialProps: { loaded: false, user: null } },
+		);
+		await flush();
+		expect(live()).toHaveLength(1);
+		await hook.rerender({ loaded: true, user: "user_1" });
+		await flush();
+		expect(live()).toHaveLength(1);
+		await hook.rerender({ loaded: true, user: null });
+		await flush();
+		expect(live()).toHaveLength(0);
 	});
 
 	it("updates its own activity in place", async () => {

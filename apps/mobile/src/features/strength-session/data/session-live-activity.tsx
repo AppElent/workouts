@@ -12,6 +12,20 @@ import { liveActivityProps } from "./live-activity-props";
 import { useRestState } from "./rest-timer";
 import { useSessionNow } from "./use-session-now";
 
+/**
+ * A Live Activity can outlive the app. Once Clerk has loaded with nobody
+ * signed in (also on a relaunch after sign-out, where the session provider
+ * never mounts), none may keep showing the last user's workout.
+ */
+export function useEndActivityWhenSignedOut(
+	isLoaded: boolean,
+	userId: string | null | undefined,
+) {
+	useEffect(() => {
+		if (isLoaded && !userId) endSessionActivity();
+	}, [isLoaded, userId]);
+}
+
 export function SessionLiveActivity() {
 	const active = useActiveSession();
 	const now = useSessionNow();

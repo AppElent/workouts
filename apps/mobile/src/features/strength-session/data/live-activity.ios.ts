@@ -27,6 +27,9 @@ let currentId: string | null = null;
 let currentSession: number | null = null;
 let sentKey = "";
 
+/** Set once creating the factory threw: reported then, skipped after. */
+let factoryFailed = false;
+
 // Created on first use: creating it writes the layout to the app group.
 function getFactory() {
 	factory ??= createLiveActivity(NAME, sessionLiveActivityLayout);
@@ -61,6 +64,7 @@ function forget() {
 
 /** Brings the system's activities in line with `props`; null ends them all. */
 async function sync(props: LiveActivityProps | null) {
+	if (factoryFailed) return;
 	try {
 		const instances = getFactory().getInstances();
 		const owned =
@@ -91,6 +95,8 @@ async function sync(props: LiveActivityProps | null) {
 		sentKey = key;
 	} catch (error) {
 		forget();
+		// Without a factory every later change would fail the same way.
+		if (!factory) factoryFailed = true;
 		if (!isUnsupported(error) && !isGone(error))
 			reportError(error, "live-activity.show");
 	}
