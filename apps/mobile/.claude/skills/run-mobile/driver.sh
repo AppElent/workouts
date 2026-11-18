@@ -212,8 +212,25 @@ cmd_reload() {
 	log "reload sent"
 }
 
+# A worktree is short-lived, so its simulator (3-4 GB) goes with `down`. The
+# main checkout keeps its simulator for fast warm starts.
+is_worktree() {
+	local git_dir common_dir
+	git_dir="$(git -C "$MOBILE_DIR" rev-parse --absolute-git-dir 2>/dev/null)" || return 1
+	common_dir="$(cd "$MOBILE_DIR" && cd "$(git rev-parse --git-common-dir)" && pwd -P)" || return 1
+	[ "$git_dir" != "$common_dir" ]
+}
+
 cmd_down() {
-	local u
+	local u delete=0
+	while [ $# -gt 0 ]; do
+		case "$1" in
+			--delete) delete=1; shift ;;
+			--keep) delete=-1; shift ;;
+			*) die "down: unknown option $1" ;;
+		esac
+	done
+	if [ "$delete" = 0 ] && is_worktree; then delete=1; fi
 	ad close >/dev/null || true
 	if [ -f "$STATE/metro.pid" ]; then
 		pkill -P "$(cat "$STATE/metro.pid")" 2>/dev/null || true
@@ -228,7 +245,12 @@ cmd_down() {
 		rm -f "$STATE/metro.listener"
 	fi
 	u="$(udid)"
-	[ -z "$u" ] || xcrun simctl shutdown "$u" 2>/dev/null || true
+	if [ -n "$u" ]; then
+		xcrun simctl shutdown "$u" 2>/dev/null || true
+		if [ "$delete" = 1 ]; then
+			xcrun simctl delete "$u" && rm -f "$STATE/lang" && log "deleted simulator '$SIM_NAME'"
+		fi
+	fi
 	log "down"
 }
 
@@ -242,6 +264,6 @@ case "${1:-}" in
 	logs) tail -n "${2:-40}" "$STATE/metro.log" ;;
 	udid) require_udid; echo ;;
 	state) echo "$STATE" ;;
-	down) cmd_down ;;
-	*) sed -n '2,3p' "$0"; echo "commands: up [--lang en|nl] [--debug-queries] [--clear] | signin [--email E --password P] | ad <agent-device args> | ss [file] | reload | backend | logs [n] | udid | state | down"; exit 2 ;;
+	down) shift; cmd_down "$@" ;;
+	*) sed -n '2,3p' "$0"; echo "commands: up [--lang en|nl] [--debug-queries] [--clear] | signin [--email E --password P] | ad <agent-device args> | ss [file] | reload | backend | logs [n] | udid | state | down [--delete|--keep]"; exit 2 ;;
 esac

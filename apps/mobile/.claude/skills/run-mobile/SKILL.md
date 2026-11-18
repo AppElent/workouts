@@ -42,6 +42,7 @@ $D down && $D up --clear   # restart Metro without its transform cache (stale en
 $D up --lang nl            # reboot sim in Dutch (en is default); sign-in survives
 $D up --debug-queries     # log Convex query watchers: $D logs 200 | grep convex-query
 $D down                    # close session, stop Metro we started, shut down sim
+                           # (in a worktree it also deletes the sim; --keep / --delete override)
 ```
 
 `ad` passes arguments straight to agent-device (`$D ad help`, `$D ad help workflow`).
@@ -56,6 +57,13 @@ Knobs (env): `RUN_MOBILE_PORT` (default 8090), `RUN_MOBILE_DEVICE_TYPE`
 (default `iPhone 18 Pro`), `RUN_MOBILE_SIM`, `RUN_MOBILE_APP`. Each checkout gets
 its own simulator, `Foundry run-mobile <hash>`, and its own state dir (`$D state`).
 The state dir holds `metro.log`.
+Run `$D down` before a worktree thread ends: it deletes that worktree's simulator
+(3–4 GB). Developer-home's `pnpm simulators prune` deletes any left behind.
+
+**Drive the simulator only through this driver (Bash).** Never use the Claude desktop
+app's iOS Simulator tool or computer use on Simulator: the desktop app asks Eric to
+approve every new simulator, and agents run while he is away (developer-home
+`standards/agent-permissions.md`, "Driving simulators unattended").
 
 ## GUI smoke flows (Maestro)
 
