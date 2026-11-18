@@ -2,6 +2,7 @@ import { useUser } from "@clerk/expo";
 import { useConvex } from "convex/react";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
+import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useRef, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
@@ -36,6 +37,7 @@ export function AccountScreen() {
 	const colors = useTokens();
 	const toast = useToast();
 	const confirm = useConfirm();
+	const router = useRouter();
 	const convex = useConvex();
 	const deleteAccountData = useAccountDeletion();
 	const online = useOnline();
@@ -208,6 +210,12 @@ export function AccountScreen() {
 						<AppText variant="label">{c.signInMethods}</AppText>
 						<AppText>{methods.join(", ")}</AppText>
 					</View>
+				) : null}
+				{user.passwordEnabled ? (
+					<DisclosureRow
+						label={c.changePassword}
+						onPress={() => router.push("/change-password")}
+					/>
 				) : null}
 			</FormSection>
 

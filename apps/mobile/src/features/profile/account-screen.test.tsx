@@ -31,6 +31,9 @@ jest.mock("@clerk/expo", () => ({
 	useUser: () => ({ user: mockUser }),
 }));
 
+const mockPush = jest.fn();
+jest.mock("expo-router", () => ({ useRouter: () => ({ push: mockPush }) }));
+
 jest.mock("expo-apple-authentication", () => ({ signInAsync: jest.fn() }));
 jest.mock("expo-constants", () => ({
 	__esModule: true,
@@ -51,6 +54,7 @@ const originalOS = Platform.OS;
 afterEach(() => {
 	Platform.OS = originalOS;
 	mockUser.externalAccounts = [];
+	mockUser.passwordEnabled = true;
 });
 
 beforeEach(() => {
@@ -107,6 +111,24 @@ it("saves an edited name through Clerk", async () => {
 		}),
 	);
 	expect(await screen.findByText("Name saved.")).toBeTruthy();
+});
+
+describe("the Change password row", () => {
+	it("opens the Change password screen for an account with a password", async () => {
+		await renderAccount();
+		await fireEvent.press(
+			screen.getByRole("button", { name: "Change password" }),
+		);
+		expect(mockPush).toHaveBeenCalledWith("/change-password");
+	});
+
+	it("is absent for an account without a password", async () => {
+		mockUser.passwordEnabled = false;
+		await renderAccount();
+		expect(
+			screen.queryByRole("button", { name: "Change password" }),
+		).toBeNull();
+	});
 });
 
 it("deletes all data in batches after confirmation and keeps the account", async () => {

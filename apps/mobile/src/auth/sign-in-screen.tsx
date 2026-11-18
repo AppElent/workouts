@@ -1,6 +1,7 @@
 /**
  * Email and password, an emailed code (`sign-in-code`), or a social provider
- * (`SocialButtons`). No reset yet: it is a Clerk flow with its own screens.
+ * (`SocialButtons`). A forgotten password resets through `forgot-password`;
+ * that link is off while a password or code sign-in is pending.
  * New accounts start at `sign-up`.
  *
  * The submit does not navigate: `finalize()` (in `usePasswordSignIn`) flips
@@ -24,7 +25,8 @@ import { usePasswordSignIn } from "./use-password-sign-in";
 
 export function SignInScreen() {
 	const router = useRouter();
-	const copy = useI18n().t.signIn;
+	const { t } = useI18n();
+	const copy = t.signIn;
 	const { submit, busy, error } = usePasswordSignIn();
 	const emailCode = useEmailCodeSignIn();
 	const [codeHint, setCodeHint] = useState<string | null>(null);
@@ -33,6 +35,8 @@ export function SignInScreen() {
 	const passwordRef = useRef<TextInputInstance>(null);
 
 	const ready = email.trim().length > 0 && password.length > 0;
+	// A reset runs on the same Clerk attempt, so it cannot start mid sign-in.
+	const signingIn = busy || emailCode.busy;
 
 	async function sendCode() {
 		setCodeHint(null);
@@ -54,6 +58,16 @@ export function SignInScreen() {
 			subtitle={copy.tagline}
 			footer={
 				<>
+					<AuthLink
+						label={t.resetPassword.link}
+						disabled={signingIn}
+						onPress={() =>
+							router.push({
+								pathname: "/forgot-password",
+								params: { email: email.trim() },
+							})
+						}
+					/>
 					<AuthLink label={copy.emailCode} onPress={sendCode} />
 					<AuthLink
 						prompt={copy.noAccount}

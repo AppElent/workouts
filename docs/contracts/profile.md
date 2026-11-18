@@ -27,6 +27,11 @@ tap. Study: [profile](../../designs/app/profile_final.html).
   to export first.
   - *Details.* First and last name and the photo are edited through Clerk; email
     addresses and sign-in methods are read-only.
+  - *Change password.* A row for accounts with a password only, opening its own
+    screen: the read-only email as the username, then current and new password,
+    the shape iOS AutoFill needs. Clerk changes it and signs out the account's
+    other sessions; its error shows on the field it concerns. Accounts that sign
+    in only with a social provider or an emailed code see no row.
   - *Export.* An online JSON file of every personal table, shared through the
     system share sheet. Receipts and counters are omitted; Food photo files are
     not included.

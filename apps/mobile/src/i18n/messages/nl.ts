@@ -18,6 +18,7 @@ import { nutritionNl } from "./nutrition";
 import { preferencesNl } from "./preferences";
 import { profileNl } from "./profile";
 import { progressNl } from "./progress";
+import { resetPasswordNl } from "./reset-password";
 import { routesNl } from "./routes";
 import { signInNl } from "./sign-in";
 import { signUpNl } from "./sign-up";
@@ -42,6 +43,7 @@ export const nl = {
 	authErrors: authErrorsNl,
 	signUp: signUpNl,
 	verifyEmail: verifyEmailNl,
+	resetPassword: resetPasswordNl,
 	profile: profileNl,
 	account: accountNl,
 	training: trainingNl,

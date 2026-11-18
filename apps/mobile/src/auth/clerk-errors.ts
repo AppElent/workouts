@@ -35,6 +35,39 @@ export function clerkErrorKey(error: unknown): ClerkErrorMessageKey {
 	return key;
 }
 
+/** One entry of a thrown Clerk API error, with the form parameter it is about. */
+export interface ClerkErrorEntry {
+	code: string;
+	/** `meta.paramName`, e.g. `current_password`; null for a form-level error. */
+	param: string | null;
+}
+
+/**
+ * The entries of a thrown Clerk API error (`errors[]`), each with its own
+ * `meta.paramName`. Clerk reports a wrong current password on
+ * `user.updatePassword` as `form_password_validation_failed` on
+ * `current_password`, the same code as a weak new one, so only the entry's
+ * parameter tells them apart. Empty for anything that is not a Clerk API error.
+ */
+export function clerkErrorEntries(error: unknown): ClerkErrorEntry[] {
+	const errors = (error as { errors?: unknown } | null)?.errors;
+	if (!Array.isArray(errors)) return [];
+	return errors.flatMap((item) => {
+		const entry = item as {
+			code?: unknown;
+			meta?: { paramName?: unknown };
+		} | null;
+		if (typeof entry?.code !== "string") return [];
+		const param = entry.meta?.paramName;
+		return [
+			{
+				code: entry.code,
+				param: typeof param === "string" && param ? param : null,
+			},
+		];
+	});
+}
+
 /**
  * What to show after a failed Core 3 call: the hook's field errors first,
  * then its global errors, then the returned error for failures that never
