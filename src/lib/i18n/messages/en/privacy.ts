@@ -2,7 +2,7 @@
 // compare every paragraph and list item between locales.
 export const privacy = {
 	title: "Privacy statement",
-	updated: "Last updated: 18 October 2026",
+	updated: "Last updated: 17 November 2026",
 	back: "Back to home",
 	intro: {
 		title: "Who we are",
@@ -72,7 +72,7 @@ export const privacy = {
 		title: "How long we keep it",
 		body: {
 			account:
-				"We keep your data for as long as you have an account. When you delete your account in the mobile app, your data and account are deleted right away. If you ask us by email instead, we delete them within 30 days.",
+				"We keep your data for as long as you have an account. When you delete your account in the mobile app or the web app, your data and account are deleted right away. If you ask us by email instead, we delete them within 30 days.",
 			diagnostics:
 				"Diagnostics and problem reports are deleted automatically after at most 90 days.",
 		},
@@ -83,7 +83,7 @@ export const privacy = {
 			rights:
 				"You have the right to access, correct, delete, or export your data, to restrict or object to its processing, and to withdraw consent.",
 			howTo:
-				"You can export your data, delete your data, or delete your account from the Account screen in the mobile app. You can also export your data from the Account page in the web app. To delete your account by email, or for any other request, email privacy@appelent.nl. We respond within one month.",
+				"You can export your data, delete your data, or delete your account from the Account screen in the mobile app or the Account page in the web app. To delete your account by email, or for any other request, email privacy@appelent.nl. We respond within one month.",
 			complaint:
 				"If you are not satisfied with how we handle your data, you can file a complaint with the Dutch Data Protection Authority (Autoriteit Persoonsgegevens) or the data protection authority in your country.",
 		},
