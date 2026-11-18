@@ -54,7 +54,9 @@ if (only && !PLATFORMS.includes(only)) {
 }
 // Android is paused until the repository variable ANDROID_ENABLED is `true`;
 // the workflows pass it in (developer-home standards/releases.md, "Android pause").
-const active = PLATFORMS.filter((p) => p !== "android" || process.env.ANDROID_ENABLED === "true");
+const active = PLATFORMS.filter(
+	(p) => p !== "android" || process.env.ANDROID_ENABLED === "true",
+);
 const results = active.filter((p) => !only || p === only).map((platform) => {
 	const runtime = fingerprint(channel, platform).hash;
 	const updates = (
