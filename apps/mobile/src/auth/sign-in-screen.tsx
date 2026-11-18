@@ -20,6 +20,7 @@ import { AppText } from "../ui/text";
 import { AuthInput, AuthLink, AuthMessage, AuthScreen } from "./auth-form";
 import { devLogin } from "./config";
 import { SocialButtons } from "./social-buttons";
+import { useCredentialFields } from "./use-credential-fields";
 import { useEmailCodeSignIn } from "./use-email-code-sign-in";
 import { usePasswordSignIn } from "./use-password-sign-in";
 
@@ -30,8 +31,16 @@ export function SignInScreen() {
 	const { submit, busy, error } = usePasswordSignIn();
 	const emailCode = useEmailCodeSignIn();
 	const [codeHint, setCodeHint] = useState<string | null>(null);
-	const [email, setEmail] = useState(devLogin?.email ?? "");
-	const [password, setPassword] = useState(devLogin?.password ?? "");
+	// AutoFill can change a field without `onChangeText`; submit its final text.
+	const form = useCredentialFields(
+		{ email: devLogin?.email ?? "", password: devLogin?.password ?? "" },
+		(latest) => {
+			if (latest.email.trim() && latest.password) {
+				void submit(latest.email, latest.password);
+			}
+		},
+	);
+	const { email, password } = form.values;
 	const passwordRef = useRef<TextInputInstance>(null);
 
 	const ready = email.trim().length > 0 && password.length > 0;
@@ -84,8 +93,7 @@ export function SignInScreen() {
 		>
 			<AuthInput
 				placeholder={copy.email}
-				value={email}
-				onChangeText={setEmail}
+				{...form.field("email")}
 				autoCapitalize="none"
 				autoCorrect={false}
 				keyboardType="email-address"
@@ -98,14 +106,13 @@ export function SignInScreen() {
 			<AuthInput
 				ref={passwordRef}
 				placeholder={copy.password}
-				value={password}
-				onChangeText={setPassword}
+				{...form.field("password")}
 				secureTextEntry
 				autoCapitalize="none"
 				autoComplete="current-password"
 				textContentType="password"
 				returnKeyType="go"
-				onSubmitEditing={() => ready && submit(email, password)}
+				onSubmitEditing={form.submitFrom("password")}
 			/>
 
 			<AuthMessage message={codeHint ?? emailCode.error ?? error} />
@@ -113,8 +120,8 @@ export function SignInScreen() {
 			<PrimaryButton
 				label={copy.submit}
 				loading={busy || emailCode.busy}
-				disabled={!ready}
-				onPress={() => submit(email, password)}
+				disabled={!ready && !form.editing}
+				onPress={form.press}
 				testID="sign-in-submit"
 			/>
 

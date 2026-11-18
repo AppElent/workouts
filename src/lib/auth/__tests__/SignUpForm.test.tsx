@@ -77,6 +77,16 @@ describe("SignUpForm", () => {
 		expect(sendEmailCode).toHaveBeenCalled();
 	});
 
+	it("marks the credential fields for password managers", () => {
+		renderForm();
+		expect(screen.getByLabelText("Email").getAttribute("autocomplete")).toBe(
+			"username",
+		);
+		expect(screen.getByLabelText("Password").getAttribute("autocomplete")).toBe(
+			"new-password",
+		);
+	});
+
 	function fillAndSubmit() {
 		fireEvent.change(screen.getByLabelText(/^(Email|E-mail)$/), {
 			target: { value: "a@b.com" },

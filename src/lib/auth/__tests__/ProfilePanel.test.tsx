@@ -118,6 +118,18 @@ describe("ProfilePanel", () => {
 		).toBe("");
 	});
 
+	it("names the account in the change-password form", () => {
+		const { container } = render(<ProfilePanel />);
+		const hint = container.querySelector<HTMLInputElement>(
+			'input[autocomplete="username"]',
+		);
+		expect(hint?.value).toBe("e@x.com");
+		expect(hint?.hidden).toBe(true);
+		expect(hint?.closest("form")).toBe(
+			screen.getByLabelText("New password").closest("form"),
+		);
+	});
+
 	it("keeps the form and shows the error when the change fails", async () => {
 		updatePassword.mockRejectedValue(new Error("nope"));
 		render(<ProfilePanel />);

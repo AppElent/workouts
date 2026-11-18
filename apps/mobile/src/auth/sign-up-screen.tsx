@@ -3,35 +3,43 @@
  * `verify-email` (`useSignUp` sends it before navigating).
  *
  * `autoComplete="new-password"` is what makes the platform offer to generate
- * and save a password, which is what later fills the sign-in screen.
+ * and save a password, which is what later fills the sign-in screen;
+ * `passwordRules` keeps that generated password inside Clerk's policy.
  */
 import { useRouter } from "expo-router";
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import type { TextInputInstance } from "react-native";
 import { useI18n } from "../i18n";
 import { PrimaryButton } from "../ui/button";
 import { AuthInput, AuthLink, AuthMessage, AuthScreen } from "./auth-form";
 import { SocialButtons } from "./social-buttons";
+import {
+	CLERK_PASSWORD_RULES,
+	useCredentialFields,
+} from "./use-credential-fields";
 import { useSignUp } from "./use-sign-up";
 
 export function SignUpScreen() {
 	const router = useRouter();
 	const copy = useI18n().t.signUp;
 	const { create, busy, error } = useSignUp();
-	const [email, setEmail] = useState("");
-	const [password, setPassword] = useState("");
 	const passwordRef = useRef<TextInputInstance>(null);
+	// AutoFill can change a field without `onChangeText`; submit its final text.
+	const form = useCredentialFields(
+		{ email: "", password: "" },
+		async (latest) => {
+			if (busy || !latest.email.trim() || !latest.password) return;
+			if (await create(latest.email, latest.password)) {
+				router.push({
+					pathname: "/verify-email",
+					params: { email: latest.email.trim() },
+				});
+			}
+		},
+	);
+	const { email, password } = form.values;
 
 	const ready = email.trim().length > 0 && password.length > 0;
-
-	async function submit() {
-		if (await create(email, password)) {
-			router.push({
-				pathname: "/verify-email",
-				params: { email: email.trim() },
-			});
-		}
-	}
 
 	return (
 		<AuthScreen
@@ -47,8 +55,7 @@ export function SignUpScreen() {
 		>
 			<AuthInput
 				placeholder={copy.email}
-				value={email}
-				onChangeText={setEmail}
+				{...form.field("email")}
 				autoCapitalize="none"
 				autoCorrect={false}
 				keyboardType="email-address"
@@ -61,14 +68,14 @@ export function SignUpScreen() {
 			<AuthInput
 				ref={passwordRef}
 				placeholder={copy.password}
-				value={password}
-				onChangeText={setPassword}
+				{...form.field("password")}
 				secureTextEntry
 				autoCapitalize="none"
 				autoComplete="new-password"
 				textContentType="newPassword"
+				passwordRules={CLERK_PASSWORD_RULES}
 				returnKeyType="go"
-				onSubmitEditing={() => ready && !busy && submit()}
+				onSubmitEditing={form.submitFrom("password")}
 			/>
 
 			<AuthMessage message={error} />
@@ -76,8 +83,8 @@ export function SignUpScreen() {
 			<PrimaryButton
 				label={copy.submit}
 				loading={busy}
-				disabled={!ready}
-				onPress={submit}
+				disabled={!ready && !form.editing}
+				onPress={form.press}
 			/>
 
 			<SocialButtons />
