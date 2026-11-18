@@ -5,7 +5,10 @@
  * `(auth)` layout redirects and this screen unmounts.
  *
  * `textContentType="newPassword"` lets the platform suggest a strong password
- * and update the saved one for this account.
+ * and update the saved one for this account. Declining that suggestion can
+ * clear the field natively without `onChangeText`, so the state also takes the
+ * text from `onEndEditing`. Resend and "Use a different email" stay disabled
+ * while a reset runs: all three act on the same Clerk attempt.
  */
 import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
@@ -20,8 +23,7 @@ const CODE_LENGTH = 6;
 export function ResetPasswordScreen({ email }: { email: string }) {
 	const router = useRouter();
 	const copy = useI18n().t.resetPassword;
-	const { reset, resend, resending, startOver, busy, error } =
-		usePasswordReset();
+	const { reset, resend, startOver, busy, locked, error } = usePasswordReset();
 	const [code, setCode] = useState("");
 	const [password, setPassword] = useState("");
 	const [notice, setNotice] = useState<string | null>(null);
@@ -30,7 +32,7 @@ export function ResetPasswordScreen({ email }: { email: string }) {
 	const ready = code.length === CODE_LENGTH && password.length > 0;
 
 	function submit() {
-		if (ready && !busy) void reset(code, password);
+		if (ready && !locked) void reset(code, password);
 	}
 
 	async function onResend() {
@@ -44,16 +46,12 @@ export function ResetPasswordScreen({ email }: { email: string }) {
 			subtitle={fmt(copy.codeSubtitle, { email })}
 			footer={
 				<>
-					<AuthLink
-						label={copy.resend}
-						onPress={onResend}
-						disabled={resending}
-					/>
+					<AuthLink label={copy.resend} onPress={onResend} disabled={locked} />
 					<AuthLink
 						label={copy.changeEmail}
+						disabled={locked}
 						onPress={async () => {
-							await startOver();
-							router.back();
+							if (await startOver()) router.back();
 						}}
 					/>
 				</>
@@ -77,6 +75,7 @@ export function ResetPasswordScreen({ email }: { email: string }) {
 				placeholder={copy.newPassword}
 				value={password}
 				onChangeText={setPassword}
+				onEndEditing={(event) => setPassword(event.nativeEvent.text)}
 				secureTextEntry
 				autoCapitalize="none"
 				autoComplete="new-password"
@@ -91,7 +90,7 @@ export function ResetPasswordScreen({ email }: { email: string }) {
 			<PrimaryButton
 				label={copy.submit}
 				loading={busy}
-				disabled={!ready}
+				disabled={!ready || locked}
 				onPress={submit}
 			/>
 		</AuthScreen>

@@ -139,3 +139,36 @@ it("starts over from the code screen with a different email", async () => {
 	await waitFor(() => expect(mockBack).toHaveBeenCalled());
 	expect(mockSignIn.reset).toHaveBeenCalled();
 });
+
+it("keeps resend and a different email closed while a reset runs", async () => {
+	mockSignIn.resetPasswordEmailCode.verifyCode.mockReturnValue(
+		new Promise(() => {}),
+	);
+	await renderScreen(<ResetPasswordScreen email="sam@example.test" />);
+	await fireEvent.changeText(screen.getByLabelText("Code"), "424242");
+	await fireEvent.changeText(
+		screen.getByLabelText("New password"),
+		"a-new-password",
+	);
+	await fireEvent.press(screen.getByRole("button", { name: "Reset password" }));
+	const resend = screen.getByRole("link", { name: "Send a new code" });
+	const changeEmail = screen.getByRole("link", {
+		name: "Use a different email",
+	});
+	expect(resend.props.accessibilityState.disabled).toBe(true);
+	expect(changeEmail.props.accessibilityState.disabled).toBe(true);
+	await fireEvent.press(changeEmail);
+	expect(mockSignIn.reset).not.toHaveBeenCalled();
+	expect(mockBack).not.toHaveBeenCalled();
+});
+
+it("disables the reset when iOS clears the new password without a change event", async () => {
+	await renderScreen(<ResetPasswordScreen email="sam@example.test" />);
+	await fireEvent.changeText(screen.getByLabelText("Code"), "424242");
+	const password = screen.getByLabelText("New password");
+	await fireEvent.changeText(password, "a-new-password");
+	const submit = () => screen.getByRole("button", { name: "Reset password" });
+	expect(submit().props.accessibilityState.disabled).toBe(false);
+	await fireEvent(password, "endEditing", { nativeEvent: { text: "" } });
+	expect(submit().props.accessibilityState.disabled).toBe(true);
+});
