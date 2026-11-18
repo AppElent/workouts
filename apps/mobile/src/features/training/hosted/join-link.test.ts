@@ -130,4 +130,16 @@ describe("+native-intent redirectSystemPath", () => {
 	])("opens Coach for the unclaimed web link %s", (path) => {
 		expect(redirectSystemPath({ path, initial: true })).toBe("/");
 	});
+
+	it.each([
+		`foundry://join//${TOKEN}`,
+		`foundry:///join//${TOKEN}`,
+		`foundry://join/${TOKEN}/extra`,
+		"foundry://join/",
+		"foundry://join",
+		`//join/${TOKEN}%2F`,
+		`/join//${TOKEN}`,
+	])("opens Coach for the malformed join link %s", (path) => {
+		expect(redirectSystemPath({ path, initial: true })).toBe("/");
+	});
 });
