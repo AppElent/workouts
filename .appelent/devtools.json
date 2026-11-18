@@ -3,8 +3,8 @@
   "repository": "AppElent/developer-home",
   "scope": "project",
   "ref": "main",
-  "commit": "d58859d383c9a1283f85095e2bc2fdbbfae48bf7",
-  "manifestHash": "e73969c49419f72f309afac736f94dfb9bd0d6ba488c5dc2bb603736a029b646",
+  "commit": "local",
+  "manifestHash": "c6615b3662ccbee1d6d16157c179056fcd8688a5b45c28905556c5a71a657260",
   "files": {
     "scripts/baseline-mobile.mjs": {
       "sha256": "2ca4cd7d820efda7ad5b902c0c987b724d87197e2c1a4e15d446e39a1085aedf"
@@ -16,7 +16,7 @@
       "sha256": "6336676db6dcd2e4801992cc1b878ffafa65719314a27861247a6c8f73fd0c04"
     },
     "scripts/check-project.mjs": {
-      "sha256": "fe0e2ed0f2c7ea49a32bd5492e1152db45e7eaca24f1bca8cecd369656b71163"
+      "sha256": "bdef437ccb5f208566ed0498304a393079d08068e299c45840bb8cfea64bf425"
     },
     "scripts/env.mjs": {
       "sha256": "9347b3602296c5d9d31b7fab503e2ef696886f2f3de4c9899d44b459e8add087"
@@ -131,8 +131,8 @@
       "version": "1.1.2"
     },
     "docs/standards/auth.md": {
-      "sha256": "b01c693021b6cf528fab04ad9cb2517ac5a1370eafc5e45130b08426ddeef922",
-      "version": "3.3.0"
+      "sha256": "eedea506741c5ddb3a59aa03be4c08ec21e8877722cc37e229527272082c6d9e",
+      "version": "3.4.0"
     },
     "docs/standards/auth/examples/native.ts": {
       "sha256": "8c57fc48f63fa035f3282574295bd36f85231523d748cfba8d725f7cde47617a"
@@ -195,8 +195,8 @@
       "version": "1.0.3"
     },
     "docs/standards/mobile-baseline.md": {
-      "sha256": "1fec085745c43b67f807f8fa2655a2a1af768ad779389883709725c2363f54a2",
-      "version": "3.3.0"
+      "sha256": "6aa457554c72ecf8b18c946240db4def91d8b5922d8943696603a5f0537678a9",
+      "version": "3.4.0"
     },
     "docs/standards/mobile-baseline/examples/ota-guard.ts": {
       "sha256": "bbf4132ebc2c69d4830380aafe203eac9eab3afa182c9ef0f772f50a59636093"
@@ -229,8 +229,8 @@
       "version": "1.1.0"
     },
     "docs/standards/verification.md": {
-      "sha256": "87e5262d87f67e15d000fe21455696346bfab93de22de4a46d03efe0300832d1",
-      "version": "2.2.0"
+      "sha256": "946d42b745bc8620b31bc11f9d98106617da7f90c9631bc917452dd624936a10",
+      "version": "2.3.0"
     },
     "docs/standards/web-baseline.md": {
       "sha256": "562aa3396a09dd73f5a69f870d6dda8da3a24d189120609e0cc01ddaf6892b74",
@@ -432,7 +432,7 @@
       "sha256": "5c7474a6f50d85bc07c81d931bbc36da03ed22f365deb06d5ef8e16c966451b5"
     },
     "docs/standards/mobile-baseline/templates/mobile-build.yml": {
-      "sha256": "19fbb476f287aaa1c0b7dc8288671ea3aa2d0e9d9b421bdf6ffda6e19e3c3056"
+      "sha256": "e41d0b0a5b060854a62359ee6f69b0a30c9be883500e46506e1f6ae906f5d6c8"
     },
     "docs/standards/mobile-baseline/templates/mobile-runtime.yml": {
       "sha256": "b1e4e1dea2ded85bb58e0fae2b23c05fd6933de183403b7a5eb3f9a2e14ebe15"
@@ -441,8 +441,8 @@
       "sha256": "d8ba1a0d7020fa611de1c417a8ad6103a1217f26fdf93836af0812f8f50ce414"
     },
     "docs/standards/mobile-distribution.md": {
-      "sha256": "b2d1ca5fb673673ffc4d0bd9bb4f1812eaa4fc303b1665e74f231ca5d4d7bd17",
-      "version": "2.3.1"
+      "sha256": "0645e8d030ee6e3fd51382e0bc34e95dd1ccc7c89e89d6423dfc5cdcb27df66d",
+      "version": "2.4.0"
     },
     "docs/standards/baseline/templates/biome.fragment.json": {
       "sha256": "b9dd169a93273be50cad537983871ab1a066698002887ce803b94b165c096951"
@@ -480,8 +480,8 @@
       "sha256": "a1dd5a646b2f4088c6ecf23be629869325b664826c4af41b4e770a17d7b65678"
     },
     "docs/standards/platform-parity.md": {
-      "sha256": "0a46d0b3e2ac6b36a2f0ead8bf7b9146e0d0d3f2e4096c058a8379b2d3ae6401",
-      "version": "1.0.0"
+      "sha256": "79b348bd5604b4430bdcdbdd1899771bc04d3f3c6e191347d23ab8560edc49c8",
+      "version": "1.1.0"
     },
     "docs/standards/platform-parity/examples/feature-manifest-check.ts": {
       "sha256": "9399a124cae99fccecf3d8d81ef35024ea5188a612f68a8ac3cee3235373e958"
@@ -490,12 +490,12 @@
       "sha256": "28bb594f05a0048b6ecdf3da8340c9261d9c448071cd4ec951618bfb51321b6f"
     },
     "docs/standards/releases.md": {
-      "sha256": "dc48a53f206a96e1c943f1d934bbf7f1db7d2182f77787eaa463fe06bdc727ed",
-      "version": "1.0.0"
+      "sha256": "761a6a5ed971a9579773817f0f5e9e609b783fcfe59af3a750052a7ffc7367ae",
+      "version": "1.1.0"
     },
     "docs/standards/agent-permissions.md": {
-      "sha256": "6a644da3a0eeef4528f0f89216de5c676b93c6f051b6e28436c874107427b638",
-      "version": "1.1.0"
+      "sha256": "e02532165654172ce97d3285ba909f98450cd77af945feeda686d2d6853a254a",
+      "version": "1.2.0"
     },
     "docs/standards/agent-permissions/irreversible-guard.mjs": {
       "sha256": "d94151bd82633d47deef0a285dc5284339a76241f978bb4b1244a50d5e0d9e69"
@@ -512,12 +512,31 @@
     },
     "docs/standards/auth/examples/web/UsernameHint.tsx": {
       "sha256": "b1e45b0b2dda4d6559ed4c4902e4056764a377cb61400464ed9681bf4001cdb5"
+    },
+    "docs/standards/app-links.md": {
+      "sha256": "6e1d3681c54cb36bd244adb1a180cc1b05e8305f395949a3a958fe04b878ccd3",
+      "version": "2.2.0"
+    },
+    "docs/standards/app-links/examples/app-links.example-test.ts": {
+      "sha256": "ccfe22a2fd9099d3da69862f07e44eceef628b5ed33bce2fdc98464db54683c4"
+    },
+    "docs/standards/app-links/examples/app-links.ts": {
+      "sha256": "163c3a14eba3d987034f1527fccb7925b33addb32ffe303bfc25ab12821d2f1e"
+    },
+    "docs/standards/app-links/examples/pending-link.ts": {
+      "sha256": "199f109d13479c8eae08aafa6dfc64dd3a009b09da0cec6bafd54529214f3d5c"
+    },
+    "docs/standards/verification/stop-checks.mjs": {
+      "sha256": "001615091f699c2a631be23f7f5693f3ea199638a3dc59eed850aa6f47e90f18"
+    },
+    "scripts/lib/project/stop-checks.mjs": {
+      "sha256": "074e0b5360bba27954dacf760ed5008649415a1fc53573ca1bb1e1f22293d221"
     }
   },
   "blocks": {
     "AGENTS.md": "5dd11c522805ab3041f27582a641d667534c3594f06ab023a435219f3894dcea",
     "CLAUDE.md": "3a539a9496d276ff97cbc761a98a6db988880a0939a61e78fb156b237927cb24",
-    "CODING_STANDARDS.md": "850a35206e86bf33146cc84ea076aaefad5126849d30b3caabeecae62eccab63",
+    "CODING_STANDARDS.md": "8a08769df4117fca963cbd69f76e1d5f3329baced09289061082e1c413c96a9c",
     "DESIGN_SYSTEM.md": "0b84f92d183be259e69372bff87939bdedda2ed81c215f3c1214d02d7f83de9a"
   }
 }
