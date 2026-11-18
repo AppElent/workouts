@@ -52,7 +52,10 @@ if (only && !PLATFORMS.includes(only)) {
 	console.error(`Unknown platform "${only}"`);
 	process.exit(1);
 }
-const results = PLATFORMS.filter((p) => !only || p === only).map((platform) => {
+// Android is paused until the repository variable ANDROID_ENABLED is `true`;
+// the workflows pass it in (developer-home standards/releases.md, "Android pause").
+const active = PLATFORMS.filter((p) => p !== "android" || process.env.ANDROID_ENABLED === "true");
+const results = active.filter((p) => !only || p === only).map((platform) => {
 	const runtime = fingerprint(channel, platform).hash;
 	const updates = (
 		// The branch only exists after the channel's first update: none yet.
