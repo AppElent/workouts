@@ -3,16 +3,21 @@
  * account that used it is deleted (TN3194). Clerk does not do this on user
  * deletion, so the app does it itself before deleting the Clerk user.
  *
- * The iOS app hands over a fresh `authorizationCode` from the native sheet. It
- * is exchanged for a refresh token, which is then revoked. Native codes are
- * issued to the bundle ID, so that is the `client_id`.
+ * The iOS app hands over a fresh `authorizationCode` from the native sheet,
+ * the web app one from an Apple JS popup. It is exchanged for a refresh token,
+ * which is then revoked. Native codes are issued to the bundle ID and web
+ * codes to the Services ID, so that is the `client_id`; a web code also needs
+ * the return URL it was requested with.
  */
+
+import { APPLE_WEB_SERVICES_ID } from "@foundry/core";
 
 const APPLE = "https://appleid.apple.com";
 const APPLE_CLIENT_IDS = [
 	"com.appelent.foundry",
 	"com.appelent.foundry.preview",
 	"com.appelent.foundry.dev",
+	APPLE_WEB_SERVICES_ID,
 ] as const;
 type AppleClientId = (typeof APPLE_CLIENT_IDS)[number];
 
@@ -109,6 +114,7 @@ export async function revokeAppleAuthorization(
 	credentials: AppleCredentials,
 	authorizationCode: string,
 	clientId: AppleClientId,
+	redirectUri?: string,
 ) {
 	const secret = await clientSecret(credentials, clientId);
 	const tokens = (await (
@@ -117,6 +123,7 @@ export async function revokeAppleAuthorization(
 			client_secret: secret,
 			code: authorizationCode,
 			grant_type: "authorization_code",
+			...(redirectUri ? { redirect_uri: redirectUri } : {}),
 		})
 	).json()) as { refresh_token?: string; access_token?: string };
 	const [token, hint] = tokens.refresh_token

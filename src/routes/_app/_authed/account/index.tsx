@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { DeleteAccountCard } from "#/components/account/DeleteAccountCard";
 import { ExportDataCard } from "#/components/account/ExportDataCard";
 import { ReportProblem } from "#/components/account/ReportProblem";
 import { TestDataCard } from "#/components/account/TestDataCard";
@@ -19,6 +20,7 @@ function AccountPage() {
 			<ExportDataCard />
 			<TestDataCard />
 			<ReportProblem />
+			<DeleteAccountCard />
 			<Link to="/privacy" className="text-sm text-text-muted hover:text-text">
 				{privacy.title}
 			</Link>

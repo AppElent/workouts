@@ -92,12 +92,11 @@ export const FEATURES = defineFeatures([
 		},
 	},
 	{
+		// Both platforms delete through account.deleteData and Clerk self-deletion.
 		id: "account-deletion",
 		kind: "floor",
-		status: "pending-port",
-		platforms: ["mobile"],
-		reason:
-			"Only the mobile Account screen deletes data or the account (APP-34).",
+		status: "parity",
+		platforms: ["web", "mobile"],
 		routes: {},
 	},
 	{

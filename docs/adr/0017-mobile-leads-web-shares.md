@@ -33,7 +33,6 @@ personal table on both platforms, including nutrition and Personal Measures,
 even though the web does not show them. Foundry does not reduce the floor. The
 gaps open today are `pending-port` entries with follow-up issues:
 
-- Web account deletion: [APP-34](https://linear.app/appelent/issue/APP-34).
 - Web theme choice (the web is dark only): [APP-39](https://linear.app/appelent/issue/APP-39). Closing it as "dark only"
   means reducing the floor in this record first.
 

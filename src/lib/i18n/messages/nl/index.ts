@@ -1,4 +1,5 @@
 import type { Messages } from "../en";
+import { account } from "./account";
 import { auth } from "./auth";
 import { common } from "./common";
 import { errors } from "./errors";
@@ -11,6 +12,7 @@ import { support } from "./support";
 import { testData } from "./test-data";
 
 export const nl = {
+	account,
 	auth,
 	common,
 	errors,

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+	appleWebReturnUrl,
 	clerkErrorMessageKey,
 	isTestLoginAvailable,
 	socialSignInProviders,
@@ -82,5 +83,20 @@ describe("clerkErrorMessageKey", () => {
 		expect(clerkErrorMessageKey({ code: "something_new" })).toBe("generic");
 		expect(clerkErrorMessageKey({ code: "toString" })).toBe("generic");
 		expect(clerkErrorMessageKey(null)).toBe("generic");
+	});
+});
+
+describe("appleWebReturnUrl", () => {
+	const registered = ["https://foundry.appelent.nl/account"];
+
+	it("is the Account page of a registered origin", () => {
+		expect(appleWebReturnUrl("https://foundry.appelent.nl", registered)).toBe(
+			"https://foundry.appelent.nl/account",
+		);
+	});
+
+	it("is null for an origin Apple does not know", () => {
+		expect(appleWebReturnUrl("https://evil.example", registered)).toBeNull();
+		expect(appleWebReturnUrl("http://localhost:3000", registered)).toBeNull();
 	});
 });
