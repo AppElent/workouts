@@ -169,6 +169,8 @@ export const revokeAppleSignIn = action({
 	},
 	returns: v.null(),
 	handler: async (ctx, { authorizationCode, bundleId, redirectUri }) => {
+		// Part of deleting the account, which stays in the Foundry app.
+		await rejectConnectedApps(ctx);
 		const userId = await requireUserId(ctx);
 		if (!authorizationCode || authorizationCode.length > MAX_AUTHORIZATION_CODE)
 			throw appError("invalid", "authorizationCode");

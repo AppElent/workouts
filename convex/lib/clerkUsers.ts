@@ -23,7 +23,11 @@ export async function linkedAppleUserIds(userId: string): Promise<string[]> {
 	if (!secretKey) throw new ClerkUnavailable("CLERK_SECRET_KEY is not set");
 	const response = await fetch(
 		`${CLERK_API}/users/${encodeURIComponent(userId)}`,
-		{ headers: { Authorization: `Bearer ${secretKey}` } },
+		{
+			headers: { Authorization: `Bearer ${secretKey}` },
+			// A slow Clerk fails the revocation instead of holding the deletion.
+			signal: AbortSignal.timeout(10_000),
+		},
 	);
 	if (!response.ok) throw new Error(`Clerk /users returned ${response.status}`);
 	const { external_accounts } = (await response.json()) as {
@@ -32,7 +36,9 @@ export async function linkedAppleUserIds(userId: string): Promise<string[]> {
 	return (external_accounts ?? [])
 		.filter(
 			(account) =>
-				account.provider === "oauth_apple" &&
+				// The Backend API says `oauth_apple`; accept the bare name too.
+				typeof account.provider === "string" &&
+				account.provider.replace(/^oauth_/, "") === "apple" &&
 				typeof account.provider_user_id === "string" &&
 				account.provider_user_id !== "" &&
 				// An unverified link never finished signing in with Apple.

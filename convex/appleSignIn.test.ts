@@ -362,6 +362,31 @@ describe("web Apple revocation server checks", () => {
 		});
 	});
 
+	it("accepts Clerk's provider name with or without the oauth_ prefix", async () => {
+		const { alice, calls } = await setUp({
+			"/v1/users/alice": clerkUser([
+				{ provider: "apple", provider_user_id: "apple-alice" },
+			]),
+			"/auth/token": appleToken("apple-alice"),
+			"/auth/revoke": new Response(null, { status: 200 }),
+		});
+		await alice.action(api.account.revokeAppleSignIn, WEB);
+		expect(paths(calls)).toContain("/auth/revoke");
+	});
+
+	it("refuses connected apps before any lookup", async () => {
+		const { t, calls } = await setUp({});
+		const app = t.withIdentity({
+			subject: "alice",
+			client_id: "mcp-client",
+			scope: "foundry:read foundry:write",
+		});
+		await expect(
+			app.action(api.account.revokeAppleSignIn, WEB),
+		).rejects.toMatchObject({ data: { code: "readOnly" } });
+		expect(calls).toEqual([]);
+	});
+
 	it("refuses to revoke a code for another Apple user", async () => {
 		const { alice, calls } = await setUp({
 			"/v1/users/alice": linkedToApple(),
