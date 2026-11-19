@@ -2,7 +2,7 @@
 type: standard
 kind: capability
 description: Read when getting an iOS build onto a phone, choosing between internal distribution and TestFlight, building in CI, or publishing an over-the-air update.
-version: 2.3.0
+version: 2.4.0
 applies_to: [mobile]
 ---
 
@@ -25,7 +25,7 @@ Your own phone runs a standalone build within minutes of a change, without Apple
 - **Default:** on the owner's Mac, run local builds through the hub's builds tool: `node ~/Developer/developer-home/tools/builds.mjs build <app> <profile> <platform>` (`--submit` sends a store build on to TestFlight). EAS records only cloud builds, so the tool keeps each local binary in `~/Developer/.builds/<app>/<profile>/<platform>/` (the newest five) with a record of its version, build number, channel, runtime fingerprint and commit. `pnpm builds status` in developer-home shows, per app, channel and platform, the newest build, its newest update, and whether main ships as an update or needs a rebuild; it writes `~/Developer/.builds/STATUS.md` and `index.html`. A binary built another way is added with `builds.mjs record`.
 - Every profile built on EAS's macOS image sets `SHARP_IGNORE_GLOBAL_LIBVIPS=1` when `sharp` is in the workspace (for example through wrangler or miniflare). The image ships Homebrew libvips, so sharp's install check chooses a from-source build that has no `node-gyp`, and `pnpm install` fails.
 - A profile whose EAS environment has no `SENTRY_AUTH_TOKEN` sets `SENTRY_DISABLE_AUTO_UPLOAD=true`, or the Release build fails at the upload step. Profiles that report errors keep the upload; see [Sentry monitoring](sentry-monitoring.md).
-- **Default:** CI builds are opt-in, through PR labels `build:ios` / `build:android` or a manual run of the [caller](mobile-baseline/templates/mobile-build.yml) and [reusable build](mobile-baseline/templates/eas-local-build.yml) workflows: `eas build --local` on the runner, with the binary as a workflow artifact. Gate each platform at job level so an unlabelled push never starts a macOS runner. Pin `eas-cli` as a dev dependency so CI and local builds match.
+- **Default:** CI builds are opt-in, through PR labels `build:ios` / `build:android` or a manual run of the [caller](mobile-baseline/templates/mobile-build.yml) and [reusable build](mobile-baseline/templates/eas-local-build.yml) workflows: `eas build --local` on the runner, with the binary as a workflow artifact. Gate each platform at job level so an unlabelled push never starts a macOS runner. The Android job also requires the repository variable `ANDROID_ENABLED` to be `true` ([Android pause](releases.md#android-pause)). Pin `eas-cli` as a dev dependency so CI and local builds match.
 - CI builds need an `EXPO_TOKEN` secret, cannot read Secret-visibility EAS variables, and cannot answer signing prompts, so iOS ad hoc credentials with registered devices must already exist. GitHub-hosted macOS minutes are free only for public repositories; check a private repository's budget before enabling iOS.
 
 ### Updates
@@ -54,7 +54,7 @@ Your own phone runs a standalone build within minutes of a change, without Apple
 ## Implementation
 
 1. Register each phone once: `eas device:create` (open the link on the phone), or confirm a USB- or Wi‑Fi-paired device with `xcrun devicectl list devices`.
-2. Run the first build of each bundle ID yourself (`pnpm exec eas build -p ios --profile preview-internal`): its interactive Apple login creates the ad hoc profile, after which `--non-interactive` builds work in CI and for agents. Repeat one interactive build after adding a device or an app extension (widgets or Live Activities through `expo-widgets`, share or notification extensions). An extension target has its own bundle ID (`<bundle>.<Target>`) and profile, so non-interactive builds fail with "couldn't find any credentials suitable for internal distribution" until then.
+2. Run the first build of each bundle ID yourself (`pnpm exec eas build -p ios --profile preview-internal`): its interactive Apple login creates the ad hoc profile, after which `--non-interactive` builds work in CI and for agents. Repeat one interactive build after adding a device or an app extension (widgets or Live Activities through `expo-widgets`, share or notification extensions). An extension target has its own bundle ID (`<bundle>.<Target>`) and profile, so non-interactive builds fail with "couldn't find any credentials suitable for internal distribution" until then. An agent that hits this login cannot show its own terminal to the owner: it hands the owner the exact command to paste into their own Terminal (working directory, profile, `--output` path, and `SENTRY_DISABLE_AUTO_UPLOAD=true` where the profile needs it), waits for the `.ipa`, and then registers and installs it.
 3. Build and install:
 
    ```sh
@@ -78,6 +78,8 @@ Your own phone runs a standalone build within minutes of a change, without Apple
 - After a test update, a cold start followed by a second cold start shows the change; or resuming shows the restart prompt, and tapping it shows the change.
 
 ## Migration
+
+From 2.3: gate the Android build job on `vars.ANDROID_ENABLED == 'true'` ([Android pause](releases.md#android-pause)).
 
 From 2.2: add the daily production update job from [releases](releases.md).
 

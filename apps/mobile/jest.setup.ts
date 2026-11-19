@@ -110,6 +110,8 @@ jest.mock("@sentry/react-native", () => ({
 	setTag: jest.fn(),
 	addEventProcessor: jest.fn(),
 	showFeedbackForm: jest.fn(),
+	enableFeedbackOnShake: jest.fn(),
+	disableFeedbackOnShake: jest.fn(),
 	setUser: jest.fn(),
 	captureException: jest.fn(),
 	logger: { error: jest.fn() },
@@ -462,6 +464,71 @@ jest.mock("@expo/ui/swift-ui/modifiers", () => {
 			apply: (_target, _thisArg, args: unknown[]) => ({ type: path, args }),
 		});
 	return modifier("");
+});
+
+// React Native's mock makes `currentState` a function; the app reads the
+// string, and a Live Activity starts only while it is "active".
+Object.defineProperty(
+	jest.requireActual("react-native").AppState,
+	"currentState",
+	{
+		value: "active",
+		configurable: true,
+		writable: true,
+	},
+);
+
+// Live Activities are native-only. The fake keeps the running activities in
+// memory so tests can assert on starts, updates and ends.
+jest.mock("expo-widgets", () => {
+	const state = {
+		activities: [] as {
+			id: string;
+			props: unknown;
+			staleDate?: Date;
+			ended: boolean;
+		}[],
+		enabled: true,
+		next: 0,
+		/** Set to hold every end() open until it resolves. */
+		endGate: null as Promise<void> | null,
+		/** Set to hold every update() open until it resolves. */
+		updateGate: null as Promise<void> | null,
+	};
+	const wrap = (fake: (typeof state.activities)[number]) => ({
+		getId: () => fake.id,
+		update: jest.fn(async (props: unknown, staleDate?: Date) => {
+			await state.updateGate;
+			if (fake.ended)
+				throw Object.assign(new Error("Live Activity not found"), {
+					code: "ERR_LIVE_ACTIVITY_NOT_FOUND",
+				});
+			fake.props = props;
+			fake.staleDate = staleDate;
+		}),
+		end: jest.fn(async () => {
+			await state.endGate;
+			fake.ended = true;
+		}),
+	});
+	return {
+		__liveActivities: state,
+		createLiveActivity: jest.fn(() => ({
+			start: jest.fn((props: unknown, _url?: string, staleDate?: Date) => {
+				if (!state.enabled)
+					throw Object.assign(new Error("Live Activities are disabled"), {
+						code: "ERR_LIVE_ACTIVITIES_NOT_SUPPORTED",
+					});
+				state.next += 1;
+				const fake = { id: `la-${state.next}`, props, staleDate, ended: false };
+				state.activities.push(fake);
+				return wrap(fake);
+			}),
+			getInstances: jest.fn(() =>
+				state.activities.filter((item) => !item.ended).map(wrap),
+			),
+		})),
+	};
 });
 
 // UIKit's menu host is absent in Jest. Keep Expo's real Link, routing and menu

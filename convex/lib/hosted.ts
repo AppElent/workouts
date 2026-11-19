@@ -30,18 +30,34 @@ export function toHostedSessionDto(hosted: Doc<"hostedWorkouts">) {
 	};
 }
 
+/** For a session recorded after the fact; see `startSession`. */
+type Recorded = { startTime: number; endTime?: number };
+
+/** Starts the athlete's own session for the workout. */
+export function startHostedSession(
+	ctx: MutationCtx,
+	hosted: Doc<"hostedWorkouts">,
+	userId: string,
+	recorded?: Recorded,
+) {
+	return startSession(ctx, userId, {
+		name: hosted.title,
+		date: hosted.scheduledAt,
+		startTime: recorded?.startTime,
+		endTime: recorded?.endTime,
+		prescriptions: hostedPrescriptions(hosted.template.strengthBlocks),
+	});
+}
+
 /** Starts a participant's session for the workout and joins them to it. */
 export async function joinHosted(
 	ctx: MutationCtx,
 	hosted: Doc<"hostedWorkouts">,
 	userId: string,
 	displayName: string | undefined,
+	recorded?: Recorded,
 ) {
-	const sessionId = await startSession(ctx, userId, {
-		name: hosted.title,
-		date: hosted.scheduledAt,
-		prescriptions: hostedPrescriptions(hosted.template.strengthBlocks),
-	});
+	const sessionId = await startHostedSession(ctx, hosted, userId, recorded);
 	await ctx.db.insert("hostedWorkoutParticipants", {
 		hostedWorkoutId: hosted._id,
 		userId,

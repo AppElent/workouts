@@ -2,7 +2,7 @@
 type: standard
 kind: platform
 description: Read when setting up or changing an Expo Router app, its native configuration, or its EAS build profiles.
-version: 3.2.0
+version: 3.4.0
 applies_to: [mobile]
 ---
 
@@ -70,10 +70,12 @@ Expo apps share one stack while preserving native identity and release boundarie
 ## Verify
 
 - Types, app tests, and Expo dependency checks pass.
-- An actual development or internal build runs on a device or simulator: cold and warm launch, login and logout, navigation, keyboard, safe areas, scaling, offline and error states, and backend reachability. Native interactions need native verification, not screenshots of the web app; follow the applicable [iOS](ios-design.md) and [Android](android-design.md) rules.
+- An actual development or internal build runs on a device or simulator: cold and warm launch, login and logout, navigation, keyboard, safe areas, scaling, offline and error states, and backend reachability. On an iOS simulator, run it with [`scripts/run-mobile.mjs`](mobile-run.md). Native interactions need native verification, not screenshots of the web app; follow the applicable [iOS](ios-design.md) and [Android](android-design.md) rules.
 - Device Hub loads and the intended device connects.
 - A missing provider credential or untested device path is reported as outstanding work.
 
 ## Migration
+
+From 3.3: the `mobile-build.yml` template gates its Android job on `vars.ANDROID_ENABLED == 'true'` ([Android pause](releases.md#android-pause)).
 
 From 2.x: OTA publishing, fingerprints, and CI builds moved to [mobile distribution](mobile-distribution.md); template paths are unchanged. Apps from before 2.5 also align the root `react`/`react-dom` pins with `apps/mobile` (or record the exception) and add the root's strictness flags to `apps/mobile/tsconfig.json`.

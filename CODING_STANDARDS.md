@@ -12,14 +12,17 @@ Read only what the task needs; never preload every standard.
 | --- | --- |
 | Adding, moving, or naming native files | [Mobile structure](docs/standards/mobile-structure.md) |
 | Deciding which platforms a feature ships on, adding or moving a web or mobile route, or shareable links | [Platform parity](docs/standards/platform-parity.md) |
+| Making a shared, join, or invite link open the app; associated domains for password-manager autofill | [App links](docs/standards/app-links.md) |
 | Repository, package manager, formatter, types, tests, CI, or toolkit sync | [Baseline](docs/standards/baseline.md) |
 | Top-level folders, workspace packages, or shared code between web, Convex, and mobile | [Repository layout](docs/standards/repo-layout.md) |
 | Dependabot or automated dependency PRs | [Dependency updates](docs/standards/dependency-updates.md) |
 | Web app stack, UI states, or browser capabilities | [Web baseline](docs/standards/web-baseline.md) |
 | Expo setup or native configuration | [Mobile baseline](docs/standards/mobile-baseline.md) |
 | Native builds, getting one onto a phone, TestFlight, OTA updates, or releases | [Mobile distribution](docs/standards/mobile-distribution.md) |
+| Running, driving or screenshotting the mobile app on an iOS simulator | [Mobile run](docs/standards/mobile-run.md) |
 | Reporting work as done, verified, or accepted | [Verification](docs/standards/verification.md), then the project's check commands |
 | Environment variables, secrets, `env.manifest.ts`, or `env:*` scripts | [Environments](docs/standards/environments.md) |
+| Claude Code settings, hooks, allow or deny rules, or a command the deny list blocked | [Agent permissions](docs/standards/agent-permissions.md) |
 | Creating, preparing, or cleaning a worktree | [Workspaces](docs/standards/workspaces.md) |
 | Authentication | [Auth](docs/standards/auth.md) |
 | Convex functions, schema, migrations, seeds, tests, or account deletion and export | [Convex backend](docs/standards/convex.md) |

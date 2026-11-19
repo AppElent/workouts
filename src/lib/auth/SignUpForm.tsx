@@ -5,10 +5,17 @@ import { AuthButton } from "./AuthButton";
 import { AuthError } from "./AuthError";
 import { AuthField } from "./AuthField";
 import { orThrow, useClerkErrorMessage } from "./clerkError";
-import { AUTH_PATHS } from "./paths";
+import { AUTH_PATHS, withRedirect } from "./paths";
 import { SocialButtons } from "./SocialButtons";
 
-export function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
+export function SignUpForm({
+	onSuccess,
+	redirect,
+}: {
+	onSuccess: () => void;
+	/** Where to land after signing up, carried to social sign-up and sign-in. */
+	redirect?: string;
+}) {
 	const { signUp } = useSignUp();
 	const { locale, messages } = useI18n();
 	const { auth } = messages;
@@ -76,12 +83,12 @@ export function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
 
 	return (
 		<form onSubmit={submitDetails} noValidate className="flex flex-col gap-3">
-			<SocialButtons />
+			<SocialButtons redirect={redirect} />
 			<AuthError message={error} />
 			<AuthField
 				label={auth.email}
 				type="email"
-				autoComplete="email"
+				autoComplete="username"
 				value={email}
 				onChange={setEmail}
 				required
@@ -109,7 +116,10 @@ export function SignUpForm({ onSuccess }: { onSuccess: () => void }) {
 			/>
 			<AuthButton loading={loading}>{auth.signUp.submit}</AuthButton>
 			<div className="mt-1 text-center text-xs text-text-muted">
-				<a href={AUTH_PATHS.signIn} className="hover:underline">
+				<a
+					href={withRedirect(AUTH_PATHS.signIn, redirect)}
+					className="hover:underline"
+				>
 					{auth.signUp.haveAccount}
 				</a>
 			</div>

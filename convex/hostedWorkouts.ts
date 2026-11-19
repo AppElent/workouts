@@ -134,7 +134,12 @@ export const getMine = query({
 			.query("hostedWorkoutSubmissions")
 			.withIndex("by_hosted_workout", (q) => q.eq("hostedWorkoutId", id))
 			.collect();
-		return { hosted, participants, submissions };
+		return {
+			hosted,
+			participants,
+			// The guest key lets its holder correct or claim that score.
+			submissions: submissions.map(({ guestKey: _guestKey, ...row }) => row),
+		};
 	},
 });
 

@@ -43,6 +43,7 @@ import { ScreenHeader } from "../../../ui/screen-header";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
 import { useWriteFailureMessage } from "../../../ui/use-screen-write";
+import { parseJoinInput } from "./join-link";
 
 export function HostedListScreen() {
 	const errorMessage = useWriteFailureMessage();
@@ -59,13 +60,18 @@ export function HostedListScreen() {
 	const [busy, setBusy] = useState(false);
 
 	const submitJoin = async () => {
-		const trimmed = token.trim();
-		if (trimmed === "" || busy) return;
+		if (token.trim() === "" || busy) return;
+		// A pasted join link works as well as the bare code.
+		const parsed = parseJoinInput(token);
+		if (!parsed) {
+			toast.error(copy.joinLinkInvalid);
+			return;
+		}
 		setBusy(true);
 		try {
 			// Returns the session it created (or the one you already had), so
 			// joining lands straight in the workout rather than on a confirmation.
-			const sessionId = await join({ token: trimmed });
+			const sessionId = await join({ token: parsed });
 			setToken("");
 			router.push({ pathname: "/session", params: { id: sessionId } });
 		} catch (error) {
@@ -92,7 +98,7 @@ export function HostedListScreen() {
 					<TextInput
 						value={token}
 						onChangeText={setToken}
-						placeholder={copy.joinCode}
+						placeholder={copy.joinPlaceholder}
 						placeholderTextColor={colors.textFaint}
 						style={[styles.input, styles.flex]}
 						autoCapitalize="none"

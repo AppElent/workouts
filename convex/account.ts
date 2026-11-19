@@ -1,3 +1,4 @@
+import { APPLE_WEB_RETURN_URLS, APPLE_WEB_SERVICES_ID } from "@foundry/core";
 import { ConvexError, v } from "convex/values";
 import { action, mutation, query } from "./_generated/server";
 import {
@@ -99,21 +100,40 @@ const MAX_AUTHORIZATION_CODE = 2000;
 /**
  * Revokes the signed-in account's Sign in with Apple grant before the account
  * is deleted. The code comes from a fresh native Apple sheet on iOS, together
- * with the bundle ID of the build that showed it. Failures are one stable
- * code; callers still delete the account.
+ * with the bundle ID of the build that showed it, or from an Apple JS popup on
+ * the web, with the web Services ID as `bundleId` and the registered return URL
+ * it was requested with. Failures are one stable code; callers still delete
+ * the account.
  */
 export const revokeAppleSignIn = action({
-	args: { authorizationCode: v.string(), bundleId: v.string() },
+	args: {
+		authorizationCode: v.string(),
+		bundleId: v.string(),
+		redirectUri: v.optional(v.string()),
+	},
 	returns: v.null(),
-	handler: async (ctx, { authorizationCode, bundleId }) => {
+	handler: async (ctx, { authorizationCode, bundleId, redirectUri }) => {
 		await requireUserId(ctx);
 		if (!authorizationCode || authorizationCode.length > MAX_AUTHORIZATION_CODE)
 			throw appError("invalid", "authorizationCode");
 		if (!isAppleClientId(bundleId)) throw appError("invalid", "bundleId");
+		const web = bundleId === APPLE_WEB_SERVICES_ID;
+		// Web codes need their registered return URL; native codes have none.
+		if (
+			web
+				? !redirectUri || !APPLE_WEB_RETURN_URLS.includes(redirectUri)
+				: redirectUri !== undefined
+		)
+			throw appError("invalid", "redirectUri");
 		const credentials = appleCredentials();
 		if (!credentials) throw appError("unavailable");
 		try {
-			await revokeAppleAuthorization(credentials, authorizationCode, bundleId);
+			await revokeAppleAuthorization(
+				credentials,
+				authorizationCode,
+				bundleId,
+				redirectUri,
+			);
 		} catch (error) {
 			console.error("account.revokeAppleSignIn failed", error);
 			throw appError("failed");

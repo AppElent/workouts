@@ -23,8 +23,8 @@ export function useRoutines() {
 }
 
 /** The running session, or null. */
-export function useActiveSession() {
-	return useQuery(api.workoutSessions.getActive, {});
+export function useActiveSession(enabled = true) {
+	return useQuery(api.workoutSessions.getActive, enabled ? {} : "skip");
 }
 
 /** One session by id, for the summary screen. `null` if it isn't yours. */

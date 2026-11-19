@@ -4,8 +4,11 @@
  */
 import { useAuth } from "@clerk/expo";
 import { type ReactNode, useMemo, useRef, useState } from "react";
+import { Platform } from "react-native";
 import type { Id } from "../../../convex/api";
+import { useActiveSession } from "../../../data/session-data";
 import { RestTimerProvider } from "./rest-timer";
+import { SessionLiveActivity } from "./session-live-activity";
 import { SessionSync } from "./session-sync";
 import {
 	StrengthSessionContext,
@@ -38,6 +41,7 @@ function AccountSessions({
 	subject: string | null;
 	children: ReactNode;
 }) {
+	const active = useActiveSession(subject !== null);
 	const [open, setOpen] = useState<ReadonlyMap<string, number>>(new Map());
 	const locks = useRef(new Set<string>());
 	const value = useMemo<StrengthSessions>(
@@ -62,8 +66,15 @@ function AccountSessions({
 	);
 	return (
 		<StrengthSessionContext.Provider value={value}>
-			<RestTimerProvider subject={subject}>
+			<RestTimerProvider
+				subject={subject}
+				activeSessionId={
+					active === undefined ? undefined : (active?._id ?? null)
+				}
+			>
 				{children}
+				{/* Live Activities exist on iOS only. */}
+				{subject && Platform.OS === "ios" ? <SessionLiveActivity /> : null}
 				{subject
 					? [...open.keys()].map((sessionId) => (
 							<SessionSync

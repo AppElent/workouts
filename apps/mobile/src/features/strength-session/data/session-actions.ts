@@ -8,7 +8,12 @@ import { mintUuid } from "../../../data/account-write";
 import { haptics } from "../../../feedback/haptics";
 import { fmt, plural, useI18n } from "../../../i18n";
 import { useWriteFailureMessage } from "../../../ui/use-screen-write";
-import { formatOneRm, formatSetFull, formatSetShort } from "../session-format";
+import {
+	formatOneRm,
+	formatSetFull,
+	formatSetShort,
+	LOADED_FORMAT,
+} from "../session-format";
 import {
 	addExerciseToPlan,
 	addToGroup,
@@ -166,7 +171,7 @@ export function useSessionActions(workspace: SessionWorkspace) {
 			return true;
 		};
 		const shortLoad = (row: PlanSet) =>
-			formatSetShort(row, getFacts(row.exerciseId).bodyweight, locale);
+			formatSetShort(row, getFacts(row.exerciseId), locale);
 		function restBody() {
 			const next = nextOpenRow(plan());
 			if (!next) return undefined;
@@ -179,11 +184,15 @@ export function useSessionActions(workspace: SessionWorkspace) {
 				number: Math.max(number, 1),
 			});
 		}
+		/** A rest belongs to its session; without one (no plan opens that way) there is none. */
+		function beginRest(seconds: number) {
+			if (sessionId) rest.start(sessionId, seconds, restBody());
+		}
 		function restIfIdle(rowId: string) {
 			const seconds = restAfterLog(plan(), rowId);
 			const current = rest.current();
 			if (seconds !== null && (current === null || current <= Date.now()))
-				rest.start(seconds, restBody());
+				beginRest(seconds);
 		}
 		function afterLogged(
 			row: PlanSet,
@@ -198,7 +207,9 @@ export function useSessionActions(workspace: SessionWorkspace) {
 			const result = markLogged(before, row.id, setId, setNumber, facts);
 			set(result.plan);
 			const previousRest = rest.current();
-			if (seconds !== null) rest.start(seconds, restBody());
+			if (seconds !== null) beginRest(seconds);
+			// A rest that has run out is done once the next set is logged.
+			else if (previousRest !== null && previousRest <= Date.now()) rest.stop();
 			if (record) haptics.sessionSuccess();
 			else haptics.setLogged();
 			const rm = rowOneRepMax(row, facts);
@@ -229,9 +240,11 @@ export function useSessionActions(workspace: SessionWorkspace) {
 			else text = fmt(copy.toastNoOneRm, { load });
 			if (result.carriedTo !== null)
 				text += fmt(copy.toastCarried, {
-					load: formatSetFull({ ...row, reps: row.reps }, false, locale).split(
-						" × ",
-					)[0] as string,
+					load: formatSetFull(
+						{ ...row, reps: row.reps },
+						LOADED_FORMAT,
+						locale,
+					).split(" × ")[0] as string,
 				});
 			say(text, {
 				highlight: Boolean(record),
@@ -477,6 +490,7 @@ export function useSessionActions(workspace: SessionWorkspace) {
 				session?.exercises?.find((item) => item.exerciseId === exerciseId)
 					?.references,
 				last,
+				exerciseId,
 			);
 		}
 		async function addExercise(
@@ -571,7 +585,9 @@ export function useSessionActions(workspace: SessionWorkspace) {
 				const added = await addExercise(exerciseId, undefined, label);
 				if (!added) return false;
 			}
-			return apply(addToGroup(plan(), groupId, exerciseId), { name: label });
+			return apply(addToGroup(plan(), groupId, exerciseId, getFacts), {
+				name: label,
+			});
 		}
 		async function dropExercise(exerciseId: string) {
 			if (refuseUnresolved(rowsOf(plan(), exerciseId))) return;

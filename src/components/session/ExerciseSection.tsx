@@ -4,6 +4,7 @@ import {
 	convertLoad,
 	getWeightStep,
 	isLoadedEquipment,
+	isTimedExercise,
 	type LoadUnit,
 	SET_LIMITS,
 	SET_TYPES,
@@ -69,6 +70,10 @@ export function ExerciseSection({
 	});
 
 	const isBodyweight = !isLoadedEquipment(equipment);
+	/** A hold: the set's count is seconds, stepped in fives. */
+	const timed = isTimedExercise(exerciseId);
+	const countLabel = timed ? "Seconds" : "Reps";
+	const defaultCount = timed ? 30 : 8;
 	const weightStep = getWeightStep(equipment, weightIncrement);
 
 	const handleEdit = (set: Doc<"sets">) =>
@@ -78,7 +83,7 @@ export function ExerciseSection({
 		const previous = sets.at(-1);
 		return previous ? convertLoad(previous.weight, previous.unit, "kg") : 0;
 	});
-	const [reps, setReps] = useState(8);
+	const [reps, setReps] = useState(defaultCount);
 	const [rpe, setRpe] = useState<number | undefined>(undefined);
 	const [setType, setSetType] = useState<SetType>("working");
 	const [weightInitialized, setWeightInitialized] = useState(sets.length > 0);
@@ -103,10 +108,16 @@ export function ExerciseSection({
 		if (!weightInitialized && lastExerciseSet !== undefined) {
 			const source = plannedSets[sets.length] ?? lastExerciseSet;
 			setWeight(source ? convertLoad(source.weight, source.unit, "kg") : 0);
-			setReps(plannedSets[sets.length]?.reps ?? 8);
+			setReps(plannedSets[sets.length]?.reps ?? defaultCount);
 			setWeightInitialized(true);
 		}
-	}, [lastExerciseSet, weightInitialized, plannedSets, sets.length]);
+	}, [
+		lastExerciseSet,
+		weightInitialized,
+		plannedSets,
+		sets.length,
+		defaultCount,
+	]);
 
 	async function handleLogSet() {
 		if (!valid || busy) return;
@@ -157,8 +168,8 @@ export function ExerciseSection({
 			{!valid && (
 				<p role="alert" className="text-sm text-text-muted">
 					Enter weight up to {SET_LIMITS.weight.max} kg, {SET_LIMITS.reps.min}–
-					{SET_LIMITS.reps.max} whole reps, and optional RPE from{" "}
-					{SET_LIMITS.rpe.min} to {SET_LIMITS.rpe.max} in half steps.
+					{SET_LIMITS.reps.max} whole {timed ? "seconds" : "reps"}, and optional
+					RPE from {SET_LIMITS.rpe.min} to {SET_LIMITS.rpe.max} in half steps.
 				</p>
 			)}
 			{plannedSets.length > sets.length ? (
@@ -166,6 +177,7 @@ export function ExerciseSection({
 					{plannedSets.length - sets.length} planned sets remaining ·{" "}
 					{plannedSets[sets.length]?.weight} {plannedSets[sets.length]?.unit} ×{" "}
 					{plannedSets[sets.length]?.reps}
+					{timed ? " s" : ""}
 				</p>
 			) : null}
 			{sets.length > 0 && (
@@ -173,7 +185,7 @@ export function ExerciseSection({
 					<table className="w-full text-sm">
 						<thead>
 							<tr className="border-b border-border">
-								{["#", "Type", "Weight", "Reps", "RPE", "Est. 1RM", ""].map(
+								{["#", "Type", "Weight", countLabel, "RPE", "Est. 1RM", ""].map(
 									(h) => (
 										<th
 											key={h}
@@ -219,7 +231,8 @@ export function ExerciseSection({
 								? `BW +${weight} kg`
 								: "BW"
 							: `${weight} kg`}{" "}
-						· {reps} reps · <span className="capitalize">{setType}</span>
+						· {timed ? `${reps} s` : `${reps} reps`} ·{" "}
+						<span className="capitalize">{setType}</span>
 					</span>
 				</button>
 			)}
@@ -253,10 +266,10 @@ export function ExerciseSection({
 					<Stepper
 						value={reps}
 						onChange={setReps}
-						step={SET_LIMITS.reps.step}
+						step={timed ? 5 : SET_LIMITS.reps.step}
 						min={SET_LIMITS.reps.min}
 						max={SET_LIMITS.reps.max}
-						label="Reps"
+						label={countLabel}
 					/>
 					<Stepper
 						value={rpe ?? 8}
@@ -357,7 +370,7 @@ export function ExerciseSection({
 							htmlFor="set-reps"
 							className="text-micro text-text-muted uppercase"
 						>
-							Reps
+							{timed ? "Sec" : "Reps"}
 						</label>
 						<input
 							id="set-reps"

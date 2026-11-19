@@ -1,13 +1,17 @@
 import {
+	getWeightStep,
 	type LoadUnit,
+	percentOfOneRepMaxLoad,
 	SET_LIMITS,
+	sessionOneRepMax,
 	validatePlannedExercise,
+	validateRecordedTime,
 } from "@foundry/core";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { requireOwned } from "./auth";
 import { appError, checked } from "./errors";
-import { requireExercise } from "./exerciseCatalog";
+import { requireExercise, resolveExercise } from "./exerciseCatalog";
 import { snapshotStrengthReferences } from "./strengthReferences";
 
 /**
@@ -54,6 +58,8 @@ export async function getActiveSession(
  * Starts the user's one active session, with every prescribed exercise's
  * One-rep Max references snapshotted at the start. The caller has resolved
  * the exercise ids: a hosted workout may name the host's personal exercise.
+ * A past `startTime` that matches a session already logged returns that
+ * session, active or finished, so a connected app's retry is safe.
  */
 export async function startSession(
 	ctx: MutationCtx,
@@ -61,11 +67,37 @@ export async function startSession(
 	session: {
 		name?: string;
 		date?: number;
+		/** When it started, for a session logged afterwards; defaults to now. */
+		startTime?: number;
+		/**
+		 * When it ended, for a session recorded only after the fact (a claimed
+		 * guest score): it is stored as completed, so an unrelated active
+		 * session does not block it.
+		 */
+		endTime?: number;
 		routineId?: Id<"routines">;
 		prescriptions: readonly Prescription[];
 	},
 ) {
-	if (await getActiveSession(ctx, userId))
+	const now = Date.now();
+	const startTime =
+		session.startTime === undefined
+			? now
+			: checked(validateRecordedTime("startTime", session.startTime, now));
+	if (session.startTime !== undefined) {
+		// The same past start again is a retry of the first, even once it finished.
+		const sameStart = await ctx.db
+			.query("workoutSessions")
+			.withIndex("by_user_date", (q) =>
+				q.eq("userId", userId).eq("date", session.date ?? startTime),
+			)
+			.take(10);
+		const logged = sameStart.find(
+			(row) => row.startTime === startTime && row.status !== "cancelled",
+		);
+		if (logged) return logged._id;
+	}
+	if (session.endTime === undefined && (await getActiveSession(ctx, userId)))
 		throw appError("activeSessionExists");
 	validatePrescriptions(session.prescriptions);
 	const exercises: NonNullable<Doc<"workoutSessions">["exercises"]> = [];
@@ -84,15 +116,16 @@ export async function startSession(
 		for (let set = 0; set < prescription.sets; set++)
 			entry.plannedSets.push({ reps, weight, unit });
 	}
-	const now = Date.now();
 	return ctx.db.insert("workoutSessions", {
 		userId,
-		date: session.date ?? now,
-		startTime: now,
+		date: session.date ?? startTime,
+		startTime,
 		name: session.name,
 		routineId: session.routineId,
 		exercises,
-		status: "active",
+		...(session.endTime === undefined
+			? { status: "active" as const }
+			: { status: "completed" as const, endTime: session.endTime }),
 	});
 }
 
@@ -115,7 +148,7 @@ export function hostedPrescriptions(
 	);
 }
 
-async function requireActiveSession(
+export async function requireActiveSession(
 	ctx: MutationCtx,
 	userId: string,
 	sessionId: Id<"workoutSessions">,
@@ -153,4 +186,104 @@ export async function ensureSessionExercise(
 		});
 	}
 	return exerciseId;
+}
+
+/** One target of `planSessionExercise`: a load, or a share of the 1RM. */
+export type PlannedTarget = {
+	reps: number;
+	weight?: number;
+	percentOfOneRepMax?: number;
+};
+
+/**
+ * The references a plan resolves percentages against: the session's own, as
+ * the set editor's percentage chips use, so planning again gives the same
+ * loads. Only when the session has no 1RM for the exercise, and nothing is
+ * logged for it yet, are they snapshotted again, so a 1RM saved after the
+ * exercise joined the session still counts.
+ */
+async function planReferences(
+	ctx: MutationCtx,
+	userId: string,
+	sessionId: Id<"workoutSessions">,
+	entry: NonNullable<Doc<"workoutSessions">["exercises"]>[number],
+	usesPercent: boolean,
+) {
+	const current = entry.references;
+	if (!usesPercent || (current && sessionOneRepMax(current))) return current;
+	const sessionSets = await ctx.db
+		.query("sets")
+		.withIndex("by_session", (q) => q.eq("sessionId", sessionId))
+		.collect();
+	if (sessionSets.some((set) => set.exerciseId === entry.exerciseId))
+		return current;
+	return snapshotStrengthReferences(ctx, userId, entry.exerciseId);
+}
+
+/**
+ * Replaces an active session exercise's Planned Sets, adding the exercise when
+ * needed. A percentage resolves against the 1RM the session shows for that
+ * exercise (see `planReferences`), so repeating a plan gives the same loads.
+ */
+export async function planSessionExercise(
+	ctx: MutationCtx,
+	userId: string,
+	sessionId: Id<"workoutSessions">,
+	id: string,
+	unit: LoadUnit,
+	targets: readonly PlannedTarget[],
+) {
+	if (targets.length > SET_LIMITS.plannedSets.max)
+		throw appError("tooLarge", "plannedSets");
+	const exerciseId = await ensureSessionExercise(ctx, userId, sessionId, id);
+	const session = await requireActiveSession(ctx, userId, sessionId);
+	const exercises = session.exercises ?? [];
+	const entry = exercises.find((item) => item.exerciseId === exerciseId);
+	if (!entry) throw appError("notFound", "exerciseId");
+	const references = await planReferences(
+		ctx,
+		userId,
+		sessionId,
+		entry,
+		targets.some((t) => t.percentOfOneRepMax !== undefined),
+	);
+	const exercise = await resolveExercise(ctx, exerciseId, userId);
+	const stepKg = getWeightStep(
+		exercise?.equipment ?? "barbell",
+		exercise?.weightIncrement,
+	);
+	const oneRepMax = references ? sessionOneRepMax(references) : null;
+	const plannedSets = targets.map(({ reps, weight, percentOfOneRepMax }) => {
+		if ((weight === undefined) === (percentOfOneRepMax === undefined))
+			throw appError("invalid", "weight");
+		let load = weight ?? 0;
+		if (percentOfOneRepMax !== undefined) {
+			checked(validatePlannedExercise({ percentOfOneRepMax }));
+			if (!oneRepMax) throw appError("unavailable", "oneRepMax");
+			load = percentOfOneRepMaxLoad(
+				oneRepMax.reference,
+				percentOfOneRepMax,
+				unit,
+				stepKg,
+			);
+		}
+		checked(
+			validatePlannedExercise({ plannedReps: reps, plannedWeight: load }),
+		);
+		return { reps, weight: load, unit };
+	});
+	await ctx.db.patch(sessionId, {
+		exercises: exercises.map((item) =>
+			item === entry ? { ...item, references, plannedSets } : item,
+		),
+	});
+	return {
+		exerciseId,
+		plannedSets,
+		oneRepMax: oneRepMax && {
+			value: oneRepMax.reference.value,
+			unit: oneRepMax.reference.unit,
+			kind: oneRepMax.kind,
+		},
+	};
 }

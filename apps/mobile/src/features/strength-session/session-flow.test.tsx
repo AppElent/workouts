@@ -7,23 +7,32 @@ import {
 } from "convex/react";
 import { getFunctionName } from "convex/server";
 import { router } from "expo-router";
-import { act, fireEvent, screen } from "expo-router/testing-library";
+import { act, fireEvent, screen, waitFor } from "expo-router/testing-library";
+import { ActionSheetIOS } from "react-native";
 import * as SessionRoute from "../../../app/(app)/session";
 import * as GroupRoute from "../../../app/(app)/session-group";
 import * as ManualRoute from "../../../app/(app)/session-manual";
 import * as EditorLayout from "../../../app/(app)/set-editor/_layout";
 import * as EditorRoute from "../../../app/(app)/set-editor/index";
 import * as ProfileRoute from "../../../app/(app)/set-editor/strength-profile";
+import {
+	PREFERENCE_KEYS,
+	removeLocal,
+	writeLocal,
+} from "../../local-store/local-store";
 import { renderApp } from "../../test-support/render-app";
 import { workspaceKey, workspaceStore } from "./data/session-workspace";
 import {
+	addToGroup,
 	allRows,
 	findRow,
 	groupWith,
 	markFailed,
+	markLogged,
 	type PlanSet,
 	type SessionPlan,
 	seedPlan,
+	sessionExercises,
 	setGroupMode,
 	setGroupRounds,
 	startClock,
@@ -112,6 +121,7 @@ const serverSet = (id: string, reps: number, setNumber: number) => ({
 });
 
 beforeEach(() => {
+	removeLocal(PREFERENCE_KEYS.setEditorMode);
 	mockSubject = `test-user-${Math.random().toString(36).slice(2)}`;
 	currentSession = { ...session, userId: mockSubject };
 	loggedSets = [];
@@ -329,7 +339,7 @@ it("starts the next rest offline once the last one has run out", async () => {
 			(await screen.findAllByLabelText("Log Barbell Back Squat 60 × 8"))[1],
 		);
 		const hidden = { includeHiddenElements: true };
-		expect(await screen.findByText(/^Rest \d/, hidden)).toBeTruthy();
+		expect(await screen.findByText(/^Rest · of \d/, hidden)).toBeTruthy();
 		expect(screen.queryByText("Rest over", hidden)).toBeNull();
 	} finally {
 		later.mockRestore();
@@ -421,6 +431,8 @@ it("won't finish on a send left unresolved by a restart, and retries it", async 
 });
 
 it("won't take a Krachtprofiel value onto a set with an unresolved send", async () => {
+	// The 1RM line and the profile link live in the advanced editor.
+	writeLocal(PREFERENCE_KEYS.setEditorMode, "advanced");
 	receipt = undefined;
 	add.mockRejectedValueOnce(new Error("Connection lost"));
 	await mount();
@@ -500,6 +512,7 @@ it("won't close a group while one of its sets failed", async () => {
 	const facts = {
 		exercise: { equipment: "barbell" as const },
 		bodyweight: false,
+		timed: false,
 		stepKg: 2.5,
 		measured: 100,
 		estimated: null,
@@ -537,6 +550,7 @@ it("won't drop a failed set by shrinking its group or switching it to a clock", 
 	const facts = {
 		exercise: { equipment: "barbell" as const },
 		bodyweight: false,
+		timed: false,
 		stepKg: 2.5,
 		measured: 100,
 		estimated: null,
@@ -573,6 +587,127 @@ it("won't drop a failed set by shrinking its group or switching it to a clock", 
 	);
 	await fireEvent.press(await screen.findByLabelText("As many as possible"));
 	expect(workspaceStore.plan(planKey())?.groups[id]?.mode).toBe("rounds");
+});
+
+it("takes one exercise out of a group from the group sheet (APP-215)", async () => {
+	const facts = {
+		exercise: { equipment: "barbell" as const },
+		bodyweight: false,
+		timed: false,
+		stepKg: 2.5,
+		measured: 100,
+		estimated: null,
+		savedManual: null,
+		measuredDate: 1,
+		last: null,
+	};
+	const second = "shipped:exercise:barbell-bench-press";
+	const third = "shipped:exercise:barbell-deadlift";
+	const plannedSets = [{ weight: 60, reps: 8, unit: "kg" as const }];
+	const exercises = [
+		{ exerciseId, plannedSets },
+		{ exerciseId: second, plannedSets },
+		{ exerciseId: third, plannedSets },
+	];
+	currentSession = { ...currentSession, exercises };
+	const grouped = groupWith(
+		seedPlan(exercises, [], () => facts),
+		exerciseId,
+		second,
+	);
+	const id = grouped.groupId as string;
+	workspaceStore.setPlan(planKey(), addToGroup(grouped.plan, id, third).plan);
+	await mount();
+	await act(() =>
+		router.push(`/session-group?sessionId=session-1&groupId=${id}`),
+	);
+	await fireEvent.press(
+		await screen.findByLabelText(/^Options for Barbell Bench Press/),
+	);
+	await fireEvent.press(
+		await screen.findByRole("button", { name: "Remove from group" }),
+	);
+	const plan = workspaceStore.plan(planKey()) as SessionPlan;
+	expect(sessionExercises(plan)).toEqual([exerciseId, third, second]);
+	expect(plan.order).toEqual([
+		{ kind: "group", groupId: id },
+		{ kind: "exercise", exerciseId: second },
+	]);
+});
+
+it("asks before removing a grouped exercise with logged sets, and keeps it on Keep training (APP-215)", async () => {
+	const facts = {
+		exercise: { equipment: "barbell" as const },
+		bodyweight: false,
+		timed: false,
+		stepKg: 2.5,
+		measured: 100,
+		estimated: null,
+		savedManual: null,
+		measuredDate: 1,
+		last: null,
+	};
+	const second = "shipped:exercise:barbell-bench-press";
+	const third = "shipped:exercise:barbell-deadlift";
+	const plannedSets = [{ weight: 60, reps: 8, unit: "kg" as const }];
+	const exercises = [
+		{ exerciseId, plannedSets },
+		{ exerciseId: second, plannedSets },
+		{ exerciseId: third, plannedSets },
+	];
+	currentSession = { ...currentSession, exercises };
+	const grouped = groupWith(
+		seedPlan(exercises, [], () => facts),
+		exerciseId,
+		second,
+	);
+	const id = grouped.groupId as string;
+	const joined = addToGroup(grouped.plan, id, third).plan;
+	const benchRow = (joined.groups[id]?.rounds[0]?.items ?? []).find(
+		(item) => item.exerciseId === second,
+	) as PlanSet;
+	const logged = markLogged(joined, benchRow.id, "set-b1", 1, facts).plan;
+	loggedSets = [{ ...serverSet("set-b1", 8, 1), exerciseId: second }];
+	removeSet.mockImplementation(async ({ id: setId }: { id: string }) => {
+		loggedSets = loggedSets.filter((item) => item._id !== setId);
+	});
+	workspaceStore.setPlan(planKey(), logged);
+	const sheet = jest.spyOn(ActionSheetIOS, "showActionSheetWithOptions");
+	await mount();
+	await act(() =>
+		router.push(`/session-group?sessionId=session-1&groupId=${id}`),
+	);
+	const removeBench = async () => {
+		await fireEvent.press(
+			await screen.findByLabelText(/^Options for Barbell Bench Press/),
+		);
+		await fireEvent.press(
+			await screen.findByRole("button", { name: "Remove exercise" }),
+		);
+	};
+
+	sheet.mockImplementationOnce((_options, pick) => pick(1));
+	await removeBench();
+	expect(sheet).toHaveBeenLastCalledWith(
+		expect.objectContaining({
+			title: "Remove Barbell Bench Press?",
+			options: ["Remove", "Keep training"],
+			destructiveButtonIndex: 0,
+		}),
+		expect.any(Function),
+	);
+	expect(removeSet).not.toHaveBeenCalled();
+	let plan = workspaceStore.plan(planKey()) as SessionPlan;
+	expect(sessionExercises(plan)).toEqual([exerciseId, second, third]);
+	expect(findRow(plan, benchRow.id)?.done).toBe(true);
+
+	sheet.mockImplementationOnce((_options, pick) => pick(0));
+	await removeBench();
+	expect(removeSet).toHaveBeenCalledWith({ id: "set-b1" });
+	plan = workspaceStore.plan(planKey()) as SessionPlan;
+	expect(sessionExercises(plan)).toEqual([exerciseId, third]);
+	expect(allRows(plan).some((row) => row.exerciseId === second)).toBe(false);
+	sheet.mockRestore();
 });
 
 it("undoes a removed set, unless the session changed since", async () => {
@@ -689,6 +824,8 @@ it("says so at Finish when a correction to a logged set isn't saved", async () =
 });
 
 it("applies a Krachtprofiel row only at Apply, and logs nothing", async () => {
+	// The 1RM line and the profile link live in the advanced editor.
+	writeLocal(PREFERENCE_KEYS.setEditorMode, "advanced");
 	await mount();
 	await fireEvent.press(await firstRow());
 	await fireEvent.press(
@@ -740,4 +877,57 @@ it("starts empty and offers to delete a session with nothing in it", async () =>
 		await screen.findByRole("button", { name: "Delete session" }),
 	);
 	expect(cancel).toHaveBeenCalled();
+});
+
+describe("Live Activity", () => {
+	type Activity = { props: Record<string, unknown>; ended: boolean };
+	const fake = (
+		jest.requireMock("expo-widgets") as {
+			__liveActivities: { activities: Activity[] };
+		}
+	).__liveActivities;
+	const running = () => fake.activities.filter((item) => !item.ended);
+	beforeEach(() => {
+		fake.activities.length = 0;
+	});
+
+	it("shows the session, follows a logged set into rest, and ends once the session is saved", async () => {
+		await mount();
+		await waitFor(() => expect(running()).toHaveLength(1));
+		expect(running()[0]?.props).toMatchObject({
+			title: "Lower A",
+			exercise: "Barbell Back Squat",
+			setLine: expect.stringMatching(/^Set 1 of /),
+			loadLine: "60 kg × 8",
+			restEndsAt: null,
+		});
+		await fireEvent.press(await firstCheck());
+		await waitFor(() =>
+			expect(running()[0]?.props).toMatchObject({
+				setLine: expect.stringMatching(/^Set 2 of /),
+				restEndsAt: expect.any(Number),
+			}),
+		);
+		expect(running()).toHaveLength(1);
+
+		await fireEvent.press(await screen.findByRole("button", { name: "Done" }));
+		await fireEvent.press(
+			await screen.findByRole("button", { name: /Finish · 1 set/ }),
+		);
+		// The recap can still go back to the session, so the activity stays.
+		expect(await screen.findByText("Lower A done")).toBeTruthy();
+		expect(running()).toHaveLength(1);
+		finish.mockImplementation(async () => {
+			currentSession = null as never;
+		});
+		await fireEvent.press(await screen.findByTestId("session-recap-confirm"));
+		await waitFor(() => expect(running()).toHaveLength(0));
+	});
+
+	it("ends when the account signs out mid-session", async () => {
+		await mount();
+		await waitFor(() => expect(running()).toHaveLength(1));
+		screen.unmount();
+		await waitFor(() => expect(running()).toHaveLength(0));
+	});
 });

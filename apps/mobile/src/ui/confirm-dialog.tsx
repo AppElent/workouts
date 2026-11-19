@@ -23,14 +23,7 @@ import {
 	useRef,
 	useState,
 } from "react";
-import {
-	Alert,
-	Modal,
-	Platform,
-	Pressable,
-	StyleSheet,
-	View,
-} from "react-native";
+import { Alert, Platform, Pressable, StyleSheet, View } from "react-native";
 import { haptics } from "../feedback/haptics";
 import { modalAnimation, useReduceMotion } from "../feedback/reduce-motion";
 import { useI18n } from "../i18n";
@@ -41,6 +34,7 @@ import {
 	useThemedStyles,
 	useTokens,
 } from "../theme";
+import { Modal } from "./modal";
 import { AppText } from "./text";
 
 export type ConfirmOptions = {

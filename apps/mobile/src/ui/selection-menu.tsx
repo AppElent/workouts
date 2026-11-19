@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Modal, Pressable, ScrollView, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 import { radius, spacing, useTokens } from "../theme";
+import { Modal } from "./modal";
 import type { SelectionMenuProps } from "./selection-menu.types";
 import { AppText } from "./text";
 export function SelectionMenu({

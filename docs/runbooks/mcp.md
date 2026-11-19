@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when connecting to, operating, or changing the Foundry MCP server.
-version: 3.1.0
+version: 3.2.0
 ---
 
 # Foundry MCP
@@ -63,15 +63,25 @@ Read (`foundry:read`): `get_current_user`, `list_activities`, `get_run_or_ride`,
 `show_exercise_progress` (see [Views](#views)).
 
 Write (`foundry:write`): `log_run_or_ride`, `update_run_or_ride`,
-`log_body_metrics`, `log_wod_result`, `start_strength_session`,
-`add_exercise_to_session`, `log_set`, `update_set`, `finish_strength_session`,
-`record_one_rep_max`, `log_food`, `log_custom_food`, `update_diary_entry`.
+`log_body_metrics`, `log_wod_result`, `create_exercise`,
+`start_strength_session`, `add_exercise_to_session`, `log_set`, `update_set`,
+`finish_strength_session`, `record_one_rep_max`, `log_food`,
+`log_custom_food`, `update_diary_entry`.
+
+Training setup and logging afterwards follow the
+[Training contract](../contracts/training.md#connected-app-setup):
+`create_exercise` dedupes by name, `add_exercise_to_session` takes
+`plannedSets` (kg or a percentage of the 1RM), and `start_strength_session`,
+`log_set`, and `finish_strength_session` take `startedAt`, `loggedAt`, and
+`endedAt`.
 
 Rules for every tool:
 
 - Write tools that create data require an `idempotencyKey`. The server stores
   it as `mcp:<key>`; a retry with the same key and input returns the first
-  result, and the same key with different input is rejected.
+  result, and the same key with different input is rejected. `create_exercise`
+  is the exception: the name is its identity, so a retry returns the same
+  Personal Exercise.
 - There are no delete tools. Users delete in the app.
 - Results are JSON in `structuredContent` and as text. Errors show validation
   and Convex user messages only: a coded `ConvexError` reads as its English

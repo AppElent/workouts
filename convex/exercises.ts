@@ -78,11 +78,13 @@ async function requirePersonalExercise(
 	return requireOwned(ctx, userId, documentId);
 }
 
+const createInput = {
+	...exerciseInput,
+	instructions: exerciseDocument.fields.instructions,
+};
+
 export const create = mutation({
-	args: {
-		...exerciseInput,
-		instructions: exerciseDocument.fields.instructions,
-	},
+	args: createInput,
 	returns: v.id("exercises"),
 	handler: async (ctx, args) => {
 		const userId = await requireUserId(ctx);
@@ -92,6 +94,34 @@ export const create = mutation({
 			isDefault: false,
 			userId,
 		});
+	},
+});
+
+const sameName = (a: string, b: string) =>
+	a.trim().toLocaleLowerCase() === b.trim().toLocaleLowerCase();
+
+/**
+ * `create` for connected apps: the caller's Personal Exercise with this name
+ * (ignoring case) is returned instead of a duplicate, so a retry is safe.
+ */
+export const ensurePersonal = mutation({
+	args: createInput,
+	returns: v.object({ id: v.id("exercises"), created: v.boolean() }),
+	handler: async (ctx, args) => {
+		const userId = await requireUserId(ctx);
+		const exercise = checked(validateExerciseInput(args));
+		const existing = await ctx.db
+			.query("exercises")
+			.withIndex("by_user", (q) => q.eq("userId", userId))
+			.collect();
+		const match = existing.find((row) => sameName(row.name, exercise.name));
+		if (match) return { id: match._id, created: false };
+		const id = await ctx.db.insert("exercises", {
+			...exercise,
+			isDefault: false,
+			userId,
+		});
+		return { id, created: true };
 	},
 });
 

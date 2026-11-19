@@ -61,6 +61,7 @@
 			"expo-font",
 			"expo-splash-screen",
 			"./plugins/disable-shake-to-edit",
+			"expo-widgets",
 			[
 				"@sentry/react-native/expo",
 				{

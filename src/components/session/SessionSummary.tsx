@@ -3,6 +3,7 @@ import type { Doc } from "@convex/_generated/dataModel";
 import {
 	formatDurationMinutes,
 	formatScore,
+	isTimedExercise,
 	toKg,
 	workingVolume,
 } from "@foundry/core";
@@ -22,6 +23,7 @@ import {
 import { useConfirm } from "#/components/ui/confirm-dialog";
 import { useToast } from "#/components/ui/toast";
 import { useConvexErrorMessage } from "#/lib/convexError";
+import { setCount } from "#/lib/load";
 
 interface Props {
 	session: Doc<"workoutSessions">;
@@ -165,16 +167,19 @@ export function SessionSummary({ session, sets, exerciseMap }: Props) {
 												: "bg-text/5 text-text-muted"
 										}`}
 									>
-										{i + 1}. {s.weight > 0 ? `${s.weight}kg` : "BW"} × {s.reps}
+										{i + 1}. {s.weight > 0 ? `${s.weight}kg` : "BW"} ×{" "}
+										{setCount(s)}
 									</span>
 								))}
 							</div>
-							{ex.bestSet && ex.bestSet.weight > 0 && (
-								<p className="text-xs text-text-muted mt-2">
-									Best: {ex.bestSet.weight}
-									{ex.bestSet.unit} × {ex.bestSet.reps} reps
-								</p>
-							)}
+							{ex.bestSet &&
+								ex.bestSet.weight > 0 &&
+								!isTimedExercise(ex.id) && (
+									<p className="text-xs text-text-muted mt-2">
+										Best: {ex.bestSet.weight}
+										{ex.bestSet.unit} × {ex.bestSet.reps} reps
+									</p>
+								)}
 						</div>
 					))
 				)}

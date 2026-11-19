@@ -1,10 +1,12 @@
 import { useClerk, useUser } from "@clerk/react";
 import { useEffect, useState } from "react";
+import { useToast } from "#/components/ui/toast";
 import { fmt, useMessages } from "#/lib/i18n";
 import { AuthButton } from "./AuthButton";
 import { AuthError } from "./AuthError";
 import { AuthField } from "./AuthField";
 import { useClerkErrorMessage } from "./clerkError";
+import { UsernameHint } from "./UsernameHint";
 
 export function ProfilePanel() {
 	const { isLoaded, user } = useUser();
@@ -12,6 +14,7 @@ export function ProfilePanel() {
 	const { auth } = useMessages();
 	const text = auth.profile;
 	const errorMessage = useClerkErrorMessage();
+	const toast = useToast();
 	const [firstName, setFirstName] = useState("");
 	const [lastName, setLastName] = useState("");
 	const [currentPassword, setCurrentPassword] = useState("");
@@ -55,9 +58,16 @@ export function ProfilePanel() {
 		setError(null);
 		setSavingPassword(true);
 		try {
-			await user.updatePassword({ currentPassword, newPassword });
+			// Matches mobile (APP-35): a changed password ends every other
+			// session; this one stays signed in.
+			await user.updatePassword({
+				currentPassword,
+				newPassword,
+				signOutOfOtherSessions: true,
+			});
 			setCurrentPassword("");
 			setNewPassword("");
+			toast.success(text.passwordChanged);
 		} catch (err) {
 			setError(errorMessage(err));
 		} finally {
@@ -97,32 +107,39 @@ export function ProfilePanel() {
 				</form>
 			</section>
 
-			<section className="rounded-xl border border-border bg-surface p-4">
-				<p className="text-sm font-semibold text-text">{text.security}</p>
-				<form
-					onSubmit={changePassword}
-					className="mt-3 flex flex-col gap-3"
-					noValidate
-				>
-					<AuthField
-						label={text.currentPassword}
-						type="password"
-						autoComplete="current-password"
-						value={currentPassword}
-						onChange={setCurrentPassword}
-					/>
-					<AuthField
-						label={text.newPassword}
-						type="password"
-						autoComplete="new-password"
-						value={newPassword}
-						onChange={setNewPassword}
-					/>
-					<AuthButton loading={savingPassword}>
-						{text.changePassword}
-					</AuthButton>
-				</form>
-			</section>
+			{/* Accounts that sign in only with a social provider or an email code
+			    have no current password to confirm, so the change form stays hidden. */}
+			{user.passwordEnabled && (
+				<section className="rounded-xl border border-border bg-surface p-4">
+					<p className="text-sm font-semibold text-text">{text.security}</p>
+					<form
+						onSubmit={changePassword}
+						className="mt-3 flex flex-col gap-3"
+						noValidate
+					>
+						<UsernameHint
+							username={user.primaryEmailAddress?.emailAddress ?? ""}
+						/>
+						<AuthField
+							label={text.currentPassword}
+							type="password"
+							autoComplete="current-password"
+							value={currentPassword}
+							onChange={setCurrentPassword}
+						/>
+						<AuthField
+							label={text.newPassword}
+							type="password"
+							autoComplete="new-password"
+							value={newPassword}
+							onChange={setNewPassword}
+						/>
+						<AuthButton loading={savingPassword}>
+							{text.changePassword}
+						</AuthButton>
+					</form>
+				</section>
+			)}
 
 			<section className="rounded-xl border border-border bg-surface p-4">
 				<p className="text-sm font-semibold text-text">{text.session}</p>

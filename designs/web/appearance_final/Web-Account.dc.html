@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<title>Web Account met Voorkeuren en totalen</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:#d9dcd5;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif}
+.th-light{--bg:#f4f5f0;--surface:#ffffff;--surface2:#e9ece3;--fill:#c8f73c;--onFill:#0a0b09;--ink:#466400;--dim:rgba(70,100,0,.10);--text:#1a2015;--muted:#535e49;--faint:#606b57;--border:rgba(26,32,21,.12);--shadow:0 1px 2px rgba(26,32,21,.06)}
+.th-dark{--bg:#0a0b09;--surface:#141613;--surface2:#1d201b;--fill:#c8f73c;--onFill:#0a0b09;--ink:#c8f73c;--dim:rgba(200,247,60,.13);--text:#f2f4ef;--muted:#9ba095;--faint:#919789;--border:rgba(255,255,255,.07);--shadow:none}
+.stack{display:flex;flex-direction:column;gap:40px;padding:0}
+.lab{font-size:15px;font-weight:700;color:#2d332a;padding:16px 24px 0}
+.win{width:1280px;height:900px;display:flex;background:var(--bg);color:var(--text);overflow:hidden}
+.side{width:224px;flex:none;display:flex;flex-direction:column;background:var(--surface);border-right:1px solid var(--border)}
+.brand{display:flex;align-items:center;gap:8px;padding:20px 16px;border-bottom:1px solid var(--border);font-weight:700;font-size:14px}
+.logo{width:28px;height:28px;border-radius:6px;background:var(--fill);color:var(--onFill);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px}
+.nav{flex:1;padding:16px 8px;display:flex;flex-direction:column;gap:4px}
+.ni{display:flex;align-items:center;gap:12px;padding:8px 12px;border-radius:8px;font-size:14px;font-weight:500;color:var(--muted);text-decoration:none}
+.ni.on{background:var(--dim);color:var(--ink)}
+.ni i{width:18px;height:18px;border-radius:5px;border:1.75px solid currentColor;display:inline-block}
+.sfoot{border-top:1px solid var(--border);padding:12px;display:flex;justify-content:center;font-size:12px;font-weight:700;color:var(--muted)}
+.main{flex:1;min-width:0;overflow:hidden}
+.wrap{max-width:896px;margin:0 auto;padding:24px;display:flex;flex-direction:column;gap:24px}
+h1{font-size:24px;font-weight:700;margin:0}
+.card{border:1px solid var(--border);background:var(--surface);border-radius:12px;padding:16px;box-shadow:var(--shadow)}
+.ct{font-size:14px;font-weight:600;margin:0 0 12px}
+.figs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.fig{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-radius:10px;text-decoration:none;color:var(--text)}
+.fig b{font-size:26px;font-weight:800;letter-spacing:-.4px;font-variant-numeric:tabular-nums}
+.fig b small{font-size:14px;color:var(--muted);font-weight:600;margin-left:2px}
+.fig span{font-size:13px;color:var(--muted)}
+.hint{font-size:12px;color:var(--muted);margin:10px 0 0}
+.pref{display:grid;grid-template-columns:160px minmax(0,1fr);align-items:center;gap:16px;padding:10px 0;border-top:1px solid var(--border)}
+.pref:first-of-type{border-top:0}
+.pl{font-size:14px;font-weight:500}
+.seg{display:inline-grid;grid-template-columns:repeat(3,auto);background:var(--surface2);border-radius:999px;padding:3px;gap:2px;justify-self:start}
+.seg button{border:0;background:transparent;color:var(--text);font:600 13px/1 inherit;min-height:34px;padding:0 16px;border-radius:999px;display:inline-flex;align-items:center;gap:6px}
+.seg button.on{background:var(--fill);color:var(--onFill)}
+.sel{justify-self:start;min-height:36px;padding:0 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font:500 14px/1 inherit;display:inline-flex;align-items:center;gap:24px}
+.field{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--muted)}
+.inp{min-height:38px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);display:flex;align-items:center;padding:0 12px;font-size:14px}
+</style>
+</helmet>
+<div class="stack">
+<sc-for list="{{wins}}" as="w" hint-placeholder-count="2">
+<div>
+<div class="lab">{{w.label}}</div>
+<div style="padding:12px 0 0">
+<div class="win {{w.cls}}">
+<aside class="side">
+<div class="brand"><span class="logo">W</span>Foundry</div>
+<nav class="nav" aria-label="Hoofdmenu">
+<a class="ni" href="#d"><i></i>Dashboard</a>
+<a class="ni" href="#l"><i></i>Logboek</a>
+<a class="ni" href="#e"><i></i>Oefeningen</a>
+<a class="ni" href="#r"><i></i>Routines</a>
+<a class="ni" href="#w"><i></i>WODs</a>
+<a class="ni" href="#p"><i></i>Voortgang</a>
+<a class="ni on" href="#a" aria-current="page"><i></i>Profiel</a>
+</nav>
+<div class="sfoot">NL</div>
+</aside>
+<main class="main">
+<div class="wrap">
+<h1>Account</h1>
+<section class="card" aria-labelledby="tot">
+<p class="ct" id="tot">Sinds het begin</p>
+<div class="figs">
+<a class="fig" href="#log"><b>214</b><span>trainingen</span></a>
+<a class="fig" href="#log"><b>96,4<small>ton</small></b><span>getild</span></a>
+<a class="fig" href="#log"><b>612<small>km</small></b><span>hardgelopen</span></a>
+<a class="fig" href="#log"><b>1.840<small>km</small></b><span>gefietst</span></a>
+</div>
+<p class="hint">Sinds 3 maart 2026. Elk getal opent het Logboek.</p>
+</section>
+<section class="card" aria-labelledby="vk">
+<p class="ct" id="vk">Voorkeuren</p>
+<div class="pref"><span class="pl" id="wg">Weergave</span>
+<div>
+<div class="seg" role="radiogroup" aria-labelledby="wg">
+<sc-for list="{{w.modes}}" as="m" hint-placeholder-count="3">
+<button type="button" role="radio" class="{{m.cls}}" aria-checked="{{m.checked}}">{{m.label}}</button>
+</sc-for>
+</div>
+<p class="hint" style="margin-top:6px">{{w.hint}}</p>
+</div>
+</div>
+<div class="pref"><span class="pl">Taal</span><span class="sel" role="button" tabindex="0">Nederlands <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></svg></span></div>
+</section>
+<section class="card">
+<p class="ct">Profiel</p>
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+<label class="field">Voornaam<span class="inp">Eric</span></label>
+<label class="field">Achternaam<span class="inp">Jansen</span></label>
+</div>
+</section>
+</div>
+</main>
+</div>
+</div>
+</div>
+</sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1960}}'>
+class Component extends DCLogic {
+renderVals() {
+const modes = (sel) => ["Systeem", "Licht", "Donker"].map((label) => ({ label, cls: label === sel ? "on" : "", checked: label === sel ? "true" : "false" }));
+return { wins: [
+{ label: "Desktop · licht, Systeem gekozen (OS staat op licht)", cls: "th-light", modes: modes("Systeem"), hint: "Systeem volgt de instelling van je apparaat. Opgeslagen in deze browser." },
+{ label: "Desktop · donker, Donker gekozen", cls: "th-dark", modes: modes("Donker"), hint: "Altijd donker in deze browser, wat je apparaat ook doet." }
+] };
+}
+}
+</script>
+</body>
+</html>

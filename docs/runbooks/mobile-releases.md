@@ -173,6 +173,12 @@ still increment remotely, so the duplicate-upload rule above applies.
 
 ## CI builds
 
+> **Android is paused (Eric, 18 Nov 2026).** Until the repository variable
+> `ANDROID_ENABLED` is `true`, Mobile Build ignores `build:android`, and both
+> Mobile Update workflows publish iOS only. Re-enable with
+> `gh variable set ANDROID_ENABLED --body true` (developer-home
+> `standards/releases.md`, "Android pause").
+
 `.github/workflows/mobile-build.yml` runs `eas build --local` on GitHub-hosted
 runners (`macos-26` for iOS, Ubuntu for Android). This spends no EAS Build
 credits. The repository is public, so runner minutes are free too.

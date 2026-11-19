@@ -1,7 +1,6 @@
 import { useState } from "react";
 import {
 	KeyboardAvoidingView,
-	Modal,
 	Platform,
 	Pressable,
 	TextInput,
@@ -13,6 +12,7 @@ import {
 	useReduceMotion,
 } from "../../../../feedback/reduce-motion";
 import { radius, spacing, type, useTokens } from "../../../../theme";
+import { Modal } from "../../../../ui/modal";
 import { AppText } from "../../../../ui/text";
 
 /**

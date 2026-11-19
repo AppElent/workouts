@@ -1,15 +1,17 @@
+import { validateRecordedTime } from "@foundry/core";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getOwned, requireOwned, requireUserId } from "./lib/auth";
-import { appError } from "./lib/errors";
+import { appError, checked } from "./lib/errors";
 import { legacyDiscardUnfinished } from "./lib/legacyClients";
 import { recalcStrengthReferences } from "./lib/strengthReferences";
 import {
 	ensureSessionExercise,
 	getActiveSession,
+	planSessionExercise,
 	startSession,
 } from "./lib/strengthSession";
-import { exerciseReference } from "./lib/validators";
+import { exerciseReference, loadUnit, plannedSet } from "./lib/validators";
 
 export const getActive = query({
 	args: {},
@@ -34,9 +36,17 @@ export const getById = query({
 });
 
 export const create = mutation({
-	args: { name: v.optional(v.string()) },
-	handler: async (ctx, { name }) =>
-		startSession(ctx, await requireUserId(ctx), { name, prescriptions: [] }),
+	args: {
+		name: v.optional(v.string()),
+		/** For a session logged afterwards; defaults to now. */
+		startTime: v.optional(v.number()),
+	},
+	handler: async (ctx, { name, startTime }) =>
+		startSession(ctx, await requireUserId(ctx), {
+			name,
+			startTime,
+			prescriptions: [],
+		}),
 });
 
 export const addExercise = mutation({
@@ -45,12 +55,54 @@ export const addExercise = mutation({
 		ensureSessionExercise(ctx, await requireUserId(ctx), sessionId, exerciseId),
 });
 
+/**
+ * Replaces the Planned Sets of one exercise in an active session; each target
+ * is a load or a percentage of the session's 1RM for that exercise.
+ */
+export const planExercise = mutation({
+	args: {
+		sessionId: v.id("workoutSessions"),
+		exerciseId: exerciseReference,
+		unit: loadUnit,
+		plannedSets: v.array(
+			v.object({
+				reps: v.number(),
+				weight: v.optional(v.number()),
+				percentOfOneRepMax: v.optional(v.number()),
+			}),
+		),
+	},
+	returns: v.object({
+		exerciseId: exerciseReference,
+		plannedSets: v.array(plannedSet),
+		oneRepMax: v.union(
+			v.null(),
+			v.object({
+				value: v.number(),
+				unit: loadUnit,
+				kind: v.union(v.literal("manual"), v.literal("measured")),
+			}),
+		),
+	}),
+	handler: async (ctx, { sessionId, exerciseId, unit, plannedSets }) =>
+		planSessionExercise(
+			ctx,
+			await requireUserId(ctx),
+			sessionId,
+			exerciseId,
+			unit,
+			plannedSets,
+		),
+});
+
 export const finish = mutation({
 	args: {
 		id: v.id("workoutSessions"),
 		discardUnfinished: legacyDiscardUnfinished,
+		/** For a session logged afterwards; defaults to now. */
+		endTime: v.optional(v.number()),
 	},
-	handler: async (ctx, { id }) => {
+	handler: async (ctx, { id, endTime }) => {
 		const session = await requireOwned(ctx, await requireUserId(ctx), id);
 		if (session.status === "completed") return;
 		if (session.status !== "active") throw appError("sessionEnded");
@@ -63,7 +115,16 @@ export const finish = mutation({
 			.withIndex("by_session", (q) => q.eq("sessionId", id))
 			.first();
 		if (!set && !wod) throw appError("emptySession");
-		await ctx.db.patch(id, { status: "completed", endTime: Date.now() });
+		const now = Date.now();
+		await ctx.db.patch(id, {
+			status: "completed",
+			endTime:
+				endTime === undefined
+					? now
+					: checked(
+							validateRecordedTime("endTime", endTime, now, session.startTime),
+						),
+		});
 	},
 });
 

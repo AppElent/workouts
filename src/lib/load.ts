@@ -1,9 +1,14 @@
 import type { Doc } from "@convex/_generated/dataModel";
-import { convertLoad, type LoadUnit } from "@foundry/core";
+import { convertLoad, isTimedExercise, type LoadUnit } from "@foundry/core";
 
 /** A kg load in `unit`, rounded to one decimal for display. */
 export function displayLoad(kg: number, unit: LoadUnit): number {
 	return Math.round(convertLoad(kg, "kg", unit) * 10) / 10;
+}
+
+/** A set's count as it reads: "8" reps, or "45 s" on a hold. */
+export function setCount(set: Pick<Doc<"sets">, "exerciseId" | "reps">) {
+	return isTimedExercise(set.exerciseId) ? `${set.reps} s` : String(set.reps);
 }
 
 /** The server-stored 1RM reference of a set, in the set's own unit. */

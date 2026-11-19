@@ -1,6 +1,7 @@
 /**
  * Email and password, an emailed code (`sign-in-code`), or a social provider
- * (`SocialButtons`). No reset yet: it is a Clerk flow with its own screens.
+ * (`SocialButtons`). A forgotten password resets through `forgot-password`;
+ * that link is off while a password or code sign-in is pending.
  * New accounts start at `sign-up`.
  *
  * The submit does not navigate: `finalize()` (in `usePasswordSignIn`) flips
@@ -19,20 +20,32 @@ import { AppText } from "../ui/text";
 import { AuthInput, AuthLink, AuthMessage, AuthScreen } from "./auth-form";
 import { devLogin } from "./config";
 import { SocialButtons } from "./social-buttons";
+import { useCredentialFields } from "./use-credential-fields";
 import { useEmailCodeSignIn } from "./use-email-code-sign-in";
 import { usePasswordSignIn } from "./use-password-sign-in";
 
 export function SignInScreen() {
 	const router = useRouter();
-	const copy = useI18n().t.signIn;
+	const { t } = useI18n();
+	const copy = t.signIn;
 	const { submit, busy, error } = usePasswordSignIn();
 	const emailCode = useEmailCodeSignIn();
 	const [codeHint, setCodeHint] = useState<string | null>(null);
-	const [email, setEmail] = useState(devLogin?.email ?? "");
-	const [password, setPassword] = useState(devLogin?.password ?? "");
+	// AutoFill can change a field without `onChangeText`; submit its final text.
+	const form = useCredentialFields(
+		{ email: devLogin?.email ?? "", password: devLogin?.password ?? "" },
+		(latest) => {
+			if (latest.email.trim() && latest.password) {
+				void submit(latest.email, latest.password);
+			}
+		},
+	);
+	const { email, password } = form.values;
 	const passwordRef = useRef<TextInputInstance>(null);
 
 	const ready = email.trim().length > 0 && password.length > 0;
+	// A reset runs on the same Clerk attempt, so it cannot start mid sign-in.
+	const signingIn = busy || emailCode.busy;
 
 	async function sendCode() {
 		setCodeHint(null);
@@ -54,6 +67,16 @@ export function SignInScreen() {
 			subtitle={copy.tagline}
 			footer={
 				<>
+					<AuthLink
+						label={t.resetPassword.link}
+						disabled={signingIn}
+						onPress={() =>
+							router.push({
+								pathname: "/forgot-password",
+								params: { email: email.trim() },
+							})
+						}
+					/>
 					<AuthLink label={copy.emailCode} onPress={sendCode} />
 					<AuthLink
 						prompt={copy.noAccount}
@@ -70,8 +93,7 @@ export function SignInScreen() {
 		>
 			<AuthInput
 				placeholder={copy.email}
-				value={email}
-				onChangeText={setEmail}
+				{...form.field("email")}
 				autoCapitalize="none"
 				autoCorrect={false}
 				keyboardType="email-address"
@@ -84,14 +106,13 @@ export function SignInScreen() {
 			<AuthInput
 				ref={passwordRef}
 				placeholder={copy.password}
-				value={password}
-				onChangeText={setPassword}
+				{...form.field("password")}
 				secureTextEntry
 				autoCapitalize="none"
 				autoComplete="current-password"
 				textContentType="password"
 				returnKeyType="go"
-				onSubmitEditing={() => ready && submit(email, password)}
+				onSubmitEditing={form.submitFrom("password")}
 			/>
 
 			<AuthMessage message={codeHint ?? emailCode.error ?? error} />
@@ -99,8 +120,8 @@ export function SignInScreen() {
 			<PrimaryButton
 				label={copy.submit}
 				loading={busy || emailCode.busy}
-				disabled={!ready}
-				onPress={() => submit(email, password)}
+				disabled={!ready && !form.editing}
+				onPress={form.press}
 				testID="sign-in-submit"
 			/>
 

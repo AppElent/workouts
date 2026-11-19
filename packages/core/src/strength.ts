@@ -1,13 +1,14 @@
-import { type Equipment, isLoadedEquipment } from "./exercise";
+import { type Equipment, isLoadedEquipment, isTimedExercise } from "./exercise";
 import {
 	calculateOneRepMax,
+	roundLoad,
 	SET_REFERENCE_SOURCES,
 	type SetReferenceSource,
 	weightForRepMax,
 } from "./oneRepMax";
 import { type NumberRange, type RangeCode, rangeCode } from "./range";
 import { type RuleResult, ruleIssues } from "./rules";
-import { type LoadUnit, toKg } from "./units";
+import { convertLoad, type LoadUnit, toKg } from "./units";
 
 export const SET_TYPES = ["warmup", "working", "drop", "failure"] as const;
 export type SetType = (typeof SET_TYPES)[number];
@@ -67,6 +68,7 @@ type PlannedExerciseInput = {
 	plannedSets?: number;
 	plannedReps?: number;
 	plannedWeight?: number;
+	percentOfOneRepMax?: number;
 };
 
 /** One exercise of a routine or hosted prescription. */
@@ -78,6 +80,47 @@ export function validatePlannedExercise<T extends PlannedExerciseInput>(
 
 export function validateManualOneRepMax(value: number) {
 	return checkLimits({ manualOneRepMax: value });
+}
+
+/** How far past the server clock a recorded time may be: device clock skew. */
+export const RECORDED_TIME_TOLERANCE_MS = 5 * 60_000;
+
+/**
+ * Checks when a person says something happened (a backdated start, Set, or
+ * finish): not after `now`, and not before `notBefore` (such as the session's
+ * start), each beyond clock skew.
+ */
+export function validateRecordedTime<Field extends string>(
+	field: Field,
+	at: number,
+	now: number,
+	notBefore = 0,
+): RuleResult<number, Field, RangeCode> {
+	const found = ruleIssues<Field, RangeCode>();
+	const code = rangeCode(at, {
+		min: notBefore - RECORDED_TIME_TOLERANCE_MS,
+		max: now + RECORDED_TIME_TOLERANCE_MS,
+	});
+	if (code) found.add(field, code);
+	return found.result(at);
+}
+
+/** Pound loads step by 5 lb whatever the exercise's kg step is. */
+export const POUND_LOAD_STEP = 5;
+
+/**
+ * A target load at `percent` of a One-rep Max, in `unit`, rounded the way the
+ * set editor rounds: the exercise's kg step, or 5 lb.
+ */
+export function percentOfOneRepMaxLoad(
+	oneRepMax: { readonly value: number; readonly unit: LoadUnit },
+	percent: number,
+	unit: LoadUnit,
+	stepKg: number,
+): number {
+	const kg = (toKg(oneRepMax.value, oneRepMax.unit) * percent) / 100;
+	if (unit === "kg") return roundLoad(kg, stepKg);
+	return roundLoad(convertLoad(kg, "kg", "lbs"), POUND_LOAD_STEP);
 }
 
 export type PerformedSet = {
@@ -106,13 +149,18 @@ export function isReferenceEligible(
 	);
 }
 
-/** Total kg × reps; warm-ups are not work volume. */
+/**
+ * Total kg × reps; warm-ups and timed holds (a count of seconds, see
+ * `isTimedExercise`) are not work volume.
+ */
 export function workingVolume(
-	sets: readonly Pick<PerformedSet, "weight" | "reps" | "unit" | "setType">[],
+	sets: readonly (Pick<PerformedSet, "weight" | "reps" | "unit" | "setType"> & {
+		exerciseId?: string;
+	})[],
 ): number {
 	return sets.reduce(
 		(total, set) =>
-			set.setType === "warmup"
+			set.setType === "warmup" || isTimedExercise(set.exerciseId)
 				? total
 				: total + toKg(set.weight, set.unit) * set.reps,
 		0,

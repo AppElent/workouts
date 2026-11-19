@@ -18,16 +18,35 @@
  */
 
 import { useAuth } from "@clerk/expo";
-import { Redirect, Stack } from "expo-router";
+import { Redirect, Stack, usePathname } from "expo-router";
+import type { ReactNode } from "react";
 import { Platform, View } from "react-native";
 import { AppDataProviders } from "../../src/app-data-providers";
 import { ConvexSessionGate } from "../../src/auth/convex-session-gate";
 import { AccountDataMaintenanceProvider } from "../../src/features/local-data/account-data-maintenance-provider";
+import { joinTokenFromPathname } from "../../src/features/training/hosted/join-link";
+import { rememberPendingJoin } from "../../src/features/training/hosted/pending-join";
 import { useI18n } from "../../src/i18n";
+import {
+	isPresentedRoute,
+	useShakeToReportBlocker,
+} from "../../src/observability/shake-to-report";
 import { useTokens } from "../../src/theme";
 import { ConfirmProvider } from "../../src/ui/confirm-dialog";
 import { OfflineBanner } from "../../src/ui/offline-banner";
 import { ToastProvider } from "../../src/ui/toast";
+
+// A shake must not open the feedback form under a presented sheet (APP-216).
+function ShakeToReportGate({
+	blocked,
+	children,
+}: {
+	blocked: boolean;
+	children: ReactNode;
+}) {
+	useShakeToReportBlocker(blocked);
+	return children;
+}
 
 // Keeps Coach beneath deep-linked app routes.
 export const unstable_settings = { anchor: "(coach)" };
@@ -36,7 +55,11 @@ export default function AppLayout() {
 	const colors = useTokens();
 	const { isSignedIn } = useAuth();
 	const { t } = useI18n();
+	const pathname = usePathname();
 	if (!isSignedIn) {
+		// A join link survives sign-in; see `pending-join.ts`. Whatever was
+		// opened last wins: another route or an invalid link forgets it.
+		rememberPendingJoin(joinTokenFromPathname(pathname));
 		return <Redirect href="/sign-in" />;
 	}
 
@@ -49,6 +72,17 @@ export default function AppLayout() {
 							<View style={{ flex: 1, backgroundColor: colors.bg }}>
 								<OfflineBanner />
 								<Stack
+									layout={({ state, descriptors, children }) => (
+										<ShakeToReportGate
+											blocked={state.routes.some((route) =>
+												isPresentedRoute(
+													descriptors[route.key]?.options.presentation,
+												),
+											)}
+										>
+											{children}
+										</ShakeToReportGate>
+									)}
 									screenOptions={{
 										headerShown: true,
 										headerTintColor: colors.accent,
@@ -115,6 +149,10 @@ export default function AppLayout() {
 										name="hosted/[id]"
 										options={{ title: t.routes.hostedWorkout }}
 									/>
+									<Stack.Screen
+										name="join/[token]"
+										options={{ title: t.routes.hostedWorkout }}
+									/>
 									<Stack.Screen name="wods" options={{ title: t.wods.title }} />
 									<Stack.Screen
 										name="wod/[id]"
@@ -140,6 +178,15 @@ export default function AppLayout() {
 										name="set-editor"
 										options={{
 											headerShown: false,
+											presentation: "formSheet",
+											sheetAllowedDetents: [1],
+											sheetGrabberVisible: true,
+										}}
+									/>
+									<Stack.Screen
+										name="exercise-sheet/[id]"
+										options={{
+											title: t.routes.exercise,
 											presentation: "formSheet",
 											sheetAllowedDetents: [1],
 											sheetGrabberVisible: true,
@@ -189,6 +236,10 @@ export default function AppLayout() {
 									<Stack.Screen
 										name="language"
 										options={{ title: t.language.title }}
+									/>
+									<Stack.Screen
+										name="change-password"
+										options={{ title: t.account.changePassword }}
 									/>
 									<Stack.Screen
 										name="personal-measures"

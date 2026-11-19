@@ -13,8 +13,9 @@
  * your 1RM estimate is stale.
  */
 import {
-	calculateOneRepMax,
+	convertLoad,
 	exerciseRecords,
+	isTimedExercise,
 	primaryMuscleGroup,
 	repMaxCurve,
 	roundLoad,
@@ -28,7 +29,7 @@ import { api } from "../../../convex/api";
 import { useQuery } from "../../../convex/query-cache";
 import { useExercise } from "../../../data/exercises";
 import { formatSessionDate } from "../../../data/session-data";
-import { dateLocale, useI18n } from "../../../i18n";
+import { dateLocale, fmt, type Locale, useI18n } from "../../../i18n";
 import {
 	radius,
 	spacing,
@@ -38,7 +39,7 @@ import {
 	useTokens,
 } from "../../../theme";
 import { TrendChart } from "../../../ui/chart";
-import { Card, Chip, Eyebrow, StatBox } from "../../../ui/coach";
+import { Card, Eyebrow, StatBox } from "../../../ui/coach";
 import { useConfirm } from "../../../ui/confirm-dialog";
 import { ScreenHeader } from "../../../ui/screen-header";
 import { Segmented } from "../../../ui/segmented";
@@ -46,17 +47,33 @@ import { SkeletonBlock, SkeletonList } from "../../../ui/skeleton";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
 import { useWriteFailureMessage } from "../../../ui/use-screen-write";
+import {
+	latestBodyweightKg,
+	levelKey,
+	levelOf,
+	strengthLevels,
+} from "../../strength-session/strength-levels";
+import { dailyBest, exerciseInsight } from "./exercise-insight";
 import { MuscleIcon } from "./muscle-icon";
 
 type Tab = "Overview" | "Progress" | "History";
 
 /** Rep counts the strength curve covers — beyond ten, Epley stops meaning much. */
 const CURVE_REPS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+/** The rep counts "what you can lift now" answers for. */
+const CAN_LIFT_REPS = [1, 3, 5, 8, 10];
+const formatKg = (value: number, locale: string, digits = 1) =>
+	value.toLocaleString(locale, { maximumFractionDigits: digits });
+const shortDate = (time: number, locale: Locale) =>
+	new Date(time).toLocaleDateString(dateLocale(locale), {
+		day: "numeric",
+		month: "short",
+	});
 
 export function ExerciseDetailScreen() {
 	const errorMessage = useWriteFailureMessage();
 	const colors = useTokens();
-	const { t } = useI18n();
+	const { t, locale } = useI18n();
 	const router = useRouter();
 	const confirm = useConfirm();
 	const toast = useToast();
@@ -100,10 +117,23 @@ export function ExerciseDetailScreen() {
 		exerciseId ? { exerciseId } : "skip",
 	);
 
+	const timed = isTimedExercise(exerciseId);
 	const records = useMemo(
 		() =>
 			history?.length ? exerciseRecords(history, exercise, CURVE_REPS) : null,
 		[history, exercise],
+	);
+	const ormHistory = useQuery(
+		api.oneRepMaxes.listForExercise,
+		exerciseId ? { exerciseId } : "skip",
+	);
+	const bodyMetrics = useQuery(api.bodyMetrics.list, {});
+	const insight = useMemo(
+		() =>
+			history
+				? exerciseInsight(history, ormHistory ?? [], Date.now(), timed)
+				: null,
+		[history, ormHistory, timed],
 	);
 
 	if (exercise === undefined) {
@@ -180,19 +210,17 @@ export function ExerciseDetailScreen() {
 						</Stack.Toolbar.Menu>
 					</Stack.Toolbar>
 					<AppText variant="title">{exercise.name}</AppText>
-					<AppText variant="caption" style={styles.meta}>
-						{exercise.category} · {exercise.equipment}
+					<AppText variant="caption" style={{ color: colors.textMuted }}>
+						{[
+							t.exercises.groupNames[primaryMuscleGroup(exercise)],
+							(t.exercises as Record<string, unknown>)[exercise.category] ??
+								exercise.category,
+							t.exercises.equipmentNames[exercise.equipment] ??
+								exercise.equipment,
+						].join(" · ")}
 					</AppText>
 				</View>
 			</View>
-
-			{exercise.muscleGroups.length > 0 ? (
-				<View style={styles.chipWrap}>
-					{exercise.muscleGroups.map((mg) => (
-						<Chip key={mg} label={mg} />
-					))}
-				</View>
-			) : null}
 
 			<Segmented
 				value={tab}
@@ -206,28 +234,13 @@ export function ExerciseDetailScreen() {
 
 			{tab === "Overview" ? (
 				<>
-					<Card style={styles.ormCard}>
-						<Eyebrow>{t.exercises.detail.currentOrm}</Eyebrow>
-						{currentOrm === undefined ? (
-							<SkeletonBlock height={40} />
-						) : currentOrm === null ? (
-							<AppText variant="caption">{t.exercises.detail.noOrm}</AppText>
-						) : (
-							<>
-								<AppText style={styles.ormValue}>
-									{currentOrm.value}{" "}
-									<AppText style={styles.ormUnit}>{currentOrm.unit}</AppText>
-								</AppText>
-								<AppText variant="caption">
-									{currentOrm.source === "calculated"
-										? t.exercises.detail.calculated
-										: currentOrm.source === "actual"
-											? t.exercises.detail.actual
-											: t.exercises.detail.manual}
-								</AppText>
-							</>
-						)}
-					</Card>
+					<OverviewInsight
+						exerciseId={exercise._id}
+						timed={timed}
+						currentOrm={currentOrm}
+						insight={insight}
+						bodyweightKg={latestBodyweightKg(bodyMetrics)}
+					/>
 
 					{records ? (
 						<>
@@ -236,7 +249,7 @@ export function ExerciseDetailScreen() {
 								<StatBox
 									value={
 										records.heaviest
-											? String(roundLoad(records.heaviest.valueKg, 0.1))
+											? formatKg(records.heaviest.valueKg, locale, 2)
 											: "—"
 									}
 									unit={records.heaviest ? "kg" : undefined}
@@ -244,12 +257,17 @@ export function ExerciseDetailScreen() {
 								/>
 								<StatBox
 									value={records.mostReps ? String(records.mostReps.reps) : "—"}
-									label={t.exercises.detail.mostReps}
+									unit={timed && records.mostReps ? "s" : undefined}
+									label={
+										timed
+											? t.exercises.detail.longestHold
+											: t.exercises.detail.mostReps
+									}
 								/>
 								<StatBox
 									value={
 										records.bestEstimate
-											? String(roundLoad(records.bestEstimate.valueKg, 0.1))
+											? formatKg(records.bestEstimate.valueKg, locale)
 											: "—"
 									}
 									unit={records.bestEstimate ? "kg" : undefined}
@@ -292,7 +310,12 @@ export function ExerciseDetailScreen() {
 					currentOrm={currentOrm ?? null}
 				/>
 			) : (
-				<HistoryTab history={history} />
+				<HistoryTab
+					sessions={
+						history === undefined ? undefined : (insight?.sessions ?? [])
+					}
+					timed={timed}
+				/>
 			)}
 		</ScrollView>
 	);
@@ -314,14 +337,12 @@ function ProgressTab({
 		exerciseId ? { exerciseId } : "skip",
 	);
 
+	// One point per day: two records on one day drew a vertical spike.
 	const ormPoints = useMemo(
 		() =>
-			(ormHistory ?? []).map((o) => ({
-				value: o.value,
-				label: new Date(o.date).toLocaleDateString(dateLocale(locale), {
-					day: "numeric",
-					month: "short",
-				}),
+			dailyBest(ormHistory ?? []).map((point) => ({
+				value: Math.round(point.kg * 10) / 10,
+				label: shortDate(point.date, locale),
 			})),
 		[ormHistory, locale],
 	);
@@ -384,20 +405,230 @@ function ProgressTab({
 	);
 }
 
-function HistoryTab({
-	history,
+type Insight = ReturnType<typeof exerciseInsight>;
+
+function OverviewInsight({
+	exerciseId,
+	timed,
+	currentOrm,
+	insight,
+	bodyweightKg,
 }: {
-	history: ReturnType<typeof useQuery<typeof api.exercises.getHistory>>;
+	exerciseId: string;
+	timed: boolean;
+	currentOrm:
+		| { value: number; unit: "kg" | "lbs"; source: string }
+		| null
+		| undefined;
+	insight: Insight | null;
+	bodyweightKg: number | null;
 }) {
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
 	const { t, locale } = useI18n();
 	const copy = t.exercises.detail;
-	if (history === undefined) {
+	const levelNames = t.strength.plan.editor.levels;
+	const ormKg = currentOrm
+		? convertLoad(currentOrm.value, currentOrm.unit, "kg")
+		: null;
+	const levels = timed
+		? null
+		: strengthLevels(levelKey(exerciseId), bodyweightKg);
+	const where =
+		levels && ormKg && bodyweightKg
+			? levelOf(levels, ormKg, bodyweightKg)
+			: null;
+	const trend = insight?.trend;
+	const volume = insight?.volume ?? 0;
+	return (
+		<>
+			<Card style={styles.ormCard}>
+				<View style={styles.ormHead}>
+					<View style={styles.flex}>
+						<Eyebrow>{copy.estimatedOrm}</Eyebrow>
+						{currentOrm === undefined ? (
+							<SkeletonBlock height={40} />
+						) : currentOrm === null ? (
+							<AppText variant="caption">{copy.noOrm}</AppText>
+						) : (
+							<AppText variant="display" style={styles.tabular}>
+								{formatKg(currentOrm.value, locale)}
+								<AppText variant="label" style={{ color: colors.textMuted }}>
+									{` ${currentOrm.unit}`}
+								</AppText>
+							</AppText>
+						)}
+					</View>
+					{trend && trend.kg !== 0 ? (
+						<View
+							style={[
+								styles.trend,
+								{
+									backgroundColor:
+										trend.kg > 0 ? colors.accentDim : colors.surface2,
+								},
+							]}
+						>
+							<AppText
+								variant="label"
+								style={{
+									color: trend.kg > 0 ? colors.accentInk : colors.textMuted,
+								}}
+							>
+								{fmt(trend.kg > 0 ? copy.trendUp : copy.trendDown, {
+									value: formatKg(Math.abs(trend.kg), locale),
+									weeks: trend.weeks,
+								})}
+							</AppText>
+						</View>
+					) : null}
+				</View>
+				{currentOrm ? (
+					<AppText variant="caption" style={{ color: colors.textMuted }}>
+						{currentOrm.source === "calculated"
+							? copy.calculated
+							: currentOrm.source === "actual"
+								? copy.actual
+								: copy.manual}
+					</AppText>
+				) : null}
+			</Card>
+
+			{insight && insight.points.length >= 2 ? (
+				<TrendChart
+					title={copy.ormOverTime}
+					points={insight.points.map((point) => ({
+						value: Math.round(point.kg * 10) / 10,
+						label: shortDate(point.date, locale),
+					}))}
+				/>
+			) : null}
+
+			{insight && insight.sessionCount > 0 ? (
+				<View style={styles.statRow}>
+					<StatBox
+						value={
+							insight.best
+								? `${formatKg(insight.best.kg, locale, 2)} × ${insight.best.reps}`
+								: "—"
+						}
+						label={copy.bestSet}
+					/>
+					{timed ? null : (
+						<StatBox
+							value={
+								volume >= 1000
+									? formatKg(volume / 1000, locale)
+									: formatKg(volume, locale, 0)
+							}
+							unit={volume >= 1000 ? "t" : "kg"}
+							label={
+								insight.volumeChange === null
+									? copy.volume4w
+									: `${copy.volume4w} · ${insight.volumeChange >= 0 ? "▲" : "▼"} ${Math.abs(insight.volumeChange)}%`
+							}
+						/>
+					)}
+					<StatBox value={String(insight.sessionCount)} label={copy.sessions} />
+				</View>
+			) : null}
+
+			{levels ? (
+				<Card style={styles.ormCard}>
+					<Eyebrow>{copy.level}</Eyebrow>
+					<View style={styles.levelBar}>
+						{levels.map((level, index) => (
+							<View key={level.id} style={styles.levelCell}>
+								<View
+									style={[
+										styles.levelFill,
+										{
+											backgroundColor:
+												where && index <= where.index
+													? colors.accentFill
+													: colors.surface2,
+										},
+									]}
+								/>
+								<AppText
+									variant="caption"
+									numberOfLines={1}
+									adjustsFontSizeToFit
+									style={{
+										color:
+											where?.index === index ? colors.text : colors.textMuted,
+										fontWeight: where?.index === index ? "700" : "500",
+									}}
+								>
+									{levelNames[level.id]}
+								</AppText>
+							</View>
+						))}
+					</View>
+					<AppText variant="secondary" style={{ color: colors.textMuted }}>
+						{!bodyweightKg
+							? t.strength.plan.editor.levelsNoWeight
+							: !where
+								? t.strength.plan.editor.levelGuide
+								: where.toNextKg === null
+									? copy.levelTop
+									: fmt(copy.levelNext, {
+											next: where.toNextKg,
+											level:
+												levelNames[levels[where.index + 1]?.id ?? "expert"],
+										})}
+					</AppText>
+				</Card>
+			) : null}
+
+			{ormKg && !timed ? (
+				<>
+					<Eyebrow>{copy.canLift}</Eyebrow>
+					<View style={styles.canLift}>
+						{repMaxCurve(ormKg, CAN_LIFT_REPS).map(
+							({ reps, weight }, index) => (
+								<View
+									key={reps}
+									style={[styles.canLiftCell, index > 0 && styles.canLiftLine]}
+									accessible
+									accessibilityLabel={`${reps === 1 ? copy.reps1 : fmt(copy.repsN, { count: reps })}, ${formatKg(roundLoad(weight, 0.5), locale)} kg`}
+								>
+									<AppText
+										variant="caption"
+										style={{ color: colors.textMuted }}
+									>
+										{reps === 1 ? copy.reps1 : fmt(copy.repsN, { count: reps })}
+									</AppText>
+									<AppText variant="heading" style={styles.tabular}>
+										{formatKg(roundLoad(weight, 0.5), locale)}
+									</AppText>
+								</View>
+							),
+						)}
+					</View>
+				</>
+			) : null}
+		</>
+	);
+}
+
+function HistoryTab({
+	sessions,
+	timed,
+}: {
+	sessions: Insight["sessions"] | undefined;
+	/** A hold: the count is seconds. */
+	timed: boolean;
+}) {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
+	const { t, locale } = useI18n();
+	const copy = t.exercises.detail;
+	if (sessions === undefined) {
 		return <SkeletonBlock height={40} />;
 	}
 
-	if (history.length === 0) {
+	if (sessions.length === 0) {
 		return (
 			<View style={styles.empty}>
 				<AppText variant="heading" style={{ color: colors.textMuted }}>
@@ -410,46 +641,70 @@ function HistoryTab({
 		);
 	}
 
-	// Newest first: the last thing you did is the thing you want to see.
-	const rows = [...history].reverse();
-
 	return (
 		<View style={styles.historyList}>
-			<View style={styles.historyHead}>
-				<AppText style={[styles.th, styles.flex]}>{copy.date}</AppText>
-				<AppText style={[styles.th, styles.center, { width: 56 }]}>kg</AppText>
-				<AppText style={[styles.th, styles.center, { width: 44 }]}>
-					{copy.reps}
-				</AppText>
-				<AppText style={[styles.th, styles.center, { width: 64 }]}>
-					{copy.estimate}
-				</AppText>
-			</View>
-			{rows.map((set) => {
-				const estimate =
-					set.weight > 0 ? calculateOneRepMax(set.weight, set.reps) : null;
-				return (
-					<View key={set._id} style={styles.historyRow}>
-						<View style={styles.flex}>
-							<AppText variant="caption" style={styles.historyDate}>
-								{formatSessionDate(set.sessionDate, locale)}
+			{sessions.map((session) => (
+				<View key={session.sessionId} style={styles.session}>
+					<View style={styles.sessionHead}>
+						<AppText
+							variant="label"
+							numberOfLines={1}
+							style={[styles.flex, { color: colors.textMuted }]}
+						>
+							{[formatSessionDate(session.date, locale), session.name]
+								.filter(Boolean)
+								.join(" · ")}
+						</AppText>
+						{session.best !== null ? (
+							<AppText
+								variant="label"
+								style={[styles.tabular, { color: colors.textMuted }]}
+							>
+								{fmt(copy.sessionBest, { value: Math.round(session.best) })}
 							</AppText>
-							<AppText variant="caption" style={styles.historyType}>
-								{t.strength[set.setType]}
-							</AppText>
-						</View>
-						<AppText style={[styles.td, styles.center, { width: 56 }]}>
-							{set.weight}
-						</AppText>
-						<AppText style={[styles.td, styles.center, { width: 44 }]}>
-							{set.reps}
-						</AppText>
-						<AppText style={[styles.td, styles.center, { width: 64 }]}>
-							{estimate ? estimate.value : "—"}
-						</AppText>
+						) : null}
 					</View>
-				);
-			})}
+					<View style={styles.sessionCard}>
+						{session.rows.map((row, index) => (
+							<View
+								key={row.id}
+								style={[styles.historyRow, index > 0 && styles.historyLine]}
+							>
+								<AppText
+									variant="label"
+									style={[styles.setNumber, { color: colors.textMuted }]}
+								>
+									{index + 1}
+								</AppText>
+								<AppText variant="row" style={[styles.flex, styles.tabular]}>
+									{timed
+										? `${row.reps} s`
+										: `${formatKg(row.weight, locale, 2)}${row.unit === "lbs" ? " lbs" : ""} × ${row.reps}`}
+								</AppText>
+								<AppText variant="footnote" style={{ color: colors.textMuted }}>
+									{row.setType === "working"
+										? row.rpe !== null
+											? `RPE ${formatKg(row.rpe, locale)}`
+											: ""
+										: t.strength[row.setType as "warmup" | "drop" | "failure"]}
+								</AppText>
+								<AppText
+									variant="row"
+									style={[
+										styles.estimate,
+										styles.tabular,
+										{ color: row.record ? colors.accentInk : colors.text },
+									]}
+								>
+									{row.estimate !== null
+										? `≈ ${Math.round(row.estimate)}`
+										: "—"}
+								</AppText>
+							</View>
+						))}
+					</View>
+				</View>
+			))}
 		</View>
 	);
 }
@@ -485,10 +740,62 @@ const createStyles = (colors: Tokens) =>
 			color: colors.textMuted,
 		},
 		statRow: { flexDirection: "row", gap: spacing.sm },
+		tabular: { fontVariant: ["tabular-nums"] },
+		ormHead: {
+			flexDirection: "row",
+			alignItems: "flex-start",
+			gap: spacing.sm,
+		},
+		trend: {
+			minHeight: 28,
+			paddingHorizontal: 10,
+			borderRadius: radius.pill,
+			justifyContent: "center",
+		},
+		levelBar: { flexDirection: "row", gap: 4 },
+		levelCell: { flex: 1, minWidth: 0, gap: 4, alignItems: "center" },
+		levelFill: { alignSelf: "stretch", height: 8, borderRadius: 4 },
+		canLift: {
+			flexDirection: "row",
+			backgroundColor: colors.surface,
+			borderRadius: radius.contentCard,
+			borderCurve: "continuous",
+			overflow: "hidden",
+		},
+		canLiftCell: {
+			flex: 1,
+			minWidth: 0,
+			alignItems: "center",
+			gap: 2,
+			paddingVertical: spacing.sm + 2,
+		},
+		canLiftLine: {
+			borderLeftWidth: StyleSheet.hairlineWidth,
+			borderLeftColor: colors.separator,
+		},
+		session: { gap: spacing.xs },
+		sessionHead: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: spacing.sm,
+			paddingHorizontal: spacing.xs,
+		},
+		sessionCard: {
+			backgroundColor: colors.surface,
+			borderRadius: radius.contentCard,
+			borderCurve: "continuous",
+			overflow: "hidden",
+		},
+		historyLine: {
+			borderTopWidth: StyleSheet.hairlineWidth,
+			borderTopColor: colors.separator,
+		},
+		setNumber: { width: 20 },
+		estimate: { minWidth: 56, textAlign: "right", fontWeight: "700" },
 		instructions: { gap: spacing.sm },
 		step: { color: colors.textMuted },
 		empty: { alignItems: "center", gap: 4, paddingVertical: spacing.xl },
-		historyList: { gap: 2 },
+		historyList: { gap: spacing.md },
 		historyHead: {
 			flexDirection: "row",
 			alignItems: "center",
@@ -507,11 +814,9 @@ const createStyles = (colors: Tokens) =>
 		historyRow: {
 			flexDirection: "row",
 			alignItems: "center",
-			gap: spacing.xs,
-			backgroundColor: colors.surface,
-			borderRadius: radius.md,
-			paddingHorizontal: spacing.sm,
-			paddingVertical: spacing.sm,
+			gap: spacing.sm,
+			minHeight: 44,
+			paddingHorizontal: spacing.md - 2,
 		},
 		historyDate: { color: colors.text, fontWeight: "600" },
 		historyType: { textTransform: "capitalize" },

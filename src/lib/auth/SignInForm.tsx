@@ -5,7 +5,7 @@ import { AuthButton } from "./AuthButton";
 import { AuthError } from "./AuthError";
 import { AuthField } from "./AuthField";
 import { orThrow, useClerkErrorMessage } from "./clerkError";
-import { AUTH_PATHS } from "./paths";
+import { AUTH_PATHS, withRedirect } from "./paths";
 import { SocialButtons } from "./SocialButtons";
 import { TestLoginButton } from "./TestLoginButton";
 
@@ -19,7 +19,14 @@ function hasEmailCodeFactor(signIn: SignIn) {
  * Email + password, or passwordless: "Email me a sign-in code" sends a
  * one-time code to the typed address and swaps the form for a code field.
  */
-export function SignInForm({ onSuccess }: { onSuccess?: () => void }) {
+export function SignInForm({
+	onSuccess,
+	redirect,
+}: {
+	onSuccess?: () => void;
+	/** Where to land after signing in, carried to social sign-in, sign-up, and password reset. */
+	redirect?: string;
+}) {
 	const { signIn } = useSignIn();
 	const { auth } = useMessages();
 	const errorMessage = useClerkErrorMessage();
@@ -136,12 +143,12 @@ export function SignInForm({ onSuccess }: { onSuccess?: () => void }) {
 
 	return (
 		<form onSubmit={submitPassword} noValidate className="flex flex-col gap-3">
-			<SocialButtons />
+			<SocialButtons redirect={redirect} />
 			<AuthError message={error} />
 			<AuthField
 				label={auth.email}
 				type="email"
-				autoComplete="email"
+				autoComplete="username"
 				value={email}
 				onChange={setEmail}
 				required
@@ -166,10 +173,16 @@ export function SignInForm({ onSuccess }: { onSuccess?: () => void }) {
 			</AuthButton>
 			<TestLoginButton onSuccess={onSuccess} />
 			<div className="mt-1 flex justify-between text-xs text-text-muted">
-				<a href={AUTH_PATHS.forgotPassword} className="hover:underline">
+				<a
+					href={withRedirect(AUTH_PATHS.forgotPassword, redirect)}
+					className="hover:underline"
+				>
 					{auth.signIn.forgotPassword}
 				</a>
-				<a href={AUTH_PATHS.signUp} className="hover:underline">
+				<a
+					href={withRedirect(AUTH_PATHS.signUp, redirect)}
+					className="hover:underline"
+				>
 					{auth.signIn.createAccount}
 				</a>
 			</div>

@@ -1,0 +1,5 @@
+# Cloudflare Workers static-asset headers. The iOS app-link file has no
+# extension, so it needs an explicit JSON type for iOS to verify it; see
+# apps/mobile/app.config.ts.
+/.well-known/apple-app-site-association
+  Content-Type: application/json
