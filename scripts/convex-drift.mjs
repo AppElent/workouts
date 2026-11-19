@@ -74,15 +74,20 @@ export function classify(commits, { now = new Date(), graceHours = 0 } = {}) {
 	if (commits.length === 0) return "ok";
 	// Without a grace period any gap blocks, even a commit dated in the future.
 	if (graceHours === 0) return "drift";
-	const oldest = Math.min(...commits.map((commit) => Date.parse(commit.committedAt)));
+	const oldest = Math.min(
+		...commits.map((commit) => Date.parse(commit.committedAt)),
+	);
 	return now.getTime() - oldest >= graceHours * 3_600_000 ? "drift" : "pending";
 }
 
 export function report({ status, deployment, target, commits }) {
 	const short = (sha) => sha.slice(0, 8);
 	const deployed = `production Convex runs ${short(deployment.sha)} (deployed ${deployment.created_at})`;
-	if (status === "ok") return `${deployed}; ${target} has no Convex changes it lacks.`;
-	const lines = commits.map((commit) => `- ${short(commit.sha)} ${commit.subject}`);
+	if (status === "ok")
+		return `${deployed}; ${target} has no Convex changes it lacks.`;
+	const lines = commits.map(
+		(commit) => `- ${short(commit.sha)} ${commit.subject}`,
+	);
 	const deploy =
 		target === "origin/main"
 			? "Run Actions → Deploy → Run workflow on main"
@@ -100,9 +105,12 @@ export function report({ status, deployment, target, commits }) {
 
 function run(command, args, cwd = ROOT) {
 	const result = spawnSync(command, args, { cwd, encoding: "utf8" });
-	if (result.error) throw new DriftError(`${command} failed: ${result.error.message}`);
+	if (result.error)
+		throw new DriftError(`${command} failed: ${result.error.message}`);
 	if (result.status !== 0) {
-		throw new DriftError(`${command} ${args.join(" ")} failed: ${result.stderr.trim()}`);
+		throw new DriftError(
+			`${command} ${args.join(" ")} failed: ${result.stderr.trim()}`,
+		);
 	}
 	return result.stdout;
 }
@@ -121,19 +129,27 @@ function productionDeployment() {
 		),
 	);
 	if (!deployment) {
-		throw new DriftError(`No successful ${ENVIRONMENT} deployment among the last 30.`);
+		throw new DriftError(
+			`No successful ${ENVIRONMENT} deployment among the last 30.`,
+		);
 	}
 	return deployment;
 }
 
 function hasCommit(sha, cwd) {
-	return spawnSync("git", ["cat-file", "-e", `${sha}^{commit}`], { cwd }).status === 0;
+	return (
+		spawnSync("git", ["cat-file", "-e", `${sha}^{commit}`], { cwd }).status ===
+		0
+	);
 }
 
 /** Whether `paths` (pathspecs) have the same content at both revisions. */
 function sameContent(a, b, paths, cwd) {
-	const result = spawnSync("git", ["diff", "--quiet", a, b, "--", ...paths], { cwd });
-	if (result.status > 1 || result.error) throw new DriftError(`git diff ${a} ${b} failed`);
+	const result = spawnSync("git", ["diff", "--quiet", a, b, "--", ...paths], {
+		cwd,
+	});
+	if (result.status > 1 || result.error)
+		throw new DriftError(`git diff ${a} ${b} failed`);
 	return result.status === 0;
 }
 
@@ -149,35 +165,84 @@ function sameContent(a, b, paths, cwd) {
 function alreadyDeployed(sha, deployedSha, cwd) {
 	const files = run(
 		"git",
-		["diff", "--name-only", "--no-renames", `${sha}^1`, sha, "--", ...CONVEX_PATHS],
+		[
+			"diff",
+			"--name-only",
+			"--no-renames",
+			`${sha}^1`,
+			sha,
+			"--",
+			...CONVEX_PATHS,
+		],
 		cwd,
 	)
 		.split("\n")
 		.filter(Boolean);
-	if (files.length > 0 && sameContent(deployedSha, sha, files.map((file) => `:(literal)${file}`), cwd)) {
+	if (
+		files.length > 0 &&
+		sameContent(
+			deployedSha,
+			sha,
+			files.map((file) => `:(literal)${file}`),
+			cwd,
+		)
+	) {
 		return true;
 	}
-	const [, , ...merged] = run("git", ["rev-list", "--parents", "-n", "1", sha], cwd).trim().split(" ");
+	const [, , ...merged] = run(
+		"git",
+		["rev-list", "--parents", "-n", "1", sha],
+		cwd,
+	)
+		.trim()
+		.split(" ");
 	return (
 		merged.length > 0 &&
-		files.every((file) => merged.some((parent) => sameContent(parent, sha, [`:(literal)${file}`], cwd))) &&
+		files.every((file) =>
+			merged.some((parent) =>
+				sameContent(parent, sha, [`:(literal)${file}`], cwd),
+			),
+		) &&
 		merged.every(
 			(parent) =>
-				run("git", ["rev-list", "--count", `${deployedSha}..${parent}`, "--", ...CONVEX_PATHS], cwd).trim() ===
-				"0",
+				run(
+					"git",
+					[
+						"rev-list",
+						"--count",
+						`${deployedSha}..${parent}`,
+						"--",
+						...CONVEX_PATHS,
+					],
+					cwd,
+				).trim() === "0",
 		)
 	);
 }
 
 /** Undeployed Convex commits in `target`, with the deployment they are measured against. */
-export function checkConvexDrift({ target = "origin/main", graceHours = 0, deployed, now, cwd = ROOT } = {}) {
+export function checkConvexDrift({
+	target = "origin/main",
+	graceHours = 0,
+	deployed,
+	now,
+	cwd = ROOT,
+} = {}) {
 	if (target.startsWith("origin/")) {
-		run("git", ["fetch", "--quiet", "origin", target.slice("origin/".length)], cwd);
+		run(
+			"git",
+			["fetch", "--quiet", "origin", target.slice("origin/".length)],
+			cwd,
+		);
 	}
 	const deployment = deployed
-		? { sha: run("git", ["rev-parse", deployed], cwd).trim(), created_at: "as given" }
+		? {
+				sha: run("git", ["rev-parse", deployed], cwd).trim(),
+				created_at: "as given",
+			}
 		: productionDeployment();
-	if (!hasCommit(deployment.sha, cwd)) run("git", ["fetch", "--quiet", "origin", deployment.sha], cwd);
+	if (!hasCommit(deployment.sha, cwd))
+		run("git", ["fetch", "--quiet", "origin", deployment.sha], cwd);
 	// Identical Convex files mean nothing is missing, whatever the history says.
 	const listed = sameContent(deployment.sha, target, CONVEX_PATHS, cwd)
 		? []
@@ -197,9 +262,17 @@ export function checkConvexDrift({ target = "origin/main", graceHours = 0, deplo
 					cwd,
 				),
 			);
-	const commits = listed.filter((commit) => !alreadyDeployed(commit.sha, deployment.sha, cwd));
+	const commits = listed.filter(
+		(commit) => !alreadyDeployed(commit.sha, deployment.sha, cwd),
+	);
 	const status = classify(commits, { now, graceHours });
-	return { status, deployment, target, commits, message: report({ status, deployment, target, commits }) };
+	return {
+		status,
+		deployment,
+		target,
+		commits,
+		message: report({ status, deployment, target, commits }),
+	};
 }
 
 /** A source-map retry (`--upload-only`) publishes no JavaScript, so it needs no check. */
@@ -217,7 +290,9 @@ export function main(argv = process.argv.slice(2)) {
 	const args = split === -1 ? argv : argv.slice(0, split);
 	const command = split === -1 ? [] : argv.slice(split + 1);
 	if (command[0]?.startsWith("-")) {
-		console.error(`Expected a command after --, got ${command[0]}. Options go before --.`);
+		console.error(
+			`Expected a command after --, got ${command[0]}. Options go before --.`,
+		);
 		return 2;
 	}
 	return guard(command, () => check(args), runCommand);
@@ -244,7 +319,9 @@ function check(args) {
 	const graceHours = Number(option(args, "--grace-hours", "0"));
 	const deployed = option(args, "--deployed", undefined);
 	if (!target || !Number.isFinite(graceHours) || graceHours < 0) {
-		console.error("Usage: convex-drift.mjs [--target <ref>] [--grace-hours <n>] [--deployed <sha>] [-- <command…>]");
+		console.error(
+			"Usage: convex-drift.mjs [--target <ref>] [--grace-hours <n>] [--deployed <sha>] [-- <command…>]",
+		);
 		return 2;
 	}
 	let result;
@@ -252,12 +329,17 @@ function check(args) {
 		result = checkConvexDrift({ target, graceHours, deployed });
 	} catch (error) {
 		if (!(error instanceof DriftError)) throw error;
-		console.error(`Could not compare production Convex with ${target}: ${error.message}`);
+		console.error(
+			`Could not compare production Convex with ${target}: ${error.message}`,
+		);
 		return 2;
 	}
 	const ci = Boolean(process.env.GITHUB_ACTIONS);
 	if (process.env.GITHUB_STEP_SUMMARY) {
-		appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Production Convex\n\n${result.message}\n`);
+		appendFileSync(
+			process.env.GITHUB_STEP_SUMMARY,
+			`## Production Convex\n\n${result.message}\n`,
+		);
 	}
 	if (result.status === "ok") {
 		console.log(result.message);
@@ -265,11 +347,17 @@ function check(args) {
 	}
 	const level = result.status === "drift" ? "error" : "warning";
 	// Annotations take one line; the full list is in the log and the summary.
-	if (ci) console.log(`::${level}::Production Convex lacks ${result.commits.length} Convex commit(s) from ${target}.`);
+	if (ci)
+		console.log(
+			`::${level}::Production Convex lacks ${result.commits.length} Convex commit(s) from ${target}.`,
+		);
 	(result.status === "drift" ? console.error : console.warn)(result.message);
 	return result.status === "drift" ? 1 : 0;
 }
 
-if (process.argv[1] && (await realpath(resolve(process.argv[1]))) === fileURLToPath(import.meta.url)) {
+if (
+	process.argv[1] &&
+	(await realpath(resolve(process.argv[1]))) === fileURLToPath(import.meta.url)
+) {
 	process.exitCode = main();
 }

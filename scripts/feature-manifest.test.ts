@@ -4,7 +4,11 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { FEATURES } from "@foundry/core/features";
 import { afterEach, describe, expect, it } from "vitest";
-import { checkFeatureManifest, findBroadPatterns, listRouteFiles } from "./feature-manifest-check";
+import {
+	checkFeatureManifest,
+	findBroadPatterns,
+	listRouteFiles,
+} from "./feature-manifest-check";
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -29,7 +33,8 @@ describe("listRouteFiles", () => {
 		return root;
 	};
 	afterEach(() => {
-		for (const root of roots.splice(0)) fs.rmSync(root, { recursive: true, force: true });
+		for (const root of roots.splice(0))
+			fs.rmSync(root, { recursive: true, force: true });
 	});
 
 	it("skips web pathless layouts but keeps the screens under them", () => {
@@ -66,8 +71,17 @@ describe("listRouteFiles", () => {
 	});
 
 	it("checks a mobile screen whose name starts with an underscore, and +not-found", () => {
-		const root = tree(["_layout.tsx", "(app)/_layout.ios.tsx", "(app)/_foo.tsx", "(app)/_foo.native.tsx", "+not-found.tsx"]);
-		expect(listRouteFiles(root, "mobile")).toEqual(["(app)/_foo", "+not-found"]);
+		const root = tree([
+			"_layout.tsx",
+			"(app)/_layout.ios.tsx",
+			"(app)/_foo.tsx",
+			"(app)/_foo.native.tsx",
+			"+not-found.tsx",
+		]);
+		expect(listRouteFiles(root, "mobile")).toEqual([
+			"(app)/_foo",
+			"+not-found",
+		]);
 	});
 
 	it("skips files the routers do not load as screens", () => {
@@ -81,7 +95,14 @@ describe("listRouteFiles", () => {
 			"wods/lazy.tsx",
 		]);
 		expect(listRouteFiles(web, "web")).toEqual(["log", "wods/route"]);
-		const mobile = tree(["_sitemap.tsx", "+middleware.ts", "(app)/user+api.ts", "+html.tsx", "+native-intent.tsx", "(app)/home.tsx"]);
+		const mobile = tree([
+			"_sitemap.tsx",
+			"+middleware.ts",
+			"(app)/user+api.ts",
+			"+html.tsx",
+			"+native-intent.tsx",
+			"(app)/home.tsx",
+		]);
 		expect(listRouteFiles(mobile, "mobile")).toEqual(["(app)/home"]);
 	});
 
@@ -97,15 +118,37 @@ describe("listRouteFiles", () => {
 		const cwd = process.cwd();
 		try {
 			process.chdir(os.tmpdir());
-			expect(listRouteFiles(path.join(repo, "apps/mobile/app"), "mobile").length).toBeGreaterThan(0);
+			expect(
+				listRouteFiles(path.join(repo, "apps/mobile/app"), "mobile").length,
+			).toBeGreaterThan(0);
 		} finally {
 			process.chdir(cwd);
 		}
 	});
 
 	it("accepts every route extension, folds native variants, and skips mobile .web files", () => {
-		const root = tree(["a.ts", "b.tsx", "c.js", "d.jsx", "e.mjs", "f.css", "g.ios.tsx", "g.android.tsx", "g.tsx", "h.web.tsx"]);
-		expect(listRouteFiles(root, "web")).toEqual(["a", "b", "c", "d", "g", "g.android", "g.ios", "h.web"]);
+		const root = tree([
+			"a.ts",
+			"b.tsx",
+			"c.js",
+			"d.jsx",
+			"e.mjs",
+			"f.css",
+			"g.ios.tsx",
+			"g.android.tsx",
+			"g.tsx",
+			"h.web.tsx",
+		]);
+		expect(listRouteFiles(root, "web")).toEqual([
+			"a",
+			"b",
+			"c",
+			"d",
+			"g",
+			"g.android",
+			"g.ios",
+			"h.web",
+		]);
 		expect(listRouteFiles(root, "mobile")).toEqual(["a", "b", "c", "d", "g"]);
 	});
 });
@@ -125,52 +168,104 @@ describe("checkFeatureManifest", () => {
 	});
 
 	it("fails on an unlisted route", () => {
-		expect(checkFeatureManifest([feature], { ...routes, mobile: [...routes.mobile, "(app)/_foo"] })).toEqual([
+		expect(
+			checkFeatureManifest([feature], {
+				...routes,
+				mobile: [...routes.mobile, "(app)/_foo"],
+			}),
+		).toEqual([
 			'mobile route "(app)/_foo" belongs to no feature; add it to features.ts',
 		]);
 	});
 
 	it("fails on a stale pattern", () => {
-		const stale = { ...feature, routes: { ...feature.routes, web: ["privacy", "terms"] } };
-		expect(checkFeatureManifest([stale], routes)).toEqual(['privacy: web pattern "terms" matches no route']);
+		const stale = {
+			...feature,
+			routes: { ...feature.routes, web: ["privacy", "terms"] },
+		};
+		expect(checkFeatureManifest([stale], routes)).toEqual([
+			'privacy: web pattern "terms" matches no route',
+		]);
 	});
 
 	it("fails on a status that contradicts the platforms", () => {
-		const webOnly = { ...feature, platforms: ["web"], routes: { web: ["privacy"] } } as const;
+		const webOnly = {
+			...feature,
+			platforms: ["web"],
+			routes: { web: ["privacy"] },
+		} as const;
 		expect(checkFeatureManifest([webOnly], { ...routes, mobile: [] })).toEqual([
 			'privacy: status "parity" needs both platforms',
 		]);
-		const exclusive = { ...feature, status: "exclusive", reason: "web only" } as const;
+		const exclusive = {
+			...feature,
+			status: "exclusive",
+			reason: "web only",
+		} as const;
 		expect(checkFeatureManifest([exclusive], routes)).toContain(
 			'privacy: on both platforms, so status must be "parity"',
 		);
 	});
 
 	it("fails on a route owned by two features", () => {
-		const other = { ...feature, id: "terms", routes: { web: ["priv*"] } } as const;
+		const other = {
+			...feature,
+			id: "terms",
+			routes: { web: ["priv*"] },
+		} as const;
 		expect(checkFeatureManifest([feature, other], routes)).toContain(
 			'web route "privacy" belongs to 2 features (privacy, terms); keep it in one',
 		);
 	});
 
 	it("allows pending-port on no platform and narrows it with targetPlatforms", () => {
-		const nowhere = { ...feature, status: "pending-port", platforms: [], reason: "later", routes: {} } as const;
-		expect(checkFeatureManifest([nowhere], { web: [], mobile: [] })).toEqual([]);
-		const phoneOnly = { ...nowhere, targetPlatforms: ["mobile"], reason: "reduced web floor, docs/adr/0001.md" } as const;
-		expect(checkFeatureManifest([phoneOnly], { web: [], mobile: [] })).toEqual([]);
-		expect(checkFeatureManifest([{ ...phoneOnly, reason: "no ADR" }], { web: [], mobile: [] })).toEqual([
+		const nowhere = {
+			...feature,
+			status: "pending-port",
+			platforms: [],
+			reason: "later",
+			routes: {},
+		} as const;
+		expect(checkFeatureManifest([nowhere], { web: [], mobile: [] })).toEqual(
+			[],
+		);
+		const phoneOnly = {
+			...nowhere,
+			targetPlatforms: ["mobile"],
+			reason: "reduced web floor, docs/adr/0001.md",
+		} as const;
+		expect(checkFeatureManifest([phoneOnly], { web: [], mobile: [] })).toEqual(
+			[],
+		);
+		expect(
+			checkFeatureManifest([{ ...phoneOnly, reason: "no ADR" }], {
+				web: [],
+				mobile: [],
+			}),
+		).toEqual([
 			"privacy: a floor feature cannot target one platform without linking the parity ADR in its reason",
 		]);
-		const done = { ...phoneOnly, platforms: ["mobile"], routes: { mobile: ["(app)/privacy"] } } as const;
-		expect(checkFeatureManifest([done], { web: [], mobile: ["(app)/privacy"] })).toEqual([
+		const done = {
+			...phoneOnly,
+			platforms: ["mobile"],
+			routes: { mobile: ["(app)/privacy"] },
+		} as const;
+		expect(
+			checkFeatureManifest([done], { web: [], mobile: ["(app)/privacy"] }),
+		).toEqual([
 			'privacy: already on every target platform, so status cannot be "pending-port"',
 		]);
-		expect(checkFeatureManifest([{ ...feature, targetPlatforms: ["web"] }], routes)).toContain(
+		expect(
+			checkFeatureManifest([{ ...feature, targetPlatforms: ["web"] }], routes),
+		).toContain(
 			'privacy: targetPlatforms applies only to status "pending-port"',
 		);
-		expect(checkFeatureManifest([{ ...feature, status: "exclusive", platforms: [], reason: "x" }], { web: [], mobile: [] })).toContain(
-			"privacy: lists no platform",
-		);
+		expect(
+			checkFeatureManifest(
+				[{ ...feature, status: "exclusive", platforms: [], reason: "x" }],
+				{ web: [], mobile: [] },
+			),
+		).toContain("privacy: lists no platform");
 	});
 });
 
@@ -181,7 +276,10 @@ describe("findBroadPatterns", () => {
 			kind: "product",
 			status: "parity",
 			platforms: ["web", "mobile"],
-			routes: { web: ["food/*"], mobile: ["(auth)/**", "(app)/nutrition-*", "(app)/food/*"] },
+			routes: {
+				web: ["food/*"],
+				mobile: ["(auth)/**", "(app)/nutrition-*", "(app)/food/*"],
+			},
 		} as const;
 		expect(findBroadPatterns([feature])).toEqual([
 			'nutrition: mobile pattern "(auth)/**" is broad; a new screen it matches joins this feature without a prompt',

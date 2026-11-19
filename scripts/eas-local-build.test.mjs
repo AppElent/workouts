@@ -73,7 +73,11 @@ describe("local EAS builds", () => {
 			{ name: "TOKEN", entry: { key: "token", infisicalKey: "token-key" } },
 			{
 				name: "OPTIONAL",
-				entry: { key: "optional", infisicalKey: "optional-key", optional: true },
+				entry: {
+					key: "optional",
+					infisicalKey: "optional-key",
+					optional: true,
+				},
 			},
 		];
 		expect(secretEnv(placements, { "token-key": "value" })).toEqual({
@@ -84,14 +88,46 @@ describe("local EAS builds", () => {
 
 	it("submits store builds and never a simulator build", () => {
 		expect(easCommands("preview", { submit: true })).toEqual([
-			["exec", "eas", "build", "--platform", "ios", "--profile", "preview", "--local", "--output", "dist/preview.ipa"],
-			["exec", "eas", "submit", "--platform", "ios", "--profile", "preview", "--path", "dist/preview.ipa"],
+			[
+				"exec",
+				"eas",
+				"build",
+				"--platform",
+				"ios",
+				"--profile",
+				"preview",
+				"--local",
+				"--output",
+				"dist/preview.ipa",
+			],
+			[
+				"exec",
+				"eas",
+				"submit",
+				"--platform",
+				"ios",
+				"--profile",
+				"preview",
+				"--path",
+				"dist/preview.ipa",
+			],
 		]);
 		expect(easCommands("preview")).toHaveLength(1);
 		expect(
 			easCommands("development-simulator", { simulator: true, submit: true }),
 		).toEqual([
-			["exec", "eas", "build", "--platform", "ios", "--profile", "development-simulator", "--local", "--output", "dist/development-simulator.tar.gz"],
+			[
+				"exec",
+				"eas",
+				"build",
+				"--platform",
+				"ios",
+				"--profile",
+				"development-simulator",
+				"--local",
+				"--output",
+				"dist/development-simulator.tar.gz",
+			],
 		]);
 	});
 });

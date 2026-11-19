@@ -25,7 +25,10 @@ interface ManifestFeature {
 	readonly reason?: string;
 	readonly layout?: "responsive" | "large-screen";
 	readonly layoutReason?: string;
-	readonly routes: { readonly web?: readonly string[]; readonly mobile?: readonly string[] };
+	readonly routes: {
+		readonly web?: readonly string[];
+		readonly mobile?: readonly string[];
+	};
 }
 
 const PLATFORMS: readonly Platform[] = ["web", "mobile"];
@@ -42,7 +45,10 @@ const ROUTE_EXTENSION = /\.(?:ts|tsx|js|jsx)$/;
  */
 const FOLDED: Readonly<Record<Platform, readonly [RegExp, string][]>> = {
 	web: [
-		[/\.(?:lazy|component|errorComponent|pendingComponent|notFoundComponent|loader)$/, ""],
+		[
+			/\.(?:lazy|component|errorComponent|pendingComponent|notFoundComponent|loader)$/,
+			"",
+		],
 		[/(^|\/)lazy$/, "$1route"],
 	],
 	mobile: [[/\.(?:ios|android|native)$/, ""]],
@@ -105,15 +111,22 @@ export function listRouteFiles(
 		visited.add(real);
 		for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
 			const full = path.join(dir, entry.name);
-			const isDirectory = entry.isSymbolicLink() ? fs.statSync(full).isDirectory() : entry.isDirectory();
+			const isDirectory = entry.isSymbolicLink()
+				? fs.statSync(full).isDirectory()
+				: entry.isDirectory();
 			if (isDirectory) {
 				walk(full);
 				continue;
 			}
 			if (!ROUTE_EXTENSION.test(entry.name)) continue;
-			let route = path.relative(root, full).split(path.sep).join("/").replace(ROUTE_EXTENSION, "");
+			let route = path
+				.relative(root, full)
+				.split(path.sep)
+				.join("/")
+				.replace(ROUTE_EXTENSION, "");
 			if (ignore.some((pattern) => pattern.test(route))) continue;
-			for (const [suffix, replacement] of FOLDED[platform]) route = route.replace(suffix, replacement);
+			for (const [suffix, replacement] of FOLDED[platform])
+				route = route.replace(suffix, replacement);
 			if (ignore.some((pattern) => pattern.test(route))) continue;
 			if (platform === "web" && isWebPathlessLayout(route)) continue;
 			out.add(route);
@@ -155,41 +168,76 @@ export function checkFeatureManifest(
 
 		const both = PLATFORMS.every((platform) => platforms.includes(platform));
 		const targets = feature.targetPlatforms ?? PLATFORMS;
-		if (platforms.length === 0 && status !== "pending-port") problems.push(`${id}: lists no platform`);
-		if (status === "parity" && !both) problems.push(`${id}: status "parity" needs both platforms`);
-		if (status !== "parity" && both) problems.push(`${id}: on both platforms, so status must be "parity"`);
-		if (status !== "parity" && !feature.reason?.trim()) problems.push(`${id}: status "${status}" needs a reason`);
-		if (status === "exclusive" && kind !== "product" && !feature.reason?.includes("adr/")) {
-			problems.push(`${id}: a ${kind} feature cannot be exclusive without linking the parity ADR in its reason`);
+		if (platforms.length === 0 && status !== "pending-port")
+			problems.push(`${id}: lists no platform`);
+		if (status === "parity" && !both)
+			problems.push(`${id}: status "parity" needs both platforms`);
+		if (status !== "parity" && both)
+			problems.push(`${id}: on both platforms, so status must be "parity"`);
+		if (status !== "parity" && !feature.reason?.trim())
+			problems.push(`${id}: status "${status}" needs a reason`);
+		if (
+			status === "exclusive" &&
+			kind !== "product" &&
+			!feature.reason?.includes("adr/")
+		) {
+			problems.push(
+				`${id}: a ${kind} feature cannot be exclusive without linking the parity ADR in its reason`,
+			);
 		}
 		if (feature.targetPlatforms) {
-			if (status !== "pending-port") problems.push(`${id}: targetPlatforms applies only to status "pending-port"`);
-			if (targets.length === 0) problems.push(`${id}: targetPlatforms lists no platform`);
-			if (targets.length < PLATFORMS.length && kind !== "product" && !feature.reason?.includes("adr/")) {
-				problems.push(`${id}: a ${kind} feature cannot target one platform without linking the parity ADR in its reason`);
+			if (status !== "pending-port")
+				problems.push(
+					`${id}: targetPlatforms applies only to status "pending-port"`,
+				);
+			if (targets.length === 0)
+				problems.push(`${id}: targetPlatforms lists no platform`);
+			if (
+				targets.length < PLATFORMS.length &&
+				kind !== "product" &&
+				!feature.reason?.includes("adr/")
+			) {
+				problems.push(
+					`${id}: a ${kind} feature cannot target one platform without linking the parity ADR in its reason`,
+				);
 			}
 		}
 		if (status === "pending-port") {
-			const missing = platforms.filter((platform) => !targets.includes(platform));
-			if (missing.length > 0) problems.push(`${id}: ships on ${missing.join(", ")}, which targetPlatforms leaves out`);
-			else if (!both && targets.every((platform) => platforms.includes(platform))) {
-				problems.push(`${id}: already on every target platform, so status cannot be "pending-port"`);
+			const missing = platforms.filter(
+				(platform) => !targets.includes(platform),
+			);
+			if (missing.length > 0)
+				problems.push(
+					`${id}: ships on ${missing.join(", ")}, which targetPlatforms leaves out`,
+				);
+			else if (
+				!both &&
+				targets.every((platform) => platforms.includes(platform))
+			) {
+				problems.push(
+					`${id}: already on every target platform, so status cannot be "pending-port"`,
+				);
 			}
 		}
 		if (feature.layout === "large-screen" && !feature.layoutReason?.trim()) {
 			problems.push(`${id}: layout "large-screen" needs a layoutReason`);
 		}
-		if (feature.layout && !platforms.includes("web")) problems.push(`${id}: layout applies only to web features`);
+		if (feature.layout && !platforms.includes("web"))
+			problems.push(`${id}: layout applies only to web features`);
 
 		for (const platform of PLATFORMS) {
 			const patterns = feature.routes[platform] ?? [];
 			if (patterns.length > 0 && !platforms.includes(platform)) {
-				problems.push(`${id}: has ${platform} routes but does not list ${platform}`);
+				problems.push(
+					`${id}: has ${platform} routes but does not list ${platform}`,
+				);
 			}
 			for (const glob of patterns) {
 				const regex = routePattern(glob);
 				if (!routes[platform].some((route) => regex.test(route))) {
-					problems.push(`${id}: ${platform} pattern "${glob}" matches no route`);
+					problems.push(
+						`${id}: ${platform} pattern "${glob}" matches no route`,
+					);
 				}
 			}
 		}
@@ -201,11 +249,17 @@ export function checkFeatureManifest(
 			patterns: (feature.routes[platform] ?? []).map(routePattern),
 		}));
 		for (const route of routes[platform]) {
-			const ids = owners.filter((owner) => owner.patterns.some((regex) => regex.test(route))).map((owner) => owner.id);
+			const ids = owners
+				.filter((owner) => owner.patterns.some((regex) => regex.test(route)))
+				.map((owner) => owner.id);
 			if (ids.length === 0) {
-				problems.push(`${platform} route "${route}" belongs to no feature; add it to features.ts`);
+				problems.push(
+					`${platform} route "${route}" belongs to no feature; add it to features.ts`,
+				);
 			} else if (ids.length > 1) {
-				problems.push(`${platform} route "${route}" belongs to ${ids.length} features (${ids.join(", ")}); keep it in one`);
+				problems.push(
+					`${platform} route "${route}" belongs to ${ids.length} features (${ids.join(", ")}); keep it in one`,
+				);
 			}
 		}
 	}
@@ -219,14 +273,22 @@ export function checkFeatureManifest(
  * segment `*` under a folder the feature owns (`exercise/*`) is not broad.
  * These are warnings: list the routes instead when the folder is shared.
  */
-export function findBroadPatterns(features: readonly ManifestFeature[]): string[] {
+export function findBroadPatterns(
+	features: readonly ManifestFeature[],
+): string[] {
 	const warnings: string[] = [];
 	for (const feature of features) {
 		for (const platform of PLATFORMS) {
 			for (const glob of feature.routes[platform] ?? []) {
-				const broad = glob.includes("**") || glob.split("/").some((segment) => segment.includes("*") && segment !== "*");
+				const broad =
+					glob.includes("**") ||
+					glob
+						.split("/")
+						.some((segment) => segment.includes("*") && segment !== "*");
 				if (broad) {
-					warnings.push(`${feature.id}: ${platform} pattern "${glob}" is broad; a new screen it matches joins this feature without a prompt`);
+					warnings.push(
+						`${feature.id}: ${platform} pattern "${glob}" is broad; a new screen it matches joins this feature without a prompt`,
+					);
 				}
 			}
 		}

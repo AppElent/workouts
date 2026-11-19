@@ -10,8 +10,14 @@ import { fileURLToPath } from "node:url";
 import { localLandings } from "./local-env.mjs";
 
 const [command, email, password] = process.argv.slice(2);
-if (!["create", "exists"].includes(command) || !email || (command === "create" && !password)) {
-	console.error("usage: clerk-test-user.mjs create <email> <password> | exists <email>");
+if (
+	!["create", "exists"].includes(command) ||
+	!email ||
+	(command === "create" && !password)
+) {
+	console.error(
+		"usage: clerk-test-user.mjs create <email> <password> | exists <email>",
+	);
 	process.exit(2);
 }
 
@@ -35,7 +41,10 @@ const authorization = client.headers.get("authorization");
 async function post(path, fields) {
 	const response = await fetch(`${api}/client/${path}?_is_native=1`, {
 		method: "POST",
-		headers: { authorization, "content-type": "application/x-www-form-urlencoded" },
+		headers: {
+			authorization,
+			"content-type": "application/x-www-form-urlencoded",
+		},
 		body: new URLSearchParams(fields),
 	});
 	return response.json();
@@ -43,14 +52,18 @@ async function post(path, fields) {
 
 if (command === "exists") {
 	const result = await post("sign_ins", { identifier: email });
-	const missing = result.errors?.some((e) => e.code === "form_identifier_not_found");
+	const missing = result.errors?.some(
+		(e) => e.code === "form_identifier_not_found",
+	);
 	console.log(missing ? "missing" : "exists");
 	process.exit(missing ? 1 : 0);
 }
 
 const signUp = await post("sign_ups", { email_address: email, password });
 if (!signUp.response) {
-	console.error(signUp.errors?.map((e) => `${e.code}: ${e.message}`).join("\n"));
+	console.error(
+		signUp.errors?.map((e) => `${e.code}: ${e.message}`).join("\n"),
+	);
 	process.exit(1);
 }
 const id = signUp.response.id;
