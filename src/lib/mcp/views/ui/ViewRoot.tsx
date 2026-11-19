@@ -1,6 +1,6 @@
 import type { App, McpUiHostContext } from "@modelcontextprotocol/ext-apps";
 import { useApp, useHostStyles } from "@modelcontextprotocol/ext-apps/react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ViewName, ViewResult } from "../types";
 import { ExerciseProgress } from "./ExerciseProgress";
 import { FoodLog } from "./FoodLog";
@@ -58,6 +58,34 @@ function FullscreenToggle({
 	);
 }
 
+function validTimeZone(value: string | undefined) {
+	if (!value) return undefined;
+	try {
+		new Intl.DateTimeFormat("en", { timeZone: value });
+		return value;
+	} catch {
+		return undefined;
+	}
+}
+
+/** The call that shows `result` again, with the host's time zone added. */
+function sameView(
+	result: ViewResult,
+): [string, Record<string, unknown>] | null {
+	if (result.view === "week-overview")
+		return ["show_week_overview", { weekStart: result.weekStart }];
+	if (result.view === "exercise-progress")
+		return [
+			"show_exercise_progress",
+			{
+				exerciseId: result.exercise.id,
+				range: result.range,
+				metric: result.metric,
+			},
+		];
+	return null;
+}
+
 export function ViewRoot({ view }: { view: ViewName }) {
 	const [result, setResult] = useState<ViewResult | null>(null);
 	const [failed, setFailed] = useState(false);
@@ -89,20 +117,41 @@ export function ViewRoot({ view }: { view: ViewName }) {
 		[hostContext?.locale],
 	);
 
+	// The tool call that opened the view cannot know the user's time zone, so
+	// the view asks again with the host's once it has one.
+	const timeZone = validTimeZone(hostContext?.timeZone);
+
 	const reload = useCallback(
 		async (tool: string, args: Record<string, unknown>) => {
 			if (!app) return;
 			const response = await app.callServerTool({
 				name: tool,
-				arguments: args,
+				arguments: timeZone ? { ...args, timeZone } : args,
 			});
 			const content = response.structuredContent as ViewResult | undefined;
 			if (response.isError || content?.view !== view)
 				throw new Error(`${tool} failed`);
 			setResult(content);
 		},
-		[app, view],
+		[app, view, timeZone],
 	);
+
+	const [zoneTried, setZoneTried] = useState<string>();
+	const staleZone =
+		!!timeZone &&
+		!!result &&
+		"timeZone" in result &&
+		result.timeZone !== timeZone;
+	useEffect(() => {
+		if (!staleZone || !result || zoneTried === timeZone) return;
+		const call = sameView(result);
+		if (!call) return;
+		// A failed correction leaves the result in the server's zone, which the
+		// view then shows as it is.
+		void reload(...call)
+			.catch(() => undefined)
+			.finally(() => setZoneTried(timeZone));
+	}, [staleZone, result, timeZone, zoneTried, reload]);
 
 	const fullscreen = hostContext?.displayMode === "fullscreen";
 	if (error || failed)
@@ -111,7 +160,8 @@ export function ViewRoot({ view }: { view: ViewName }) {
 				<p className="muted">{text.t.common.error}</p>
 			</main>
 		);
-	if (!app || !result)
+	// Wait for days in the user's zone rather than flash the server's.
+	if (!app || !result || (staleZone && zoneTried !== timeZone))
 		return (
 			<main className="view" aria-busy="true">
 				<p className="muted">{text.t.common.waiting}</p>
@@ -133,6 +183,7 @@ export function ViewRoot({ view }: { view: ViewName }) {
 			)}
 			{result.view === "food-log" && (
 				<FoodLog
+					key={result.reviewId}
 					app={app}
 					result={result}
 					text={text}

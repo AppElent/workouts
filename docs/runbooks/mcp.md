@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when connecting to, operating, or changing the Foundry MCP server.
-version: 3.2.0
+version: 3.3.0
 ---
 
 # Foundry MCP
@@ -119,9 +119,22 @@ How it works:
   The server computes it per request, so each environment gets its own.
 - Resources and view tools need `foundry:read`. `review_food_log` only proposes
   entries; without `foundry:write` the view hides Log and says why. Each item
-  gets an `idempotencyKey` made in the view, and retries reuse it, so a retry
-  never logs twice. After logging, the view tells the model what was saved
-  (`updateModelContext`).
+  gets an `idempotencyKey` made from the result's `reviewId` and its row, so
+  neither a retry nor a reloaded view (the host sends the same result again)
+  logs twice. After every save the view tells the model everything saved so far
+  (`updateModelContext` replaces what it said before). Once something is saved,
+  removed items stay removed. An edit that Foundry refuses because the first
+  attempt already landed shows its own message (`operationConflict`), and an
+  invalid quantity is flagged and holds Log back. The text result of
+  `review_food_log` is a short summary; the full proposal is in
+  `structuredContent`.
+- Calendar days follow the user's time zone. The tool call that opens a view
+  cannot know it, so `show_week_overview` and `show_exercise_progress` take an
+  optional IANA `timeZone` (UTC when omitted), and the view calls the tool again
+  with the host's `timeZone` before it shows anything. `review_food_log` takes
+  its `date` from the caller, as the nutrition tools do.
+- Food and serving names are sent in English and Dutch; the view shows the
+  host's language.
 - View text follows the host locale in English or Dutch
   (`src/lib/i18n/messages/*/mcp-views.ts`).
 

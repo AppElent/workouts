@@ -14,6 +14,9 @@ export function viewUri(view: ViewName) {
 	return `ui://foundry/${view}`;
 }
 
+/** A name in both app languages; the view shows the host's. */
+export type Localized = { en: string; nl: string };
+
 export type Meal = "breakfast" | "lunch" | "dinner" | "snacks";
 
 /** The four figures views show; null when the source has no figure. */
@@ -50,11 +53,13 @@ export type WeekDay = {
 
 export type WeekOverviewResult = {
 	view: "week-overview";
+	/** IANA zone whose calendar days the week uses ("UTC" when none was given). */
+	timeZone: string;
 	weekStart: string;
 	weekEnd: string;
 	previousWeekStart: string;
 	nextWeekStart: string;
-	/** The week holding the server's today (UTC). */
+	/** The week holding today in `timeZone`. */
 	isCurrentWeek: boolean;
 	days: WeekDay[];
 	training: {
@@ -75,14 +80,14 @@ export type WeekOverviewResult = {
 
 export type ReviewServing = {
 	servingIndex: number;
-	label: string;
+	label: Localized;
 	/** Figures for a quantity of 1 of this serving. */
 	perQuantity: Macros;
 };
 
 export type ReviewItem = {
 	foodId: string;
-	name: string;
+	name: Localized;
 	servingIndex: number;
 	quantity: number;
 	servings: ReviewServing[];
@@ -90,6 +95,11 @@ export type ReviewItem = {
 
 export type FoodLogReviewResult = {
 	view: "food-log";
+	/**
+	 * Names this review. The view derives its idempotency keys from it, so a
+	 * reloaded view (the host sends the same result again) cannot log twice.
+	 */
+	reviewId: string;
 	date: string;
 	meal: Meal;
 	/** The token has foundry:write, so the view may call log_food. */
@@ -107,6 +117,8 @@ export type ProgressMetric = (typeof PROGRESS_METRICS)[number];
 
 export type ExerciseProgressResult = {
 	view: "exercise-progress";
+	/** IANA zone whose calendar days the dates use ("UTC" when none was given). */
+	timeZone: string;
 	exercise: { id: string; name: string };
 	range: ProgressRange;
 	metric: ProgressMetric;

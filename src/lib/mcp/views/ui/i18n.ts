@@ -7,6 +7,7 @@ import {
 } from "@foundry/core";
 import { mcpViews as en } from "#/lib/i18n/messages/en/mcp-views";
 import { mcpViews as nl } from "#/lib/i18n/messages/nl/mcp-views";
+import type { Localized } from "../types";
 
 export type ViewMessages = typeof en;
 
@@ -18,6 +19,8 @@ export type ViewText = {
 	fmt: typeof fmt;
 	plural: (count: number, forms: { one: string; other: string }) => string;
 	number: (value: number, digits?: number) => string;
+	/** A name in the host's language. */
+	pick: (value: Localized) => string;
 	/** A calendar day (YYYY-MM-DD) in the given style. */
 	day: (date: string, style: DayStyle) => string;
 };
@@ -39,6 +42,7 @@ export function viewText(hostLocale: string | undefined): ViewText {
 		t: CATALOG[locale],
 		fmt,
 		plural: (count, forms) => plural(locale, count, forms),
+		pick: (value) => value[locale],
 		number: (value, digits = 0) =>
 			new Intl.NumberFormat(locale, { maximumFractionDigits: digits }).format(
 				value,
