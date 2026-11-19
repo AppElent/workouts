@@ -23,10 +23,11 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { Alert, Platform, Pressable, StyleSheet, View } from "react-native";
+import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { haptics } from "../feedback/haptics";
 import { modalAnimation, useReduceMotion } from "../feedback/reduce-motion";
 import { useI18n } from "../i18n";
+import { showAlert } from "../observability/native-presentation";
 import {
 	radius,
 	spacing,
@@ -77,7 +78,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
 					resolveRef.current = null;
 					resolve(answer);
 				};
-				Alert.alert(
+				showAlert(
 					next.title,
 					next.message,
 					[

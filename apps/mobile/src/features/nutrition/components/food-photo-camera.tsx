@@ -6,12 +6,12 @@
  * dead end (design: designs/nutrition/ai-entry_final.html, section 5).
  */
 import { CameraView, useCameraPermissions } from "expo-camera";
-import * as ImagePicker from "expo-image-picker";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useI18n } from "../../../i18n";
+import * as ImagePicker from "../../../observability/native-presentation";
 import {
 	radius,
 	spacing,

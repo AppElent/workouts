@@ -7,12 +7,13 @@ import {
 } from "@foundry/core";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useState } from "react";
-import { Alert, Pressable, ScrollView, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 import {
 	modalAnimation,
 	useReduceMotion,
 } from "../../../feedback/reduce-motion";
 import { localizeDecimal, useI18n } from "../../../i18n";
+import { showAlert } from "../../../observability/native-presentation";
 import { spacing, useTokens } from "../../../theme";
 import { InlineNumberFieldRow, TextAction } from "../../../ui/form";
 import { Modal } from "../../../ui/modal";
@@ -129,7 +130,7 @@ export function AssistanceItemSheet({
 			onClose();
 			return;
 		}
-		Alert.alert(copy.discardTitle, undefined, [
+		showAlert(copy.discardTitle, undefined, [
 			{ text: copy.discardKeep, style: "cancel" },
 			{ text: copy.discardConfirm, style: "destructive", onPress: onClose },
 		]);

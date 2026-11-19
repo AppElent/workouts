@@ -36,7 +36,6 @@ import { SymbolView } from "expo-symbols";
 import { type ReactNode, useCallback, useMemo, useRef, useState } from "react";
 import {
 	type AccessibilityActionEvent,
-	ActionSheetIOS,
 	Animated,
 	Platform,
 	Pressable,
@@ -48,6 +47,7 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { haptics } from "../feedback/haptics";
 import { modalAnimation, useReduceMotion } from "../feedback/reduce-motion";
+import { showActionSheet } from "../observability/native-presentation";
 import {
 	opacity,
 	radius,
@@ -166,7 +166,7 @@ export function SwipeableRow({
 	const openMenu = useCallback(() => {
 		haptics.menuOpened();
 		if (Platform.OS === "ios") {
-			ActionSheetIOS.showActionSheetWithOptions(
+			showActionSheet(
 				{
 					title: menuTitle,
 					options: [...actions.map((action) => action.label), closeMenuLabel],
