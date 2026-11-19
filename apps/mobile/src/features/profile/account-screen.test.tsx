@@ -31,6 +31,8 @@ const mockUser = {
 	setProfileImage: jest.fn().mockResolvedValue(undefined),
 };
 const mockSignOut = jest.fn();
+let mockUserLoaded = true;
+const mockCurrentUser = () => (mockUserLoaded ? mockUser : undefined);
 jest.mock("@clerk/expo", () => ({
 	useAuth: () => ({
 		userId: "test-user",
@@ -38,7 +40,7 @@ jest.mock("@clerk/expo", () => ({
 		isSignedIn: true,
 		signOut: mockSignOut,
 	}),
-	useUser: () => ({ user: mockUser }),
+	useUser: () => ({ user: mockCurrentUser() }),
 }));
 
 const mockPush = jest.fn();
@@ -63,6 +65,7 @@ const originalOS = Platform.OS;
 
 afterEach(() => {
 	Platform.OS = originalOS;
+	mockUserLoaded = true;
 	mockUser.externalAccounts = [];
 	mockUser.passwordEnabled = true;
 });
@@ -206,6 +209,18 @@ it("deletes the Clerk account only after the data is gone", async () => {
 it("keeps the user signed in with no confirmation when deleting the login fails", async () => {
 	mockUser.delete.mockRejectedValueOnce(new Error("network"));
 	await renderAccount();
+	await confirmAction("Delete my whole AppElent account");
+	expect(
+		await screen.findByText(
+			"Your data was deleted, but the account could not be deleted. Try Delete my whole AppElent account again.",
+		),
+	).toBeTruthy();
+	expect(signedOutNotice()).toBeNull();
+});
+
+it("leaves no confirmation when there is no Clerk user to delete", async () => {
+	await renderAccount();
+	mockUserLoaded = false;
 	await confirmAction("Delete my whole AppElent account");
 	expect(
 		await screen.findByText(

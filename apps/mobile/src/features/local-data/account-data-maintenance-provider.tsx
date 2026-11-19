@@ -86,7 +86,9 @@ export function AccountDataMaintenanceProvider({
 				// which shows the confirmation.
 				leaveSignedOutNotice("accountDeleted");
 				try {
-					await user?.delete();
+					// No user: nothing was deleted, so no confirmation either.
+					if (!user) throw new Error("No Clerk user to delete");
+					await user.delete();
 				} catch {
 					leaveSignedOutNotice(null);
 					toast.error(t.account.deletion.accountError);
