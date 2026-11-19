@@ -187,8 +187,9 @@ AppElent login and never touches Apple:
    deletion blocker applies, then reads the caller's Apple accounts from
    `appleSignInLinks`, which Clerk's signed `user.created`/`user.updated`
    webhook (`POST /clerk/webhook`) keeps in sync; it revokes only when the
-   `sub` of Apple's ID token is one of them. Otherwise nothing is revoked, the action
-   fails with `appleAccountMismatch`, and the card stops the deletion.
+   `sub` of Apple's ID token is one of them. Otherwise nothing is revoked,
+   the action fails with `appleAccountMismatch`, and the card stops the
+   deletion.
 3. Any other failure is reported to Sentry, and the account is deleted anyway.
 
 The action signs Apple's client secret with the Sign in with Apple key from
@@ -278,6 +279,11 @@ is on production.
   Testing mode.
 - Microsoft rejects personal accounts: registration's account types exclude
   personal Microsoft accounts.
+- Web Delete account says the Apple account is not the one linked, though
+  it is: Convex has no mirrored Apple link for that login. Check that the
+  Clerk webhook subscribes `user.created` and `user.updated` and delivers
+  (Clerk → Webhooks → attempts), then rerun the backfill. Nothing was
+  deleted or revoked.
 - Web Delete account says "Allow pop-ups for this site": the browser blocked
   Apple's revocation popup, often in Safari when the Account page was opened
   moments before. Allowing pop-ups or retrying once Apple JS has loaded fixes
