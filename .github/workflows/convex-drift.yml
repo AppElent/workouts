@@ -35,6 +35,8 @@ jobs:
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version-file: package.json
+          # v5 caches the packageManager (pnpm) by default; this job installs none.
+          package-manager-cache: false
       - name: Compare production Convex with main
         env:
           GH_TOKEN: ${{ github.token }}
