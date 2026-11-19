@@ -375,7 +375,8 @@ function DoneSummary({
 }
 
 export function SessionExerciseBlock({ exerciseId }: { exerciseId: string }) {
-	const { actions, openEditor, plan, workspace } = useSessionScreen();
+	const { actions, openEditor, openProfile, plan, workspace } =
+		useSessionScreen();
 	const { locale, t } = useI18n();
 	const copy = t.strength.plan;
 	const colors = useTokens();
@@ -461,20 +462,50 @@ export function SessionExerciseBlock({ exerciseId }: { exerciseId: string }) {
 						showPercent={showPercent}
 					/>
 				))}
-				<Pressable
-					accessibilityRole="button"
-					accessibilityLabel={`${addLabel}, ${name}`}
-					onPress={() => {
-						const result = addSet(actions.plan(), exerciseId, facts);
-						actions.set(result.plan);
-						if (!last || last.blank) openEditor(result.rowId);
-					}}
-					style={styles.addRow}
-				>
-					<AppText variant="control" style={styles.link}>
-						{addLabel}
-					</AppText>
-				</Pressable>
+				<View style={[styles.footer, large && styles.footerLarge]}>
+					<Pressable
+						accessibilityRole="button"
+						accessibilityLabel={`${addLabel}, ${name}`}
+						onPress={() => {
+							const result = addSet(actions.plan(), exerciseId, facts);
+							actions.set(result.plan);
+							if (!last || last.blank) openEditor(result.rowId);
+						}}
+						style={styles.addRow}
+					>
+						{/* Beside the Krachtprofiel action on a small phone, shrink rather than wrap. */}
+						<AppText
+							variant="control"
+							style={styles.link}
+							numberOfLines={large ? undefined : 1}
+							adjustsFontSizeToFit={!large}
+							minimumFontScale={0.8}
+						>
+							{addLabel}
+						</AppText>
+					</Pressable>
+					{/* The current exercise offers its Krachtprofiel directly (APP-393). */}
+					{current && !facts.bodyweight ? (
+						<Pressable
+							accessibilityRole="button"
+							accessibilityLabel={`${copy.strengthProfile}, ${name}`}
+							onPress={() => openProfile(exerciseId, next?.id)}
+							style={[styles.profileAction, large && styles.profileActionLarge]}
+							testID="session-exercise-profile"
+						>
+							<SymbolView
+								name="percent"
+								size={14}
+								weight="semibold"
+								tintColor={colors.accent}
+								fallback={null}
+							/>
+							<AppText variant="control" style={styles.link}>
+								{copy.strengthProfile}
+							</AppText>
+						</Pressable>
+					) : null}
+				</View>
 			</View>
 		</View>
 	);
@@ -585,12 +616,33 @@ const createStyles = (colors: Tokens) =>
 			textAlign: "right",
 			color: colors.textMuted,
 		},
+		footer: {
+			flexDirection: "row",
+			borderTopWidth: StyleSheet.hairlineWidth,
+			borderTopColor: colors.separator,
+		},
 		addRow: {
+			flex: 1,
 			minHeight: 52,
 			alignItems: "center",
 			justifyContent: "center",
+			paddingHorizontal: spacing.md,
+		},
+		// Large text stacks the two actions so neither label truncates.
+		footerLarge: { flexDirection: "column" },
+		profileActionLarge: {
+			justifyContent: "center",
+			borderLeftWidth: 0,
 			borderTopWidth: StyleSheet.hairlineWidth,
 			borderTopColor: colors.separator,
-			paddingHorizontal: spacing.md,
+		},
+		profileAction: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 4,
+			minHeight: 52,
+			paddingHorizontal: spacing.sm + spacing.xs,
+			borderLeftWidth: StyleSheet.hairlineWidth,
+			borderLeftColor: colors.separator,
 		},
 	});

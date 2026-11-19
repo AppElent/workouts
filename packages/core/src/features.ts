@@ -282,6 +282,16 @@ export const FEATURES = defineFeatures([
 
 	// Product: mobile by design (phone goal).
 	{
+		// The read-only Krachtprofiel outside a session (APP-393). Inside a session
+		// it is part of the set editor (strength-sessions, `set-editor/*`).
+		id: "strength-profile",
+		kind: "product",
+		status: "exclusive",
+		platforms: ["mobile"],
+		reason: `Phone goal: references and percentages are read while you train; the web keeps its existing training screens without a Krachtprofiel and gets no new training features (${ADR}).`,
+		routes: { mobile: ["(app)/strength-profile"] },
+	},
+	{
 		id: "nutrition",
 		kind: "product",
 		status: "exclusive",
