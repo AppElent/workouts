@@ -34,9 +34,24 @@ describe("CI EAS build Convex guard", () => {
 		expect(main([])).toBe(2);
 	});
 
-	it("skips development builds before any git or GitHub call", () => {
-		expect(main(["--profile", "development"])).toBe(0);
-		expect(main(["--profile", "development-simulator"])).toBe(0);
+	it("maps check results to exit codes for production-Convex builds", () => {
+		const args = ["--profile", "preview-internal"];
+		const allow = [...args, "--allow-convex-drift"];
+		const result = (status) => () => ({ status, message: status });
+		const broken = () => {
+			throw new SyntaxError("Unexpected token < in JSON");
+		};
+		expect(main(args, result("ok"))).toBe(0);
+		expect(main(args, result("drift"))).toBe(1);
+		expect(main(args, broken)).toBe(2);
+		expect(main(allow, result("drift"))).toBe(0);
+		expect(main(allow, broken)).toBe(0);
+	});
+
+	it("never runs the check for development builds", () => {
+		const check = vi.fn();
+		expect(main(["--profile", "development"], check)).toBe(0);
+		expect(check).not.toHaveBeenCalled();
 	});
 
 	it("passes when production is in step", () => {

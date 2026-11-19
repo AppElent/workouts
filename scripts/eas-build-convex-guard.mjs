@@ -92,7 +92,13 @@ function fetchFullHistory() {
 	}
 }
 
-export function main(argv = process.argv.slice(2)) {
+/** Fetches the history the check walks, then compares HEAD with production. */
+function checkHead(deployed) {
+	fetchFullHistory();
+	return checkConvexDrift({ target: "HEAD", deployed });
+}
+
+export function main(argv = process.argv.slice(2), check = checkHead) {
 	const profile = option(argv, "--profile");
 	if (!profile) {
 		console.error(
@@ -119,14 +125,11 @@ export function main(argv = process.argv.slice(2)) {
 
 	let result;
 	try {
-		fetchFullHistory();
-		const drift = checkConvexDrift({
-			target: "HEAD",
-			deployed: option(argv, "--deployed"),
-		});
+		const drift = check(option(argv, "--deployed"));
 		result = { status: drift.status, message: drift.message };
 	} catch (error) {
-		if (!(error instanceof DriftError)) throw error;
+		// Any failure (gh, git, a garbled API response) means "could not tell":
+		// exit 2 with a summary, never an uncaught stack trace that reads as drift.
 		result = { status: "unknown", message: error.message };
 	}
 	const { code, annotation, summary } = outcome({
