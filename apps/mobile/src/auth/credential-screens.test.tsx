@@ -4,6 +4,7 @@ import { LocaleProvider } from "../i18n";
 import { renderThemed } from "../test-support/render-themed";
 import { SignInScreen } from "./sign-in-screen";
 import { SignUpScreen } from "./sign-up-screen";
+import { leaveSignedOutNotice, signedOutNotice } from "./signed-out-notice";
 import { CLERK_PASSWORD_RULES } from "./use-credential-fields";
 
 const mockSubmit = jest.fn();
@@ -50,6 +51,37 @@ async function autofill(label: string, text: string) {
 }
 
 describe("SignInScreen", () => {
+	it("confirms deleted Foundry data once, after the deletion signed out", async () => {
+		leaveSignedOutNotice("dataDeleted");
+		const first = await render(<SignInScreen />);
+		expect(screen.getByText("Your Foundry data was deleted.")).toBeTruthy();
+		expect(
+			screen.getByText(
+				"Your AppElent login still works in Gather, Fairway and Arcade Club. Signing in to Foundry again starts fresh.",
+			),
+		).toBeTruthy();
+		expect(signedOutNotice()).toBeNull();
+		await first.unmount();
+		await render(<SignInScreen />);
+		expect(screen.queryByTestId("auth-notice")).toBeNull();
+	});
+
+	it("confirms a deleted AppElent account", async () => {
+		leaveSignedOutNotice("accountDeleted");
+		await render(<SignInScreen />);
+		expect(screen.getByText("Your AppElent account was deleted.")).toBeTruthy();
+		expect(
+			screen.getByText(
+				"Your login is gone, and with it your data in Gather, Foundry, Fairway and Arcade Club.",
+			),
+		).toBeTruthy();
+	});
+
+	it("shows no confirmation on an ordinary sign-in", async () => {
+		await render(<SignInScreen />);
+		expect(screen.queryByTestId("auth-notice")).toBeNull();
+	});
+
 	it("marks the fields for password managers", async () => {
 		await render(<SignInScreen />);
 		const email = screen.getByLabelText("Email");

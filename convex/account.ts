@@ -1,6 +1,13 @@
 import { APPLE_WEB_RETURN_URLS, APPLE_WEB_SERVICES_ID } from "@foundry/core";
 import { ConvexError, v } from "convex/values";
-import { action, mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
+import {
+	action,
+	internalMutation,
+	type MutationCtx,
+	mutation,
+	query,
+} from "./_generated/server";
 import {
 	appleCredentials,
 	isAppleClientId,
@@ -73,9 +80,23 @@ export const firstRun = query({
 });
 
 /**
- * Deletes one bounded batch of the signed-in account's personal training and
- * nutrition data, including stored Food photos. Callers repeat until `done`;
- * an interrupted run resumes where it stopped. Shipped catalogs are untouched.
+ * The one purge of an account's Foundry data, shared by in-app deletion and
+ * the Clerk `user.deleted` webhook: one bounded batch of personal training and
+ * nutrition data, Food photo files included. Returns whether nothing is left.
+ * Shipped catalogs are untouched, and Foundry keeps no profile row, so a later
+ * sign-in starts with a fresh, empty account.
+ */
+function purgeAccountBatch(ctx: MutationCtx, userId: string) {
+	return deletePersonalData(ctx, userId, {
+		budget: 2000,
+		keepPreferences: false,
+	});
+}
+
+/**
+ * Deletes one bounded batch of the signed-in account's personal data
+ * (`purgeAccountBatch`). Callers repeat until `done`; an interrupted run
+ * resumes where it stopped.
  */
 export const deleteData = mutation({
 	args: { expectedSubject: v.string() },
@@ -85,12 +106,34 @@ export const deleteData = mutation({
 		const userId = await requireSubject(ctx, expectedSubject);
 		const reason = await personalDataBlocker(ctx, userId);
 		if (reason) throw appError(reason);
-		return {
-			done: await deletePersonalData(ctx, userId, {
-				budget: 2000,
-				keepPreferences: false,
-			}),
-		};
+		return { done: await purgeAccountBatch(ctx, userId) };
+	},
+});
+
+/**
+ * Purges a Clerk user's Foundry data after the AppElent login was deleted
+ * (`POST /clerk/webhook`). Repeats itself batch by batch until nothing is
+ * left; a repeated delivery, or a user without Foundry data, finds nothing
+ * and stops. A running Activity no longer blocks: nobody can finish it.
+ * Hosted Workout involvement still does, because other accounts' records
+ * point at it; that is logged for a person to resolve.
+ */
+export const purgeDeletedUser = internalMutation({
+	args: { userId: v.string() },
+	returns: v.null(),
+	handler: async (ctx, { userId }) => {
+		if ((await personalDataBlocker(ctx, userId)) === "hostedWorkout") {
+			console.error(
+				"account.purgeDeletedUser: Hosted Workout involvement, data kept",
+				userId,
+			);
+			return null;
+		}
+		if (!(await purgeAccountBatch(ctx, userId)))
+			await ctx.scheduler.runAfter(0, internal.account.purgeDeletedUser, {
+				userId,
+			});
+		return null;
 	},
 });
 

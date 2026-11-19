@@ -19,6 +19,7 @@ import {
 	revokeAppleSignIn,
 } from "#/lib/auth/appleRevocation";
 import { useI18n } from "#/lib/i18n";
+import { DATA_DELETED_SEARCH } from "./dataDeletedNotice";
 
 type Mode = "deleteData" | "deleteAccount";
 
@@ -49,9 +50,11 @@ function stillRefused(result: unknown) {
 }
 
 /**
- * Delete my data and Delete account, as on the mobile Account screen
- * (profile contract). Web keeps no account data outside Convex queries, so
- * after Delete my data every page re-renders empty without a local reset.
+ * Delete Foundry data only, and Delete my whole AppElent account, as on the
+ * mobile Account screen (profile contract). Both share one AppElent login
+ * with Gather, Fairway and Arcade Club: the first keeps it and signs out here,
+ * the second deletes it. Web keeps no account data outside Convex queries, so
+ * neither needs a local reset.
  */
 export function DeleteAccountCard() {
 	const { userId } = useAuth();
@@ -146,6 +149,8 @@ export function DeleteAccountCard() {
 			});
 			if (!confirmed) return;
 			setBusy(mode);
+			// Delete Foundry data only signs out this session, and no other.
+			const sessionId = clerk.session?.id;
 			// Only Delete account acts on the Clerk account.
 			const account: Confirmed | null =
 				mode === "deleteAccount" && clerk.session
@@ -235,7 +240,19 @@ export function DeleteAccountCard() {
 				await navigate({ to: "/", replace: true, reloadDocument: true });
 				return;
 			}
-			toast.success(c.deletion.success);
+			// The AppElent login stays: no `user.delete()`, no Apple revocation.
+			// Leave the signed-in pages first, so their redirect to sign-in does
+			// not race Clerk's navigation after signing out.
+			await navigate({ to: "/", replace: true });
+			try {
+				// A full load of the signed-out start, which confirms the deletion.
+				await clerk.signOut({
+					sessionId,
+					redirectUrl: `/?${DATA_DELETED_SEARCH}`,
+				});
+			} catch {
+				toast.error(c.deletion.signOutError);
+			}
 		} finally {
 			pending.current = false;
 			setBusy(null);

@@ -6,8 +6,9 @@
  * between them reads as one flow. Third-party providers (Apple, Google, …)
  * slot in through `AuthScreen`'s `children` — see `SocialButtons`.
  */
-import type { ReactNode, Ref } from "react";
+import { type ReactNode, type Ref, useEffect } from "react";
 import {
+	AccessibilityInfo,
 	Pressable,
 	StyleSheet,
 	TextInput,
@@ -93,6 +94,29 @@ export function AuthMessage({
 	);
 }
 
+/**
+ * A confirmation that outlived the session that caused it, such as "Your
+ * Foundry data was deleted." after signing out (`signed-out-notice.ts`).
+ */
+export function AuthNotice({
+	title,
+	detail,
+}: {
+	title: string;
+	detail: string;
+}) {
+	const styles = useThemedStyles(createStyles);
+	useEffect(() => {
+		AccessibilityInfo.announceForAccessibility(`${title} ${detail}`);
+	}, [title, detail]);
+	return (
+		<View style={styles.notice} testID="auth-notice">
+			<AppText variant="heading">{title}</AppText>
+			<AppText variant="secondary">{detail}</AppText>
+		</View>
+	);
+}
+
 /** "No account? Create one" — the prompt is plain, only the label is pressable. */
 export function AuthLink({
 	prompt,
@@ -153,6 +177,15 @@ const createStyles = (colors: Tokens) =>
 			paddingVertical: 14,
 			fontSize: type.control.fontSize,
 			color: colors.text,
+		},
+		notice: {
+			borderWidth: 1,
+			borderColor: colors.border,
+			backgroundColor: colors.surface,
+			borderRadius: radius.lg,
+			padding: spacing.md,
+			gap: spacing.xs,
+			marginBottom: spacing.sm,
 		},
 		footer: { marginTop: spacing.md, alignItems: "center", gap: spacing.sm },
 		linkRow: {

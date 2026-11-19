@@ -8,17 +8,27 @@
  * `isSignedIn`, the `(auth)` layout above redirects to `/`, and this screen
  * unmounts.
  *
+ * After deleting Foundry data or the AppElent account, the confirmation shows
+ * here (`signed-out-notice.ts`): the signed-in layout and its toasts are gone.
+ *
  * `autoComplete` / `textContentType` are what let the platform password
  * manager fill this — and offer to save the password made on `sign-up`.
  */
 import { useRouter } from "expo-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { TextInputInstance } from "react-native";
 import { useI18n } from "../i18n";
 import { PrimaryButton } from "../ui/button";
 import { AppText } from "../ui/text";
-import { AuthInput, AuthLink, AuthMessage, AuthScreen } from "./auth-form";
+import {
+	AuthInput,
+	AuthLink,
+	AuthMessage,
+	AuthNotice,
+	AuthScreen,
+} from "./auth-form";
 import { devLogin } from "./config";
+import { clearSignedOutNotice, signedOutNotice } from "./signed-out-notice";
 import { SocialButtons } from "./social-buttons";
 import { useCredentialFields } from "./use-credential-fields";
 import { useEmailCodeSignIn } from "./use-email-code-sign-in";
@@ -31,6 +41,10 @@ export function SignInScreen() {
 	const { submit, busy, error } = usePasswordSignIn();
 	const emailCode = useEmailCodeSignIn();
 	const [codeHint, setCodeHint] = useState<string | null>(null);
+	// Shown once: a later visit to sign-in does not repeat it.
+	const [notice] = useState(signedOutNotice);
+	useEffect(clearSignedOutNotice, []);
+	const deletion = t.account.deletion;
 	// AutoFill can change a field without `onChangeText`; submit its final text.
 	const form = useCredentialFields(
 		{ email: devLogin?.email ?? "", password: devLogin?.password ?? "" },
@@ -91,6 +105,17 @@ export function SignInScreen() {
 				</>
 			}
 		>
+			{notice === "dataDeleted" ? (
+				<AuthNotice
+					title={deletion.dataDeleted}
+					detail={deletion.dataDeletedDetail}
+				/>
+			) : notice === "accountDeleted" ? (
+				<AuthNotice
+					title={deletion.accountDeleted}
+					detail={deletion.accountDeletedDetail}
+				/>
+			) : null}
 			<AuthInput
 				placeholder={copy.email}
 				{...form.field("email")}
