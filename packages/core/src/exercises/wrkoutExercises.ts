@@ -339,7 +339,7 @@ export const WRKOUT_EXERCISES: DefaultExercise[] = [
 		name: "Ball Leg Curl",
 		muscleGroups: ["hamstrings", "calves", "glutes"],
 		category: "isolation",
-		equipment: "other",
+		equipment: "bodyweight",
 		instructions: [
 			"Begin on the floor laying on your back with your feet on top of the ball.",
 			"Position the ball so that when your legs are extended your ankles are on top of the ball. This will be your starting position.",
@@ -353,7 +353,7 @@ export const WRKOUT_EXERCISES: DefaultExercise[] = [
 		name: "Band Assisted Pull-Up",
 		muscleGroups: ["back", "core", "forearms"],
 		category: "compound",
-		equipment: "other",
+		equipment: "bodyweight",
 		instructions: [
 			"Choke the band around the center of the pullup bar. You can use different bands to provide varying levels of assistance.",
 			"Pull the end of the band down, and place one bent knee into the loop, ensuring it won't slip out. Take a medium to wide grip on the bar. This will be your starting position.",
@@ -992,7 +992,7 @@ export const WRKOUT_EXERCISES: DefaultExercise[] = [
 		name: "Bodyweight Mid Row",
 		muscleGroups: ["back", "biceps"],
 		category: "compound",
-		equipment: "other",
+		equipment: "bodyweight",
 		instructions: [
 			"Begin by taking a medium to wide grip on a pull-up apparatus with your palms facing away from you. From a hanging position, tuck your knees to your chest, leaning back and getting your legs over your side of the pull-up apparatus. This will be your starting position.",
 			"Beginning with your arms straight, flex the elbows and retract the shoulder blades to raise your body up until your legs contact the pull-up apparatus.",
@@ -1016,7 +1016,7 @@ export const WRKOUT_EXERCISES: DefaultExercise[] = [
 		name: "Bodyweight Walking Lunge",
 		muscleGroups: ["quadriceps", "calves", "glutes", "hamstrings"],
 		category: "compound",
-		equipment: "other",
+		equipment: "bodyweight",
 		instructions: [
 			"Begin standing with your feet shoulder width apart and your hands on your hips.",
 			"Step forward with one leg, flexing the knees to drop your hips. Descend until your rear knee nearly touches the ground. Your posture should remain upright, and your front knee should stay above the front foot.",
@@ -2250,7 +2250,7 @@ export const WRKOUT_EXERCISES: DefaultExercise[] = [
 		name: "Decline Push-Up",
 		muscleGroups: ["chest", "shoulders", "triceps"],
 		category: "compound",
-		equipment: "other",
+		equipment: "bodyweight",
 		instructions: [
 			"Lie on the floor face down and place your hands about 36 inches apart while holding your torso up at arms length. Move your feet up to a box or bench. This will be your starting position.",
 			"Next, lower yourself downward until your chest almost touches the floor as you inhale.",
@@ -2413,7 +2413,7 @@ export const WRKOUT_EXERCISES: DefaultExercise[] = [
 		name: "Downward Facing Balance",
 		muscleGroups: ["glutes", "core", "hamstrings"],
 		category: "isolation",
-		equipment: "other",
+		equipment: "bodyweight",
 		instructions: [
 			"Lie facedown on top of an exercise ball.",
 			"While resting on your stomach on the ball, walk your hands forward along the floor and lift your legs, extending your elbows and knees.",
@@ -2842,7 +2842,7 @@ export const WRKOUT_EXERCISES: DefaultExercise[] = [
 		name: "Exercise Ball Crunch",
 		muscleGroups: ["core"],
 		category: "isolation",
-		equipment: "other",
+		equipment: "bodyweight",
 		instructions: [
 			"Lie on an exercise ball with your lower back curvature pressed against the spherical surface of the ball. Your feet should be bent at the knee and pressed firmly against the floor. The upper torso should be hanging off the top of the ball. The arms should either be kept alongside the body or crossed on top of your chest as these positions avoid neck strains (as opposed to the hands behind the back of the head position).",
 			"Lower your torso into a stretch position keeping the neck stationary at all times. This will be your starting position.",
@@ -2856,7 +2856,7 @@ export const WRKOUT_EXERCISES: DefaultExercise[] = [
 		name: "Exercise Ball Pull-In",
 		muscleGroups: ["core"],
 		category: "compound",
-		equipment: "other",
+		equipment: "bodyweight",
 		instructions: [
 			"Place an exercise ball nearby and lay on the floor in front of it with your hands on the floor shoulder width apart in a push-up position.",
 			"Now place your lower shins on top of an exercise ball. Tip: At this point your legs should be fully extended with the shins on top of the ball and the upper body should be in a push-up type of position being supported by your two extended arms in front of you. This will be your starting position.",
@@ -3014,7 +3014,7 @@ export const WRKOUT_EXERCISES: DefaultExercise[] = [
 		name: "Floor Glute-Ham Raise",
 		muscleGroups: ["hamstrings", "calves", "glutes"],
 		category: "isolation",
-		equipment: "other",
+		equipment: "bodyweight",
 		instructions: [
 			"You can use a partner for this exercise or brace your feet under something stable.",
 			"Begin on your knees with your upper legs and torso upright. If using a partner, they will firmly hold your feet to keep you in position. This will be your starting position.",
@@ -3261,7 +3261,7 @@ export const WRKOUT_EXERCISES: DefaultExercise[] = [
 		name: "Gironda Sternum Chins",
 		muscleGroups: ["back", "biceps"],
 		category: "compound",
-		equipment: "other",
+		equipment: "bodyweight",
 		instructions: [
 			"Grasp the pull-up bar with a shoulder width underhand grip.",
 			"Now hang with your arms fully extended and stick your chest out and lean back. Tip: You will be leaning back throughout the entire movement. This will be your starting position.",
@@ -3815,7 +3815,7 @@ export const WRKOUT_EXERCISES: DefaultExercise[] = [
 		name: "Inverted Row",
 		muscleGroups: ["back"],
 		category: "compound",
-		equipment: "other",
+		equipment: "bodyweight",
 		instructions: [
 			"Position a bar in a rack to about waist height. You can also use a smith machine.",
 			"Take a wider than shoulder width grip on the bar and position yourself hanging underneath the bar. Your body should be straight with your heels on the ground with your arms fully extended. This will be your starting position.",
@@ -3829,7 +3829,7 @@ export const WRKOUT_EXERCISES: DefaultExercise[] = [
 		name: "Inverted Row with Straps",
 		muscleGroups: ["back", "biceps"],
 		category: "compound",
-		equipment: "other",
+		equipment: "bodyweight",
 		instructions: [
 			"Hang a rope or suspension straps from a rack or other stable object. Grasp the ends and position yourself in a supine position hanging from the ropes. Your body should be straight with your heels on the ground with your arms fully extended. This will be your starting position.",
 			"Begin by flexing the elbow, pulling your chest to your hands. Retract your shoulder blades as you perform the movement.",
@@ -4216,7 +4216,7 @@ export const WRKOUT_EXERCISES: DefaultExercise[] = [
 			"triceps",
 		],
 		category: "compound",
-		equipment: "other",
+		equipment: "bodyweight",
 		instructions: [
 			"Grip the rings using a false grip, with the base of your palms on top of the rings.",
 			"Begin with a movement swinging your legs backward slightly.",
@@ -4230,7 +4230,7 @@ export const WRKOUT_EXERCISES: DefaultExercise[] = [
 		name: "Knee/Hip Raise On Parallel Bars",
 		muscleGroups: ["core"],
 		category: "isolation",
-		equipment: "other",
+		equipment: "bodyweight",
 		instructions: [
 			"Position your body on the vertical leg raise bench so that your forearms are resting on the pads next to the torso and holding on to the handles. Your arms will be bent at a 90 degree angle.",
 			"The torso should be straight with the lower back pressed against the pad of the machine and the legs extended pointing towards the floor. This will be your starting position.",
@@ -4538,7 +4538,7 @@ export const WRKOUT_EXERCISES: DefaultExercise[] = [
 		name: "London Bridges",
 		muscleGroups: ["back", "biceps", "forearms"],
 		category: "compound",
-		equipment: "other",
+		equipment: "bodyweight",
 		instructions: [
 			"Attach a climbing rope to a high beam or cross member. Below it, ensure that the smith machine bar is locked in place with the safeties and cannot move. Alternatively, a secure box could also be utilized.",
 			"Stand on the bar, using the rope to balance yourself. This will be your starting position.",
@@ -4913,7 +4913,7 @@ export const WRKOUT_EXERCISES: DefaultExercise[] = [
 		name: "Mixed Grip Chin",
 		muscleGroups: ["back", "biceps"],
 		category: "compound",
-		equipment: "other",
+		equipment: "bodyweight",
 		instructions: [
 			"Using a spacing that is just about 1 inch wider than shoulder width, grab a pull-up bar with the palms of one hand facing forward and the palms of the other hand facing towards you. This will be your starting position.",
 			"Now start to pull yourself up as you exhale. Tip: With the arm that has the palms facing up concentrate on using the back muscles in order to perform the movement. The elbow of that arm should remain close to the torso. With the other arm that has the palms facing forward, the elbows will be away but in line with the torso. You will concentrate on using the lats to pull your body up.",
@@ -4966,7 +4966,7 @@ export const WRKOUT_EXERCISES: DefaultExercise[] = [
 			"triceps",
 		],
 		category: "compound",
-		equipment: "other",
+		equipment: "bodyweight",
 		instructions: [
 			"Grip the rings using a false grip, with the base of your palms on top of the rings. Initiate a pull up by pulling the elbows down to your side, flexing the elbows.",
 			"As you reach the top position of the pull-up, pull the rings to your armpits as you roll your shoulders forward, allowing your elbows to move straight back behind you. This puts you into the proper position to continue into the dip portion of the movement.",
@@ -5409,7 +5409,7 @@ export const WRKOUT_EXERCISES: DefaultExercise[] = [
 		name: "One Arm Chin-Up",
 		muscleGroups: ["back", "biceps", "forearms"],
 		category: "compound",
-		equipment: "other",
+		equipment: "bodyweight",
 		instructions: [
 			"For this exercise, start out by placing a towel around a chin up bar.",
 			"Grab the chin-up bar with your palm facing you. One hand will be grabbing the chin-up bar and the other will be grabbing the towel.",
@@ -5698,7 +5698,7 @@ export const WRKOUT_EXERCISES: DefaultExercise[] = [
 		name: "Physioball Hip Bridge",
 		muscleGroups: ["glutes", "hamstrings"],
 		category: "compound",
-		equipment: "other",
+		equipment: "bodyweight",
 		instructions: [
 			"Lay on a ball so that your upper back is on the ball with your hips unsupported. Both feet should be flat on the floor, hip width apart or wider. This will be your starting position.",
 			"Begin by extending the hips using your glutes and hamstrings, raising your hips upward as you bridge.",
@@ -5753,7 +5753,7 @@ export const WRKOUT_EXERCISES: DefaultExercise[] = [
 		name: "Platform Hamstring Slides",
 		muscleGroups: ["hamstrings", "glutes"],
 		category: "isolation",
-		equipment: "other",
+		equipment: "bodyweight",
 		instructions: [
 			"For this movement a wooden floor or similar is needed. Lay on your back with your legs extended. Place a gym towel or a light weight underneath your heel. This will be your starting position.",
 			"Begin the movement by flexing the knee, keeping your other leg straight.",
@@ -6044,7 +6044,7 @@ export const WRKOUT_EXERCISES: DefaultExercise[] = [
 		name: "Push-Ups With Feet On An Exercise Ball",
 		muscleGroups: ["chest", "shoulders", "triceps"],
 		category: "compound",
-		equipment: "other",
+		equipment: "bodyweight",
 		instructions: [
 			"Lie on the floor face down and place your hands about 36 inches apart from each other holding your torso up at arms length.",
 			"Place your toes on top of an exercise ball. This will allow your body to be elevated.",
@@ -6433,7 +6433,7 @@ export const WRKOUT_EXERCISES: DefaultExercise[] = [
 		name: "Ring Dips",
 		muscleGroups: ["triceps", "chest", "shoulders"],
 		category: "compound",
-		equipment: "other",
+		equipment: "bodyweight",
 		instructions: [
 			"Grip a ring in each hand, and then take a small jump to help you get into the starting position with your arms locked out.",
 			"Begin by flexing the elbow, lowering your body until your arms break 90 degrees. Avoid swinging, and maintain good posture throughout the descent.",
@@ -6490,7 +6490,7 @@ export const WRKOUT_EXERCISES: DefaultExercise[] = [
 		name: "Rope Climb",
 		muscleGroups: ["back", "biceps", "forearms", "shoulders"],
 		category: "compound",
-		equipment: "other",
+		equipment: "bodyweight",
 		instructions: [
 			"Grab the rope with both hands above your head. Pull down on the rope as you take a small jump.",
 			"Wrap the rope around one leg, using your feet to pinch the rope. Reach up as high as possible with your arms, gripping the rope tightly.",
@@ -6556,7 +6556,7 @@ export const WRKOUT_EXERCISES: DefaultExercise[] = [
 		name: "Scapular Pull-Up",
 		muscleGroups: ["traps", "back"],
 		category: "isolation",
-		equipment: "other",
+		equipment: "bodyweight",
 		instructions: [
 			"Take a pronated grip on a pull-up bar.",
 			"From a hanging position, raise yourself a few inches without using your arms. Do this by depressing your shoulder girdle in a reverse shrugging motion.",
@@ -6998,7 +6998,7 @@ export const WRKOUT_EXERCISES: DefaultExercise[] = [
 		name: "Side To Side Chins",
 		muscleGroups: ["back", "biceps", "forearms", "shoulders"],
 		category: "compound",
-		equipment: "other",
+		equipment: "bodyweight",
 		instructions: [
 			"Grab the pull-up bar with the palms facing forward using a wide grip.",
 			"As you have both arms extended in front of you holding the bar at a wide grip, bring your torso back around 30 degrees or so while creating a curvature on your lower back and sticking your chest out. This is your starting position.",
@@ -7054,7 +7054,7 @@ export const WRKOUT_EXERCISES: DefaultExercise[] = [
 		name: "Single-Leg High Box Squat",
 		muscleGroups: ["quadriceps", "glutes", "hamstrings"],
 		category: "compound",
-		equipment: "other",
+		equipment: "bodyweight",
 		instructions: [
 			"Position a box in a rack. Secure a band or rope in place above the box.",
 			"Standing in front of it, step onto the box to a full standing position, letting your other leg remain unsupported. Hold onto the band for balance",
@@ -8453,7 +8453,7 @@ export const WRKOUT_EXERCISES: DefaultExercise[] = [
 		name: "Suspended Fallout",
 		muscleGroups: ["core", "chest", "lower back", "shoulders"],
 		category: "isolation",
-		equipment: "other",
+		equipment: "bodyweight",
 		instructions: [
 			"Adjust the straps so the handles are at an appropriate height, below waist level.",
 			"Begin standing and grasping the handles. Lean into the straps, moving to an incline push-up position. This will be your starting position.",
@@ -8467,7 +8467,7 @@ export const WRKOUT_EXERCISES: DefaultExercise[] = [
 		name: "Suspended Push-Up",
 		muscleGroups: ["chest", "shoulders", "triceps"],
 		category: "compound",
-		equipment: "other",
+		equipment: "bodyweight",
 		instructions: [
 			"Anchor your suspension straps securely to the top of a rack or other object.",
 			"Leaning into the straps, take a handle in each hand and move into a push-up plank position. You should be as close to parallel to the ground as you can manage with your arms fully extended, maintaining good posture.",
@@ -8480,7 +8480,7 @@ export const WRKOUT_EXERCISES: DefaultExercise[] = [
 		name: "Suspended Reverse Crunch",
 		muscleGroups: ["core"],
 		category: "isolation",
-		equipment: "other",
+		equipment: "bodyweight",
 		instructions: [
 			"Secure a set of suspension straps with the handles hanging about a foot off of the ground. Move yourself into a pushup plank position facing away from the rack.",
 			"Place your feet into the handles. You should maintain a straight posture, not allowing the hips to sag. This will be your starting position.",
@@ -8493,7 +8493,7 @@ export const WRKOUT_EXERCISES: DefaultExercise[] = [
 		name: "Suspended Row",
 		muscleGroups: ["back", "biceps"],
 		category: "compound",
-		equipment: "other",
+		equipment: "bodyweight",
 		instructions: [
 			"Suspend your straps at around chest height. Take a handle in each hand and lean back. Keep your body erect and your head and chest up. Your arms should be fully extended. This will be your starting position.",
 			"Begin by flexing the elbow to initiate the movement. Protract your shoulder blades as you do so.",
@@ -8512,7 +8512,7 @@ export const WRKOUT_EXERCISES: DefaultExercise[] = [
 			"hamstrings",
 		],
 		category: "compound",
-		equipment: "other",
+		equipment: "bodyweight",
 		instructions: [
 			"Suspend your straps so the handles are 18-30 inches from the floor.",
 			"Facing away from the setup, place your rear foot into the handle behind you. Keep your head looking forward and your chest up, with your knee slightly bent. This will be your starting position.",

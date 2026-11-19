@@ -38,6 +38,25 @@ describe("shipped exercise catalog", () => {
 			).toBe(false);
 		}
 	});
+	it("logs bodyweight movements reps-only, without a required load (APP-217)", () => {
+		for (const id of [
+			"shipped:exercise:push-up",
+			"shipped:exercise:chin-up",
+			"shipped:exercise:pull-up",
+			"shipped:exercise:inverted-row",
+			"shipped:exercise:decline-push-up",
+			"shipped:exercise:suspended-row",
+			"shipped:exercise:ring-dips",
+		]) {
+			const exercise = getShippedExercise(id);
+			expect(exercise?.equipment, id).toBe("bodyweight");
+			expect(isLoadedEquipment(exercise?.equipment ?? "other"), id).toBe(false);
+		}
+		// Weighted variants still take a load.
+		expect(
+			getShippedExercise("shipped:exercise:weighted-pull-ups")?.equipment,
+		).toBe("other");
+	});
 	it("preserves shipped IDs and same-name personal exercises", () => {
 		const shipped = getShippedExercise(DEFAULT_EXERCISES[0]._id);
 		if (!shipped) throw new Error("Missing shipped exercise");
