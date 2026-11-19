@@ -170,7 +170,9 @@ Only these are per app; everything above is already shared:
 ## Apple token revocation
 
 Apple requires apps that offer Sign in with Apple to revoke the user's Apple
-grant when the account is deleted. Clerk does not do this, so Foundry does:
+grant when the account is deleted. Clerk does not do this, so Foundry does,
+only for Delete my whole AppElent account; Delete Foundry data only keeps the
+AppElent login and never touches Apple:
 
 1. On iOS, Delete account opens the native Apple sheet once more for an
    Apple-linked account (`apps/mobile/src/features/profile/apple-revocation.ts`).
@@ -181,14 +183,20 @@ grant when the account is deleted. Clerk does not do this, so Foundry does:
    (`packages/core/src/auth.ts`). Closing the popup cancels the deletion.
 2. Convex `account.revokeAppleSignIn` exchanges the code at Apple's
    `/auth/token` (a web code with its return URL) and revokes the refresh
-   token at `/auth/revoke`.
+   token at `/auth/revoke`. For a web code it first refuses while the
+   deletion blocker applies, and reads the Apple accounts linked to the
+   caller from the Clerk Backend API; it revokes only when the `sub` of
+   Apple's ID token is one of them. Otherwise nothing is revoked, the action
+   fails with `appleAccountMismatch`, and the card stops the deletion.
 3. Any other failure is reported to Sentry, and the account is deleted anyway.
 
 The action signs Apple's client secret with the Sign in with Apple key from
 Infisical (`apple-team-id`, `apple-sso-key-id`, `apple-sso-key-value`).
 `pnpm env:apply <environment> --only convex` lands them as `APPLE_TEAM_ID`,
 `APPLE_SIGN_IN_KEY_ID` and `APPLE_SIGN_IN_PRIVATE_KEY`. Without them the action
-fails with `unavailable`.
+fails with `unavailable`. Web revocation also needs the Clerk instance's
+secret key (Infisical `clerk-secret-key`, Convex `CLERK_SECRET_KEY`); without
+it a web code is never exchanged and the action fails with `unavailable`.
 
 Native codes are issued to the requesting build's bundle ID, so the app sends
 it and Convex uses it as `client_id` after checking it against
@@ -220,16 +228,23 @@ acceptable before adding a return URL. Web Apple sign-in on the development
 Clerk instance with Clerk's shared credentials has another Apple team's user
 ID, so the popup's account never matches and nothing is revoked there.
 
-The `state` and Apple-account checks run in the browser. Convex checks that
-the caller is signed in and that the return URL is registered, but it does not
-tie the code to this Foundry account. That matches native revocation. In the
-normal flow a code only comes from the person's own signed-in Apple popup,
-but a signed-in caller holding any valid code for this Services ID could
-revoke that grant. Before adding a return URL, Convex must bind the code's
-Apple user to the caller and check the deletion blocker before exchanging the
-code. Also test in Safari that the card asks for one more click before Apple's
-popup opens, and that Clerk asks to confirm the sign-in again when Apple's step
-takes longer than the card's 5-minute sign-in check.
+The browser checks the popup's `state` and Apple account. Convex checks again
+before it exchanges or revokes anything: the caller is signed in, the return
+URL is registered, the deletion blocker does not apply, and the code's Apple
+user (`sub` of the ID token from Apple's token endpoint, with Apple as issuer
+and the Services ID as audience) is linked to the caller in Clerk. Native
+codes are not bound to the caller yet: that needs `CLERK_SECRET_KEY` on every
+deployment the installed apps use.
+
+Before the return URL goes live, set `clerk-secret-key` in Infisical `prod`
+(the production Clerk instance's secret key) and land it with
+`pnpm env:apply production --only convex`. It lands on production only, the
+one registered return URL.
+After deploying, test in Safari that the card asks for one more click before
+Apple's popup opens, and that Clerk asks to confirm the sign-in again when
+Apple's step takes longer than the card's 5-minute sign-in check. The dev
+Clerk instance cannot test this end to end (see above), so the first full run
+is on production.
 
 ## Verify
 

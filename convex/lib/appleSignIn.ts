@@ -110,11 +110,47 @@ async function post(path: string, form: Record<string, string>) {
 	return response;
 }
 
+/** The Apple user (`sub`) of an ID token straight from Apple's token endpoint. */
+function idTokenSubject(
+	idToken: unknown,
+	clientId: AppleClientId,
+): string | null {
+	if (typeof idToken !== "string") return null;
+	const payload = idToken.split(".")[1];
+	if (!payload) return null;
+	try {
+		const claims = JSON.parse(
+			atob(payload.replace(/-/g, "+").replace(/_/g, "/")),
+		) as { iss?: unknown; aud?: unknown; sub?: unknown };
+		// Fetched over TLS with Foundry's own client secret, so the token is
+		// Apple's (OIDC Core 3.1.3.7); issuer and audience still have to fit.
+		const audience = Array.isArray(claims.aud) ? claims.aud : [claims.aud];
+		return claims.iss === APPLE &&
+			audience.includes(clientId) &&
+			typeof claims.sub === "string" &&
+			claims.sub !== ""
+			? claims.sub
+			: null;
+	} catch {
+		return null;
+	}
+}
+
+/** The code's Apple user is not the one linked to the signed-in account. */
+export class AppleAccountMismatch extends Error {}
+
+/**
+ * Exchanges the code for tokens and revokes them. With `appleUserIds`, the
+ * code's Apple user (the ID token's `sub`) must be one of them; otherwise
+ * nothing is revoked and `AppleAccountMismatch` is thrown. The unrevoked
+ * tokens are dropped, never stored or returned.
+ */
 export async function revokeAppleAuthorization(
 	credentials: AppleCredentials,
 	authorizationCode: string,
 	clientId: AppleClientId,
 	redirectUri?: string,
+	appleUserIds?: readonly string[],
 ) {
 	const secret = await clientSecret(credentials, clientId);
 	const tokens = (await (
@@ -125,7 +161,18 @@ export async function revokeAppleAuthorization(
 			grant_type: "authorization_code",
 			...(redirectUri ? { redirect_uri: redirectUri } : {}),
 		})
-	).json()) as { refresh_token?: string; access_token?: string };
+	).json()) as {
+		refresh_token?: string;
+		access_token?: string;
+		id_token?: unknown;
+	};
+	if (appleUserIds) {
+		const subject = idTokenSubject(tokens.id_token, clientId);
+		if (!subject || !appleUserIds.includes(subject))
+			throw new AppleAccountMismatch(
+				"Apple's code is for another Apple account than the linked one",
+			);
+	}
 	const [token, hint] = tokens.refresh_token
 		? [tokens.refresh_token, "refresh_token"]
 		: [tokens.access_token, "access_token"];

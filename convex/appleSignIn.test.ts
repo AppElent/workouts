@@ -270,3 +270,189 @@ describe("web Apple revocation", () => {
 		expect(revoke.redirect_uri).toBeUndefined();
 	});
 });
+
+describe("web Apple revocation server checks", () => {
+	const WEB = {
+		authorizationCode: "code",
+		bundleId: "nl.appelent.web",
+		redirectUri: "https://foundry.appelent.nl/account",
+	};
+
+	function idToken(claims: Record<string, unknown>) {
+		const part = (value: unknown) =>
+			btoa(JSON.stringify(value))
+				.replace(/\+/g, "-")
+				.replace(/\//g, "_")
+				.replace(/=+$/, "");
+		return `${part({ alg: "RS256" })}.${part(claims)}.signature`;
+	}
+
+	function appleToken(sub: string, overrides: Record<string, unknown> = {}) {
+		return Response.json({
+			refresh_token: "refresh",
+			id_token: idToken({
+				iss: "https://appleid.apple.com",
+				aud: "nl.appelent.web",
+				sub,
+				...overrides,
+			}),
+		});
+	}
+
+	function clerkUser(
+		externalAccounts: {
+			provider: string;
+			provider_user_id: string;
+			verification?: { status: string } | null;
+		}[],
+	) {
+		return Response.json({
+			id: "alice",
+			external_accounts: externalAccounts.map((account) => ({
+				verification: { status: "verified" },
+				...account,
+			})),
+		});
+	}
+
+	const linkedToApple = () =>
+		clerkUser([
+			{ provider: "oauth_google", provider_user_id: "google-1" },
+			{ provider: "oauth_apple", provider_user_id: "apple-alice" },
+		]);
+
+	async function setUp(responses: Record<string, Response>) {
+		await configure();
+		vi.stubEnv("CLERK_SECRET_KEY", "sk_test_placeholder");
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		const result = appleResponses(responses);
+		const t = convexTest(schema, modules);
+		return { ...result, t, alice: t.withIdentity({ subject: "alice" }) };
+	}
+
+	const paths = (calls: { path: string }[]) => calls.map(({ path }) => path);
+
+	it("checks the deletion blocker before reading Clerk or exchanging the code", async () => {
+		const { alice, calls } = await setUp({
+			"/v1/users/alice": linkedToApple(),
+			"/auth/token": appleToken("apple-alice"),
+			"/auth/revoke": new Response(null, { status: 200 }),
+		});
+		await alice.mutation(api.workoutSessions.create, {});
+		await expect(
+			alice.action(api.account.revokeAppleSignIn, WEB),
+		).rejects.toMatchObject({ data: { code: "activeActivity" } });
+		expect(calls).toEqual([]);
+	});
+
+	it("revokes when the code's Apple user is the one Clerk links to the caller", async () => {
+		const { alice, calls } = await setUp({
+			"/v1/users/alice": linkedToApple(),
+			"/auth/token": appleToken("apple-alice"),
+			"/auth/revoke": new Response(null, { status: 200 }),
+		});
+		await alice.action(api.account.revokeAppleSignIn, WEB);
+		expect(paths(calls)).toEqual([
+			"/v1/users/alice",
+			"/auth/token",
+			"/auth/revoke",
+		]);
+		expect(Object.fromEntries(calls[2].form)).toMatchObject({
+			token: "refresh",
+		});
+	});
+
+	it("refuses to revoke a code for another Apple user", async () => {
+		const { alice, calls } = await setUp({
+			"/v1/users/alice": linkedToApple(),
+			"/auth/token": appleToken("apple-bob"),
+			"/auth/revoke": new Response(null, { status: 200 }),
+		});
+		await expect(
+			alice.action(api.account.revokeAppleSignIn, WEB),
+		).rejects.toMatchObject({ data: { code: "appleAccountMismatch" } });
+		expect(paths(calls)).toEqual(["/v1/users/alice", "/auth/token"]);
+	});
+
+	it("refuses an ID token for another audience or issuer, or without one", async () => {
+		for (const token of [
+			appleToken("apple-alice", { aud: "com.example.other" }),
+			appleToken("apple-alice", { iss: "https://evil.example" }),
+			Response.json({ refresh_token: "refresh" }),
+		]) {
+			const { alice, calls } = await setUp({
+				"/v1/users/alice": linkedToApple(),
+				"/auth/token": token,
+				"/auth/revoke": new Response(null, { status: 200 }),
+			});
+			await expect(
+				alice.action(api.account.revokeAppleSignIn, WEB),
+			).rejects.toMatchObject({ data: { code: "appleAccountMismatch" } });
+			expect(paths(calls)).not.toContain("/auth/revoke");
+		}
+	});
+
+	it("does not exchange the code when Clerk links no verified Apple account", async () => {
+		for (const user of [
+			clerkUser([{ provider: "oauth_google", provider_user_id: "google-1" }]),
+			clerkUser([
+				{
+					provider: "oauth_apple",
+					provider_user_id: "apple-alice",
+					verification: { status: "unverified" },
+				},
+			]),
+		]) {
+			const { alice, calls } = await setUp({
+				"/v1/users/alice": user,
+				"/auth/token": appleToken("apple-alice"),
+			});
+			await expect(
+				alice.action(api.account.revokeAppleSignIn, WEB),
+			).rejects.toMatchObject({ data: { code: "appleAccountMismatch" } });
+			expect(paths(calls)).toEqual(["/v1/users/alice"]);
+		}
+	});
+
+	it("does not trust anything but Clerk when Clerk is unreachable or not configured", async () => {
+		const { alice, calls } = await setUp({
+			"/v1/users/alice": new Response("error", { status: 500 }),
+		});
+		await expect(
+			alice.action(api.account.revokeAppleSignIn, WEB),
+		).rejects.toMatchObject({ data: { code: "failed" } });
+		expect(paths(calls)).toEqual(["/v1/users/alice"]);
+
+		vi.stubEnv("CLERK_SECRET_KEY", "");
+		calls.length = 0;
+		await expect(
+			alice.action(api.account.revokeAppleSignIn, WEB),
+		).rejects.toMatchObject({ data: { code: "unavailable" } });
+		expect(calls).toEqual([]);
+	});
+
+	it("refuses an unregistered return URL before any lookup", async () => {
+		const { alice, calls } = await setUp({});
+		await expect(
+			alice.action(api.account.revokeAppleSignIn, {
+				...WEB,
+				redirectUri: "https://foundry-stg.appelent.nl/account",
+			}),
+		).rejects.toMatchObject({
+			data: { code: "invalid", field: "redirectUri" },
+		});
+		expect(calls).toEqual([]);
+	});
+
+	it("keeps native revocation unbound and without a Clerk lookup", async () => {
+		const { alice, calls } = await setUp({
+			"/auth/token": appleToken("apple-bob", { aud: "com.appelent.foundry" }),
+			"/auth/revoke": new Response(null, { status: 200 }),
+		});
+		await alice.action(api.account.revokeAppleSignIn, {
+			authorizationCode: "code",
+			bundleId: "com.appelent.foundry",
+		});
+		expect(paths(calls)).toEqual(["/auth/token", "/auth/revoke"]);
+	});
+});

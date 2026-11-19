@@ -1,4 +1,8 @@
-import { APPLE_WEB_SERVICES_ID, appleWebReturnUrl } from "@foundry/core";
+import {
+	APPLE_WEB_SERVICES_ID,
+	appleWebReturnUrl,
+	parseConvexError,
+} from "@foundry/core";
 import { reportError } from "#/lib/observability/errors";
 
 /** Apple JS localises its popup per script URL. */
@@ -112,7 +116,9 @@ function popupError(error: unknown) {
  *
  * The popup signs in whoever owns the browser's Apple Account, which need not
  * be the person linked to this account. A code for anyone else is never sent,
- * so another person's grant is never revoked.
+ * and Convex checks the code's Apple user against Clerk again, so another
+ * person's grant is never revoked. Either check stops the deletion as
+ * `appleMismatch`, so the person can retry with the linked Apple Account.
  *
  * Apple shows the popup only for a return URL registered on the Services ID.
  * From any other origin (local, previews, until production is registered) the
@@ -127,7 +133,7 @@ export async function revokeAppleSignIn(
 		returnUrls?: readonly string[];
 		loadApple?: () => Promise<AppleIdAuth>;
 	} = {},
-): Promise<"continue" | "cancelled" | "popupBlocked"> {
+): Promise<"continue" | "cancelled" | "popupBlocked" | "appleMismatch"> {
 	const redirectUri = appleRevocationReturnUrl(
 		user,
 		options.origin,
@@ -151,8 +157,7 @@ export async function revokeAppleSignIn(
 		if (authorization.state !== state)
 			throw new Error("Apple popup returned a different state");
 		const subject = idTokenSubject(authorization.id_token);
-		if (!subject || !linked.includes(subject))
-			throw new Error("Apple popup returned a different Apple Account");
+		if (!subject || !linked.includes(subject)) return "appleMismatch";
 		if (!authorization.code)
 			throw new Error("Apple returned no authorization code");
 		await revoke({
@@ -165,6 +170,8 @@ export async function revokeAppleSignIn(
 		if (code === "popup_closed_by_user" || code === "user_cancelled_authorize")
 			return "cancelled";
 		if (code === "popup_blocked_by_browser") return "popupBlocked";
+		if (parseConvexError(error).code === "appleAccountMismatch")
+			return "appleMismatch";
 		reportError(error, "account.revokeAppleSignIn");
 	}
 	return "continue";

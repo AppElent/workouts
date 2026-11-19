@@ -4,16 +4,19 @@ import { internal } from "./_generated/api";
 import {
 	action,
 	internalMutation,
+	internalQuery,
 	type MutationCtx,
 	mutation,
 	query,
 } from "./_generated/server";
 import {
+	AppleAccountMismatch,
 	appleCredentials,
 	isAppleClientId,
 	revokeAppleAuthorization,
 } from "./lib/appleSignIn";
 import { getOptionalUserId, requireSubject, requireUserId } from "./lib/auth";
+import { ClerkUnavailable, linkedAppleUserIds } from "./lib/clerkUsers";
 import { rejectConnectedApps } from "./lib/connectedApps";
 import { appError } from "./lib/errors";
 import {
@@ -30,6 +33,13 @@ export const deletionBlocker = query({
 		const userId = await getOptionalUserId(ctx);
 		return userId ? await personalDataBlocker(ctx, userId) : null;
 	},
+});
+
+/** `deletionBlocker` for a known account, for actions, which cannot read. */
+export const deletionBlockerFor = internalQuery({
+	args: { userId: v.string() },
+	returns: blocker,
+	handler: (ctx, { userId }) => personalDataBlocker(ctx, userId),
 });
 
 /**
@@ -141,12 +151,15 @@ export const purgeDeletedUser = internalMutation({
 const MAX_AUTHORIZATION_CODE = 2000;
 
 /**
- * Revokes the signed-in account's Sign in with Apple grant before the account
- * is deleted. The code comes from a fresh native Apple sheet on iOS, together
- * with the bundle ID of the build that showed it, or from an Apple JS popup on
- * the web, with the web Services ID as `bundleId` and the registered return URL
- * it was requested with. Failures are one stable code; callers still delete
- * the account.
+ * Revokes the signed-in account's Sign in with Apple grant before the whole
+ * AppElent account is deleted (never for Delete Foundry data). The code comes
+ * from a fresh native Apple sheet on iOS, together with the bundle ID of the
+ * build that showed it, or from an Apple JS popup on the web, with the web
+ * Services ID as `bundleId` and the registered return URL it was requested
+ * with. A grant can't be restored, so a web code is only exchanged once the
+ * account may be deleted, and only revoked when its Apple user is the one
+ * Clerk has linked to this account (`appleAccountMismatch` otherwise). Other
+ * failures are one stable code; callers still delete the account.
  */
 export const revokeAppleSignIn = action({
 	args: {
@@ -156,7 +169,7 @@ export const revokeAppleSignIn = action({
 	},
 	returns: v.null(),
 	handler: async (ctx, { authorizationCode, bundleId, redirectUri }) => {
-		await requireUserId(ctx);
+		const userId = await requireUserId(ctx);
 		if (!authorizationCode || authorizationCode.length > MAX_AUTHORIZATION_CODE)
 			throw appError("invalid", "authorizationCode");
 		if (!isAppleClientId(bundleId)) throw appError("invalid", "bundleId");
@@ -170,14 +183,35 @@ export const revokeAppleSignIn = action({
 			throw appError("invalid", "redirectUri");
 		const credentials = appleCredentials();
 		if (!credentials) throw appError("unavailable");
+		// Native revocation is not bound yet (APP-242 leftover): it would need
+		// CLERK_SECRET_KEY on every deployment the installed apps use first.
+		let appleUserIds: string[] | undefined;
+		if (web) {
+			const reason = await ctx.runQuery(internal.account.deletionBlockerFor, {
+				userId,
+			});
+			if (reason) throw appError(reason);
+			try {
+				appleUserIds = await linkedAppleUserIds(userId);
+			} catch (error) {
+				console.error("account.revokeAppleSignIn: Clerk lookup failed", error);
+				throw appError(
+					error instanceof ClerkUnavailable ? "unavailable" : "failed",
+				);
+			}
+			if (appleUserIds.length === 0) throw appError("appleAccountMismatch");
+		}
 		try {
 			await revokeAppleAuthorization(
 				credentials,
 				authorizationCode,
 				bundleId,
 				redirectUri,
+				appleUserIds,
 			);
 		} catch (error) {
+			if (error instanceof AppleAccountMismatch)
+				throw appError("appleAccountMismatch");
 			console.error("account.revokeAppleSignIn failed", error);
 			throw appError("failed");
 		}

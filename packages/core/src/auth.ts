@@ -121,9 +121,11 @@ export const APPLE_WEB_SERVICES_ID = "nl.appelent.web";
  * The web Account page URLs registered as Return URLs on the Services ID.
  * Apple JS shows its popup only for a registered URL, so web Apple revocation
  * on account deletion runs only from these. Add one only after it is listed in
- * Apple Developer (social-sign-in runbook, "Apple token revocation").
+ * Apple Developer (social-sign-in runbook, "Enabling web revocation").
  */
-export const APPLE_WEB_RETURN_URLS: readonly string[] = [];
+export const APPLE_WEB_RETURN_URLS: readonly string[] = [
+	"https://foundry.appelent.nl/account",
+];
 
 /** The registered Apple JS return URL for a web origin, if it has one. */
 export function appleWebReturnUrl(

@@ -36,6 +36,8 @@ export const account = {
 			"You are signed in to a different account now, so that account was not deleted. Reload the page and check which account you are in.",
 		applePopupBlocked:
 			"Your browser blocked the Apple window. Allow pop-ups for this site, then try Delete my whole AppElent account again.",
+		appleMismatch:
+			"The Apple account you signed in with is not the one linked to this account, so nothing was deleted. Try Delete my whole AppElent account again and sign in with the Apple account you use for AppElent.",
 		refusals: {
 			activeActivity:
 				"Finish or cancel the running Activity before deleting your data.",

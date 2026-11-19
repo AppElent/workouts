@@ -1,3 +1,4 @@
+import { ConvexError } from "convex/values";
 import { beforeEach, expect, it, vi } from "vitest";
 import { type AppleIdAuth, revokeAppleSignIn } from "./appleRevocation";
 
@@ -88,11 +89,26 @@ it("cancels the deletion when the popup is closed", async () => {
 	expect(mocks.report).not.toHaveBeenCalled();
 });
 
-it("never revokes another Apple Account's grant", async () => {
+it("never sends another Apple Account's code and stops the deletion", async () => {
 	const { revoke, result } = run(signedIn("someone-else"));
-	await expect(result).resolves.toBe("continue");
+	await expect(result).resolves.toBe("appleMismatch");
 	expect(revoke).not.toHaveBeenCalled();
-	expect(mocks.report).toHaveBeenCalledOnce();
+	expect(mocks.report).not.toHaveBeenCalled();
+});
+
+it("stops the deletion when Convex finds another Apple Account", async () => {
+	const auth = signedIn();
+	const revoke = vi
+		.fn()
+		.mockRejectedValue(new ConvexError({ code: "appleAccountMismatch" }));
+	await expect(
+		revokeAppleSignIn(appleUser, revoke, {
+			origin: ORIGIN,
+			returnUrls: [RETURN_URL],
+			loadApple: async () => auth,
+		}),
+	).resolves.toBe("appleMismatch");
+	expect(mocks.report).not.toHaveBeenCalled();
 });
 
 it("rejects a response for another request", async () => {
