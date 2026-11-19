@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing Profile, settings, account actions, or sign-out.
-version: 2.0.0
+version: 2.0.1
 status: current
 ---
 
@@ -42,13 +42,14 @@ tap. Study: [profile](../../designs/app/profile_final.html).
     personal training and nutrition records, goal preferences, and uploaded Food
     photos in resumable server batches, clears this device's account state, and
     signs out this device. The AppElent login stays: no Clerk deletion and no
-    Apple revocation, and a short confirmation says it still works in the other
-    apps. Foundry keeps no profile row, so signing in again starts with an
+    Apple revocation. On iOS the sign-in screen then confirms the deletion and
+    says the login still works in the other apps; a signed-in toast would
+    unmount with the session. Foundry keeps no profile row, so signing in again starts with an
     empty account. Device preferences remain. Blocked offline, during a running
     Activity, and with Hosted Workout involvement, like test-data reset.
   - *Delete my whole AppElent account.* Names the other apps whose data goes
-    too. The same deletion, then Clerk's self-deletion, which signs out.
-    Unavailable when the Clerk instance disables self-deletion.
+    too. The same deletion, then Clerk's self-deletion, which signs out; on
+    iOS the sign-in screen confirms that the login is gone. Unavailable when the Clerk instance disables self-deletion.
   - *Login deleted elsewhere.* When the AppElent login is deleted from another
     app or the Clerk dashboard, Clerk's signed `user.deleted` webhook
     (`POST /clerk/webhook`) runs the same purge on the server, in batches,

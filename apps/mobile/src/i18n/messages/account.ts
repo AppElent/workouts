@@ -42,9 +42,12 @@ export const accountEn = {
 	deletion: {
 		title: "Deleting data",
 		pending: "Deleting your data…",
-		success: "Your data was deleted.",
-		dataDeleted:
-			"Your Foundry data was deleted. Your AppElent login still works in Gather, Fairway and Arcade Club.",
+		dataDeleted: "Your Foundry data was deleted.",
+		dataDeletedDetail:
+			"Your AppElent login still works in Gather, Fairway and Arcade Club. Signing in to Foundry again starts fresh.",
+		accountDeleted: "Your AppElent account was deleted.",
+		accountDeletedDetail:
+			"Your login is gone, and with it your data in Gather, Foundry, Fairway and Arcade Club.",
 		signOutError:
 			"Your Foundry data was deleted, but you could not be signed out. Sign out from Profile.",
 		error:
@@ -111,9 +114,12 @@ export const accountNl: typeof accountEn = {
 	deletion: {
 		title: "Gegevens verwijderen",
 		pending: "Je gegevens worden verwijderd…",
-		success: "Je gegevens zijn verwijderd.",
-		dataDeleted:
-			"Je Foundry-gegevens zijn verwijderd. Je AppElent-login werkt nog in Gather, Fairway en Arcade Club.",
+		dataDeleted: "Je Foundry-gegevens zijn verwijderd.",
+		dataDeletedDetail:
+			"Je AppElent-login werkt nog in Gather, Fairway en Arcade Club. Als je weer inlogt bij Foundry, begin je opnieuw.",
+		accountDeleted: "Je AppElent-account is verwijderd.",
+		accountDeletedDetail:
+			"Je login is weg, en daarmee je gegevens in Gather, Foundry, Fairway en Arcade Club.",
 		signOutError:
 			"Je Foundry-gegevens zijn verwijderd, maar je kon niet worden uitgelogd. Log uit via Profiel.",
 		error:

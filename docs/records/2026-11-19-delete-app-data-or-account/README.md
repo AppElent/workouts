@@ -2,7 +2,7 @@
 type: record
 kind: verification
 description: Read for runtime evidence of "Delete Foundry data only", "Delete my whole AppElent account" and the Clerk user.deleted webhook (APP-398).
-version: 1.1.0
+version: 1.2.0
 date: 2026-11-19
 ---
 
@@ -112,10 +112,10 @@ local one). Only this throwaway user's data was touched.
    opened the first-run screen, and Home showed 0 Activities and "No activities
    yet".
 
-Gap found: no "Your Foundry data was deleted." toast appears on iOS. Signing
-out unmounts the signed-in layout that holds the toast provider
-(`apps/mobile/app/(app)/_layout.tsx`), so the toast is dropped. See Leftover
-work on the PR.
+Gap found in this run and fixed in the PR: no "Your Foundry data was deleted."
+toast appeared, because signing out unmounts the signed-in layout that holds
+the toast provider (`apps/mobile/app/(app)/_layout.tsx`). See "iOS
+confirmation after signing out" below.
 
 | Before | Choice | Confirm | Signed out | Signed in again | Home after |
 | --- | --- | --- | --- | --- | --- |
@@ -146,3 +146,21 @@ Vite dev against the isolated local deployment, same user.
 4. Starting a new sign-in with the same email returned
    `form_identifier_not_found: Couldn't find your account.`: the Clerk user is
    gone.
+
+## iOS confirmation after signing out
+
+The deletion flow now leaves a notice (`apps/mobile/src/auth/signed-out-notice.ts`)
+before it signs out (Delete Foundry data only) or deletes the login (Delete my
+whole AppElent account), and the sign-in screen, outside the signed-in layout,
+shows it once. If signing out or deleting the login fails, the notice is
+withdrawn and the existing error toast shows instead.
+
+The throwaway user was already deleted and the shared dev test account had a
+running Activity, so these screenshots set the notice with a temporary dev-only
+line (not committed) and capture the real sign-in screen on the iPhone 18 Pro
+simulator. `account-screen.test.tsx` covers the flow leaving the notice, and
+`credential-screens.test.tsx` covers the sign-in screen showing it once.
+
+| Light | Dark |
+| --- | --- |
+| ![](ios-signed-out-notice-light.png) | ![](ios-signed-out-notice-dark.png) |

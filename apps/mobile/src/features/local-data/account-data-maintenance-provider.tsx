@@ -10,6 +10,7 @@ import {
 	useState,
 } from "react";
 import { ActivityIndicator } from "react-native";
+import { leaveSignedOutNotice } from "../../auth/signed-out-notice";
 import { api } from "../../convex/api";
 import { useOnline } from "../../convex/online";
 import { AppQueryCacheProvider } from "../../convex/query-cache";
@@ -66,31 +67,39 @@ export function AccountDataMaintenanceProvider({
 			if (request?.mode === "deleteData") {
 				// Delete Foundry data only: the shared AppElent login stays, so no
 				// `user.delete()` and no Apple revocation; this device signs out.
+				// Signing out unmounts this layout and its toasts, so the sign-in
+				// screen shows the confirmation instead.
+				leaveSignedOutNotice("dataDeleted");
 				try {
 					await signOut();
 				} catch {
+					leaveSignedOutNotice(null);
 					toast.error(t.account.deletion.signOutError);
 					setRequest(null);
 					return;
 				}
 				setRequest(null);
-				toast.success(t.account.deletion.dataDeleted);
 				return;
 			}
 			if (request?.mode === "deleteAccount") {
+				// Ends the session; the signed-in layout then redirects to sign-in,
+				// which shows the confirmation.
+				leaveSignedOutNotice("accountDeleted");
 				try {
-					// Ends the session; the signed-in layout then redirects to sign-in.
 					await user?.delete();
 				} catch {
+					leaveSignedOutNotice(null);
 					toast.error(t.account.deletion.accountError);
 					setRequest(null);
 					return;
 				}
+				setRequest(null);
+				return;
 			}
 			setRequest(null);
-			toast.success(c.success);
+			toast.success(t.testData.success);
 		},
-		[toast, c.success, request?.mode, user, signOut, t.account.deletion],
+		[toast, request?.mode, user, signOut, t.account.deletion, t.testData],
 	);
 	useEffect(() => {
 		if (!request || processed.current === request) return;

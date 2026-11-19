@@ -3,6 +3,10 @@ import { useConvex, useMutation, useQuery } from "convex/react";
 import { getFunctionName } from "convex/server";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { Platform } from "react-native";
+import {
+	clearSignedOutNotice,
+	signedOutNotice,
+} from "../../auth/signed-out-notice";
 import { registerAccountStore } from "../../local-store/local-store";
 import { reportError } from "../../observability/errors";
 import { renderScreen } from "../../test-support/render-screen";
@@ -65,6 +69,7 @@ afterEach(() => {
 
 beforeEach(() => {
 	jest.clearAllMocks();
+	clearSignedOutNotice();
 	mockSignOut.mockResolvedValue(undefined);
 	blocker = null;
 	action.mockResolvedValue(null);
@@ -158,11 +163,9 @@ it("deletes Foundry data in batches and this device's data, keeps the login, the
 	await renderAccount();
 	expect(screen.getAllByText(/Export your data first/)).toHaveLength(2);
 	await confirmAction("Delete Foundry data only");
-	expect(
-		await screen.findByText(
-			"Your Foundry data was deleted. Your AppElent login still works in Gather, Fairway and Arcade Club.",
-		),
-	).toBeTruthy();
+	await waitFor(() => expect(mockSignOut).toHaveBeenCalledTimes(1));
+	// Signing out unmounts the toasts; the sign-in screen confirms instead.
+	expect(signedOutNotice()).toBe("dataDeleted");
 	expect(deleteData).toHaveBeenCalledTimes(2);
 	expect(deleteData).toHaveBeenCalledWith({ expectedSubject: "test-user" });
 	expect(deviceData).toHaveBeenCalledWith("test-user");
@@ -183,19 +186,33 @@ it("says so when signing out fails after the Foundry data is gone", async () => 
 			"Your Foundry data was deleted, but you could not be signed out. Sign out from Profile.",
 		),
 	).toBeTruthy();
+	// Still signed in: no confirmation waits on the sign-in screen.
+	expect(signedOutNotice()).toBeNull();
 	expect(mockUser.delete).not.toHaveBeenCalled();
 });
 
 it("deletes the Clerk account only after the data is gone", async () => {
 	await renderAccount();
 	await confirmAction("Delete my whole AppElent account");
-	expect(await screen.findByText("Your data was deleted.")).toBeTruthy();
-	expect(mockUser.delete).toHaveBeenCalled();
+	await waitFor(() => expect(mockUser.delete).toHaveBeenCalled());
+	expect(signedOutNotice()).toBe("accountDeleted");
 	expect(mockSignOut).not.toHaveBeenCalled();
 	expect(deleteData).toHaveBeenCalledTimes(2);
 	expect(deleteData.mock.invocationCallOrder[1]).toBeLessThan(
 		mockUser.delete.mock.invocationCallOrder[0],
 	);
+});
+
+it("keeps the user signed in with no confirmation when deleting the login fails", async () => {
+	mockUser.delete.mockRejectedValueOnce(new Error("network"));
+	await renderAccount();
+	await confirmAction("Delete my whole AppElent account");
+	expect(
+		await screen.findByText(
+			"Your data was deleted, but the account could not be deleted. Try Delete my whole AppElent account again.",
+		),
+	).toBeTruthy();
+	expect(signedOutNotice()).toBeNull();
 });
 
 describe("an account that signs in with Apple on iOS", () => {
@@ -213,7 +230,8 @@ describe("an account that signs in with Apple on iOS", () => {
 		} as AppleAuthentication.AppleAuthenticationCredential);
 		await renderAccount();
 		await confirmAction("Delete my whole AppElent account");
-		expect(await screen.findByText("Your data was deleted.")).toBeTruthy();
+		await waitFor(() => expect(mockUser.delete).toHaveBeenCalled());
+		expect(signedOutNotice()).toBe("accountDeleted");
 		expect(getFunctionName(action.mock.calls[0][0])).toBe(
 			"account:revokeAppleSignIn",
 		);
@@ -251,7 +269,8 @@ describe("an account that signs in with Apple on iOS", () => {
 		action.mockRejectedValue(new Error("failed"));
 		await renderAccount();
 		await confirmAction("Delete my whole AppElent account");
-		expect(await screen.findByText("Your data was deleted.")).toBeTruthy();
+		await waitFor(() => expect(mockUser.delete).toHaveBeenCalled());
+		expect(signedOutNotice()).toBe("accountDeleted");
 		expect(reportError).toHaveBeenCalledWith(
 			expect.any(Error),
 			"account.revokeAppleSignIn",
@@ -266,7 +285,8 @@ describe("an account that signs in with Apple on iOS", () => {
 		} as AppleAuthentication.AppleAuthenticationCredential);
 		await renderAccount();
 		await confirmAction("Delete my whole AppElent account");
-		expect(await screen.findByText("Your data was deleted.")).toBeTruthy();
+		await waitFor(() => expect(mockUser.delete).toHaveBeenCalled());
+		expect(signedOutNotice()).toBe("accountDeleted");
 		expect(action).not.toHaveBeenCalled();
 		expect(reportError).toHaveBeenCalledWith(
 			expect.any(Error),
