@@ -473,7 +473,14 @@ export function SessionExerciseBlock({ exerciseId }: { exerciseId: string }) {
 						}}
 						style={styles.addRow}
 					>
-						<AppText variant="control" style={styles.link}>
+						{/* Beside the Krachtprofiel action on a small phone, shrink rather than wrap. */}
+						<AppText
+							variant="control"
+							style={styles.link}
+							numberOfLines={large ? undefined : 1}
+							adjustsFontSizeToFit={!large}
+							minimumFontScale={0.8}
+						>
 							{addLabel}
 						</AppText>
 					</Pressable>
@@ -634,7 +641,7 @@ const createStyles = (colors: Tokens) =>
 			alignItems: "center",
 			gap: 4,
 			minHeight: 52,
-			paddingHorizontal: spacing.md,
+			paddingHorizontal: spacing.sm + spacing.xs,
 			borderLeftWidth: StyleSheet.hairlineWidth,
 			borderLeftColor: colors.separator,
 		},
