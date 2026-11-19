@@ -9,13 +9,46 @@ on:
     inputs:
       platform: { type: string, required: true }
       profile: { type: string, default: development }
+      # Build even when production Convex lacks this commit's Convex changes
+      # (mirrors `--allow-convex-drift` on local builds).
+      allow_convex_drift: { type: boolean, default: false }
     outputs:
       artifact:
         description: Name of the uploaded workflow artifact.
         value: ${{ jobs.build.outputs.artifact }}
 
 jobs:
+  # Profiles that talk to production Convex (preview, production) ship this
+  # commit's JavaScript, so production must already run every Convex change it
+  # calls; same rule as scripts/eas-local-build.mjs. Runs on Ubuntu before the
+  # build spends macOS time, and keeps `deployments: read` out of the build job.
+  # Development builds skip the check and its full-history fetch.
+  convex-drift:
+    name: Production Convex
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      deployments: read
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version-file: package.json
+
+      - name: Check production Convex has this commit's Convex changes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PROFILE: ${{ inputs.profile }}
+          ALLOW_CONVEX_DRIFT: ${{ inputs.allow_convex_drift }}
+        run: |
+          args=(--profile "$PROFILE")
+          if [ "$ALLOW_CONVEX_DRIFT" = true ]; then args+=(--allow-convex-drift); fi
+          node scripts/eas-build-convex-guard.mjs "${args[@]}"
+
   build:
+    needs: convex-drift
     runs-on: ${{ inputs.platform == 'ios' && 'macos-26' || 'ubuntu-latest' }}
     timeout-minutes: 90
     permissions:

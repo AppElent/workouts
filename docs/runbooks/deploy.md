@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when deploying Foundry's web app and backend, or changing deploy.yml or the deploy scripts.
-version: 2.0.0
+version: 2.1.0
 ---
 
 # Deploy
@@ -54,6 +54,7 @@ production secrets.
 | `.github/workflows/convex-drift.yml` | Runs after every Deploy run and daily at 07:00 UTC. Undeployed Convex commits younger than 24 hours raise a warning; older ones fail the run, and GitHub emails the failed scheduled run |
 | `pnpm convex:drift` | The same check from a checkout (needs `gh auth login`); `--target <ref>` compares another ref, `--deployed <sha>` a given commit |
 | Mobile release scripts | Refuse to build or publish when this checkout has Convex changes production lacks; see [mobile releases](mobile-releases.md#production-convex-first) |
+| Mobile Build (`preview-internal`) | The **Production Convex** job in `eas-local-build.yml` stops the CI build the same way; see [CI builds](mobile-releases.md#ci-builds) |
 
 When it flags drift, find out why the production job failed, fix it, and run
 **Actions → Deploy → Run workflow** on `main`. The check never deploys. A
