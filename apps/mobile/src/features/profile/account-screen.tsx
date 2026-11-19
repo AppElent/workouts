@@ -1,7 +1,6 @@
 import { useUser } from "@clerk/expo";
 import { useConvex } from "convex/react";
 import { Image } from "expo-image";
-import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useRef, useState } from "react";
@@ -10,6 +9,7 @@ import { api } from "../../convex/api";
 import { useOnline } from "../../convex/online";
 import { useQuery } from "../../convex/query-cache";
 import { useI18n } from "../../i18n";
+import * as ImagePicker from "../../observability/native-presentation";
 import { spacing, useTokens } from "../../theme";
 import { useConfirm } from "../../ui/confirm-dialog";
 import {

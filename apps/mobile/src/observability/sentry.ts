@@ -10,6 +10,7 @@ import {
 import * as Sentry from "@sentry/react-native";
 import { isRunningInExpoGo } from "expo";
 import Constants from "expo-constants";
+// biome-ignore lint/style/noRestrictedImports: the picker inside Sentry's own feedback form runs while the form is already showing; holding shake there is pointless (APP-258).
 import * as ImagePicker from "expo-image-picker";
 import * as Updates from "expo-updates";
 import { Platform } from "react-native";

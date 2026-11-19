@@ -7,15 +7,12 @@ import {
 	weekAverage,
 } from "@foundry/core";
 import { router, Stack } from "expo-router";
-import {
-	ActionSheetIOS,
-	Alert,
-	Platform,
-	Pressable,
-	ScrollView,
-	View,
-} from "react-native";
+import { Platform, Pressable, ScrollView, View } from "react-native";
 import { fmt, plural, useI18n } from "../../../i18n";
+import {
+	showActionSheet,
+	showAlert,
+} from "../../../observability/native-presentation";
 import { radius, spacing, useTokens } from "../../../theme";
 import { InsetList, InsetRow } from "../../../ui/inset-list";
 import { SkeletonBlock, SkeletonGroup } from "../../../ui/skeleton";
@@ -69,7 +66,7 @@ export function WeekSourcesScreen({
 				`${weekDayParts(entry.date, locale).long} ${weekDayParts(entry.date, locale).dayMonth} · ${t.nutrition.meals[entry.meal]}`,
 		);
 		if (Platform.OS === "ios") {
-			ActionSheetIOS.showActionSheetWithOptions(
+			showActionSheet(
 				{
 					title: copy.chooseDay,
 					options: [...labels, t.diaryEntry.cancel],
@@ -81,7 +78,7 @@ export function WeekSourcesScreen({
 			);
 			return;
 		}
-		Alert.alert(copy.chooseDay, undefined, [
+		showAlert(copy.chooseDay, undefined, [
 			...options.map((entry, index) => ({
 				text: labels[index],
 				onPress: () => openEntry(entry),

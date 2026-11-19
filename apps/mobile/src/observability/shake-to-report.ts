@@ -7,7 +7,9 @@
  * second presentation, and only the form's dark backdrop renders behind the
  * sheet with no way to close it (APP-216). So the shake listener runs only
  * while nothing is presented: every sheet and modal holds a blocker for as long
- * as it is visible, and a shake during that time does nothing.
+ * as it is visible, and a shake during that time does nothing. Native
+ * presentations (`Alert`, `ActionSheetIOS`, the image pickers) come from the
+ * same root view controller, so they hold one too, through `native-presentation`.
  */
 
 import * as Sentry from "@sentry/react-native";
@@ -36,20 +38,32 @@ export function startShakeToReport() {
 	sync();
 }
 
+/**
+ * Pauses shake-to-report until the returned release runs, then for
+ * `DISMISS_SETTLE_MS` more. For imperative native presentations (alerts, action
+ * sheets, pickers); release is idempotent, so call it on every exit path.
+ */
+export function holdShakeToReport(): () => void {
+	blockers += 1;
+	sync();
+	let released = false;
+	return () => {
+		if (released) return;
+		released = true;
+		setTimeout(() => {
+			// Clamped: a Fast Refresh of this module resets the count under
+			// still-held blockers.
+			blockers = Math.max(0, blockers - 1);
+			sync();
+		}, DISMISS_SETTLE_MS);
+	};
+}
+
 /** Pauses shake-to-report while `active` is true, for a visible sheet or modal. */
 export function useShakeToReportBlocker(active: boolean) {
 	useEffect(() => {
 		if (!active) return;
-		blockers += 1;
-		sync();
-		return () => {
-			setTimeout(() => {
-				// Clamped: a Fast Refresh of this module resets the count under
-				// still-mounted blockers.
-				blockers = Math.max(0, blockers - 1);
-				sync();
-			}, DISMISS_SETTLE_MS);
-		};
+		return holdShakeToReport();
 	}, [active]);
 }
 

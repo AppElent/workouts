@@ -6,14 +6,12 @@ import {
 	roundForDisplay,
 } from "@foundry/core";
 import { Image } from "expo-image";
-import * as ImagePicker from "expo-image-picker";
 import type { NativeStackNavigationOptions } from "expo-router";
 import { Stack, useNavigation, usePreventRemove, useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import {
 	ActivityIndicator,
-	Alert,
 	Pressable,
 	ScrollView,
 	Switch,
@@ -33,6 +31,8 @@ import {
 	useReduceMotion,
 } from "../../../feedback/reduce-motion";
 import { fmt, plural, useI18n } from "../../../i18n";
+import * as ImagePicker from "../../../observability/native-presentation";
+import { showAlert } from "../../../observability/native-presentation";
 import { radius, spacing, type, useTokens } from "../../../theme";
 import { PrimaryButton } from "../../../ui/button";
 import { DatePickerSheet } from "../../../ui/date-picker-sheet";
@@ -191,14 +191,14 @@ export function AssistanceScreen({
 			close();
 			return;
 		}
-		Alert.alert(copy.discardTitle, undefined, [
+		showAlert(copy.discardTitle, undefined, [
 			{ text: copy.discardKeep, style: "cancel" },
 			{ text: copy.discardConfirm, style: "destructive", onPress: close },
 		]);
 	};
 	// Coming back and logging again would log it twice: leaving is a choice.
 	const leaveWhileSaving = (leave: () => void) =>
-		Alert.alert(copy.savingTitle, copy.savingBody, [
+		showAlert(copy.savingTitle, copy.savingBody, [
 			{ text: copy.savingStay, style: "cancel" },
 			{ text: copy.savingLeave, onPress: leave },
 		]);
@@ -215,7 +215,7 @@ export function AssistanceScreen({
 			});
 			return;
 		}
-		Alert.alert(copy.discardTitle, undefined, [
+		showAlert(copy.discardTitle, undefined, [
 			{ text: copy.discardKeep, style: "cancel" },
 			{
 				text: copy.discardConfirm,
