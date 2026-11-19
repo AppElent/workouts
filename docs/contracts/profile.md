@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing Profile, settings, account actions, or sign-out.
-version: 1.4.3
+version: 1.4.4
 status: current
 ---
 
@@ -42,7 +42,7 @@ tap. Study: [profile](../../designs/app/profile_final.html).
     Activity, and with Hosted Workout involvement, like test-data reset.
   - *Delete account.* The same deletion, then Clerk's self-deletion, which signs
     out. Unavailable when the Clerk instance disables self-deletion.
-  - *Web.* The web Account page offers both deletions with the same
+  - *Web.* The web Profile page offers both deletions with the same
     confirmations and blockers. Web keeps no account data outside Convex
     queries, so Delete my data needs no local reset; Delete account ends on the
     signed-out start with a full page load. Before Delete account deletes
@@ -69,9 +69,11 @@ Settings work in every state. Offline is one line above the account row.
 
 ## Out of scope
 
-Until [#93](https://github.com/AppElent/workouts/issues/93): lifetime totals and
-distance breakdown, which then become the Summary: all-time totals, no period
-menu, each figure linking to its source view. Deleting accounts with Hosted
+Lifetime totals and distance breakdown are not built yet. Linear
+[APP-57](https://linear.app/appelent/issue/APP-57) (closed with the approved
+[design study](../../designs/app/profile-totals_final.md), not the feature)
+tracks them; once they exist they become the Summary: all-time totals, no
+period menu, each figure linking to its source view. Deleting accounts with Hosted
 Workout involvement needs a separate shared-event cleanup design. Never show
 invented figures or simulated success.
 

@@ -256,7 +256,7 @@ takes longer than the card's 5-minute sign-in check.
 - Microsoft rejects personal accounts: registration's account types exclude
   personal Microsoft accounts.
 - Web Delete account says "Allow pop-ups for this site": the browser blocked
-  Apple's revocation popup, often in Safari when the Account page was opened
+  Apple's revocation popup, often in Safari when the Profile page was opened
   moments before. Allowing pop-ups or retrying once Apple JS has loaded fixes
   it; nothing was deleted.
 - Microsoft stops working everywhere: client secret expired; create a new one

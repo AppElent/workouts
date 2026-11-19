@@ -24,13 +24,13 @@ export const auth = {
 	},
 	header: {
 		accountMenu: "Account menu",
-		account: "Account",
+		account: "Profile",
 		signOut: "Sign out",
 		signIn: "Sign in",
 	},
 	profile: {
 		loading: "Loading…",
-		title: "Profile",
+		title: "Account details",
 		firstName: "First name",
 		lastName: "Last name",
 		email: "Email: {email}",
