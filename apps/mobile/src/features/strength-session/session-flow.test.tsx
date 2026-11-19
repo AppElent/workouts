@@ -840,6 +840,23 @@ it("applies a Krachtprofiel row only at Apply, and logs nothing", async () => {
 	expect(add).not.toHaveBeenCalled();
 });
 
+it("opens Krachtprofiel from the current exercise card and applies to its next set (APP-393)", async () => {
+	await mount();
+	await fireEvent.press(
+		await screen.findByRole("button", {
+			name: "Strength profile, Barbell Back Squat",
+		}),
+	);
+	await fireEvent.press(await screen.findByText("80%"));
+	await fireEvent.press(
+		screen.getByRole("button", { name: /Apply · 80 kg × 8/ }),
+	);
+	expect(
+		await screen.findAllByLabelText(/set 1, 80 percent, 80 × 8/),
+	).toHaveLength(1);
+	expect(add).not.toHaveBeenCalled();
+});
+
 it("asks before dropping a change to a logged set", async () => {
 	loggedSets = [serverSet("set-1", 8, 1)];
 	await mount();

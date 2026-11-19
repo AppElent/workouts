@@ -231,9 +231,23 @@ export function referenceFor(
 	plan: SessionPlan,
 	facts: ExerciseFacts,
 	exerciseId: string,
-): { value: number; source: "manual" | "measured" } | null {
+): StrengthReference | null {
+	return referenceFromFacts(facts, plan.manual[exerciseId]);
+}
+export type StrengthReference = {
+	value: number;
+	source: "manual" | "measured";
+};
+/**
+ * The 1RM percentages use: a session's own manual override (`local`), else
+ * Measured unless a newer saved manual 1RM. `local === null` ignores the saved
+ * manual; outside a session pass `undefined`.
+ */
+export function referenceFromFacts(
+	facts: ExerciseFacts,
+	local: number | null | undefined,
+): StrengthReference | null {
 	if (facts.bodyweight) return null;
-	const local = plan.manual[exerciseId];
 	if (typeof local === "number") return { value: local, source: "manual" };
 	const chosen = sessionOneRepMax({
 		measured:
