@@ -54,7 +54,11 @@ tap. Study: [profile](../../designs/app/profile_final.html).
     app or the Clerk dashboard, Clerk's signed `user.deleted` webhook
     (`POST /clerk/webhook`) runs the same purge on the server, in batches,
     without the running-Activity blocker; Hosted Workout involvement still
-    keeps the data and is logged.
+    keeps the data and is logged. The same webhook's `user.created` and
+    `user.updated` mirror the login's verified Apple links
+    (`appleSignInLinks`), which web Apple revocation binds its code to;
+    `user.deleted` drops them. Delete Foundry data only keeps them, as the
+    login stays.
   - *Web.* The web Account page offers both deletions with the same
     confirmations and blockers. Web keeps no account data outside Convex
     queries, so neither deletion needs a local reset. Delete Foundry data only

@@ -1,8 +1,9 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import { clientSecret, revokeAppleAuthorization } from "./lib/appleSignIn";
+import { verifiedAppleUserIds } from "./lib/clerkUsers";
 import schema from "./schema";
 
 const modules = import.meta.glob("./**/*.*s");
@@ -299,42 +300,28 @@ describe("web Apple revocation server checks", () => {
 		});
 	}
 
-	function clerkUser(
-		externalAccounts: {
-			provider: string;
-			provider_user_id: string;
-			verification?: { status: string } | null;
-		}[],
+	/** Alice's Apple link as the Clerk webhook mirrors it; none when empty. */
+	async function setUp(
+		responses: Record<string, Response>,
+		appleUserIds: string[] = ["apple-alice"],
 	) {
-		return Response.json({
-			id: "alice",
-			external_accounts: externalAccounts.map((account) => ({
-				verification: { status: "verified" },
-				...account,
-			})),
-		});
-	}
-
-	const linkedToApple = () =>
-		clerkUser([
-			{ provider: "oauth_google", provider_user_id: "google-1" },
-			{ provider: "oauth_apple", provider_user_id: "apple-alice" },
-		]);
-
-	async function setUp(responses: Record<string, Response>) {
 		await configure();
-		vi.stubEnv("CLERK_SECRET_KEY", "sk_test_placeholder");
 		vi.spyOn(console, "error").mockImplementation(() => {});
 		const result = appleResponses(responses);
 		const t = convexTest(schema, modules);
+		if (appleUserIds.length > 0)
+			await t.mutation(internal.account.syncAppleLink, {
+				userId: "alice",
+				appleUserIds,
+				clerkUpdatedAt: 1,
+			});
 		return { ...result, t, alice: t.withIdentity({ subject: "alice" }) };
 	}
 
 	const paths = (calls: { path: string }[]) => calls.map(({ path }) => path);
 
-	it("checks the deletion blocker before reading Clerk or exchanging the code", async () => {
+	it("checks the deletion blocker before exchanging the code", async () => {
 		const { alice, calls } = await setUp({
-			"/v1/users/alice": linkedToApple(),
 			"/auth/token": appleToken("apple-alice"),
 			"/auth/revoke": new Response(null, { status: 200 }),
 		});
@@ -345,33 +332,63 @@ describe("web Apple revocation server checks", () => {
 		expect(calls).toEqual([]);
 	});
 
-	it("revokes when the code's Apple user is the one Clerk links to the caller", async () => {
+	it("revokes when the code's Apple user is the one mirrored for the caller", async () => {
 		const { alice, calls } = await setUp({
-			"/v1/users/alice": linkedToApple(),
 			"/auth/token": appleToken("apple-alice"),
 			"/auth/revoke": new Response(null, { status: 200 }),
 		});
 		await alice.action(api.account.revokeAppleSignIn, WEB);
-		expect(paths(calls)).toEqual([
-			"/v1/users/alice",
-			"/auth/token",
-			"/auth/revoke",
-		]);
-		expect(Object.fromEntries(calls[2].form)).toMatchObject({
+		expect(paths(calls)).toEqual(["/auth/token", "/auth/revoke"]);
+		expect(Object.fromEntries(calls[1].form)).toMatchObject({
 			token: "refresh",
 		});
 	});
 
-	it("accepts Clerk's provider name with or without the oauth_ prefix", async () => {
-		const { alice, calls } = await setUp({
-			"/v1/users/alice": clerkUser([
-				{ provider: "apple", provider_user_id: "apple-alice" },
-			]),
-			"/auth/token": appleToken("apple-alice"),
-			"/auth/revoke": new Response(null, { status: 200 }),
+	it("binds to the caller's link, not another account's", async () => {
+		const { t, alice, calls } = await setUp(
+			{
+				"/auth/token": appleToken("apple-bob"),
+				"/auth/revoke": new Response(null, { status: 200 }),
+			},
+			["apple-alice"],
+		);
+		await t.mutation(internal.account.syncAppleLink, {
+			userId: "bob",
+			appleUserIds: ["apple-bob"],
+			clerkUpdatedAt: 1,
 		});
-		await alice.action(api.account.revokeAppleSignIn, WEB);
-		expect(paths(calls)).toContain("/auth/revoke");
+		await expect(
+			alice.action(api.account.revokeAppleSignIn, WEB),
+		).rejects.toMatchObject({ data: { code: "appleAccountMismatch" } });
+		expect(paths(calls)).toEqual(["/auth/token"]);
+	});
+
+	it("refuses an ID token for another audience or issuer, or without one", async () => {
+		for (const token of [
+			appleToken("apple-alice", { aud: "com.example.other" }),
+			appleToken("apple-alice", { iss: "https://evil.example" }),
+			Response.json({ refresh_token: "refresh" }),
+		]) {
+			const { alice, calls } = await setUp({
+				"/auth/token": token,
+				"/auth/revoke": new Response(null, { status: 200 }),
+			});
+			await expect(
+				alice.action(api.account.revokeAppleSignIn, WEB),
+			).rejects.toMatchObject({ data: { code: "appleAccountMismatch" } });
+			expect(paths(calls)).not.toContain("/auth/revoke");
+		}
+	});
+
+	it("does not exchange the code without a mirrored Apple link", async () => {
+		const { alice, calls } = await setUp(
+			{ "/auth/token": appleToken("apple-alice") },
+			[],
+		);
+		await expect(
+			alice.action(api.account.revokeAppleSignIn, WEB),
+		).rejects.toMatchObject({ data: { code: "appleAccountMismatch" } });
+		expect(calls).toEqual([]);
 	});
 
 	it("refuses connected apps before any lookup", async () => {
@@ -384,75 +401,6 @@ describe("web Apple revocation server checks", () => {
 		await expect(
 			app.action(api.account.revokeAppleSignIn, WEB),
 		).rejects.toMatchObject({ data: { code: "readOnly" } });
-		expect(calls).toEqual([]);
-	});
-
-	it("refuses to revoke a code for another Apple user", async () => {
-		const { alice, calls } = await setUp({
-			"/v1/users/alice": linkedToApple(),
-			"/auth/token": appleToken("apple-bob"),
-			"/auth/revoke": new Response(null, { status: 200 }),
-		});
-		await expect(
-			alice.action(api.account.revokeAppleSignIn, WEB),
-		).rejects.toMatchObject({ data: { code: "appleAccountMismatch" } });
-		expect(paths(calls)).toEqual(["/v1/users/alice", "/auth/token"]);
-	});
-
-	it("refuses an ID token for another audience or issuer, or without one", async () => {
-		for (const token of [
-			appleToken("apple-alice", { aud: "com.example.other" }),
-			appleToken("apple-alice", { iss: "https://evil.example" }),
-			Response.json({ refresh_token: "refresh" }),
-		]) {
-			const { alice, calls } = await setUp({
-				"/v1/users/alice": linkedToApple(),
-				"/auth/token": token,
-				"/auth/revoke": new Response(null, { status: 200 }),
-			});
-			await expect(
-				alice.action(api.account.revokeAppleSignIn, WEB),
-			).rejects.toMatchObject({ data: { code: "appleAccountMismatch" } });
-			expect(paths(calls)).not.toContain("/auth/revoke");
-		}
-	});
-
-	it("does not exchange the code when Clerk links no verified Apple account", async () => {
-		for (const user of [
-			clerkUser([{ provider: "oauth_google", provider_user_id: "google-1" }]),
-			clerkUser([
-				{
-					provider: "oauth_apple",
-					provider_user_id: "apple-alice",
-					verification: { status: "unverified" },
-				},
-			]),
-		]) {
-			const { alice, calls } = await setUp({
-				"/v1/users/alice": user,
-				"/auth/token": appleToken("apple-alice"),
-			});
-			await expect(
-				alice.action(api.account.revokeAppleSignIn, WEB),
-			).rejects.toMatchObject({ data: { code: "appleAccountMismatch" } });
-			expect(paths(calls)).toEqual(["/v1/users/alice"]);
-		}
-	});
-
-	it("does not trust anything but Clerk when Clerk is unreachable or not configured", async () => {
-		const { alice, calls } = await setUp({
-			"/v1/users/alice": new Response("error", { status: 500 }),
-		});
-		await expect(
-			alice.action(api.account.revokeAppleSignIn, WEB),
-		).rejects.toMatchObject({ data: { code: "failed" } });
-		expect(paths(calls)).toEqual(["/v1/users/alice"]);
-
-		vi.stubEnv("CLERK_SECRET_KEY", "");
-		calls.length = 0;
-		await expect(
-			alice.action(api.account.revokeAppleSignIn, WEB),
-		).rejects.toMatchObject({ data: { code: "unavailable" } });
 		expect(calls).toEqual([]);
 	});
 
@@ -469,15 +417,126 @@ describe("web Apple revocation server checks", () => {
 		expect(calls).toEqual([]);
 	});
 
-	it("keeps native revocation unbound and without a Clerk lookup", async () => {
-		const { alice, calls } = await setUp({
-			"/auth/token": appleToken("apple-bob", { aud: "com.appelent.foundry" }),
-			"/auth/revoke": new Response(null, { status: 200 }),
-		});
+	it("keeps native revocation unbound", async () => {
+		const { alice, calls } = await setUp(
+			{
+				"/auth/token": appleToken("apple-bob", {
+					aud: "com.appelent.foundry",
+				}),
+				"/auth/revoke": new Response(null, { status: 200 }),
+			},
+			[],
+		);
 		await alice.action(api.account.revokeAppleSignIn, {
 			authorizationCode: "code",
 			bundleId: "com.appelent.foundry",
 		});
 		expect(paths(calls)).toEqual(["/auth/token", "/auth/revoke"]);
+	});
+});
+
+describe("Apple link mirror", () => {
+	const links = (t: ReturnType<typeof convexTest>) =>
+		t.run((ctx) => ctx.db.query("appleSignInLinks").collect());
+
+	it("keeps the newest delivery and drops the row when Apple is unlinked", async () => {
+		const t = convexTest(schema, modules);
+		const sync = (appleUserIds: string[], clerkUpdatedAt: number) =>
+			t.mutation(internal.account.syncAppleLink, {
+				userId: "alice",
+				appleUserIds,
+				clerkUpdatedAt,
+			});
+		await sync(["apple-1"], 10);
+		await sync(["apple-1"], 10);
+		await sync(["apple-old"], 5);
+		expect(await links(t)).toMatchObject([
+			{ userId: "alice", appleUserIds: ["apple-1"], clerkUpdatedAt: 10 },
+		]);
+		await sync(["apple-2"], 20);
+		expect((await links(t))[0].appleUserIds).toEqual(["apple-2"]);
+		await sync([], 30);
+		expect(await links(t)).toEqual([]);
+	});
+
+	it("backfills in bounded batches with the same rules", async () => {
+		const t = convexTest(schema, modules);
+		await t.mutation(internal.account.syncAppleLink, {
+			userId: "alice",
+			appleUserIds: ["apple-new"],
+			clerkUpdatedAt: 20,
+		});
+		await t.mutation(internal.account.backfillAppleLinks, {
+			links: [
+				{ userId: "alice", appleUserIds: ["apple-stale"], clerkUpdatedAt: 10 },
+				{ userId: "bob", appleUserIds: ["apple-bob"], clerkUpdatedAt: 10 },
+			],
+		});
+		expect(
+			(await links(t)).map(({ userId, appleUserIds }) => [
+				userId,
+				appleUserIds,
+			]),
+		).toEqual(
+			expect.arrayContaining([
+				["alice", ["apple-new"]],
+				["bob", ["apple-bob"]],
+			]),
+		);
+		const tooMany = Array.from({ length: 101 }, (_, i) => ({
+			userId: `user-${i}`,
+			appleUserIds: ["apple"],
+			clerkUpdatedAt: 1,
+		}));
+		await expect(
+			t.mutation(internal.account.backfillAppleLinks, { links: tooMany }),
+		).rejects.toMatchObject({ data: { code: "tooLarge" } });
+	});
+
+	it("reads only verified Apple accounts from a Clerk user", () => {
+		expect(
+			verifiedAppleUserIds({
+				external_accounts: [
+					{
+						provider: "oauth_apple",
+						provider_user_id: "a",
+						verification: { status: "verified" },
+					},
+					{
+						provider: "apple",
+						provider_user_id: "b",
+						verification: { status: "verified" },
+					},
+					{
+						provider: "oauth_apple",
+						provider_user_id: "a",
+						verification: { status: "verified" },
+					},
+					{
+						provider: "oauth_apple",
+						provider_user_id: "c",
+						verification: { status: "unverified" },
+					},
+					{
+						provider: "oauth_apple",
+						provider_user_id: "d",
+						verification: null,
+					},
+					{
+						provider: "oauth_google",
+						provider_user_id: "e",
+						verification: { status: "verified" },
+					},
+					{
+						provider: "oauth_apple",
+						provider_user_id: "",
+						verification: { status: "verified" },
+					},
+					null,
+				],
+			}),
+		).toEqual(["a", "b"]);
+		expect(verifiedAppleUserIds({})).toEqual([]);
+		expect(verifiedAppleUserIds({ external_accounts: "nope" })).toEqual([]);
 	});
 });

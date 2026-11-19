@@ -114,20 +114,6 @@ export const ENTRIES = [
 		},
 	},
 	{
-		key: "clerkSecretKey",
-		infisicalKey: "clerk-secret-key",
-		description:
-			"Clerk Backend API secret key (sk_) of the production instance; Convex reads the Apple account linked to a Clerk user before revoking a web Apple grant (APP-242). Production only: it is the one registered Apple return URL. Without it web Apple revocation is skipped",
-		optional: true,
-		secret: true,
-		lands: {
-			"convex-functions": {
-				name: "CLERK_SECRET_KEY",
-				environments: ["production"],
-			},
-		},
-	},
-	{
 		key: "mcpResourceUrls",
 		infisicalKey: "mcp-resource-urls",
 		description:

@@ -1,10 +1,9 @@
 /**
- * Reads a Clerk user from the Backend API, the trusted source for which Apple
- * account is linked to a Foundry account. The client also knows, but a caller
- * could claim any Apple user ID, so server checks never take it from there.
+ * Reads Clerk user objects as webhooks (and the one-off backfill) deliver
+ * them. They are the trusted source for which Apple account is linked to an
+ * AppElent login: the client also knows, but a caller could claim any Apple
+ * user ID, so server checks never take it from there.
  */
-
-const CLERK_API = "https://api.clerk.com/v1";
 
 type ClerkExternalAccount = {
 	provider?: unknown;
@@ -12,31 +11,19 @@ type ClerkExternalAccount = {
 	verification?: { status?: unknown } | null;
 };
 
-export class ClerkUnavailable extends Error {}
-
-/**
- * The Apple user IDs (`sub`) linked to a Clerk user. Throws `ClerkUnavailable`
- * when `CLERK_SECRET_KEY` is not set, so callers fail closed.
- */
-export async function linkedAppleUserIds(userId: string): Promise<string[]> {
-	const secretKey = process.env.CLERK_SECRET_KEY;
-	if (!secretKey) throw new ClerkUnavailable("CLERK_SECRET_KEY is not set");
-	const response = await fetch(
-		`${CLERK_API}/users/${encodeURIComponent(userId)}`,
-		{
-			headers: { Authorization: `Bearer ${secretKey}` },
-			// A slow Clerk fails the revocation instead of holding the deletion.
-			signal: AbortSignal.timeout(10_000),
-		},
-	);
-	if (!response.ok) throw new Error(`Clerk /users returned ${response.status}`);
-	const { external_accounts } = (await response.json()) as {
-		external_accounts?: ClerkExternalAccount[];
-	};
-	return (external_accounts ?? [])
+/** The verified Sign in with Apple users (`sub`) of a Clerk user object. */
+export function verifiedAppleUserIds(user: {
+	external_accounts?: unknown;
+}): string[] {
+	const accounts = Array.isArray(user.external_accounts)
+		? (user.external_accounts as ClerkExternalAccount[])
+		: [];
+	const ids = accounts
 		.filter(
 			(account) =>
-				// The Backend API says `oauth_apple`; accept the bare name too.
+				typeof account === "object" &&
+				account !== null &&
+				// Clerk says `oauth_apple`; accept the bare name too.
 				typeof account.provider === "string" &&
 				account.provider.replace(/^oauth_/, "") === "apple" &&
 				typeof account.provider_user_id === "string" &&
@@ -45,4 +32,5 @@ export async function linkedAppleUserIds(userId: string): Promise<string[]> {
 				account.verification?.status === "verified",
 		)
 		.map((account) => account.provider_user_id as string);
+	return [...new Set(ids)];
 }

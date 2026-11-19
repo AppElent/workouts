@@ -184,9 +184,10 @@ AppElent login and never touches Apple:
 2. Convex `account.revokeAppleSignIn` exchanges the code at Apple's
    `/auth/token` (a web code with its return URL) and revokes the refresh
    token at `/auth/revoke`. For a web code it first refuses while the
-   deletion blocker applies, and reads the Apple accounts linked to the
-   caller from the Clerk Backend API; it revokes only when the `sub` of
-   Apple's ID token is one of them. Otherwise nothing is revoked, the action
+   deletion blocker applies, then reads the caller's Apple accounts from
+   `appleSignInLinks`, which Clerk's signed `user.created`/`user.updated`
+   webhook (`POST /clerk/webhook`) keeps in sync; it revokes only when the
+   `sub` of Apple's ID token is one of them. Otherwise nothing is revoked, the action
    fails with `appleAccountMismatch`, and the card stops the deletion.
 3. Any other failure is reported to Sentry, and the account is deleted anyway.
 
@@ -194,9 +195,9 @@ The action signs Apple's client secret with the Sign in with Apple key from
 Infisical (`apple-team-id`, `apple-sso-key-id`, `apple-sso-key-value`).
 `pnpm env:apply <environment> --only convex` lands them as `APPLE_TEAM_ID`,
 `APPLE_SIGN_IN_KEY_ID` and `APPLE_SIGN_IN_PRIVATE_KEY`. Without them the action
-fails with `unavailable`. Web revocation also needs the Clerk instance's
-secret key (Infisical `clerk-secret-key`, Convex `CLERK_SECRET_KEY`); without
-it a web code is never exchanged and the action fails with `unavailable`.
+fails with `unavailable`. No Clerk admin key is on Convex: without a mirrored
+Apple link a web code is never exchanged and the action fails with
+`appleAccountMismatch`.
 
 Native codes are issued to the requesting build's bundle ID, so the app sends
 it and Convex uses it as `client_id` after checking it against
@@ -232,14 +233,21 @@ The browser checks the popup's `state` and Apple account. Convex checks again
 before it exchanges or revokes anything: the caller is signed in, the return
 URL is registered, the deletion blocker does not apply, and the code's Apple
 user (`sub` of the ID token from Apple's token endpoint, with Apple as issuer
-and the Services ID as audience) is linked to the caller in Clerk. Native
-codes are not bound to the caller yet: that needs `CLERK_SECRET_KEY` on every
-deployment the installed apps use.
+and the Services ID as audience) is one of the caller's mirrored Apple links.
+Native codes are not bound to the caller yet: installed apps would refuse
+every account whose link is not mirrored.
 
-Before the return URL goes live, set `clerk-secret-key` in Infisical `prod`
-(the production Clerk instance's secret key) and land it with
-`pnpm env:apply production --only convex`. It lands on production only, the
-one registered return URL.
+Before the return URL goes live:
+
+1. Clerk (production) → Webhooks → the Foundry endpoint
+   `<convex-site-url>/clerk/webhook` (the one `user.deleted` uses): also
+   subscribe `user.created` and `user.updated`.
+2. Backfill logins linked before that, since signing in does not send
+   `user.updated`. Locally, with the production Clerk secret key given to this
+   one command only:
+   `CLERK_SECRET_KEY=sk_live_… node scripts/backfill-apple-links.mjs` (dry
+   run, counts only), then the same with `--apply -- --prod`. It is safe to
+   repeat; a newer webhook delivery always wins.
 After deploying, test in Safari that the card asks for one more click before
 Apple's popup opens, and that Clerk asks to confirm the sign-in again when
 Apple's step takes longer than the card's 5-minute sign-in check. The dev
