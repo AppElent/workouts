@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing Profile, settings, account actions, or sign-out.
-version: 1.4.3
+version: 2.0.0
 status: current
 ---
 
@@ -35,16 +35,30 @@ tap. Study: [profile](../../designs/app/profile_final.html).
   - *Export.* An online JSON file of every personal table, shared through the
     system share sheet. Receipts and counters are omitted; Food photo files are
     not included.
-  - *Delete my data.* After one destructive confirmation, deletes all personal
-    training and nutrition records, goal preferences, and uploaded Food photos in
-    resumable server batches, then clears this device's account state. The
-    account and device preferences remain. Blocked offline, during a running
+  - *Shared login.* Gather, Foundry, Fairway and Arcade Club share one
+    AppElent (Clerk) login, so deletion offers two choices, Foundry data only
+    first ([APP-392](https://linear.app/appelent/issue/APP-392)).
+  - *Delete Foundry data only.* After one destructive confirmation, deletes all
+    personal training and nutrition records, goal preferences, and uploaded Food
+    photos in resumable server batches, clears this device's account state, and
+    signs out this device. The AppElent login stays: no Clerk deletion and no
+    Apple revocation, and a short confirmation says it still works in the other
+    apps. Foundry keeps no profile row, so signing in again starts with an
+    empty account. Device preferences remain. Blocked offline, during a running
     Activity, and with Hosted Workout involvement, like test-data reset.
-  - *Delete account.* The same deletion, then Clerk's self-deletion, which signs
-    out. Unavailable when the Clerk instance disables self-deletion.
+  - *Delete my whole AppElent account.* Names the other apps whose data goes
+    too. The same deletion, then Clerk's self-deletion, which signs out.
+    Unavailable when the Clerk instance disables self-deletion.
+  - *Login deleted elsewhere.* When the AppElent login is deleted from another
+    app or the Clerk dashboard, Clerk's signed `user.deleted` webhook
+    (`POST /clerk/webhook`) runs the same purge on the server, in batches,
+    without the running-Activity blocker; Hosted Workout involvement still
+    keeps the data and is logged.
   - *Web.* The web Account page offers both deletions with the same
     confirmations and blockers. Web keeps no account data outside Convex
-    queries, so Delete my data needs no local reset; Delete account ends on the
+    queries, so neither deletion needs a local reset. Delete Foundry data only
+    leaves the signed-in pages, signs out the confirming session, and confirms
+    on the signed-out start; Delete my whole AppElent account ends on the
     signed-out start with a full page load. Before Delete account deletes
     anything, Clerk asks the person to confirm their sign-in when it is older
     than half of Clerk's reverification window (5 of 10 minutes), so a stale

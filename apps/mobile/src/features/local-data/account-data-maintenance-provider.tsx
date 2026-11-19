@@ -36,7 +36,7 @@ export function AccountDataMaintenanceProvider({
 }: {
 	children: ReactNode;
 }) {
-	const { userId, sessionId } = useAuth();
+	const { userId, sessionId, signOut } = useAuth();
 	const online = useOnline();
 	const reset = useMutation(api.testData.reset);
 	const deleteData = useMutation(api.account.deleteData);
@@ -63,6 +63,20 @@ export function AccountDataMaintenanceProvider({
 				return;
 			}
 			setCleanupFailed(false);
+			if (request?.mode === "deleteData") {
+				// Delete Foundry data only: the shared AppElent login stays, so no
+				// `user.delete()` and no Apple revocation; this device signs out.
+				try {
+					await signOut();
+				} catch {
+					toast.error(t.account.deletion.signOutError);
+					setRequest(null);
+					return;
+				}
+				setRequest(null);
+				toast.success(t.account.deletion.dataDeleted);
+				return;
+			}
 			if (request?.mode === "deleteAccount") {
 				try {
 					// Ends the session; the signed-in layout then redirects to sign-in.
@@ -76,7 +90,7 @@ export function AccountDataMaintenanceProvider({
 			setRequest(null);
 			toast.success(c.success);
 		},
-		[toast, c.success, request?.mode, user, t.account.deletion.accountError],
+		[toast, c.success, request?.mode, user, signOut, t.account.deletion],
 	);
 	useEffect(() => {
 		if (!request || processed.current === request) return;
@@ -151,7 +165,11 @@ export function useTestDataReset() {
 	return reset;
 }
 
-/** Permanently deletes the account's personal data, optionally then the account. */
+/**
+ * Permanently deletes the account's Foundry data, then signs out
+ * (`deleteData`, the AppElent login stays) or deletes the AppElent login
+ * (`deleteAccount`).
+ */
 export function useAccountDeletion() {
 	const maintain = use(AccountDataContext);
 	if (!maintain) throw new Error("AccountDataMaintenanceProvider is missing");

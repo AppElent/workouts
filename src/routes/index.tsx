@@ -1,9 +1,15 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ClipboardList, Dumbbell, TrendingUp } from "lucide-react";
+import { useCallback } from "react";
+import {
+	dataDeletedSearch,
+	useDataDeletedNotice,
+} from "#/components/account/dataDeletedNotice";
 import { HeaderUser } from "#/lib/auth/HeaderUser";
 import { useMessages } from "#/lib/i18n";
 
 export const Route = createFileRoute("/")({
+	validateSearch: dataDeletedSearch,
 	component: IntroPage,
 });
 
@@ -27,6 +33,12 @@ const features = [
 
 function IntroPage() {
 	const { privacy, support } = useMessages();
+	const { deleted } = Route.useSearch();
+	const navigate = useNavigate();
+	useDataDeletedNotice(
+		deleted,
+		useCallback(() => void navigate({ to: "/", replace: true }), [navigate]),
+	);
 	return (
 		<div className="relative min-h-screen flex flex-col overflow-hidden bg-bg">
 			<div

@@ -70,6 +70,7 @@
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "recharts": "^3.10.1",
+    "svix": "^2.10.0",
     "tailwind-merge": "^3.7.0",
     "tailwindcss": "^4.3.4",
     "zod": "^4.6.7"

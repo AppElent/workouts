@@ -100,6 +100,20 @@ export const ENTRIES = [
 		},
 	},
 	{
+		key: "clerkWebhookSecret",
+		infisicalKey: "clerk-webhook-secret",
+		description:
+			"Svix signing secret (whsec_) of the Clerk endpoint POST /clerk/webhook; Convex purges a deleted Clerk user's data (APP-398). One secret per endpoint, so only deployments with an endpoint",
+		optional: true,
+		secret: true,
+		lands: {
+			"convex-functions": {
+				name: "CLERK_WEBHOOK_SECRET",
+				environments: [...DEV_ONLY, "production"],
+			},
+		},
+	},
+	{
 		key: "mcpResourceUrls",
 		infisicalKey: "mcp-resource-urls",
 		description:

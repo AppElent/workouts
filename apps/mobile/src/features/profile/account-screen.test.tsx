@@ -26,8 +26,14 @@ const mockUser = {
 	delete: jest.fn().mockResolvedValue(undefined),
 	setProfileImage: jest.fn().mockResolvedValue(undefined),
 };
+const mockSignOut = jest.fn();
 jest.mock("@clerk/expo", () => ({
-	useAuth: () => ({ userId: "test-user", sessionId: "s1", isSignedIn: true }),
+	useAuth: () => ({
+		userId: "test-user",
+		sessionId: "s1",
+		isSignedIn: true,
+		signOut: mockSignOut,
+	}),
 	useUser: () => ({ user: mockUser }),
 }));
 
@@ -59,6 +65,7 @@ afterEach(() => {
 
 beforeEach(() => {
 	jest.clearAllMocks();
+	mockSignOut.mockResolvedValue(undefined);
 	blocker = null;
 	action.mockResolvedValue(null);
 	jest.mocked(useConvex).mockReturnValue({
@@ -131,22 +138,60 @@ describe("the Change password row", () => {
 	});
 });
 
-it("deletes all data in batches after confirmation and keeps the account", async () => {
+it("offers Foundry data only first, and names every app the whole account covers", async () => {
+	await renderAccount();
+	const [first, second] = screen.getAllByRole("button", {
+		name: /^Delete (Foundry data only|my whole AppElent account)$/,
+	});
+	expect(first).toBe(
+		screen.getByRole("button", { name: "Delete Foundry data only" }),
+	);
+	expect(second).toBe(
+		screen.getByRole("button", { name: "Delete my whole AppElent account" }),
+	);
+	expect(
+		screen.getByText(/Gather, Foundry, Fairway and Arcade Club/),
+	).toBeTruthy();
+});
+
+it("deletes Foundry data in batches and this device's data, keeps the login, then signs out", async () => {
 	await renderAccount();
 	expect(screen.getAllByText(/Export your data first/)).toHaveLength(2);
-	await confirmAction("Delete my data");
-	expect(await screen.findByText("Your data was deleted.")).toBeTruthy();
+	await confirmAction("Delete Foundry data only");
+	expect(
+		await screen.findByText(
+			"Your Foundry data was deleted. Your AppElent login still works in Gather, Fairway and Arcade Club.",
+		),
+	).toBeTruthy();
 	expect(deleteData).toHaveBeenCalledTimes(2);
 	expect(deleteData).toHaveBeenCalledWith({ expectedSubject: "test-user" });
-	expect(mockUser.delete).not.toHaveBeenCalled();
 	expect(deviceData).toHaveBeenCalledWith("test-user");
+	expect(mockSignOut).toHaveBeenCalledTimes(1);
+	expect(deviceData.mock.invocationCallOrder[0]).toBeLessThan(
+		mockSignOut.mock.invocationCallOrder[0],
+	);
+	// The shared AppElent login is untouched.
+	expect(mockUser.delete).not.toHaveBeenCalled();
+});
+
+it("says so when signing out fails after the Foundry data is gone", async () => {
+	mockSignOut.mockRejectedValue(new Error("network"));
+	await renderAccount();
+	await confirmAction("Delete Foundry data only");
+	expect(
+		await screen.findByText(
+			"Your Foundry data was deleted, but you could not be signed out. Sign out from Profile.",
+		),
+	).toBeTruthy();
+	expect(mockUser.delete).not.toHaveBeenCalled();
 });
 
 it("deletes the Clerk account only after the data is gone", async () => {
 	await renderAccount();
-	await confirmAction("Delete account");
+	await confirmAction("Delete my whole AppElent account");
 	expect(await screen.findByText("Your data was deleted.")).toBeTruthy();
 	expect(mockUser.delete).toHaveBeenCalled();
+	expect(mockSignOut).not.toHaveBeenCalled();
 	expect(deleteData).toHaveBeenCalledTimes(2);
 	expect(deleteData.mock.invocationCallOrder[1]).toBeLessThan(
 		mockUser.delete.mock.invocationCallOrder[0],
@@ -167,7 +212,7 @@ describe("an account that signs in with Apple on iOS", () => {
 			authorizationCode: "apple-code",
 		} as AppleAuthentication.AppleAuthenticationCredential);
 		await renderAccount();
-		await confirmAction("Delete account");
+		await confirmAction("Delete my whole AppElent account");
 		expect(await screen.findByText("Your data was deleted.")).toBeTruthy();
 		expect(getFunctionName(action.mock.calls[0][0])).toBe(
 			"account:revokeAppleSignIn",
@@ -189,7 +234,7 @@ describe("an account that signs in with Apple on iOS", () => {
 				Object.assign(new Error("canceled"), { code: "ERR_REQUEST_CANCELED" }),
 			);
 		await renderAccount();
-		await confirmAction("Delete account");
+		await confirmAction("Delete my whole AppElent account");
 		await waitFor(() =>
 			expect(AppleAuthentication.signInAsync).toHaveBeenCalled(),
 		);
@@ -205,7 +250,7 @@ describe("an account that signs in with Apple on iOS", () => {
 		} as AppleAuthentication.AppleAuthenticationCredential);
 		action.mockRejectedValue(new Error("failed"));
 		await renderAccount();
-		await confirmAction("Delete account");
+		await confirmAction("Delete my whole AppElent account");
 		expect(await screen.findByText("Your data was deleted.")).toBeTruthy();
 		expect(reportError).toHaveBeenCalledWith(
 			expect.any(Error),
@@ -220,7 +265,7 @@ describe("an account that signs in with Apple on iOS", () => {
 			authorizationCode: "other-code",
 		} as AppleAuthentication.AppleAuthenticationCredential);
 		await renderAccount();
-		await confirmAction("Delete account");
+		await confirmAction("Delete my whole AppElent account");
 		expect(await screen.findByText("Your data was deleted.")).toBeTruthy();
 		expect(action).not.toHaveBeenCalled();
 		expect(reportError).toHaveBeenCalledWith(
@@ -232,8 +277,8 @@ describe("an account that signs in with Apple on iOS", () => {
 
 	it("does not ask Apple when only the data is deleted", async () => {
 		await renderAccount();
-		await confirmAction("Delete my data");
-		expect(await screen.findByText("Your data was deleted.")).toBeTruthy();
+		await confirmAction("Delete Foundry data only");
+		await waitFor(() => expect(mockSignOut).toHaveBeenCalled());
 		expect(AppleAuthentication.signInAsync).not.toHaveBeenCalled();
 	});
 });
@@ -246,9 +291,11 @@ it("explains and disables deletion while an Activity is running", async () => {
 			"Finish or cancel the running Activity before deleting your data.",
 		),
 	).toBeTruthy();
-	await fireEvent.press(screen.getByRole("button", { name: "Delete my data" }));
+	await fireEvent.press(
+		screen.getByRole("button", { name: "Delete Foundry data only" }),
+	);
 	expect(
-		screen.queryAllByRole("button", { name: "Delete my data" }),
+		screen.queryAllByRole("button", { name: "Delete Foundry data only" }),
 	).toHaveLength(1);
 	expect(deleteData).not.toHaveBeenCalled();
 });
