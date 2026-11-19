@@ -3,8 +3,12 @@ import type { FoodLogReviewResult, MacroKey, Macros } from "../types";
 import {
 	changeItem,
 	type DraftItem,
+	FoodConflictError,
 	itemMacros,
 	logUnsaved,
+	parseQuantity,
+	removalsFinal,
+	savedContext,
 	setRemoved,
 	startDraft,
 	sumMacros,
@@ -54,33 +58,41 @@ function MacroLine({ text, macros }: { text: ViewText; macros: Macros }) {
 function QuantityField({
 	item,
 	text,
+	value,
 	disabled,
 	onChange,
 }: {
 	item: DraftItem;
 	text: ViewText;
+	value: string;
 	disabled: boolean;
-	onChange: (quantity: number) => void;
+	onChange: (value: string) => void;
 }) {
-	const [draft, setDraft] = useState(String(item.quantity));
+	const invalid = parseQuantity(value) === null;
+	const errorId = `quantity-error-${item.row}`;
 	return (
-		<input
-			type="number"
-			inputMode="decimal"
-			min="0"
-			step="any"
-			className="quantity"
-			aria-label={text.fmt(text.t.food.quantity, { food: item.name })}
-			value={draft}
-			disabled={disabled}
-			onChange={(event) => {
-				setDraft(event.target.value);
-				const value = Number(event.target.value);
-				if (Number.isFinite(value) && value > 0 && value <= 10000)
-					onChange(value);
-			}}
-			onBlur={() => setDraft(String(item.quantity))}
-		/>
+		<>
+			<input
+				type="number"
+				inputMode="decimal"
+				min="0"
+				step="any"
+				className="quantity"
+				aria-label={text.fmt(text.t.food.quantity, {
+					food: text.pick(item.name),
+				})}
+				aria-invalid={invalid}
+				aria-describedby={invalid ? errorId : undefined}
+				value={value}
+				disabled={disabled}
+				onChange={(event) => onChange(event.target.value)}
+			/>
+			{invalid && (
+				<p id={errorId} className="field-error" role="alert">
+					{text.t.food.quantityInvalid}
+				</p>
+			)}
+		</>
 	);
 }
 
@@ -92,9 +104,11 @@ export function FoodLog({
 }: ViewProps<FoodLogReviewResult>) {
 	const { t } = text;
 	const [items, setItems] = useState<DraftItem[]>(() =>
-		startDraft(result.items, newKey),
+		startDraft(result.items, result.reviewId),
 	);
 	const [logging, setLogging] = useState(false);
+	// What each quantity field shows; the item keeps the last valid amount.
+	const [quantityText, setQuantityText] = useState<Record<number, string>>({});
 	const update = (row: number, change: (item: DraftItem) => DraftItem) =>
 		setItems((current) =>
 			current.map((item) => (item.row === row ? change(item) : item)),
@@ -106,10 +120,17 @@ export function FoodLog({
 	const remaining = unsaved(items);
 	const done = kept.length > 0 && kept.every((item) => item.status === "saved");
 	const someFailed = items.some((item) => item.status === "failed");
+	const quantityFor = (item: DraftItem) =>
+		quantityText[item.row] ?? String(item.quantity);
+	const invalidQuantity = kept.some(
+		(item) => parseQuantity(quantityFor(item)) === null,
+	);
+	const final = removalsFinal(items);
 
 	const log = async () => {
 		setLogging(true);
-		const saved: DraftItem[] = [];
+		let latest = items;
+		const savedBefore = items.filter((item) => item.status === "saved").length;
 		await logUnsaved(
 			items,
 			async (item) => {
@@ -124,30 +145,31 @@ export function FoodLog({
 						quantity: item.quantity,
 					},
 				});
-				const entryId = (response.structuredContent as { entryId?: string })
-					?.entryId;
-				if (response.isError || !entryId) throw new Error("log_food failed");
-				saved.push(item);
-				return { entryId };
+				const content = response.structuredContent as
+					| { entryId?: string; error?: { code?: string } }
+					| undefined;
+				if (content?.error?.code === "operationConflict")
+					throw new FoodConflictError("log_food conflict");
+				if (response.isError || !content?.entryId)
+					throw new Error("log_food failed");
+				return { entryId: content.entryId };
 			},
-			(row, change) => update(row, (item) => ({ ...item, ...change })),
+			(row, change) => {
+				latest = latest.map((item) =>
+					item.row === row ? { ...item, ...change } : item,
+				);
+				update(row, (item) => ({ ...item, ...change }));
+			},
 		);
 		setLogging(false);
-		if (saved.length === 0) return;
-		const names = saved
-			.map((item) => {
-				const serving = item.servings.find(
-					(entry) => entry.servingIndex === item.servingIndex,
-				);
-				return `${item.quantity} × ${serving?.label ?? "serving"} ${item.name}`;
-			})
-			.join("; ");
+		if (latest.filter((item) => item.status === "saved").length === savedBefore)
+			return;
 		void app
 			.updateModelContext({
 				content: [
 					{
 						type: "text",
-						text: `From the review_food_log view the user logged ${saved.length} item(s) to ${result.meal} on ${result.date}: ${names}. They are saved in Foundry; do not log them again.`,
+						text: savedContext(latest, result.meal, result.date),
 					},
 				],
 			})
@@ -176,7 +198,7 @@ export function FoodLog({
 							data-status={item.status}
 						>
 							<div className="food-head">
-								<strong>{item.name}</strong>
+								<strong>{text.pick(item.name)}</strong>
 								{item.status === "saved" && (
 									<span className="badge success">✓ {t.food.saved}</span>
 								)}
@@ -186,23 +208,26 @@ export function FoodLog({
 								{item.removed && (
 									<span className="badge">{t.food.removed}</span>
 								)}
-								{result.canLog && !locked && !logging && (
-									<button
-										type="button"
-										className="text-button"
-										aria-label={text.fmt(
-											item.removed ? t.food.restore : t.food.remove,
-											{ food: item.name },
-										)}
-										onClick={() =>
-											update(item.row, (current) =>
-												setRemoved(current, !current.removed),
-											)
-										}
-									>
-										{item.removed ? "↺" : "×"}
-									</button>
-								)}
+								{result.canLog &&
+									!locked &&
+									!logging &&
+									!(item.removed && final) && (
+										<button
+											type="button"
+											className="text-button"
+											aria-label={text.fmt(
+												item.removed ? t.food.restore : t.food.remove,
+												{ food: text.pick(item.name) },
+											)}
+											onClick={() =>
+												update(item.row, (current) =>
+													setRemoved(current, !current.removed),
+												)
+											}
+										>
+											{item.removed ? "↺" : "×"}
+										</button>
+									)}
 							</div>
 							{!item.removed && (
 								<>
@@ -210,15 +235,24 @@ export function FoodLog({
 										<QuantityField
 											item={item}
 											text={text}
+											value={quantityFor(item)}
 											disabled={locked || logging}
-											onChange={(quantity) =>
-												update(item.row, (current) =>
-													changeItem(current, { quantity }, newKey),
-												)
-											}
+											onChange={(value) => {
+												setQuantityText((current) => ({
+													...current,
+													[item.row]: value,
+												}));
+												const quantity = parseQuantity(value);
+												if (quantity !== null)
+													update(item.row, (current) =>
+														changeItem(current, { quantity }, newKey),
+													);
+											}}
 										/>
 										<select
-											aria-label={text.fmt(t.food.serving, { food: item.name })}
+											aria-label={text.fmt(t.food.serving, {
+												food: text.pick(item.name),
+											})}
 											value={item.servingIndex}
 											disabled={locked || logging}
 											onChange={(event) =>
@@ -236,11 +270,16 @@ export function FoodLog({
 													key={serving.servingIndex}
 													value={serving.servingIndex}
 												>
-													{serving.label}
+													{text.pick(serving.label)}
 												</option>
 											))}
 										</select>
 									</div>
+									{item.conflict && (
+										<p className="field-error" role="alert">
+											{t.food.conflict}
+										</p>
+									)}
 									<MacroLine text={text} macros={itemMacros(item)} />
 								</>
 							)}
@@ -302,7 +341,7 @@ export function FoodLog({
 					<button
 						type="button"
 						className="primary"
-						disabled={logging}
+						disabled={logging || invalidQuantity}
 						onClick={() => void log()}
 					>
 						{logging

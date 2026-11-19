@@ -11,7 +11,17 @@
 			"**/src/**/*",
 			"convex/**/*",
 			"!convex/_generated",
-			"scripts/check-mobile-structure*",
+			"scripts/**/*",
+			"!scripts/baseline*.mjs",
+			"!scripts/check-project.mjs",
+			"!scripts/env.mjs",
+			"!scripts/run-mobile.mjs",
+			"!scripts/sync-devtools.mjs",
+			"!scripts/workspace.mjs",
+			"!scripts/lib/baseline.mjs",
+			"!scripts/lib/env",
+			"!scripts/lib/project",
+			"!scripts/lib/workspace",
 			"**/.vscode/**/*",
 			"**/index.html",
 			"**/vite.config.ts",
@@ -92,6 +102,7 @@
 				"apps/mobile/app/**",
 				"!**/*.test.*",
 				"!apps/mobile/src/test-support/**",
+				"!apps/mobile/src/observability/native-presentation.ts",
 				"!apps/mobile/src/convex/query-cache.tsx"
 			],
 			"linter": {
@@ -110,9 +121,10 @@
 										"message": "Import query hooks from src/convex/query-cache (docs/standards/convex-query-caching.md)."
 									},
 									"react-native": {
-										"importNames": ["Modal"],
-										"message": "Import Modal from src/ui/modal: it pauses shake-to-report while visible (APP-216)."
-									}
+										"importNames": ["Modal", "Alert", "ActionSheetIOS"],
+										"message": "Import Modal from src/ui/modal, and showAlert / showActionSheet from src/observability/native-presentation: they pause shake-to-report while visible (APP-216, APP-258)."
+									},
+									"expo-image-picker": "Import the pickers from src/observability/native-presentation: they pause shake-to-report while open (APP-258)."
 								}
 							}
 						}

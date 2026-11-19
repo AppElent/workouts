@@ -135,6 +135,10 @@ export default function AppLayout() {
 										options={{ title: t.routes.exercise }}
 									/>
 									<Stack.Screen
+										name="strength-profile"
+										options={{ title: t.strength.plan.profile.title }}
+									/>
+									<Stack.Screen
 										name="exercise-new"
 										options={{
 											title: t.routes.newExercise,

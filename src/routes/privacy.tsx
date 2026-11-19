@@ -1,10 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMessages } from "#/lib/i18n";
+import { pageTitle } from "#/lib/i18n/head";
 
 // Public page: the mobile app and store listings link here, so it must render
 // without sign-in.
 export const Route = createFileRoute("/privacy")({
-	head: () => ({ meta: [{ title: "Privacy statement — Foundry" }] }),
+	head: ({ matches }) => ({
+		meta: [pageTitle(matches, (messages) => messages.privacy.title)],
+	}),
 	component: PrivacyPage,
 });
 

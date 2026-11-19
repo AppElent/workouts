@@ -1,4 +1,8 @@
-import { ActionSheetIOS, Alert, Platform, Pressable } from "react-native";
+import { Platform, Pressable } from "react-native";
+import {
+	showActionSheet,
+	showAlert,
+} from "../../../../observability/native-presentation";
 import { useTokens } from "../../../../theme";
 import { AppText } from "../../../../ui/text";
 import type { WeekMenuProps } from "./week-menu-props";
@@ -8,13 +12,13 @@ export function WeekMenu(props: WeekMenuProps) {
 	const colors = useTokens();
 	const open = () => {
 		if (Platform.OS === "ios") {
-			ActionSheetIOS.showActionSheetWithOptions(
+			showActionSheet(
 				{ options: [props.openTodayLabel, props.goalsLabel] },
 				(index) => (index === 0 ? props.onOpenToday() : props.onOpenGoals()),
 			);
 			return;
 		}
-		Alert.alert(props.label, undefined, [
+		showAlert(props.label, undefined, [
 			{ text: props.openTodayLabel, onPress: props.onOpenToday },
 			{ text: props.goalsLabel, onPress: props.onOpenGoals },
 		]);

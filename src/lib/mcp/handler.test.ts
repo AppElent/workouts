@@ -499,7 +499,7 @@ describe("Foundry MCP endpoint", () => {
 			"nutritionDiary:day": () => ({
 				date: "2026-11-10",
 				entries: [],
-				totals: {},
+				totals: macroTotals(0, 0),
 				revision: 1,
 			}),
 		});
@@ -899,6 +899,70 @@ describe("Foundry MCP views", () => {
 		});
 	});
 
+	it("counts a week's days in the caller's time zone", async () => {
+		const backend = fakeBackend({
+			"activities:list": () => ({
+				items: [
+					// Monday 23:30 UTC is already Tuesday in Amsterdam.
+					{
+						id: "late",
+						sport: "running",
+						occurredAt: Date.parse("2026-11-09T23:30:00Z"),
+						durationSeconds: 600,
+					},
+					// Sunday 23:30 UTC is Monday of the next week in Amsterdam.
+					{
+						id: "next_week",
+						sport: "running",
+						occurredAt: Date.parse("2026-11-15T23:30:00Z"),
+						durationSeconds: 600,
+					},
+				],
+				cursor: null,
+				isDone: true,
+			}),
+			"nutritionReview:week": () => ({
+				startDate: "2026-11-09",
+				endDate: "2026-11-15",
+				days: [],
+				averages: {
+					energy: null,
+					protein: null,
+					energyDays: 0,
+					proteinDays: 0,
+					energyQualified: false,
+					proteinQualified: false,
+				},
+			}),
+		});
+		const call = await callTool(backend, "show_week_overview", {
+			weekStart: "2026-11-09",
+			timeZone: "Europe/Amsterdam",
+		});
+		expect(call.isError).toBeUndefined();
+		const week = call.structuredContent as {
+			timeZone: string;
+			training: { runs: number };
+			days: { date: string; activities: { id: string }[] }[];
+		};
+		expect(week.timeZone).toBe("Europe/Amsterdam");
+		expect(week.days[0].activities).toEqual([]);
+		expect(week.days[1].activities.map((a) => a.id)).toEqual(["late"]);
+		expect(week.training.runs).toBe(1);
+		expect(backend.calls[0].args).toMatchObject({
+			from: Date.parse("2026-11-08T23:00:00Z"),
+			to: Date.parse("2026-11-15T23:00:00Z"),
+		});
+		const utc = await callTool(backend, "show_week_overview", {
+			weekStart: "2026-11-09",
+		});
+		expect(utc.structuredContent?.timeZone).toBe("UTC");
+		expect(
+			(await callTool(backend, "show_week_overview", { timeZone: "Mars/Base" }))
+				.isError,
+		).toBe(true);
+	});
+
 	it("rejects an impossible week start", async () => {
 		const call = await callTool(fakeBackend(), "show_week_overview", {
 			weekStart: "2026-02-31",
@@ -931,7 +995,7 @@ describe("Foundry MCP views", () => {
 			).structuredContent as {
 				canLog: boolean;
 				items: {
-					name: string;
+					name: { en: string; nl: string };
 					quantity: number;
 					servings: { perQuantity: { energyKcal: number | null } }[];
 				}[];
@@ -947,10 +1011,63 @@ describe("Foundry MCP views", () => {
 			logged: { entryCount: 1, energyKcal: 500, proteinG: 30 },
 		});
 		expect(full.goals).toHaveLength(2);
-		expect(full.items[0].name.toLowerCase()).toContain("banana");
+		expect(full.items[0].name.en.toLowerCase()).toContain("banana");
+		expect(full.items[0].name.nl).toBeTruthy();
 		expect(full.items[0].servings[0].perQuantity.energyKcal).toBeGreaterThan(0);
 		expect((await review(["foundry:read"])).canLog).toBe(false);
 		expect(backend.calls.some((c) => c.kind === "mutation")).toBe(false);
+	});
+
+	it("keeps the review's text short and gives each review its own ID", async () => {
+		const backend = fakeBackend({
+			"nutritionDiary:day": () => ({
+				date: "2026-11-10",
+				entries: [{ _id: "entry_0" }],
+				totals: macroTotals(500, 30),
+				revision: 1,
+			}),
+			"nutritionGoals:forDate": () => GOALS,
+		});
+		const review = () =>
+			callTool(backend, "review_food_log", {
+				date: "2026-11-10",
+				meal: "breakfast",
+				items: [{ foodId: "shipped:banana", servingIndex: 0, quantity: 2 }],
+			});
+		const [first, second] = [await review(), await review()];
+		const text = first.content[0]?.text ?? "";
+		expect(text).toMatch(
+			/^Showing 1 proposed item\(s\) for breakfast on 2026-11-10: 2 × /,
+		);
+		expect(text).toContain("Nothing is logged yet");
+		expect(text).toContain("already logged that day 500 kcal");
+		expect(text).not.toContain("perQuantity");
+		expect(text.length).toBeLessThan(400);
+		expect(first.structuredContent?.items).toBeDefined();
+		expect(first.structuredContent?.reviewId).toEqual(expect.any(String));
+		expect(first.structuredContent?.reviewId).not.toBe(
+			second.structuredContent?.reviewId,
+		);
+	});
+
+	it("tells a view an idempotency conflict by code", async () => {
+		const backend = fakeBackend({
+			"nutritionDiary:applyOperation": () => {
+				throw new ConvexError({ code: "operationConflict" });
+			},
+		});
+		const call = await callTool(backend, "log_food", {
+			idempotencyKey: "view-key-0001",
+			date: "2026-11-10",
+			meal: "breakfast",
+			foodId: "shipped:banana",
+			servingIndex: 0,
+			quantity: 3,
+		});
+		expect(call.isError).toBe(true);
+		expect(call.structuredContent).toEqual({
+			error: { code: "operationConflict" },
+		});
 	});
 
 	it("refuses a review with an unknown serving", async () => {
@@ -958,7 +1075,7 @@ describe("Foundry MCP views", () => {
 			"nutritionDiary:day": () => ({
 				date: "2026-11-10",
 				entries: [],
-				totals: {},
+				totals: macroTotals(0, 0),
 			}),
 			"nutritionGoals:forDate": () => GOALS,
 		});
@@ -986,7 +1103,7 @@ describe("Foundry MCP views", () => {
 			"nutritionDiary:day": () => ({
 				date: "2026-11-10",
 				entries: [],
-				totals: {},
+				totals: macroTotals(0, 0),
 				revision: 1,
 			}),
 		});
@@ -1087,6 +1204,53 @@ describe("Foundry MCP views", () => {
 				(p) => p.value,
 			),
 		).toEqual([200, 110, 105]);
+	});
+
+	it("dates exercise progress in the caller's time zone", async () => {
+		const late = Date.parse("2026-11-03T23:30:00Z");
+		const backend = fakeBackend({
+			"exercises:listPersonal": () => ({
+				page: [],
+				isDone: true,
+				continueCursor: "",
+			}),
+			"exercises:getHistory": () => [
+				{
+					_id: "set_1",
+					sessionId: "s1",
+					exerciseId: SQUAT,
+					reps: 5,
+					weight: 100,
+					unit: "kg",
+					setType: "working",
+					loggedAt: late,
+					sessionDate: late,
+				},
+			],
+			"progress:weeklyVolume": () => [],
+			"oneRepMaxes:listForExercise": () => [],
+		});
+		const call = await callTool(backend, "show_exercise_progress", {
+			exerciseId: SQUAT,
+			range: "4w",
+			timeZone: "Europe/Amsterdam",
+		});
+		expect(call.structuredContent).toMatchObject({
+			timeZone: "Europe/Amsterdam",
+			from: "2026-10-13",
+			points: [{ date: "2026-11-04" }],
+		});
+		expect(
+			backend.calls.find((c) => c.name === "progress:weeklyVolume")?.args,
+		).toMatchObject({ utcOffsetMinutes: 60 });
+		const utc = await callTool(backend, "show_exercise_progress", {
+			exerciseId: SQUAT,
+			range: "4w",
+		});
+		expect(utc.structuredContent).toMatchObject({
+			timeZone: "UTC",
+			points: [{ date: "2026-11-03" }],
+		});
 	});
 
 	it("plots no load progress for a timed hold", async () => {

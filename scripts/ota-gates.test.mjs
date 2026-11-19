@@ -32,13 +32,17 @@ describe("soakedCommit", () => {
 	});
 
 	it("returns null when nothing has soaked", () => {
-		expect(soakedCommit([update("2026-11-16T07:00:00Z", "fresh")], now, 24, "ios")).toBeNull();
+		expect(
+			soakedCommit([update("2026-11-16T07:00:00Z", "fresh")], now, 24, "ios"),
+		).toBeNull();
 		expect(soakedCommit([], now, 24, "ios")).toBeNull();
 	});
 
 	it("skips roll-backs and updates without a commit", () => {
 		const updates = [
-			update("2026-11-16T04:00:00Z", "rollback", { isRollBackToEmbedded: true }),
+			update("2026-11-16T04:00:00Z", "rollback", {
+				isRollBackToEmbedded: true,
+			}),
 			update("2026-11-16T03:00:00Z", null),
 			update("2026-11-16T02:00:00Z", "real"),
 		];
@@ -51,7 +55,9 @@ it("only counts the asked platform's updates", () => {
 		update("2026-11-15T05:00:00Z", "ios-only"),
 		update("2026-11-16T05:00:00Z", "android-soaked", { platform: "android" }),
 	];
-	expect(soakedCommit(updates, now, 24, "android")?.commit).toBe("android-soaked");
+	expect(soakedCommit(updates, now, 24, "android")?.commit).toBe(
+		"android-soaked",
+	);
 	expect(soakedCommit(updates, now, 24, "ios")?.commit).toBe("ios-only");
 	expect(soakedCommit(updates.slice(0, 1), now, 24, "android")).toBeNull();
 });
@@ -76,7 +82,9 @@ describe("matchPlatforms", () => {
 	});
 
 	it("publishes everything when forced", () => {
-		expect(matchPlatforms([{ platform: "ios", updates: 0, builds: 0 }], true)).toEqual({
+		expect(
+			matchPlatforms([{ platform: "ios", updates: 0, builds: 0 }], true),
+		).toEqual({
 			publish: ["ios"],
 			due: [],
 		});

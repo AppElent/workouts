@@ -47,6 +47,11 @@ type ToolDefinition<Input extends Shape> = {
 	annotations?: Omit<ToolAnnotations, "title" | "readOnlyHint">;
 	/** Hosts with MCP Apps render this view with the result. */
 	view?: ViewName;
+	/**
+	 * The text half of the result, when the full JSON is too much to read. The
+	 * structured result is unchanged; views and clients that want it still get it.
+	 */
+	summary?: (value: never) => string;
 	run: (
 		args: z.infer<z.ZodObject<Input>>,
 		context: ToolContext,
@@ -87,7 +92,7 @@ export function registerTools(
 		const callback = async (args: unknown) => {
 			try {
 				const value = await tool.run(args as never, context);
-				return toolResult(value);
+				return toolResult(value, tool.summary?.(value as never));
 			} catch (error) {
 				return toolError(error);
 			}
@@ -113,13 +118,15 @@ export class ToolInputError extends Error {
 	}
 }
 
-export function toolResult(value: unknown) {
+export function toolResult(value: unknown, summary?: string) {
 	const structured =
 		value && typeof value === "object" && !Array.isArray(value)
 			? (value as Record<string, unknown>)
 			: { result: value };
 	return {
-		content: [{ type: "text" as const, text: JSON.stringify(structured) }],
+		content: [
+			{ type: "text" as const, text: summary ?? JSON.stringify(structured) },
+		],
 		structuredContent: structured,
 	};
 }
@@ -147,13 +154,20 @@ export function toolError(error: unknown) {
 	// A ConvexError is the app refusing on purpose; anything else is a fault.
 	if (!(error instanceof Error && error.name === "ConvexError"))
 		Sentry.captureException(error, { tags: { operation: "mcp.tool" } });
-	return errorResult(convexErrorText(error) ?? "The Foundry tool failed.");
+	return errorResult(
+		convexErrorText(error) ?? "The Foundry tool failed.",
+		error instanceof Error && error.name === "ConvexError"
+			? parseConvexError(error).code
+			: undefined,
+	);
 }
 
-function errorResult(message: string) {
+/** `code` lets a view tell failures apart without matching on the words. */
+function errorResult(message: string, code?: string) {
 	return {
 		isError: true,
 		content: [{ type: "text" as const, text: message }],
+		...(code ? { structuredContent: { error: { code } } } : {}),
 	};
 }
 

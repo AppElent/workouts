@@ -359,6 +359,7 @@ input:focus-visible,
 
 .food-controls {
 	display: flex;
+	flex-wrap: wrap;
 	gap: 6px;
 	margin: 6px 0;
 }
@@ -380,6 +381,22 @@ input:focus-visible,
 .food-controls select {
 	flex: 1;
 	min-width: 0;
+}
+
+.quantity[aria-invalid="true"] {
+	border-color: var(--danger);
+}
+
+.field-error {
+	margin: 4px 0;
+	color: var(--danger);
+	font-size: 0.9em;
+}
+
+.food-controls .field-error {
+	order: 3;
+	flex: 1 0 100%;
+	margin: 0;
 }
 
 .macro-line {

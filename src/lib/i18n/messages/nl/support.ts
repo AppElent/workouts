@@ -15,7 +15,11 @@ export const support: typeof supportEn = {
 			},
 			oneRm: {
 				q: "Hoe schat Foundry mijn 1RM?",
-				a: "Foundry schat je one-rep max uit je gelogde sets. Om sets als percentage te plannen, gebruikt Foundry een gelogde single of een geteste 1RM die je zelf invult, de nieuwste van de twee.",
+				a: "Foundry schat je one-rep max uit je gelogde sets.",
+			},
+			oneRmPlanning: {
+				q: "Welke 1RM gebruikt Foundry om sets als percentage te plannen?",
+				a: "Een gelogde single of een geteste 1RM die je zelf invult, de nieuwste van de twee. De schatting uit je andere sets wordt niet gebruikt om te plannen.",
 			},
 			food: {
 				q: "Waar komt de voedingsdata vandaan?",
@@ -23,7 +27,7 @@ export const support: typeof supportEn = {
 			},
 			export: {
 				q: "Hoe exporteer of verwijder ik mijn gegevens?",
-				a: "Open in de app Profiel > Account. Daar kun je al je gegevens exporteren of je account verwijderen. Op het web kan hetzelfde op de pagina Account.",
+				a: "Open in de app Profiel > Account. Daar kun je al je gegevens exporteren of je account verwijderen. Op het web kan hetzelfde op de pagina Profiel.",
 			},
 		},
 	},

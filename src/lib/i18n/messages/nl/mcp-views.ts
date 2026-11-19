@@ -67,6 +67,9 @@ export const mcpViews = {
 			"Niet alle items zijn opgeslagen. Probeer ze opnieuw; opgeslagen items worden niet dubbel gelogd.",
 		readOnly:
 			"Deze verbinding kan Foundry alleen lezen. Log deze items in de app of maak opnieuw verbinding met schrijfrechten.",
+		quantityInvalid: "Vul een hoeveelheid boven 0 in, tot 10000.",
+		conflict:
+			"Foundry heeft dit item al met een andere hoeveelheid of portie, dus het kan hier niet meer worden gewijzigd. Zet het origineel terug om opnieuw te proberen, of kijk in je dagboek.",
 		nothingLeft: "Geen items meer om te loggen.",
 	},
 	progress: {

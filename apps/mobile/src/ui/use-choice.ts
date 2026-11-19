@@ -1,5 +1,6 @@
 import { useCallback } from "react";
-import { ActionSheetIOS, Platform } from "react-native";
+import { Platform } from "react-native";
+import { showActionSheet } from "../observability/native-presentation";
 import { useConfirm } from "./confirm-dialog";
 
 export type ActionChoice = { label: string; destructive?: boolean };
@@ -24,7 +25,7 @@ export function useChoice() {
 					destructive: input.confirm.destructive,
 				});
 			return new Promise<boolean | null>((resolve) => {
-				ActionSheetIOS.showActionSheetWithOptions(
+				showActionSheet(
 					{
 						title: input.title,
 						message: input.message,

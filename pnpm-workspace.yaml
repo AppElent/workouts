@@ -104,6 +104,20 @@ overrides:
   # @clerk/react (Clerk Core 3), so keep the old package out of the graph.
   "convex>@clerk/clerk-react": "-"
 
+# APP-113. Two peer ranges that lag behind versions we run on purpose. Each
+# entry accepts one version; drop it once its parent is upgraded.
+peerDependencyRules:
+  allowedVersions:
+    # expo-modules-core 58.0.18 (from expo 58.0.10) lists worklets <= 0.10, but
+    # Expo SDK 58 bundles react-native-worklets 0.13.0 (bundledNativeModules)
+    # and expo-modules-core 58.0.20+ declares ">=0.13.0". Upgrading expo
+    # changes the native fingerprint, so it waits for a planned native build.
+    "expo-modules-core@58.0.18>react-native-worklets": "0.13.0"
+    # @expo/require-utils 55 (eas-cli -> @expo/config 55) lists TypeScript 5.
+    # Dev-only CLI path; the latest eas-cli still pins @expo/config 55, and
+    # require-utils 58 already allows TypeScript 6.
+    "@expo/require-utils@55>typescript": "6.0.3"
+
 # pnpm 11's actual per-install approval ledger for build scripts — without
 # a committed entry here, `pnpm install` (including CI's
 # `--frozen-lockfile`) fails non-interactively with ERR_PNPM_IGNORED_BUILDS

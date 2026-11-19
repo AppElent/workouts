@@ -18,17 +18,42 @@ export type DraftItem = ReviewItem & {
 	 * reset: the key must outlive every later edit.
 	 */
 	attempted: boolean;
+	/**
+	 * Foundry already holds a write with this key but other input, so this
+	 * item cannot be saved as edited. Cleared by the next edit.
+	 */
+	conflict?: boolean;
 	entryId?: string;
 };
 
+/** The one amount range log_food accepts. */
+export const MAX_QUANTITY = 10000;
+
+/** The quantity a field's text stands for, or null when it is not a valid one. */
+export function parseQuantity(text: string): number | null {
+	if (text.trim() === "") return null;
+	const value = Number(text);
+	return Number.isFinite(value) && value > 0 && value <= MAX_QUANTITY
+		? value
+		: null;
+}
+
+/** log_food refused a key it already holds with other input. */
+export class FoodConflictError extends Error {}
+
+/**
+ * Keys come from the review, not from chance: the host may send the same
+ * result again (a reloaded view), and a fresh random key would log the same
+ * items a second time.
+ */
 export function startDraft(
 	items: readonly ReviewItem[],
-	newKey: () => string,
+	reviewId: string,
 ): DraftItem[] {
 	return items.map((item, row) => ({
 		...item,
 		row,
-		key: newKey(),
+		key: `${reviewId}:${row}`,
 		removed: false,
 		status: "pending",
 		attempted: false,
@@ -54,12 +79,41 @@ export function changeItem(
 	)
 		return item;
 	const key = item.attempted ? item.key : newKey();
-	return { ...next, key, status: "pending" };
+	return { ...next, key, status: "pending", conflict: undefined };
 }
 
 export function setRemoved(item: DraftItem, removed: boolean): DraftItem {
 	if (item.status === "saved" || item.status === "saving") return item;
 	return { ...item, removed };
+}
+
+/**
+ * Once something is saved, what the user left out stays out: the model has
+ * been told what was logged, and putting a dropped item back would log
+ * something the user had decided against.
+ */
+export function removalsFinal(items: readonly DraftItem[]) {
+	return items.some((item) => item.status === "saved");
+}
+
+function label(item: DraftItem) {
+	const serving = item.servings.find(
+		(entry) => entry.servingIndex === item.servingIndex,
+	);
+	return `${item.quantity} × ${serving?.label.en ?? "serving"} ${item.name.en}`;
+}
+
+/**
+ * Tells the model everything saved so far. updateModelContext replaces what
+ * the view said before, so a later save must repeat the earlier ones.
+ */
+export function savedContext(
+	items: readonly DraftItem[],
+	meal: string,
+	date: string,
+) {
+	const saved = items.filter((item) => item.status === "saved");
+	return `From the review_food_log view the user logged ${saved.length} item(s) to ${meal} on ${date}: ${saved.map(label).join("; ")}. They are saved in Foundry; do not log them again.`;
 }
 
 export function itemMacros(item: ReviewItem): Macros {
@@ -115,9 +169,12 @@ export async function logUnsaved(
 		update(item.row, { status: "saving", attempted: true });
 		try {
 			const { entryId } = await logFood(item);
-			update(item.row, { status: "saved", entryId });
-		} catch {
-			update(item.row, { status: "failed" });
+			update(item.row, { status: "saved", entryId, conflict: false });
+		} catch (error) {
+			update(item.row, {
+				status: "failed",
+				conflict: error instanceof FoodConflictError,
+			});
 		}
 	}
 }

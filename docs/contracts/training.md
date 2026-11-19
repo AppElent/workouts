@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing Training, Start activity, Strength Sessions, the set editor, Set Drafts, or strength references.
-version: 1.1.0
+version: 1.2.0
 status: current
 ---
 
@@ -114,6 +114,21 @@ the app; there is no separate data.
   references and sources, percentages (custom too), rep-max tables, and a
   weight-plus-reps estimate. Selecting a result stages it; Apply copies weight and
   reps; Back keeps the original draft. Browsing never changes saved references.
+- In a session it opens from the set editor menu, the exercise menu, and a direct
+  Krachtprofiel action on the current exercise card, beside Add set (hidden for
+  bodyweight exercises).
+
+### Krachtprofiel outside a session
+
+- The exercise page shows a Krachtprofiel row under the 1RM card for loaded
+  exercises; bodyweight and timed exercises have none. It opens the profile with
+  no active session (`/strength-profile`), read-only: the account's current
+  references and their dates, percentages (custom too) and rep-max tables from
+  the same 1RM a new session would use. Nothing is selectable and there is no
+  Apply or Enter 1RM.
+- Mobile only. The web has no Krachtprofiel; the feature is mobile-exclusive in
+  `packages/core/src/features.ts`
+  ([ADR 0017](../adr/0017-mobile-leads-web-shares.md)).
 
 ### Set Drafts
 

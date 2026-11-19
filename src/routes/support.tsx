@@ -1,10 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMessages } from "#/lib/i18n";
+import { pageTitle } from "#/lib/i18n/head";
 
 // Public page: the App Store listing links here as the support URL, so it must
 // render without sign-in.
 export const Route = createFileRoute("/support")({
-	head: () => ({ meta: [{ title: "Support — Foundry" }] }),
+	head: ({ matches }) => ({
+		meta: [pageTitle(matches, (messages) => messages.support.title)],
+	}),
 	component: SupportPage,
 });
 

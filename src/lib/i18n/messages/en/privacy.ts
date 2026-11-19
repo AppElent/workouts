@@ -83,7 +83,7 @@ export const privacy = {
 			rights:
 				"You have the right to access, correct, delete, or export your data, to restrict or object to its processing, and to withdraw consent.",
 			howTo:
-				"You can export your data, delete your data, or delete your account from the Account screen in the mobile app or the Account page in the web app. To delete your account by email, or for any other request, email privacy@appelent.nl. We respond within one month.",
+				"You can export your data, delete your data, or delete your account from the Account screen in the mobile app or the Profile page in the web app. To delete your account by email, or for any other request, email privacy@appelent.nl. We respond within one month.",
 			complaint:
 				"If you are not satisfied with how we handle your data, you can file a complaint with the Dutch Data Protection Authority (Autoriteit Persoonsgegevens) or the data protection authority in your country.",
 		},

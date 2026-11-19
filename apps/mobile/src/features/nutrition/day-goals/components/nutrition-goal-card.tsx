@@ -10,7 +10,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-	ActionSheetIOS,
 	BackHandler,
 	LayoutAnimation,
 	PanResponder,
@@ -27,6 +26,7 @@ import {
 import { haptics } from "../../../../feedback/haptics";
 import { useReduceMotion } from "../../../../feedback/reduce-motion";
 import { fmt, type Messages, useI18n } from "../../../../i18n";
+import { showActionSheet } from "../../../../observability/native-presentation";
 import {
 	radius,
 	spacing,
@@ -382,7 +382,7 @@ export function NutritionGoalCard({
 			...(onSources ? [sourcesLabel] : []),
 			t.nutrition.goals.cancel,
 		];
-		ActionSheetIOS.showActionSheetWithOptions(
+		showActionSheet(
 			{
 				title: fmt(t.nutrition.goals.actionsFor, {
 					nutrient: t.nutrition.nutrients[nutrient],
