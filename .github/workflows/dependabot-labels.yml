@@ -25,7 +25,7 @@ jobs:
       # Fail open to med: if the metadata step fails, its outputs are empty
       # and the next step still labels the PR.
       - id: metadata
-        uses: dependabot/fetch-metadata@v3
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
         continue-on-error: true
       # update-type is the highest change across a grouped PR. An empty value
       # (Dependabot couldn't tell, or the step above failed) counts as med.
