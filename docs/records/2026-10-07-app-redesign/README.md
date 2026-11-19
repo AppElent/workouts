@@ -30,7 +30,8 @@ receipts support safe recovery from an uncertain acknowledgement. Measured,
 estimated and manual strength references retain distinct provenance and each
 session freezes its reference values. Web and hosted-session consumers use the
 same backend contracts. Profile placeholders remain explicitly deferred to
-[#93](https://github.com/AppElent/workouts/issues/93).
+[#93](https://github.com/AppElent/workouts/issues/93) (now Linear
+[APP-57](https://linear.app/appelent/issue/APP-57)).
 
 ## Automated verification
 

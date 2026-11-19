@@ -27,13 +27,13 @@ export const auth = {
 	},
 	header: {
 		accountMenu: "Accountmenu",
-		account: "Account",
+		account: "Profiel",
 		signOut: "Uitloggen",
 		signIn: "Inloggen",
 	},
 	profile: {
 		loading: "Laden…",
-		title: "Profiel",
+		title: "Accountgegevens",
 		firstName: "Voornaam",
 		lastName: "Achternaam",
 		email: "E-mail: {email}",

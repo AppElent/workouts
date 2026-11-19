@@ -12,3 +12,8 @@ it("words only server error codes, in every language", () => {
 			Object.keys(messages.errors).filter((code) => !isAppErrorCode(code)),
 		).toEqual([]);
 });
+
+it("calls the web Profile page the same in the nav and the header menu", () => {
+	for (const messages of Object.values(MESSAGES))
+		expect(messages.auth.header.account).toBe(messages.nav.profile.label);
+});
