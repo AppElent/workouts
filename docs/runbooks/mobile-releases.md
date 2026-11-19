@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when building a development client, shipping to TestFlight, or publishing an OTA update.
-version: 2.1.0
+version: 2.2.0
 ---
 
 # iOS test builds and OTA updates
@@ -27,14 +27,14 @@ change a release needs before the release ships. These scripts run
 `node scripts/convex-drift.mjs --target HEAD` first and stop when this checkout has
 Convex commits that production lacks: `pnpm preview:ios:build`,
 `pnpm preview:ios:build:local`, `pnpm production:ios:build:local`, and
-`pnpm mobile:update:<channel>`. Development builds use the dev deployment and skip
-it. It checks commits only, so commit Convex edits before building. The CI
-`preview-internal` build in [CI builds](#ci-builds) does not run it yet; check by
-hand before dispatching one.
+`pnpm mobile:update:<channel>`, and the CI `preview-internal` build in
+[CI builds](#ci-builds). Development builds use the dev deployment and skip
+it. It checks commits only, so commit Convex edits before building.
 
 When it stops, run **Actions → Deploy → Run workflow** on `main`, wait for it to
 finish, and retry. Append `-- --allow-convex-drift` to a local build only when the
-missing commits are known not to matter to the app. OTA updates have no override
+missing commits are known not to matter to the app; the CI build's equivalent is
+the `allow_convex_drift` input. OTA updates have no override
 on purpose; an `--upload-only` source-map retry publishes no JavaScript and skips
 the check. The check needs `gh auth login`; see
 [deploy](deploy.md#production-convex-drift) for how it finds the deployed commit. A
@@ -189,7 +189,20 @@ credits. The repository is public, so runner minutes are free too.
 | PR label `build:android` | Android `development` profile (APK), same rules |
 | Actions → Mobile Build → Run workflow | Chosen platform, branch and profile (`development` or `preview-internal`) |
 
-Remove the label to stop rebuilding. Forked PRs never build. The `.ipa` or
+Remove the label to stop rebuilding. Forked PRs never build.
+
+A profile that talks to production Convex (`preview-internal`; the rule in
+[Production Convex first](#production-convex-first), read from `eas.json`) first
+runs the **Production Convex** job on Ubuntu:
+`node scripts/eas-build-convex-guard.mjs --profile <profile>` fetches the
+branch's full history and compares this commit with the last successful
+`production` deployment. When production lacks Convex commits, or the check
+cannot tell, the job fails with an error annotation and a step-summary line, and
+the build job never starts. Deploy production and rerun, or tick
+`allow_convex_drift` on the manual run to build anyway: the job then passes with
+a warning that lists the missing commits. Development builds skip the check and
+the history fetch. The calling jobs grant `deployments: read` for that job only;
+the build job keeps `contents: read`. The `.ipa` or
 `.apk` is a workflow artifact for 14 days, linked from the run summary. Nothing
 is submitted to a store; TestFlight stays on the cloud flow above.
 

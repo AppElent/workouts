@@ -51,9 +51,13 @@ for (let offset = 0; ; offset += PAGE) {
 	if (page.length < PAGE) break;
 }
 
-console.log(`${users} Clerk users, ${links.length} with a verified Apple link.`);
+console.log(
+	`${users} Clerk users, ${links.length} with a verified Apple link.`,
+);
 if (!apply) {
-	console.log("Dry run. Add --apply (and -- --prod for production) to store them.");
+	console.log(
+		"Dry run. Add --apply (and -- --prod for production) to store them.",
+	);
 	process.exit(0);
 }
 for (let start = 0; start < links.length; start += PAGE) {
@@ -70,5 +74,7 @@ for (let start = 0; start < links.length; start += PAGE) {
 		],
 		{ stdio: ["ignore", "ignore", "inherit"] },
 	);
-	console.log(`Stored ${Math.min(start + PAGE, links.length)} of ${links.length}.`);
+	console.log(
+		`Stored ${Math.min(start + PAGE, links.length)} of ${links.length}.`,
+	);
 }

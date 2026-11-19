@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing Profile, settings, account actions, or sign-out.
-version: 2.0.1
+version: 2.0.3
 status: current
 ---
 
@@ -59,7 +59,7 @@ tap. Study: [profile](../../designs/app/profile_final.html).
     (`appleSignInLinks`), which web Apple revocation binds its code to;
     `user.deleted` drops them. Delete Foundry data only keeps them, as the
     login stays.
-  - *Web.* The web Account page offers both deletions with the same
+  - *Web.* The web Profile page offers both deletions with the same
     confirmations and blockers. Web keeps no account data outside Convex
     queries, so neither deletion needs a local reset. Delete Foundry data only
     leaves the signed-in pages, signs out the confirming session, and confirms
@@ -88,9 +88,11 @@ Settings work in every state. Offline is one line above the account row.
 
 ## Out of scope
 
-Until [#93](https://github.com/AppElent/workouts/issues/93): lifetime totals and
-distance breakdown, which then become the Summary: all-time totals, no period
-menu, each figure linking to its source view. Deleting accounts with Hosted
+Lifetime totals and distance breakdown are not built yet. Linear
+[APP-57](https://linear.app/appelent/issue/APP-57) (closed with the approved
+[design study](../../designs/app/profile-totals_final.md), not the feature)
+tracks them; once they exist they become the Summary: all-time totals, no
+period menu, each figure linking to its source view. Deleting accounts with Hosted
 Workout involvement needs a separate shared-event cleanup design. Never show
 invented figures or simulated success.
 

@@ -4,6 +4,7 @@ import { Text } from "react-native";
 import { Modal } from "../ui/modal";
 import {
 	DISMISS_SETTLE_MS,
+	holdShakeToReport,
 	isPresentedRoute,
 	resetShakeToReportForTests,
 	startShakeToReport,
@@ -110,6 +111,36 @@ it("treats a presented route in the stack as a blocker", async () => {
 	);
 	expect(Sentry.disableFeedbackOnShake).toHaveBeenCalledTimes(1);
 	await view.unmount();
+	await settle();
+	expect(Sentry.enableFeedbackOnShake).toHaveBeenCalledTimes(2);
+});
+
+it("holds shake imperatively, counting every hold until its own release settles", async () => {
+	startShakeToReport();
+	const first = holdShakeToReport();
+	const second = holdShakeToReport();
+	expect(Sentry.disableFeedbackOnShake).toHaveBeenCalledTimes(1);
+
+	first();
+	await settle();
+	expect(Sentry.enableFeedbackOnShake).toHaveBeenCalledTimes(1);
+
+	second();
+	expect(Sentry.enableFeedbackOnShake).toHaveBeenCalledTimes(1);
+	await settle();
+	expect(Sentry.enableFeedbackOnShake).toHaveBeenCalledTimes(2);
+});
+
+it("ignores a second release of the same hold", async () => {
+	startShakeToReport();
+	const held = holdShakeToReport();
+	const other = holdShakeToReport();
+	held();
+	held();
+	await settle();
+	// `other` still holds: a double release must not have eaten its count.
+	expect(Sentry.enableFeedbackOnShake).toHaveBeenCalledTimes(1);
+	other();
 	await settle();
 	expect(Sentry.enableFeedbackOnShake).toHaveBeenCalledTimes(2);
 });

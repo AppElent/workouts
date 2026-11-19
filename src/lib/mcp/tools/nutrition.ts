@@ -4,6 +4,7 @@ import {
 	NUTRIENT_KEYS,
 	NUTRIENT_UNITS,
 	type NutrientKey,
+	type NutrientTotal,
 	type NutrientValue,
 	normalizePersonalFood,
 	type PersonalFood,
@@ -18,6 +19,7 @@ import {
 	type LibraryFood,
 	searchShippedFoods,
 } from "@foundry/core/shipped-foods";
+import type { FunctionReturnType } from "convex/server";
 import { z } from "zod";
 import {
 	defineTool,
@@ -58,24 +60,20 @@ export function flatNutrients(
 	return out;
 }
 
-type DiaryEntry = {
-	_id: string;
-	meal: string;
-	name: { en: string };
-	serving: { en: string };
-	quantity: number;
-	amount: number;
-	baseUnit: string;
-	estimated?: true;
-	comboGroup?: { name: string };
-	nutrients: Record<NutrientKey, NutrientValue>;
-};
+/** Day totals in `flatNutrients`' shape: a total is a sum, never trace or absent. */
+function flatTotals(
+	totals: Record<NutrientKey, NutrientTotal>,
+): Record<string, number> {
+	const out: Record<string, number> = {};
+	for (const key of NUTRIENT_KEYS)
+		out[`${key}_${NUTRIENT_UNITS[key]}`] =
+			Math.round(totals[key].amount * 10) / 10;
+	return out;
+}
 
-function diaryDay(day: {
-	date: string;
-	entries: DiaryEntry[];
-	totals: Partial<Record<NutrientKey, NutrientValue>>;
-}) {
+type DiaryDay = FunctionReturnType<typeof api.nutritionDiary.day>;
+
+function diaryDay(day: DiaryDay) {
 	return {
 		date: day.date,
 		entries: day.entries.map((entry) => ({
@@ -90,7 +88,7 @@ function diaryDay(day: {
 			combo: entry.comboGroup?.name,
 			nutrients: flatNutrients(entry.nutrients),
 		})),
-		totals: flatNutrients(day.totals),
+		totals: flatTotals(day.totals),
 	};
 }
 
@@ -167,7 +165,7 @@ async function createEntry(
 	const day = await backend.query(api.nutritionDiary.day, {
 		date: entry.date,
 	});
-	return { entryId: result.entryIds[0], day: diaryDay(day as never) };
+	return { entryId: result.entryIds[0], day: diaryDay(day) };
 }
 
 export const nutritionTools = [
@@ -182,7 +180,7 @@ export const nutritionTools = [
 			const result = await backend.query(api.nutritionDiary.day, {
 				date: day ?? today(now()),
 			});
-			return diaryDay(result as never);
+			return diaryDay(result);
 		},
 	}),
 	defineTool({

@@ -15,6 +15,7 @@
 import {
 	convertLoad,
 	exerciseRecords,
+	isLoadedEquipment,
 	isTimedExercise,
 	primaryMuscleGroup,
 	repMaxCurve,
@@ -41,6 +42,7 @@ import {
 import { TrendChart } from "../../../ui/chart";
 import { Card, Eyebrow, StatBox } from "../../../ui/coach";
 import { useConfirm } from "../../../ui/confirm-dialog";
+import { DisclosureRow } from "../../../ui/form";
 import { ScreenHeader } from "../../../ui/screen-header";
 import { Segmented } from "../../../ui/segmented";
 import { SkeletonBlock, SkeletonList } from "../../../ui/skeleton";
@@ -237,6 +239,7 @@ export function ExerciseDetailScreen() {
 					<OverviewInsight
 						exerciseId={exercise._id}
 						timed={timed}
+						weighted={isLoadedEquipment(exercise.equipment)}
 						currentOrm={currentOrm}
 						insight={insight}
 						bodyweightKg={latestBodyweightKg(bodyMetrics)}
@@ -410,12 +413,15 @@ type Insight = ReturnType<typeof exerciseInsight>;
 function OverviewInsight({
 	exerciseId,
 	timed,
+	weighted,
 	currentOrm,
 	insight,
 	bodyweightKg,
 }: {
 	exerciseId: string;
 	timed: boolean;
+	/** Loaded equipment: only these have a Krachtprofiel. */
+	weighted: boolean;
 	currentOrm:
 		| { value: number; unit: "kg" | "lbs"; source: string }
 		| null
@@ -425,6 +431,7 @@ function OverviewInsight({
 }) {
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
+	const router = useRouter();
 	const { t, locale } = useI18n();
 	const copy = t.exercises.detail;
 	const levelNames = t.strength.plan.editor.levels;
@@ -493,6 +500,20 @@ function OverviewInsight({
 					</AppText>
 				) : null}
 			</Card>
+
+			{weighted && !timed ? (
+				<View style={styles.profileRow}>
+					<DisclosureRow
+						label={t.strength.plan.profile.title}
+						onPress={() =>
+							router.push({
+								pathname: "/strength-profile",
+								params: { exerciseId },
+							})
+						}
+					/>
+				</View>
+			) : null}
 
 			{insight && insight.points.length >= 2 ? (
 				<TrendChart
@@ -757,6 +778,12 @@ const createStyles = (colors: Tokens) =>
 		levelFill: { alignSelf: "stretch", height: 8, borderRadius: 4 },
 		canLift: {
 			flexDirection: "row",
+			backgroundColor: colors.surface,
+			borderRadius: radius.contentCard,
+			borderCurve: "continuous",
+			overflow: "hidden",
+		},
+		profileRow: {
 			backgroundColor: colors.surface,
 			borderRadius: radius.contentCard,
 			borderCurve: "continuous",

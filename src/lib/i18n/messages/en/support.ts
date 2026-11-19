@@ -15,7 +15,11 @@ export const support = {
 			},
 			oneRm: {
 				q: "How does Foundry estimate my 1RM?",
-				a: "Foundry estimates your one-rep max from your logged sets. To plan sets as a percentage, it uses a logged single or a tested 1RM you enter, whichever is newer.",
+				a: "Foundry estimates your one-rep max from your logged sets.",
+			},
+			oneRmPlanning: {
+				q: "Which 1RM does Foundry use to plan sets as a percentage?",
+				a: "A logged single or a tested 1RM you enter, whichever is newer. The estimate from your other sets is not used for planning.",
 			},
 			food: {
 				q: "Where does the food data come from?",
@@ -23,7 +27,7 @@ export const support = {
 			},
 			export: {
 				q: "How do I export or delete my data?",
-				a: "In the app, open Profile > Account. You can export all your data or delete your account there. On the web, the Account page offers the same export and deletion.",
+				a: "In the app, open Profile > Account. You can export all your data or delete your account there. On the web, the Profile page offers the same export and deletion.",
 			},
 		},
 	},

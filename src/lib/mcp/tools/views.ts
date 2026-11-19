@@ -26,15 +26,15 @@ import {
 	type WeekActivity,
 	type WeekOverviewResult,
 } from "../views/types";
-import {
-	defineTool,
-	type FoundryBackend,
-	isoDate,
-	ToolInputError,
-	today,
-} from "./define";
+import { defineTool, type FoundryBackend, ToolInputError } from "./define";
 import { date, libraryFood, libraryServings, meal } from "./nutrition";
 import { allExercises } from "./strength";
+import {
+	startOfZoneDay,
+	timeZoneInput,
+	zoneDate,
+	zoneOffsetMinutes,
+} from "./zone";
 
 const DAY_MS = 86_400_000;
 const MACRO_NUTRIENTS = {
@@ -97,10 +97,6 @@ function macroGoals(
 	);
 }
 
-function startOfDay(day: string) {
-	return Date.parse(`${day}T00:00:00Z`);
-}
-
 function round1(value: number) {
 	return Math.round(value * 10) / 10;
 }
@@ -135,6 +131,31 @@ function listActivities(
 	return backend.query(api.activities.list, { from, to, limit: 100, cursor });
 }
 
+function kcalText(value: number | null) {
+	return value === null ? "no kcal figure" : `${Math.round(value)} kcal`;
+}
+
+/** What the model reads about a review; the view carries the details. */
+function reviewSummary(result: FoodLogReviewResult) {
+	let meal = 0;
+	let known = false;
+	const lines = result.items.map((item) => {
+		const serving = item.servings.find(
+			(entry) => entry.servingIndex === item.servingIndex,
+		);
+		const per = serving?.perQuantity.energyKcal ?? null;
+		if (per !== null) {
+			meal += per * item.quantity;
+			known = true;
+		}
+		return `${item.quantity} × ${serving?.label.en ?? "serving"} ${item.name.en} (${kcalText(per === null ? null : per * item.quantity)})`;
+	});
+	const next = result.canLog
+		? "Nothing is logged yet: the user adjusts the items and logs them from the view."
+		: "Nothing is logged: this connection is read-only, so the user logs in the app.";
+	return `Showing ${result.items.length} proposed item(s) for ${result.meal} on ${result.date}: ${lines.join("; ")}. Meal ${kcalText(known ? meal : null)}; already logged that day ${kcalText(result.logged.energyKcal)}. ${next}`;
+}
+
 const RANGE_DAYS: Record<ProgressRange, number> = {
 	"4w": 28,
 	"12w": 84,
@@ -146,7 +167,7 @@ export const viewTools = [
 		name: "show_week_overview",
 		title: "Show week overview",
 		description:
-			"Show one Monday-to-Sunday week as an interactive view: Strength Sessions, Runs, and Rides per day, and nutrition against goals. Defaults to this week. Days are UTC calendar days.",
+			"Show one Monday-to-Sunday week as an interactive view: Strength Sessions, Runs, and Rides per day, and nutrition against goals. Defaults to this week. Days are calendar days in timeZone (UTC when omitted).",
 		access: "read",
 		view: "week-overview",
 		input: {
@@ -155,32 +176,41 @@ export const viewTools = [
 				.describe(
 					"Any day in the week to show, YYYY-MM-DD; the view starts on its Monday",
 				),
+			timeZone: timeZoneInput,
 		},
-		async run({ weekStart }, { backend, now }) {
-			const todayDate = today(now());
+		async run({ weekStart, timeZone }, { backend, now }) {
+			const zone = timeZone ?? "UTC";
+			const todayDate = zoneDate(now().getTime(), zone);
 			if (weekStart !== undefined && !isRealIsoDate(weekStart))
 				throw new ToolInputError("weekStart must be a real YYYY-MM-DD date.");
 			const start = weekStartMonday(weekStart ?? todayDate);
 			const dates = Array.from({ length: 7 }, (_, index) =>
 				shiftIsoDate(start, index),
 			);
-			const [activities, review] = await Promise.all([
+			const [fetched, review] = await Promise.all([
 				weekActivities(
 					backend,
-					startOfDay(start),
-					startOfDay(shiftIsoDate(start, 7)),
+					startOfZoneDay(start, zone),
+					startOfZoneDay(shiftIsoDate(start, 7), zone),
 				),
 				backend.query(api.nutritionReview.week, {
 					startDate: start,
 					today: todayDate,
 				}),
 			]);
+			// The query bounds are the week's edges already; this keeps a boundary
+			// instant on the wrong side of a DST change out of the totals too.
+			const localDay = (activity: WeekActivity) =>
+				zoneDate(Date.parse(activity.occurredAt), zone);
+			const activities = fetched.filter((activity) =>
+				dates.includes(localDay(activity)),
+			);
 			const days = dates.map((day) => {
 				const nutrition = review.days.find((entry) => entry.date === day);
 				return {
 					date: day,
 					activities: activities
-						.filter((activity) => activity.occurredAt.startsWith(day))
+						.filter((activity) => localDay(activity) === day)
 						.sort((a, b) => a.occurredAt.localeCompare(b.occurredAt)),
 					nutrition: nutrition
 						? {
@@ -201,6 +231,7 @@ export const viewTools = [
 				activities.filter((activity) => activity.sport === sport).length;
 			const result: WeekOverviewResult = {
 				view: "week-overview",
+				timeZone: zone,
 				weekStart: start,
 				weekEnd: dates[6],
 				previousWeekStart: shiftIsoDate(start, -7),
@@ -237,6 +268,7 @@ export const viewTools = [
 			"Show proposed Nutrition Diary entries as an interactive view before logging: each food with kcal and macros, and the day's totals against goals. The user can change servings, remove items, and log them from the view. Use food IDs and servingIndex values from search_foods. Logs nothing by itself.",
 		access: "read",
 		view: "food-log",
+		summary: reviewSummary,
 		input: {
 			date,
 			meal,
@@ -263,12 +295,12 @@ export const viewTools = [
 							);
 						return {
 							foodId: item.foodId,
-							name: source.food.name.en,
+							name: { en: source.food.name.en, nl: source.food.name.nl },
 							servingIndex: item.servingIndex,
 							quantity: item.quantity,
 							servings: servings.map((serving, servingIndex) => ({
 								servingIndex,
-								label: serving.label.en,
+								label: { en: serving.label.en, nl: serving.label.nl },
 								perQuantity: macrosOf(
 									foodSnapshot(source, serving, 1).nutrients,
 								),
@@ -281,6 +313,7 @@ export const viewTools = [
 			]);
 			const result: FoodLogReviewResult = {
 				view: "food-log",
+				reviewId: crypto.randomUUID(),
 				date: day,
 				meal,
 				canLog: access.scopes.has(MCP_SCOPES.write),
@@ -310,14 +343,18 @@ export const viewTools = [
 				.describe(
 					"e1rm: Epley estimate of the best set; topSet: heaviest load",
 				),
+			timeZone: timeZoneInput,
 		},
-		async run({ exerciseId, range, metric }, { backend, now }) {
+		async run({ exerciseId, range, metric, timeZone }, { backend, now }) {
+			const zone = timeZone ?? "UTC";
 			const [exercises, history, volume, records] = await Promise.all([
 				allExercises(backend),
 				backend.query(api.exercises.getHistory, { exerciseId }),
 				backend.query(api.progress.weeklyVolume, {
 					exerciseId,
-					utcOffsetMinutes: 0,
+					// One offset for the whole history: a set within an hour of
+					// midnight on the other side of a DST change can land a week off.
+					utcOffsetMinutes: zoneOffsetMinutes(now().getTime(), zone),
 				}),
 				backend.query(api.oneRepMaxes.listForExercise, { exerciseId }),
 			]);
@@ -327,7 +364,7 @@ export const viewTools = [
 					"Exercise not found. Use an ID from list_exercises.",
 				);
 			const fromMs = now().getTime() - RANGE_DAYS[range] * DAY_MS;
-			const from = new Date(fromMs).toISOString().slice(0, 10);
+			const from = zoneDate(fromMs, zone);
 			const unit: LoadUnit =
 				history.at(-1)?.unit ?? records.at(-1)?.unit ?? "kg";
 			const sessions = new Map<
@@ -352,7 +389,7 @@ export const viewTools = [
 				)
 					continue;
 				sessions.set(set.sessionId, {
-					date: new Date(set.sessionDate).toISOString().slice(0, 10),
+					date: zoneDate(set.sessionDate, zone),
 					value,
 					weight,
 					reps: set.reps,
@@ -365,6 +402,7 @@ export const viewTools = [
 			const fromWeek = isoWeekKey(from);
 			const result: ExerciseProgressResult = {
 				view: "exercise-progress",
+				timeZone: zone,
 				exercise: { id: exerciseId, name: exercise.name },
 				range,
 				metric,
@@ -381,7 +419,7 @@ export const viewTools = [
 					.filter((record) => record.date >= fromMs)
 					.sort((a, b) => a.date - b.date)
 					.map((record) => ({
-						date: isoDate(record.date)?.slice(0, 10) ?? from,
+						date: zoneDate(record.date, zone),
 						value: record.value,
 						unit: record.unit,
 						source: record.source,

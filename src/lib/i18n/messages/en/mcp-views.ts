@@ -66,6 +66,9 @@ export const mcpViews = {
 			"Some items were not saved. Retry to log them; saved items are not logged twice.",
 		readOnly:
 			"This connection can only read Foundry, so log these in the app or reconnect with write access.",
+		quantityInvalid: "Enter an amount above 0, up to 10000.",
+		conflict:
+			"Foundry already has this item with another amount or serving, so it cannot be changed here. Put the original back to retry, or check your diary.",
 		nothingLeft: "No items left to log.",
 	},
 	progress: {

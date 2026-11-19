@@ -285,7 +285,7 @@ is on production.
   (Clerk → Webhooks → attempts), then rerun the backfill. Nothing was
   deleted or revoked.
 - Web Delete account says "Allow pop-ups for this site": the browser blocked
-  Apple's revocation popup, often in Safari when the Account page was opened
+  Apple's revocation popup, often in Safari when the Profile page was opened
   moments before. Allowing pop-ups or retrying once Apple JS has loaded fixes
   it; nothing was deleted.
 - Microsoft stops working everywhere: client secret expired; create a new one

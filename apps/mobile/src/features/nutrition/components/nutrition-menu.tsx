@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
 import {
-	ActionSheetIOS,
 	Platform,
 	Pressable,
 	ScrollView,
@@ -15,6 +14,7 @@ import {
 	modalAnimation,
 	useReduceMotion,
 } from "../../../feedback/reduce-motion";
+import { showActionSheet } from "../../../observability/native-presentation";
 import {
 	radius,
 	spacing,
@@ -58,7 +58,7 @@ export function NutritionMenu({
 	const reduceMotion = useReduceMotion();
 	function show() {
 		if (Platform.OS === "ios") {
-			ActionSheetIOS.showActionSheetWithOptions(
+			showActionSheet(
 				{
 					title: title ?? label,
 					options: [...actions.map((a) => a.label), closeLabel],

@@ -82,7 +82,7 @@ export const privacy = {
 			rights:
 				"Je hebt het recht je gegevens in te zien, te corrigeren, te verwijderen of te exporteren, de verwerking te beperken of er bezwaar tegen te maken, en je toestemming in te trekken.",
 			howTo:
-				"Via het Account-scherm in de mobiele app of de Account-pagina in de webapp kun je je gegevens exporteren, je gegevens verwijderen of je account verwijderen. Wil je je account per e-mail laten verwijderen, of heb je een ander verzoek, mail dan naar privacy@appelent.nl. We reageren binnen een maand.",
+				"Via het Account-scherm in de mobiele app of de Profiel-pagina in de webapp kun je je gegevens exporteren, je gegevens verwijderen of je account verwijderen. Wil je je account per e-mail laten verwijderen, of heb je een ander verzoek, mail dan naar privacy@appelent.nl. We reageren binnen een maand.",
 			complaint:
 				"Ben je niet tevreden over hoe we met je gegevens omgaan, dan kun je een klacht indienen bij de Autoriteit Persoonsgegevens of bij de toezichthouder in je eigen land.",
 		},

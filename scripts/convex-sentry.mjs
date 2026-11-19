@@ -170,7 +170,15 @@ async function main(args) {
 		console.log(`Forwarding Convex failures (${deployment}) to Sentry.`);
 		child = spawn(
 			"pnpm",
-			["exec", "convex", "logs", "--jsonl", "--history", String(HISTORY), ...args],
+			[
+				"exec",
+				"convex",
+				"logs",
+				"--jsonl",
+				"--history",
+				String(HISTORY),
+				...args,
+			],
 			{ stdio: ["ignore", "pipe", "pipe"] },
 		);
 		let producedOutput = false;

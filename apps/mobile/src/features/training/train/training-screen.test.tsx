@@ -10,7 +10,16 @@ import { getFunctionName } from "convex/server";
 import { fireEvent, screen } from "expo-router/testing-library";
 import * as TrainRoute from "../../../../app/(app)/(coach)/train";
 import * as RoutineRoute from "../../../../app/(app)/routine-editor";
+import {
+	PREFERENCE_KEYS,
+	removeLocal,
+	writeLocal,
+} from "../../../local-store/local-store";
 import { renderApp } from "../../../test-support/render-app";
+
+beforeEach(() => {
+	removeLocal(PREFERENCE_KEYS.locale);
+});
 
 const routine = { _id: "routine-1", name: "Push day", exercises: [] };
 
@@ -65,4 +74,48 @@ it("counts the exercise library in words, not as an object", async () => {
 	await renderApp("/train", { train: TrainRoute });
 	expect(await screen.findByText(/^\d+ exercises$/)).toBeTruthy();
 	expect(screen.queryByText(/\[object Object\]/)).toBeNull();
+});
+
+it("counts the exercise library in Dutch", async () => {
+	writeLocal(PREFERENCE_KEYS.locale, "nl");
+	jest.mocked(useQueries).mockImplementation(() => ({}));
+	await renderApp("/train", { train: TrainRoute });
+	expect(await screen.findByText(/^\d+ oefeningen$/)).toBeTruthy();
+	expect(screen.queryByText(/exercises/)).toBeNull();
+});
+
+function mockRoutines(exerciseCounts: number[]) {
+	const listed = exerciseCounts.map((count, index) => ({
+		_id: `routine-${index}`,
+		name: `Routine ${index}`,
+		exercises: Array.from({ length: count }, (_, position) => ({
+			exerciseId: `exercise-${position}`,
+			defaultSets: 3,
+		})),
+	}));
+	jest
+		.mocked(useQueries)
+		.mockImplementation((queries) =>
+			Object.fromEntries(
+				Object.entries(queries).map(([key, request]) => [
+					key,
+					getFunctionName(request.query) === "routines:list" ? listed : null,
+				]),
+			),
+		);
+}
+
+it("uses the singular for a routine with one exercise", async () => {
+	mockRoutines([1, 2]);
+	await renderApp("/train", { train: TrainRoute });
+	expect(await screen.findByText("1 exercise · 3 sets")).toBeTruthy();
+	expect(screen.getByText("2 exercises · 6 sets")).toBeTruthy();
+});
+
+it("uses the singular and plural in Dutch for routine exercise counts", async () => {
+	writeLocal(PREFERENCE_KEYS.locale, "nl");
+	mockRoutines([1, 2]);
+	await renderApp("/train", { train: TrainRoute });
+	expect(await screen.findByText("1 oefening · 3 sets")).toBeTruthy();
+	expect(screen.getByText("2 oefeningen · 6 sets")).toBeTruthy();
 });

@@ -300,6 +300,8 @@ export const strengthSessionEn = {
 			"From measured 1RM {value} kg. Pick a row and apply it to your set.",
 		fromManual:
 			"From manual 1RM {value} kg. Pick a row and apply it to your set.",
+		fromMeasuredView: "From measured 1RM {value} kg.",
+		fromManualView: "From manual 1RM {value} kg.",
 		none: "Percentages appear once you have a measured or manual 1RM.",
 		repsRow: { one: "1 rep", other: "{count} reps" },
 		customPercent: "Custom percentage",
@@ -795,6 +797,8 @@ export const strengthSessionNl: typeof strengthSessionEn = {
 			"Vanaf gemeten 1RM {value} kg. Kies een rij en pas die toe op je set.",
 		fromManual:
 			"Vanaf handmatige 1RM {value} kg. Kies een rij en pas die toe op je set.",
+		fromMeasuredView: "Vanaf gemeten 1RM {value} kg.",
+		fromManualView: "Vanaf handmatige 1RM {value} kg.",
 		none: "Percentages verschijnen zodra je een gemeten of handmatige 1RM hebt.",
 		repsRow: { one: "1 rep", other: "{count} reps" },
 		customPercent: "Eigen percentage",
