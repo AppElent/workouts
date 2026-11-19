@@ -5,9 +5,13 @@ import { localLandings } from "./local-env.mjs";
 
 function checkout(files) {
 	const root = mkdtempSync(join(tmpdir(), "local-env-"));
-	copyFileSync(new URL("../env.manifest.ts", import.meta.url), join(root, "env.manifest.ts"));
+	copyFileSync(
+		new URL("../env.manifest.ts", import.meta.url),
+		join(root, "env.manifest.ts"),
+	);
 	mkdirSync(join(root, "apps/mobile"), { recursive: true });
-	for (const [path, text] of Object.entries(files)) writeFileSync(join(root, path), text);
+	for (const [path, text] of Object.entries(files))
+		writeFileSync(join(root, path), text);
 	return root;
 }
 
@@ -15,10 +19,15 @@ describe("local env landings", () => {
 	it("reads one entry from every local env file the manifest writes", async () => {
 		const root = checkout({
 			".env.local": "VITE_CONVEX_URL=https://web.convex.cloud\n",
-			"apps/mobile/.env.local": "EXPO_PUBLIC_CONVEX_URL=https://app.convex.cloud\n",
+			"apps/mobile/.env.local":
+				"EXPO_PUBLIC_CONVEX_URL=https://app.convex.cloud\n",
 		});
 		expect(await localLandings(root, "convexUrl")).toEqual([
-			{ path: ".env.local", name: "VITE_CONVEX_URL", value: "https://web.convex.cloud" },
+			{
+				path: ".env.local",
+				name: "VITE_CONVEX_URL",
+				value: "https://web.convex.cloud",
+			},
 			{
 				path: "apps/mobile/.env.local",
 				name: "EXPO_PUBLIC_CONVEX_URL",

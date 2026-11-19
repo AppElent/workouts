@@ -3,7 +3,8 @@ import { executionErrorEvent, nextAttempt } from "./convex-sentry.mjs";
 const options = { deployment: "fine-akita-444", app: "foundry-convex" };
 const failure = {
 	kind: "Completion",
-	error: "Error: Scheduled job failed for a@b.nl\n    at handler (convex/jobs.ts:12:3)",
+	error:
+		"Error: Scheduled job failed for a@b.nl\n    at handler (convex/jobs.ts:12:3)",
 	identifier: "jobs:run",
 	udfType: "Mutation",
 	timestamp: 12345,
@@ -15,7 +16,9 @@ const failure = {
 
 it("forwards execution failures with the sanitized stack and structural tags only", () => {
 	const result = executionErrorEvent(failure, options);
-	expect(result.error.message).toBe("Error: Scheduled job failed for [Filtered]");
+	expect(result.error.message).toBe(
+		"Error: Scheduled job failed for [Filtered]",
+	);
 	expect(result.error.stack).toContain("convex/jobs.ts:12:3");
 	expect(result.tags).toEqual({
 		app: "foundry-convex",
@@ -55,11 +58,15 @@ it("reconnects with a capped, doubling backoff", () => {
 		delay: 5_000,
 		backoff: 10_000,
 	});
-	expect(nextAttempt({ failedStarts: 0, backoff: 60_000 }).backoff).toBe(60_000);
+	expect(nextAttempt({ failedStarts: 0, backoff: 60_000 }).backoff).toBe(
+		60_000,
+	);
 });
 
 it("stops on a Convex auth error and after repeated failed starts", () => {
-	expect(nextAttempt({ failedStarts: 1, backoff: 5_000, authError: true })).toEqual({
+	expect(
+		nextAttempt({ failedStarts: 1, backoff: 5_000, authError: true }),
+	).toEqual({
 		stop: "auth",
 	});
 	expect(nextAttempt({ failedStarts: 5, backoff: 5_000 })).toEqual({
