@@ -344,12 +344,20 @@ it("dates the claimed WOD Result at the original guest submit", async () => {
 
 it("claims a closed workout while another activity is in progress", async () => {
 	const { t, host, id, token } = await openWorkout();
-	await t.mutation(api.hostedWorkoutSubmissions.submitGuest, {
-		token,
-		guestName: "Sam",
-		guestKey: SAM_KEY,
-		...score(80),
-	});
+	const submission = await t.mutation(
+		api.hostedWorkoutSubmissions.submitGuest,
+		{
+			token,
+			guestName: "Sam",
+			guestKey: SAM_KEY,
+			...score(80),
+		},
+	);
+	// The claimed session starts at the score's time. Keep it apart from the
+	// active session's start: an equal start time reads as a retry of that one.
+	await t.run((ctx) =>
+		ctx.db.patch(submission, { submittedAt: Date.now() - 60_000 }),
+	);
 	await host.mutation(api.hostedWorkouts.close, { id });
 	const sam = t.withIdentity({ subject: "sam" });
 	const active = await sam.mutation(api.workoutSessions.create, {});
