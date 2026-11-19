@@ -25,7 +25,8 @@ describe("listRouteFiles", () => {
 		return root;
 	};
 	afterEach(() => {
-		for (const root of roots.splice(0)) fs.rmSync(root, { recursive: true, force: true });
+		for (const root of roots.splice(0))
+			fs.rmSync(root, { recursive: true, force: true });
 	});
 
 	it("skips web pathless layouts but keeps the screens under them", () => {
@@ -62,13 +63,39 @@ describe("listRouteFiles", () => {
 	});
 
 	it("checks a mobile screen whose name starts with an underscore", () => {
-		const root = tree(["_layout.tsx", "(app)/_layout.ios.tsx", "(app)/_foo.tsx", "(app)/_foo.native.tsx", "+not-found.tsx"]);
+		const root = tree([
+			"_layout.tsx",
+			"(app)/_layout.ios.tsx",
+			"(app)/_foo.tsx",
+			"(app)/_foo.native.tsx",
+			"+not-found.tsx",
+		]);
 		expect(listRouteFiles(root, "mobile")).toEqual(["(app)/_foo"]);
 	});
 
 	it("accepts every route extension, folds native variants, and skips mobile .web files", () => {
-		const root = tree(["a.ts", "b.tsx", "c.js", "d.jsx", "e.mjs", "f.css", "g.ios.tsx", "g.android.tsx", "g.tsx", "h.web.tsx"]);
-		expect(listRouteFiles(root, "web")).toEqual(["a", "b", "c", "d", "g", "g.android", "g.ios", "h.web"]);
+		const root = tree([
+			"a.ts",
+			"b.tsx",
+			"c.js",
+			"d.jsx",
+			"e.mjs",
+			"f.css",
+			"g.ios.tsx",
+			"g.android.tsx",
+			"g.tsx",
+			"h.web.tsx",
+		]);
+		expect(listRouteFiles(root, "web")).toEqual([
+			"a",
+			"b",
+			"c",
+			"d",
+			"g",
+			"g.android",
+			"g.ios",
+			"h.web",
+		]);
 		expect(listRouteFiles(root, "mobile")).toEqual(["a", "b", "c", "d", "g"]);
 	});
 });
@@ -88,22 +115,40 @@ describe("checkFeatureManifest", () => {
 	});
 
 	it("fails on an unlisted route", () => {
-		expect(checkFeatureManifest([feature], { ...routes, mobile: [...routes.mobile, "(app)/_foo"] })).toEqual([
+		expect(
+			checkFeatureManifest([feature], {
+				...routes,
+				mobile: [...routes.mobile, "(app)/_foo"],
+			}),
+		).toEqual([
 			'mobile route "(app)/_foo" belongs to no feature; add it to features.ts',
 		]);
 	});
 
 	it("fails on a stale pattern", () => {
-		const stale = { ...feature, routes: { ...feature.routes, web: ["privacy", "terms"] } };
-		expect(checkFeatureManifest([stale], routes)).toEqual(['privacy: web pattern "terms" matches no route']);
+		const stale = {
+			...feature,
+			routes: { ...feature.routes, web: ["privacy", "terms"] },
+		};
+		expect(checkFeatureManifest([stale], routes)).toEqual([
+			'privacy: web pattern "terms" matches no route',
+		]);
 	});
 
 	it("fails on a status that contradicts the platforms", () => {
-		const webOnly = { ...feature, platforms: ["web"], routes: { web: ["privacy"] } } as const;
+		const webOnly = {
+			...feature,
+			platforms: ["web"],
+			routes: { web: ["privacy"] },
+		} as const;
 		expect(checkFeatureManifest([webOnly], { ...routes, mobile: [] })).toEqual([
 			'privacy: status "parity" needs both platforms',
 		]);
-		const exclusive = { ...feature, status: "exclusive", reason: "web only" } as const;
+		const exclusive = {
+			...feature,
+			status: "exclusive",
+			reason: "web only",
+		} as const;
 		expect(checkFeatureManifest([exclusive], routes)).toContain(
 			'privacy: on both platforms, so status must be "parity"',
 		);

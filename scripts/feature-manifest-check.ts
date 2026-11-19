@@ -21,7 +21,10 @@ interface ManifestFeature {
 	readonly reason?: string;
 	readonly layout?: "responsive" | "large-screen";
 	readonly layoutReason?: string;
-	readonly routes: { readonly web?: readonly string[]; readonly mobile?: readonly string[] };
+	readonly routes: {
+		readonly web?: readonly string[];
+		readonly mobile?: readonly string[];
+	};
 }
 
 const PLATFORMS: readonly Platform[] = ["web", "mobile"];
@@ -47,7 +50,11 @@ const IGNORED: Readonly<Record<Platform, readonly RegExp[]>> = {
 		/(^|\/)-/, // TanStack Router ignores files and folders that start with "-"
 		/^__root$/, // only the root-level `__root` is the root route
 	],
-	mobile: [/\.web$/, /(^|\/)_layout$/, /(^|\/)\+(html|not-found|native-intent)$/],
+	mobile: [
+		/\.web$/,
+		/(^|\/)_layout$/,
+		/(^|\/)\+(html|not-found|native-intent)$/,
+	],
 };
 
 /**
@@ -78,9 +85,16 @@ export function listRouteFiles(
 				continue;
 			}
 			if (!ROUTE_EXTENSION.test(entry.name)) continue;
-			let route = path.relative(root, full).split(path.sep).join("/").replace(ROUTE_EXTENSION, "");
+			let route = path
+				.relative(root, full)
+				.split(path.sep)
+				.join("/")
+				.replace(ROUTE_EXTENSION, "");
 			if (ignore.some((pattern) => pattern.test(route))) continue;
-			route = route.replace(platform === "web" ? WEB_LAZY_SUFFIX : MOBILE_PLATFORM_SUFFIX, "");
+			route = route.replace(
+				platform === "web" ? WEB_LAZY_SUFFIX : MOBILE_PLATFORM_SUFFIX,
+				"",
+			);
 			if (ignore.some((pattern) => pattern.test(route))) continue;
 			if (platform === "web" && isWebPathlessLayout(route)) continue;
 			out.add(route);
@@ -122,36 +136,54 @@ export function checkFeatureManifest(
 
 		const both = PLATFORMS.every((platform) => platforms.includes(platform));
 		if (platforms.length === 0) problems.push(`${id}: lists no platform`);
-		if (status === "parity" && !both) problems.push(`${id}: status "parity" needs both platforms`);
-		if (status !== "parity" && both) problems.push(`${id}: on both platforms, so status must be "parity"`);
-		if (status !== "parity" && !feature.reason?.trim()) problems.push(`${id}: status "${status}" needs a reason`);
-		if (status === "exclusive" && kind !== "product" && !feature.reason?.includes("adr/")) {
-			problems.push(`${id}: a ${kind} feature cannot be exclusive without linking the parity ADR in its reason`);
+		if (status === "parity" && !both)
+			problems.push(`${id}: status "parity" needs both platforms`);
+		if (status !== "parity" && both)
+			problems.push(`${id}: on both platforms, so status must be "parity"`);
+		if (status !== "parity" && !feature.reason?.trim())
+			problems.push(`${id}: status "${status}" needs a reason`);
+		if (
+			status === "exclusive" &&
+			kind !== "product" &&
+			!feature.reason?.includes("adr/")
+		) {
+			problems.push(
+				`${id}: a ${kind} feature cannot be exclusive without linking the parity ADR in its reason`,
+			);
 		}
 		if (feature.layout === "large-screen" && !feature.layoutReason?.trim()) {
 			problems.push(`${id}: layout "large-screen" needs a layoutReason`);
 		}
-		if (feature.layout && !platforms.includes("web")) problems.push(`${id}: layout applies only to web features`);
+		if (feature.layout && !platforms.includes("web"))
+			problems.push(`${id}: layout applies only to web features`);
 
 		for (const platform of PLATFORMS) {
 			const patterns = feature.routes[platform] ?? [];
 			if (patterns.length > 0 && !platforms.includes(platform)) {
-				problems.push(`${id}: has ${platform} routes but does not list ${platform}`);
+				problems.push(
+					`${id}: has ${platform} routes but does not list ${platform}`,
+				);
 			}
 			for (const glob of patterns) {
 				const regex = routePattern(glob);
 				if (!routes[platform].some((route) => regex.test(route))) {
-					problems.push(`${id}: ${platform} pattern "${glob}" matches no route`);
+					problems.push(
+						`${id}: ${platform} pattern "${glob}" matches no route`,
+					);
 				}
 			}
 		}
 	}
 
 	for (const platform of PLATFORMS) {
-		const patterns = features.flatMap((feature) => (feature.routes[platform] ?? []).map(routePattern));
+		const patterns = features.flatMap((feature) =>
+			(feature.routes[platform] ?? []).map(routePattern),
+		);
 		for (const route of routes[platform]) {
 			if (!patterns.some((regex) => regex.test(route))) {
-				problems.push(`${platform} route "${route}" belongs to no feature; add it to features.ts`);
+				problems.push(
+					`${platform} route "${route}" belongs to no feature; add it to features.ts`,
+				);
 			}
 		}
 	}

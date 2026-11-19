@@ -13,7 +13,11 @@ import {
 	report,
 } from "./convex-drift.mjs";
 
-const commit = (sha, committedAt, subject = "change") => ({ sha, committedAt, subject });
+const commit = (sha, committedAt, subject = "change") => ({
+	sha,
+	committedAt,
+	subject,
+});
 
 describe("Convex drift", () => {
 	it("measures against the newest deployment that succeeded", () => {
@@ -22,15 +26,24 @@ describe("Convex drift", () => {
 			{ id: 2, sha: "b" }, // failed after an earlier attempt
 			{ id: 1, sha: "a" },
 		];
-		const states = { 3: ["in_progress"], 2: ["failure", "in_progress"], 1: ["success", "in_progress"] };
-		expect(lastSuccessfulDeployment(deployments, (id) => states[id])).toEqual({ id: 1, sha: "a" });
-		expect(lastSuccessfulDeployment([{ id: 3, sha: "c" }], (id) => states[id])).toBeUndefined();
+		const states = {
+			3: ["in_progress"],
+			2: ["failure", "in_progress"],
+			1: ["success", "in_progress"],
+		};
+		expect(lastSuccessfulDeployment(deployments, (id) => states[id])).toEqual({
+			id: 1,
+			sha: "a",
+		});
+		expect(
+			lastSuccessfulDeployment([{ id: 3, sha: "c" }], (id) => states[id]),
+		).toBeUndefined();
 	});
 
 	it("parses git log lines, keeping tabs in subjects", () => {
-		expect(parseCommits("abc\t2026-11-11T08:00:00+01:00\tfix: a\tb\n\n")).toEqual([
-			commit("abc", "2026-11-11T08:00:00+01:00", "fix: a\tb"),
-		]);
+		expect(
+			parseCommits("abc\t2026-11-11T08:00:00+01:00\tfix: a\tb\n\n"),
+		).toEqual([commit("abc", "2026-11-11T08:00:00+01:00", "fix: a\tb")]);
 	});
 
 	it("fails only once the oldest undeployed commit outlives the grace period", () => {
@@ -50,7 +63,13 @@ describe("Convex drift", () => {
 			status: "drift",
 			deployment: { sha: "d7310be79330", created_at: "2026-11-11T07:40:14Z" },
 			target: "origin/main",
-			commits: [commit("a669468d1234", "2026-11-11T12:00:00Z", "refactor: untangle (#194)")],
+			commits: [
+				commit(
+					"a669468d1234",
+					"2026-11-11T12:00:00Z",
+					"refactor: untangle (#194)",
+				),
+			],
 		});
 		expect(message).toContain("production Convex runs d7310be7");
 		expect(message).toContain("- a669468d refactor: untangle (#194)");
@@ -161,7 +180,16 @@ describe("Convex drift against git history", () => {
 
 describe("release guard", () => {
 	it("runs a source-map retry without checking and passes on its exit code", () => {
-		const exit = main(["--target", "HEAD", "--", "node", "-e", "process.exit(3)", "--", "--upload-only"]);
+		const exit = main([
+			"--target",
+			"HEAD",
+			"--",
+			"node",
+			"-e",
+			"process.exit(3)",
+			"--",
+			"--upload-only",
+		]);
 		expect(exit).toBe(3);
 	});
 
@@ -184,7 +212,11 @@ describe("release guard", () => {
 	});
 
 	it("skips the check only for source-map-only retries", () => {
-		expect(needsCheck(["node", "publish-update.mjs", "preview", "--message", "x"])).toBe(true);
-		expect(needsCheck(["node", "publish-update.mjs", "production", "--upload-only"])).toBe(false);
+		expect(
+			needsCheck(["node", "publish-update.mjs", "preview", "--message", "x"]),
+		).toBe(true);
+		expect(
+			needsCheck(["node", "publish-update.mjs", "production", "--upload-only"]),
+		).toBe(false);
 	});
 });
