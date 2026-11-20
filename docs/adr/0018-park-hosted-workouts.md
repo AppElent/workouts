@@ -1,7 +1,7 @@
 ---
 type: decision
 description: Read before showing, changing, or reviving Hosted Workouts, or before removing their code, Convex functions, or tables.
-version: 1.0.0
+version: 1.0.1
 status: accepted
 date: 2026-11-20
 ---
@@ -76,7 +76,9 @@ list, and leaderboard; each participant's training stays in their own history.
   leaves the server (ADR 0008).
 - **Deletion.** The host deleting a workout removes its Participants and
   Submissions; participants keep their own sessions and WOD Results. Removing a
-  leaderboard row keeps the athlete's WOD Result. Account deletion is in
+  leaderboard row keeps the athlete's WOD Result. Deleting an account deletes
+  every workout it hosts the same way, guests' scores included, and removes
+  its participation and scores from other hosts' workouts; see
   [`profile.md`](../contracts/profile.md).
 
 ## Where the code lives
@@ -91,8 +93,8 @@ list, and leaderboard; each participant's training stays in their own history.
 | Phone routes | `apps/mobile/app/(app)/hosted.tsx`, `hosted/[id].tsx`, `join/[token].tsx`, `app/+native-intent.tsx`, the pending join in `app/(app)/_layout.tsx` and `app/(auth)/_layout.tsx` |
 | Phone screens | `apps/mobile/src/features/training/hosted/*`, `apps/mobile/src/features/strength-session/components/hosted-session-panel.tsx`, the Training row in `features/training/train/training-screen.tsx` |
 | Phone link claim | `apps/mobile/app.config.ts` (associated domains), `public/.well-known/apple-app-site-association` |
-| Convex | `convex/hostedWorkouts.ts`, `convex/hostedWorkoutParticipants.ts`, `convex/hostedWorkoutSubmissions.ts`, `convex/lib/hosted.ts`, tables in `convex/schema.ts`, deletion in `convex/lib/personalData.ts` and `convex/account.ts` |
-| Tests | `convex/hostedWorkouts.test.ts`, `convex/hostedWorkoutSubmissions.test.ts`, `src/lib/auth/__tests__/joinRedirect.test.tsx`, `apps/mobile/src/features/training/hosted/*.test.ts(x)`; the switch: `src/components/hosted/HostedWorkoutsPaused.test.tsx`, `apps/mobile/src/features/training/hosted/hosted-paused.test.tsx`, `apps/mobile/src/features/training/train/training-screen.test.tsx` |
+| Convex | `convex/hostedWorkouts.ts`, `convex/hostedWorkoutParticipants.ts`, `convex/hostedWorkoutSubmissions.ts`, `convex/lib/hosted.ts`, tables in `convex/schema.ts`, account deletion in `convex/lib/hosted.ts` (`deleteHostedWorkoutData`) and `convex/account.ts` |
+| Tests | `convex/hostedWorkouts.test.ts`, `convex/hostedWorkoutSubmissions.test.ts`, `convex/account.hostedWorkouts.test.ts`, `src/lib/auth/__tests__/joinRedirect.test.tsx`, `apps/mobile/src/features/training/hosted/*.test.ts(x)`; the switch: `src/components/hosted/HostedWorkoutsPaused.test.tsx`, `apps/mobile/src/features/training/hosted/hosted-paused.test.tsx`, `apps/mobile/src/features/training/train/training-screen.test.tsx` |
 
 ## Turning it back on
 
@@ -113,7 +115,8 @@ list, and leaderboard; each participant's training stays in their own history.
 - The parked code keeps costing upkeep: its tests run, and dependency or schema
   changes must keep it compiling.
 - Existing hosted rows stay in the database and in data exports until the
-  feature returns or a later decision removes them.
+  feature returns or a later decision removes them, except that account
+  deletion removes a host's workouts and a participant's rows.
 
 ## Rejected
 
