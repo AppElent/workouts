@@ -77,6 +77,20 @@ async function seed() {
 			sessionId,
 			...score,
 		});
+	// The host also logged a set in their own session.
+	await t.run((ctx) =>
+		ctx.db.insert("sets", {
+			userId: "host",
+			sessionId: hostSession,
+			exerciseId: "back-squat",
+			setNumber: 1,
+			reps: 5,
+			weight: 100,
+			unit: "kg",
+			setType: "working",
+			loggedAt: 1,
+		}),
+	);
 	await t.mutation(api.hostedWorkoutSubmissions.submitGuest, {
 		token,
 		guestName: "Lee",
@@ -98,6 +112,7 @@ function snapshot(t: T) {
 			await ctx.db.query("hostedWorkoutSubmissions").collect()
 		).length,
 		workoutSessions: await ctx.db.query("workoutSessions").collect(),
+		sets: await ctx.db.query("sets").collect(),
 		wods: await ctx.db.query("wods").collect(),
 		wodResults: await ctx.db.query("wodResults").collect(),
 	}));
@@ -144,8 +159,10 @@ it("wipes everything over several batches, ends running sessions, and keeps pers
 		hostedWorkoutSubmissions: 3,
 		runningSessions: 3,
 	});
-	// Sessions, WODs, and WOD Results stay; running sessions end like a
+	// Sessions, sets, WODs, and WOD Results stay; running sessions end like a
 	// host delete ends them: scored ones complete, empty ones cancel.
+	expect(after.sets).toHaveLength(1);
+	expect(after.sets).toEqual(before.sets);
 	expect(after.wods).toEqual(before.wods);
 	expect(after.wodResults).toEqual(before.wodResults);
 	expect(after.wodResults).toHaveLength(2);

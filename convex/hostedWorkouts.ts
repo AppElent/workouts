@@ -329,7 +329,11 @@ const NO_WIPE_COUNTS: WipeCounts = {
  * then Participants (ending each one's running session the way deleting a
  * workout does), then the workouts, and schedules itself until all three
  * tables are empty. Participants keep their own sessions, sets, WODs, and WOD
- * Results. A repeat run finds nothing and stops. Logs counts only.
+ * Results. A repeat run finds nothing and stops. Logs counts only. Start a
+ * new run only after the previous one logged `done`.
+ *
+ * Retires with the hosted code: delete it when the Hosted Workout functions
+ * and tables are removed, or superseded by a revived feature (ADR 0018).
  */
 export const wipeAll = internalMutation({
 	args: {
