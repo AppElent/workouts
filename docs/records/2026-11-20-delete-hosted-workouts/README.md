@@ -17,7 +17,9 @@ Convex tests run in `convex-test`; no deployment was written to.
   rows unchanged); host purge (whole event, guest score included; a
   participant mid-event keeps their WODs and results, their session ends as
   completed and opens as an ordinary session); 3,500 guest submissions
-  deleted over several bounded calls; a repeat run changes nothing.
+  deleted over several bounded calls; a participant's scores leave an event
+  holding 3,000 guest submissions in bounded calls that leave the guests; a
+  repeat run changes nothing.
 - `convex/http.test.ts`: the Clerk `user.deleted` webhook leaves the same
   database as in-app deletion for an account that hosts one event and
   joined another.

@@ -161,14 +161,12 @@ export async function deleteHostedWorkoutData(
 		// Signed-in submissions (`submitForSession`, `claimGuestSubmissions`)
 		// carry the participant together with the account's WOD and result, so
 		// matching the participant also finds every row pointing at those.
-		const linked = (
-			await ctx.db
-				.query("hostedWorkoutSubmissions")
-				.withIndex("by_hosted_workout", (q) =>
-					q.eq("hostedWorkoutId", participant.hostedWorkoutId),
-				)
-				.collect()
-		).filter((row) => row.participantId === participant._id);
+		const linked = await ctx.db
+			.query("hostedWorkoutSubmissions")
+			.withIndex("by_participant", (q) =>
+				q.eq("participantId", participant._id),
+			)
+			.take(remaining + 1);
 		if (!(await deleteAll(linked))) return null;
 		if (!(await deleteAll([participant]))) return null;
 	}

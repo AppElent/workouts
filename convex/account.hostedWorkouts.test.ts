@@ -276,4 +276,51 @@ describe("account deletion with Hosted Workouts", () => {
 		).toBe(10);
 		expect(await counts(t)).toEqual(after);
 	});
+
+	it("removes a participant's scores from a crowded event in bounded batches", async () => {
+		const t = newTest();
+		const { id, token } = await openEvent(t, "carol");
+		await joinAndScore(t, "alice", token, 100);
+		await t.run(async (ctx) => {
+			const participant = await ctx.db
+				.query("hostedWorkoutParticipants")
+				.withIndex("by_user", (q) => q.eq("userId", "alice"))
+				.first();
+			if (!participant) throw new Error("alice joined nothing");
+			for (let index = 0; index < 3000; index++)
+				await ctx.db.insert("hostedWorkoutSubmissions", {
+					hostedWorkoutId: id,
+					guestName: `Guest ${index}`,
+					wodBlockId: "max",
+					level: "rx",
+					load: index,
+					loadUnit: "kg",
+					submittedAt: index,
+				});
+			for (let index = 0; index < 24; index++)
+				await ctx.db.insert("hostedWorkoutSubmissions", {
+					hostedWorkoutId: id,
+					participantId: participant._id,
+					wodBlockId: `extra-${index}`,
+					level: "rx",
+					load: index,
+					loadUnit: "kg",
+					submittedAt: index,
+				});
+		});
+
+		let calls = 0;
+		for (;;) {
+			calls += 1;
+			const left = await t.run((ctx) =>
+				deleteHostedWorkoutData(ctx, "alice", 10),
+			);
+			if (left !== null) break;
+		}
+
+		// 25 linked scores and the participant row, 10 per call.
+		expect(calls).toBe(3);
+		expect(await count(t, "hostedWorkoutParticipants")).toBe(0);
+		expect(await count(t, "hostedWorkoutSubmissions")).toBe(3000);
+	});
 });
