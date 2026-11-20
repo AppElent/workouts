@@ -4,6 +4,7 @@ import { convexTest } from "convex-test";
 import { describe, expect, it } from "vitest";
 import { api } from "./_generated/api";
 import type { TableNames } from "./_generated/dataModel";
+import type { MutationCtx } from "./_generated/server";
 import { deleteHostedWorkoutData } from "./lib/hosted";
 import schema from "./schema";
 
@@ -142,6 +143,33 @@ async function participantSession(t: Test, user: string) {
 	return participant.sessionId;
 }
 
+/** The `table.index` names `ctx` queries through, recorded into `used`. */
+function recordingIndexes(ctx: MutationCtx, used: string[]): MutationCtx {
+	const db = new Proxy(ctx.db, {
+		get(target, prop) {
+			if (prop !== "query") {
+				const value = Reflect.get(target, prop);
+				return typeof value === "function" ? value.bind(target) : value;
+			}
+			return (table: TableNames) => {
+				const query = target.query(table);
+				return new Proxy(query, {
+					get(inner, name) {
+						const value = Reflect.get(inner, name);
+						if (name === "withIndex")
+							return (index: string, ...rest: unknown[]) => {
+								used.push(`${table}.${index}`);
+								return value.call(inner, index, ...rest);
+							};
+						return typeof value === "function" ? value.bind(inner) : value;
+					},
+				});
+			};
+		},
+	});
+	return { ...ctx, db };
+}
+
 describe("account deletion with Hosted Workouts", () => {
 	it("no longer reports Hosted Workout involvement as a blocker", async () => {
 		const t = newTest();
@@ -277,7 +305,7 @@ describe("account deletion with Hosted Workouts", () => {
 		expect(await counts(t)).toEqual(after);
 	});
 
-	it("removes a participant's scores from a crowded event in bounded batches", async () => {
+	it("finds a participant's scores through their own index, never the event's whole board", async () => {
 		const t = newTest();
 		const { id, token } = await openEvent(t, "carol");
 		await joinAndScore(t, "alice", token, 100);
@@ -309,14 +337,24 @@ describe("account deletion with Hosted Workouts", () => {
 				});
 		});
 
+		const used: string[] = [];
 		let calls = 0;
 		for (;;) {
 			calls += 1;
 			const left = await t.run((ctx) =>
-				deleteHostedWorkoutData(ctx, "alice", 10),
+				deleteHostedWorkoutData(recordingIndexes(ctx, used), "alice", 10),
 			);
 			if (left !== null) break;
 		}
+
+		// Reading the board (3,000 guests) per call would not scale with events.
+		const submissionReads = used.filter((name) =>
+			name.startsWith("hostedWorkoutSubmissions."),
+		);
+		expect(submissionReads.length).toBeGreaterThan(0);
+		expect(new Set(submissionReads)).toEqual(
+			new Set(["hostedWorkoutSubmissions.by_participant"]),
+		);
 
 		// 25 linked scores and the participant row, 10 per call.
 		expect(calls).toBe(3);

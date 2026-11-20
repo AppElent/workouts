@@ -55,8 +55,9 @@ tap. Study: [profile](../../designs/app/profile_final.html).
     account's participation and its scores are deleted, so it leaves their
     leaderboards. Its scores are found through the participant
     (`hostedWorkoutSubmissions.by_participant`); every signed-in submission
-    carries the participant together with the account's WOD and WOD result. Other athletes keep their own sessions, WODs and WOD results;
-    a session whose event is gone opens as an ordinary session. The deletion
+    carries the participant together with the account's WOD and WOD result.
+    Other athletes keep their own sessions, WODs and WOD results; a session
+    whose event is gone opens as an ordinary session. The deletion
     copy names both. `deletionBlocker` no longer returns `hostedWorkout`; the
     code stays in the validator for installed apps. Test-data reset still
     refuses Hosted Workout involvement.
