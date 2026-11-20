@@ -2,9 +2,9 @@ export const account = {
 	deletionTitle: "Gegevens of account verwijderen",
 	deleteData: "Alleen Foundry-gegevens verwijderen",
 	deleteDataFooter:
-		"Verwijdert al je Foundry-trainingen, routines, hardloop- en fietsritten, lichaamsmetingen, voedingsmiddelen, combo's, dagboek, doelen en notities, inclusief voedselfoto's, en logt je hier uit. Je AppElent-login blijft, dus Gather, Fairway en Arcade Club blijven werken, en als je weer inlogt bij Foundry begin je opnieuw. Exporteer eerst je gegevens als je een kopie wilt.",
+		"Verwijdert al je Foundry-trainingen, routines, hardloop- en fietsritten, lichaamsmetingen, voedingsmiddelen, combo's, dagboek, doelen en notities, inclusief voedselfoto's, en logt je hier uit. Groepstrainingen die je organiseert worden voor alle deelnemers verwijderd, en je scores verdwijnen uit de groepstrainingen waaraan je meedeed. Je AppElent-login blijft, dus Gather, Fairway en Arcade Club blijven werken, en als je weer inlogt bij Foundry begin je opnieuw. Exporteer eerst je gegevens als je een kopie wilt.",
 	deleteDataConfirm:
-		"Al je Foundry-trainings- en voedingsgegevens, inclusief opgeslagen notities en voedselfoto's, worden definitief van elk toestel verwijderd en je wordt hier uitgelogd. Je AppElent-login blijft en werkt nog in Gather, Fairway en Arcade Club. Dit kan niet ongedaan worden gemaakt.",
+		"Al je Foundry-trainings- en voedingsgegevens, inclusief opgeslagen notities en voedselfoto's, worden definitief van elk toestel verwijderd en je wordt hier uitgelogd. Groepstrainingen die je organiseert worden voor alle deelnemers verwijderd, en je scores verdwijnen uit de groepstrainingen waaraan je meedeed. Je AppElent-login blijft en werkt nog in Gather, Fairway en Arcade Club. Dit kan niet ongedaan worden gemaakt.",
 	deleteAccount: "Mijn hele AppElent-account verwijderen",
 	deleteAccountFooter:
 		"Verwijdert je AppElent-login, de ene login voor Gather, Foundry, Fairway en Arcade Club, en je gegevens in alle vier de apps. Exporteer eerst je gegevens als je een kopie wilt.",

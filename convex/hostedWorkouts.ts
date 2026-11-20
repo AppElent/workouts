@@ -6,7 +6,11 @@ import { mutation, query } from "./_generated/server";
 import { requireUserId } from "./lib/auth";
 import { appError } from "./lib/errors";
 import { requireExercise } from "./lib/exerciseCatalog";
-import { joinHosted, toPublicHostedTemplate } from "./lib/hosted";
+import {
+	finishParticipantSession,
+	joinHosted,
+	toPublicHostedTemplate,
+} from "./lib/hosted";
 import {
 	hostedPrescriptions,
 	validatePrescriptions,
@@ -237,24 +241,8 @@ async function finishParticipantSessions(
 		)
 		.collect();
 	const now = Date.now();
-	for (const participant of participants) {
-		const session = await ctx.db.get(participant.sessionId);
-		if (session?.status !== "active") continue;
-		const [set, wod] = await Promise.all([
-			ctx.db
-				.query("sets")
-				.withIndex("by_session", (q) => q.eq("sessionId", session._id))
-				.first(),
-			ctx.db
-				.query("wodResults")
-				.withIndex("by_session", (q) => q.eq("sessionId", session._id))
-				.first(),
-		]);
-		await ctx.db.patch(session._id, {
-			status: set || wod ? "completed" : "cancelled",
-			endTime: now,
-		});
-	}
+	for (const participant of participants)
+		await finishParticipantSession(ctx, participant, now);
 }
 
 export const close = mutation({

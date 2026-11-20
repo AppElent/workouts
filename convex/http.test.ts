@@ -4,7 +4,7 @@ import { convexTest } from "convex-test";
 import { Webhook } from "svix";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { api } from "./_generated/api";
-import type { TableNames } from "./_generated/dataModel";
+import type { Id, TableNames } from "./_generated/dataModel";
 import { loadTestDataBaseline } from "./lib/testDataBaseline";
 import schema from "./schema";
 
@@ -32,6 +32,75 @@ async function seeded() {
 				displayOrder: [],
 			});
 		}
+	});
+	return t;
+}
+
+/**
+ * `seeded`, plus Alice hosting an open event Bob is still in and a guest
+ * scored on, and Alice and Bob both scored in Carol's closed event. Join
+ * tokens are fixed so two deployments compare equal.
+ */
+async function withHostedWorkouts() {
+	const t = await seeded();
+	const events: Record<string, Id<"hostedWorkouts">> = {};
+	for (const host of ["alice", "carol"]) {
+		const as = t.withIdentity({ subject: host });
+		const id = await as.mutation(api.hostedWorkouts.createDraft, {
+			title: `${host}'s lift`,
+			hostParticipation: "hostOnly",
+			template: {
+				strengthBlocks: [],
+				wodBlocks: [
+					{
+						blockId: "max",
+						name: "Max clean",
+						type: "load",
+						levels: HOSTED_LEVELS.map((level) => ({
+							level,
+							label: level,
+							movements: [{ name: "Clean" }],
+						})),
+					},
+				],
+			},
+		});
+		await t.run((ctx) => ctx.db.patch(id, { joinToken: `${host}-token` }));
+		await as.mutation(api.hostedWorkouts.open, { id });
+		events[host] = id;
+	}
+	const score = {
+		wodBlockId: "max",
+		level: "rx" as const,
+		loadUnit: "kg" as const,
+	};
+	for (const [user, token, load] of [
+		["alice", "carol-token", 100],
+		["bob", "carol-token", 90],
+	] as const) {
+		const as = t.withIdentity({ subject: user });
+		const sessionId = await as.mutation(api.hostedWorkoutParticipants.join, {
+			token,
+		});
+		await as.mutation(api.hostedWorkoutSubmissions.submitForSession, {
+			sessionId,
+			...score,
+			load,
+		});
+	}
+	await t
+		.withIdentity({ subject: "carol" })
+		.mutation(api.hostedWorkouts.close, { id: events.carol });
+	const bob = t.withIdentity({ subject: "bob" });
+	await bob.mutation(api.hostedWorkoutParticipants.join, {
+		token: "alice-token",
+	});
+	await t.mutation(api.hostedWorkoutSubmissions.submitGuest, {
+		token: "alice-token",
+		guestName: "Sam",
+		guestKey: "guest-key-sam-one-0001",
+		...score,
+		load: 70,
 	});
 	return t;
 }
@@ -200,35 +269,30 @@ describe("POST /clerk/webhook purge", () => {
 		expect(await rowsOf(t, "alice")).toEqual([]);
 	});
 
-	it("keeps data that a Hosted Workout shares with other accounts", async () => {
-		const t = await seeded();
-		await t
-			.withIdentity({ subject: "alice" })
-			.mutation(api.hostedWorkouts.createDraft, {
-				title: "Friday lift",
-				hostParticipation: "hostOnly",
-				template: {
-					strengthBlocks: [],
-					wodBlocks: [
-						{
-							blockId: "max",
-							name: "Max clean",
-							type: "load",
-							levels: HOSTED_LEVELS.map((level) => ({
-								level,
-								label: level,
-								movements: [{ name: "Clean" }],
-							})),
-						},
-					],
-				},
-			});
-		const before = await snapshot(t);
-		const error = vi.spyOn(console, "error").mockImplementation(() => {});
+	it("deletes Hosted Workouts exactly as in-app deletion does", async () => {
+		vi.useFakeTimers({ toFake: ["Date"], now: new Date("2026-11-19T10:00Z") });
+		const inApp = await withHostedWorkouts();
+		const alice = inApp.withIdentity({ subject: "alice" });
+		while (
+			!(
+				await alice.mutation(api.account.deleteData, {
+					expectedSubject: "alice",
+				})
+			).done
+		);
+
+		const webhook = await withHostedWorkouts();
 		const body = event("user.deleted");
-		expect((await post(t, body, signed(body))).status).toBe(200);
-		expect(await snapshot(t)).toEqual(before);
-		expect(error).toHaveBeenCalled();
+		expect((await post(webhook, body, signed(body))).status).toBe(200);
+
+		const after = await snapshot(webhook);
+		expect(after).toEqual(await snapshot(inApp));
+		expect(await rowsOf(webhook, "alice")).toEqual([]);
+		// Alice's own event is gone with its guest; Carol's keeps Bob only.
+		expect(after.hostedWorkouts).toHaveLength(1);
+		expect(after.hostedWorkoutParticipants).toHaveLength(1);
+		expect(after.hostedWorkoutSubmissions).toHaveLength(1);
+		expect(after.hostedWorkoutSubmissions[0]).not.toContain("guestName");
 	});
 
 	it("continues a large account in scheduled batches", async () => {
