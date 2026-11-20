@@ -36,6 +36,8 @@
 			"!**/src/routeTree.gen.ts",
 			"!designs",
 			"!apps/mobile/expo-env.d.ts",
+			"!apps/mobile/src/observability/ota-label.js",
+			"!apps/mobile/scripts/ota-label.mjs",
 			"!apps/mobile/ios",
 			"!apps/mobile/android",
 			"!**/src/styles.css",

@@ -1,6 +1,12 @@
 import { fireEvent, screen } from "expo-router/testing-library";
 import { renderApp } from "../../test-support/render-app";
 
+jest.mock("expo-updates", () => ({
+	...jest.requireActual("expo-updates"),
+	isEnabled: true,
+	isEmbeddedLaunch: true,
+	channel: "preview",
+}));
 const mockSignOut = jest.fn();
 jest.mock("@clerk/expo", () => ({
 	useAuth: () => ({
@@ -22,6 +28,7 @@ it("shows the signed-in identity without placeholder totals, and always confirms
 	await renderApp("/profile");
 	expect(await screen.findByText("Alex Athlete")).toBeTruthy();
 	expect(screen.getByText("alex@example.test")).toBeTruthy();
+	expect(screen.getByText(/^Version .*no update · preview$/)).toBeTruthy();
 	expect(screen.queryByText("142")).toBeNull();
 	expect(screen.queryByText("—")).toBeNull();
 	await fireEvent.press(screen.getByRole("button", { name: "Sign out" }));
