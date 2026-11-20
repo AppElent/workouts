@@ -9,7 +9,10 @@
 import { type ReactNode, type Ref, useEffect } from "react";
 import {
 	AccessibilityInfo,
+	KeyboardAvoidingView,
+	Platform,
 	Pressable,
+	ScrollView,
 	StyleSheet,
 	TextInput,
 	type TextInputInstance,
@@ -42,17 +45,27 @@ export function AuthScreen({
 	const styles = useThemedStyles(createStyles);
 	return (
 		<Screen>
-			<View style={styles.root}>
-				<View style={styles.brand}>
-					<View style={styles.mark} />
-					<AppText variant="display" accessibilityRole="header">
-						{title}
-					</AppText>
-					{subtitle ? <AppText variant="caption">{subtitle}</AppText> : null}
-				</View>
-				{children}
-				{footer ? <View style={styles.footer}>{footer}</View> : null}
-			</View>
+			<KeyboardAvoidingView
+				behavior={Platform.OS === "ios" ? "padding" : "height"}
+				style={styles.flex}
+			>
+				<ScrollView
+					keyboardShouldPersistTaps="handled"
+					keyboardDismissMode="interactive"
+					showsVerticalScrollIndicator={false}
+					contentContainerStyle={styles.content}
+				>
+					<View style={styles.brand}>
+						<View style={styles.mark} />
+						<AppText variant="display" accessibilityRole="header">
+							{title}
+						</AppText>
+						{subtitle ? <AppText variant="caption">{subtitle}</AppText> : null}
+					</View>
+					{children}
+					{footer ? <View style={styles.footer}>{footer}</View> : null}
+				</ScrollView>
+			</KeyboardAvoidingView>
 		</Screen>
 	);
 }
@@ -154,10 +167,13 @@ export function AuthLink({
 
 const createStyles = (colors: Tokens) =>
 	StyleSheet.create({
-		root: {
-			flex: 1,
+		flex: { flex: 1 },
+		// Centered while it fits; scrolls once the keyboard leaves less room.
+		content: {
+			flexGrow: 1,
 			justifyContent: "center",
 			paddingHorizontal: spacing.lg,
+			paddingVertical: spacing.md,
 			gap: spacing.sm,
 		},
 		brand: { gap: spacing.xs, marginBottom: spacing.lg },
