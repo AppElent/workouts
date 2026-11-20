@@ -323,4 +323,58 @@ describe("account deletion with Hosted Workouts", () => {
 		expect(await count(t, "hostedWorkoutParticipants")).toBe(0);
 		expect(await count(t, "hostedWorkoutSubmissions")).toBe(3000);
 	});
+
+	it("deletes a regular's participation in many busy events over several calls", async () => {
+		const t = newTest();
+		const { id, token } = await openEvent(t, "carol");
+		await joinAndScore(t, "alice", token, 100);
+		await t
+			.withIdentity({ subject: "carol" })
+			.mutation(api.hostedWorkouts.close, { id });
+		// 1,100 more closed events, each with Alice's score and five guests'.
+		await t.run(async (ctx) => {
+			const template = await ctx.db.get(id);
+			const first = await ctx.db
+				.query("hostedWorkoutParticipants")
+				.withIndex("by_user", (q) => q.eq("userId", "alice"))
+				.first();
+			if (!template || !first) throw new Error("setup failed");
+			const { _id, _creationTime, ...event } = template;
+			for (let day = 0; day < 1100; day++) {
+				const hostedWorkoutId = await ctx.db.insert("hostedWorkouts", {
+					...event,
+					joinToken: `day-${day}`,
+				});
+				const participantId = await ctx.db.insert("hostedWorkoutParticipants", {
+					hostedWorkoutId,
+					userId: "alice",
+					sessionId: first.sessionId,
+					joinedAt: day,
+				});
+				const row = {
+					hostedWorkoutId,
+					wodBlockId: "max",
+					level: "rx" as const,
+					load: day,
+					loadUnit: "kg" as const,
+					submittedAt: day,
+				};
+				await ctx.db.insert("hostedWorkoutSubmissions", {
+					...row,
+					participantId,
+				});
+				for (let guest = 0; guest < 5; guest++)
+					await ctx.db.insert("hostedWorkoutSubmissions", {
+						...row,
+						guestName: `Guest ${guest}`,
+					});
+			}
+		});
+
+		expect(await deleteInApp(t, "alice")).toBeGreaterThan(1);
+		expect(await rowsOf(t, "alice")).toEqual([]);
+		expect(await count(t, "hostedWorkouts")).toBe(1101);
+		expect(await count(t, "hostedWorkoutParticipants")).toBe(0);
+		expect(await count(t, "hostedWorkoutSubmissions")).toBe(5500);
+	});
 });
