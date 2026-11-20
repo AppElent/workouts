@@ -43,6 +43,7 @@ const EMAIL = { strategy: "email_code", safeIdentifier: "s***@example.test" };
 
 beforeEach(() => {
 	jest.resetAllMocks();
+	mockSignIn.status = "needs_second_factor";
 	mockSignIn.supportedSecondFactors = [BACKUP, TOTP];
 	for (const fn of Object.values(mockMfa)) fn.mockResolvedValue(ok);
 	mockSignIn.finalize.mockResolvedValue(ok);
@@ -244,4 +245,31 @@ it("has no method when the account offers none this app supports", async () => {
 	expect(result.current.strategy).toBeNull();
 	await act(() => result.current.verify("123456"));
 	expect(mockSignIn.finalize).not.toHaveBeenCalled();
+});
+
+it("retries only finalize() after it failed on a verified code", async () => {
+	mockSignIn.finalize.mockResolvedValueOnce({
+		error: { code: "network_error" },
+	});
+	mockMfa.verifyTOTP.mockImplementation(async () => {
+		mockSignIn.status = "complete";
+		return ok;
+	});
+	const { result } = await mount();
+	await act(() => result.current.verify("123456"));
+	expect(result.current.error).toMatch(/network error/i);
+	await act(() => result.current.verify("123456"));
+	expect(mockMfa.verifyTOTP).toHaveBeenCalledTimes(1);
+	expect(mockSignIn.finalize).toHaveBeenCalledTimes(2);
+});
+
+it("keeps the methods it opened with after the attempt is dropped", async () => {
+	const { result, rerender } = await mount();
+	mockSignIn.supportedSecondFactors = [];
+	await act(() => result.current.cancel());
+	await rerender({});
+	expect(result.current.options.map((o) => o.strategy)).toEqual([
+		"totp",
+		"backup_code",
+	]);
 });

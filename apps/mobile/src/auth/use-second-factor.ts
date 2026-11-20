@@ -16,7 +16,7 @@
  */
 import { useSignIn } from "@clerk/expo";
 import { useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	endsAttempt,
 	type SecondFactorStrategy,
@@ -53,9 +53,9 @@ export function useSecondFactor({
 	const { signIn, errors } = useSignIn();
 	const flow = useClerkFlow(errors);
 	const { run, fail, clear } = flow;
-	const options = useMemo(
-		() => secondFactorOptions(signIn.supportedSecondFactors),
-		[signIn.supportedSecondFactors],
+	// Fixed at mount: `cancel` empties the attempt before the screen leaves.
+	const [options] = useState(() =>
+		secondFactorOptions(signIn.supportedSecondFactors),
 	);
 	const [strategy, setStrategy] = useState<SecondFactorStrategy | null>(
 		() => options[0]?.strategy ?? null,
@@ -69,10 +69,10 @@ export function useSecondFactor({
 			setSending(true);
 			clear();
 			try {
-				const sent = await sendSecondFactorCode(signIn, next);
-				if (sent.error) {
-					if (endsAttempt(sent.error)) setEnded(true);
-					fail(sent.error);
+				const result = await sendSecondFactorCode(signIn, next);
+				if (result.error) {
+					if (endsAttempt(result.error)) setEnded(true);
+					fail(result.error);
 					return false;
 				}
 				return true;
@@ -119,6 +119,11 @@ export function useSecondFactor({
 	const verify = useCallback(
 		async (code: string) => {
 			if (!strategy || sending || ended) return;
+			// A verified factor whose `finalize()` failed only needs the retry.
+			if (signIn.status === "complete") {
+				await run(() => signIn.finalize());
+				return;
+			}
 			const verified = await run(async () => {
 				const result = await verifySecondFactor(signIn, strategy, code.trim());
 				if (result.error && endsAttempt(result.error)) setEnded(true);
