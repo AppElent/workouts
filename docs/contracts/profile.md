@@ -103,4 +103,5 @@ invented figures or simulated success.
 
 ## Acceptance
 
-Evidence: [app redesign](../records/2026-10-07-app-redesign/README.md).
+Evidence: [app redesign](../records/2026-10-07-app-redesign/README.md);
+Hosted Workout deletion: [APP-408](../records/2026-11-20-delete-hosted-workouts/README.md).

@@ -215,7 +215,7 @@ describe("account deletion with Hosted Workouts", () => {
 		expect(await board(t, other.token)).toEqual([
 			{ athleteName: "bob", load: 95 },
 		]);
-		// Bob keeps his WODs and results; his session ended with the event,
+		// Bob keeps their WODs and results; the session ended with the event,
 		// completed because he scored, and opens as an ordinary session.
 		expect(
 			await t.run(async (ctx) => ({
