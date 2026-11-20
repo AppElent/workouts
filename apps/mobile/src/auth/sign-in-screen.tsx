@@ -120,9 +120,9 @@ export function SignInScreen() {
 					title={deletion.accountDeleted}
 					detail={
 						notice.apple === "revoked"
-							? `${deletion.accountDeletedDetail} ${deletion.appleRevoked}`
+							? deletion.accountDeletedAppleRevokedDetail
 							: notice.apple === "notRevoked"
-								? `${deletion.accountDeletedDetail} ${deletion.appleNotRevoked}`
+								? deletion.accountDeletedAppleNotRevokedDetail
 								: deletion.accountDeletedDetail
 					}
 				/>

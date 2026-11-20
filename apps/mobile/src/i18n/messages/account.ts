@@ -68,9 +68,10 @@ export const accountEn = {
 			"Then open Profile, Account and choose Delete my whole AppElent account.",
 		signInToFinish:
 			"Your data was deleted, but the account was not, because your sign-in is no longer recent. Sign out, sign in again and choose Delete my whole AppElent account to finish.",
-		appleRevoked: "Foundry no longer uses Sign in with Apple for you.",
-		appleNotRevoked:
-			"Foundry could not stop Sign in with Apple for you. To stop it yourself, go to account.apple.com, open Sign in with Apple, choose Foundry and stop using it.",
+		accountDeletedAppleRevokedDetail:
+			"Your login is gone, and with it your data in Gather, Foundry, Fairway and Arcade Club. Foundry no longer uses Sign in with Apple for you.",
+		accountDeletedAppleNotRevokedDetail:
+			"Your login is gone, and with it your data in Gather, Foundry, Fairway and Arcade Club. Foundry could not stop Sign in with Apple for you. To stop it yourself, go to account.apple.com, open Sign in with Apple, choose Foundry and stop using it.",
 		refusals: {
 			activeActivity:
 				"Finish or cancel the running Activity before deleting your data.",
@@ -154,9 +155,10 @@ export const accountNl: typeof accountEn = {
 			"Open daarna Profiel, Account en kies Mijn hele AppElent-account verwijderen.",
 		signInToFinish:
 			"Je gegevens zijn verwijderd, maar het account niet, omdat je niet meer kort geleden bent ingelogd. Log uit, log opnieuw in en kies Mijn hele AppElent-account verwijderen om het af te ronden.",
-		appleRevoked: "Foundry gebruikt Log in met Apple niet meer voor jou.",
-		appleNotRevoked:
-			"Foundry kon Log in met Apple voor jou niet stoppen. Stop het zelf: ga naar account.apple.com, open Log in met Apple, kies Foundry en stop het gebruik.",
+		accountDeletedAppleRevokedDetail:
+			"Je login is weg, en daarmee je gegevens in Gather, Foundry, Fairway en Arcade Club. Foundry gebruikt Log in met Apple niet meer voor jou.",
+		accountDeletedAppleNotRevokedDetail:
+			"Je login is weg, en daarmee je gegevens in Gather, Foundry, Fairway en Arcade Club. Foundry kon Log in met Apple voor jou niet stoppen. Stop het zelf: ga naar account.apple.com, open Log in met Apple, kies Foundry en stop het gebruik.",
 		refusals: {
 			activeActivity:
 				"Rond de actieve activiteit af of annuleer deze voordat je je gegevens verwijdert.",

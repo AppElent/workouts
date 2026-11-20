@@ -64,9 +64,9 @@ export function useDataDeletedNotice(
 			toast.success(
 				d.accountDeleted,
 				deleted === "accountAppleRevoked"
-					? `${d.accountDeletedDetail} ${d.appleRevoked}`
+					? d.accountDeletedAppleRevokedDetail
 					: deleted === "accountAppleNotRevoked"
-						? `${d.accountDeletedDetail} ${d.appleNotRevoked}`
+						? d.accountDeletedAppleNotRevokedDetail
 						: d.accountDeletedDetail,
 				// The steps to stop Sign in with Apple stay until dismissed.
 				{ persist: deleted === "accountAppleNotRevoked" },

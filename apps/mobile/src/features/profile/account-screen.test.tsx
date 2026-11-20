@@ -312,6 +312,10 @@ describe("the recent sign-in Clerk needs to delete the account", () => {
 		).toBeTruthy();
 		expect(deleteData).not.toHaveBeenCalled();
 		expect(screen.queryByRole("button", { name: "Sign in again" })).toBeNull();
+		expect(reportError).toHaveBeenCalledWith(
+			expect.any(Error),
+			"account.checkRecentSignIn",
+		);
 	});
 
 	it("says to sign in again to finish when Clerk still refuses after the data is gone", async () => {

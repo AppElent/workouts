@@ -10,6 +10,7 @@ import { api } from "../../convex/api";
 import { useOnline } from "../../convex/online";
 import { useQuery } from "../../convex/query-cache";
 import { useI18n } from "../../i18n";
+import { reportError } from "../../observability/errors";
 import * as ImagePicker from "../../observability/native-presentation";
 import { spacing, useTokens } from "../../theme";
 import { useConfirm } from "../../ui/confirm-dialog";
@@ -150,7 +151,8 @@ export function AccountScreen() {
 			if (!(await recentSignIn())) return;
 			const apple = await revokeAppleSignIn(user, convex);
 			if (apple === "cancelled") return;
-			// The Apple sheet can outlast the window; check again.
+			// The Apple sheet can outlast the window; check again. A failed
+			// revoke after the sheet is notRevoked too, so only notLinked skips.
 			if (apple !== "notLinked" && !(await recentSignIn())) return;
 			deleteAccountData(mode, apple);
 		} finally {
@@ -163,7 +165,8 @@ export function AccountScreen() {
 		try {
 			if (await hasRecentSignIn(clerk)) return true;
 			setSignInNeeded(true);
-		} catch {
+		} catch (error) {
+			reportError(error, "account.checkRecentSignIn");
 			toast.error(c.deletion.signInCheckError);
 		}
 		return false;

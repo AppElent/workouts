@@ -28,9 +28,10 @@ export const account = {
 		accountDeleted: "Your AppElent account was deleted.",
 		accountDeletedDetail:
 			"Your login is gone, and with it your data in Gather, Foundry, Fairway and Arcade Club.",
-		appleRevoked: "Foundry no longer uses Sign in with Apple for you.",
-		appleNotRevoked:
-			"Foundry could not stop Sign in with Apple for you. To stop it yourself, go to account.apple.com, open Sign in with Apple, choose Foundry and stop using it.",
+		accountDeletedAppleRevokedDetail:
+			"Your login is gone, and with it your data in Gather, Foundry, Fairway and Arcade Club. Foundry no longer uses Sign in with Apple for you.",
+		accountDeletedAppleNotRevokedDetail:
+			"Your login is gone, and with it your data in Gather, Foundry, Fairway and Arcade Club. Foundry could not stop Sign in with Apple for you. To stop it yourself, go to account.apple.com, open Sign in with Apple, choose Foundry and stop using it.",
 		signOutError:
 			"Your Foundry data was deleted, but you could not be signed out. Sign out from the menu.",
 		error:
