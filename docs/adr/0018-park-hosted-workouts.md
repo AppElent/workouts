@@ -1,7 +1,7 @@
 ---
 type: decision
 description: Read before showing, changing, or reviving Hosted Workouts, or before removing their code, Convex functions, or tables.
-version: 1.0.0
+version: 1.1.0
 status: accepted
 date: 2026-11-20
 ---
@@ -32,8 +32,16 @@ While it is off:
   panel. Only JavaScript changed, so this ships as an OTA update; the
   associated domains and the `apple-app-site-association` file still claim
   `/join/*`.
-- **Backend:** Convex functions, schema, and data are unchanged. Account
-  deletion handles existing hosted data as `profile.md` describes (APP-408).
+- **Backend:** Convex functions and schema are unchanged. Account deletion
+  handles hosted data as `profile.md` describes (APP-408).
+- **Data:** Eric chose on 20 Nov 2026 to wipe every existing Hosted Workout,
+  Participant, and Submission (APP-452). The internal mutation
+  `hostedWorkouts.wipeAll` does it in bounded, self-scheduling batches; a
+  dry run (`{"dryRun": true}`) only counts. It ends participants' running
+  sessions the way deleting a workout does, and everyone keeps their own
+  sessions, WODs, and WOD Results. Wiped on production on: _pending, filled
+  in after the run_; the counts before and after are on APP-452. This
+  cannot be undone.
 - **Code and tests:** all hosted components, screens, Convex functions, and
   their tests stay and keep running. The feature manifest still lists the
   hosted routes because the route files remain.
@@ -91,10 +99,13 @@ list, and leaderboard; each participant's training stays in their own history.
 | Phone routes | `apps/mobile/app/(app)/hosted.tsx`, `hosted/[id].tsx`, `join/[token].tsx`, `app/+native-intent.tsx`, the pending join in `app/(app)/_layout.tsx` and `app/(auth)/_layout.tsx` |
 | Phone screens | `apps/mobile/src/features/training/hosted/*`, `apps/mobile/src/features/strength-session/components/hosted-session-panel.tsx`, the Training row in `features/training/train/training-screen.tsx` |
 | Phone link claim | `apps/mobile/app.config.ts` (associated domains), `public/.well-known/apple-app-site-association` |
-| Convex | `convex/hostedWorkouts.ts`, `convex/hostedWorkoutParticipants.ts`, `convex/hostedWorkoutSubmissions.ts`, `convex/lib/hosted.ts`, tables in `convex/schema.ts`, deletion in `convex/lib/personalData.ts` and `convex/account.ts` |
-| Tests | `convex/hostedWorkouts.test.ts`, `convex/hostedWorkoutSubmissions.test.ts`, `src/lib/auth/__tests__/joinRedirect.test.tsx`, `apps/mobile/src/features/training/hosted/*.test.ts(x)`; the switch: `src/components/hosted/HostedWorkoutsPaused.test.tsx`, `apps/mobile/src/features/training/hosted/hosted-paused.test.tsx`, `apps/mobile/src/features/training/train/training-screen.test.tsx` |
+| Convex | `convex/hostedWorkouts.ts` (with the `wipeAll` wipe), `convex/hostedWorkoutParticipants.ts`, `convex/hostedWorkoutSubmissions.ts`, `convex/lib/hosted.ts`, tables in `convex/schema.ts`, deletion in `convex/lib/personalData.ts` and `convex/account.ts` |
+| Tests | `convex/hostedWorkouts.test.ts`, `convex/hostedWorkouts.wipe.test.ts`, `convex/hostedWorkoutSubmissions.test.ts`, `src/lib/auth/__tests__/joinRedirect.test.tsx`, `apps/mobile/src/features/training/hosted/*.test.ts(x)`; the switch: `src/components/hosted/HostedWorkoutsPaused.test.tsx`, `apps/mobile/src/features/training/hosted/hosted-paused.test.tsx`, `apps/mobile/src/features/training/train/training-screen.test.tsx` |
 
 ## Turning it back on
+
+The feature comes back with empty hosted tables: nothing from before the
+APP-452 wipe returns.
 
 1. Set `HOSTED_WORKOUTS_ENABLED` to `true` in `packages/core/src/features.ts`.
 2. Update the switch tests to expect the feature (the three files in the
@@ -112,8 +123,10 @@ list, and leaderboard; each participant's training stays in their own history.
 - One constant flips the feature on both clients without a store build.
 - The parked code keeps costing upkeep: its tests run, and dependency or schema
   changes must keep it compiling.
-- Existing hosted rows stay in the database and in data exports until the
-  feature returns or a later decision removes them.
+- Existing hosted rows are wiped (APP-452), so reviving the feature starts
+  with empty tables. Rows that installed builds older than the parking OTA
+  create after the wipe stay until another `wipeAll` run removes
+  them.
 
 ## Rejected
 
