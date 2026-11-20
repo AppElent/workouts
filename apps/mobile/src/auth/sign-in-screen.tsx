@@ -110,10 +110,21 @@ export function SignInScreen() {
 					title={deletion.dataDeleted}
 					detail={deletion.dataDeletedDetail}
 				/>
-			) : notice === "accountDeleted" ? (
+			) : notice === "signInToDelete" ? (
+				<AuthNotice
+					title={deletion.signInToDelete}
+					detail={deletion.signInToDeleteDetail}
+				/>
+			) : notice?.kind === "accountDeleted" ? (
 				<AuthNotice
 					title={deletion.accountDeleted}
-					detail={deletion.accountDeletedDetail}
+					detail={
+						notice.apple === "revoked"
+							? `${deletion.accountDeletedDetail} ${deletion.appleRevoked}`
+							: notice.apple === "notRevoked"
+								? `${deletion.accountDeletedDetail} ${deletion.appleNotRevoked}`
+								: deletion.accountDeletedDetail
+					}
 				/>
 			) : null}
 			<AuthInput

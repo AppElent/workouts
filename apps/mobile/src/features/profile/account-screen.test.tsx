@@ -31,6 +31,10 @@ const mockUser = {
 	setProfileImage: jest.fn().mockResolvedValue(undefined),
 };
 const mockSignOut = jest.fn();
+const mockSession = {
+	reload: jest.fn(),
+	checkAuthorization: jest.fn(),
+};
 let mockUserLoaded = true;
 const mockCurrentUser = () => (mockUserLoaded ? mockUser : undefined);
 jest.mock("@clerk/expo", () => ({
@@ -41,6 +45,7 @@ jest.mock("@clerk/expo", () => ({
 		signOut: mockSignOut,
 	}),
 	useUser: () => ({ user: mockCurrentUser() }),
+	useClerk: () => ({ session: mockSession }),
 }));
 
 const mockPush = jest.fn();
@@ -74,6 +79,8 @@ beforeEach(() => {
 	jest.clearAllMocks();
 	clearSignedOutNotice();
 	mockSignOut.mockResolvedValue(undefined);
+	mockSession.reload.mockResolvedValue(undefined);
+	mockSession.checkAuthorization.mockReturnValue(true);
 	blocker = null;
 	action.mockResolvedValue(null);
 	jest.mocked(useConvex).mockReturnValue({
@@ -198,7 +205,10 @@ it("deletes the Clerk account only after the data is gone", async () => {
 	await renderAccount();
 	await confirmAction("Delete my whole AppElent account");
 	await waitFor(() => expect(mockUser.delete).toHaveBeenCalled());
-	expect(signedOutNotice()).toBe("accountDeleted");
+	expect(signedOutNotice()).toEqual({
+		kind: "accountDeleted",
+		apple: "notLinked",
+	});
 	expect(mockSignOut).not.toHaveBeenCalled();
 	expect(deleteData).toHaveBeenCalledTimes(2);
 	expect(deleteData.mock.invocationCallOrder[1]).toBeLessThan(
@@ -230,6 +240,95 @@ it("leaves no confirmation when there is no Clerk user to delete", async () => {
 	expect(signedOutNotice()).toBeNull();
 });
 
+describe("the recent sign-in Clerk needs to delete the account", () => {
+	it("checks a freshly reloaded sign-in before deleting anything", async () => {
+		await renderAccount();
+		await confirmAction("Delete my whole AppElent account");
+		await waitFor(() => expect(mockUser.delete).toHaveBeenCalled());
+		expect(mockSession.checkAuthorization).toHaveBeenCalledWith({
+			reverification: { level: "second_factor", afterMinutes: 5 },
+		});
+		expect(mockSession.reload.mock.invocationCallOrder[0]).toBeLessThan(
+			mockSession.checkAuthorization.mock.invocationCallOrder[0],
+		);
+		expect(
+			mockSession.checkAuthorization.mock.invocationCallOrder[0],
+		).toBeLessThan(deleteData.mock.invocationCallOrder[0]);
+	});
+
+	it("deletes nothing and offers to sign in again when the sign-in is old", async () => {
+		mockSession.checkAuthorization.mockReturnValue(false);
+		await renderAccount();
+		await confirmAction("Delete my whole AppElent account");
+		expect(
+			await screen.findByText(
+				"Deleting your account needs a recent sign-in. Nothing was deleted. Sign in again, then choose Delete my whole AppElent account.",
+			),
+		).toBeTruthy();
+		expect(deleteData).not.toHaveBeenCalled();
+		expect(mockUser.delete).not.toHaveBeenCalled();
+		expect(mockSignOut).not.toHaveBeenCalled();
+
+		await fireEvent.press(
+			screen.getByRole("button", { name: "Sign in again" }),
+		);
+		await waitFor(() => expect(mockSignOut).toHaveBeenCalledTimes(1));
+		// The sign-in screen says to come back and delete again.
+		expect(signedOutNotice()).toBe("signInToDelete");
+		expect(deleteData).not.toHaveBeenCalled();
+	});
+
+	it("keeps the login and the notice off when signing out to sign in again fails", async () => {
+		mockSession.checkAuthorization.mockReturnValue(false);
+		mockSignOut.mockRejectedValue(new Error("network"));
+		await renderAccount();
+		await confirmAction("Delete my whole AppElent account");
+		await fireEvent.press(
+			await screen.findByRole("button", { name: "Sign in again" }),
+		);
+		expect(
+			await screen.findByText("Could not sign out. Please try again."),
+		).toBeTruthy();
+		expect(signedOutNotice()).toBeNull();
+	});
+
+	it("does not check the sign-in for Foundry data only, which keeps the login", async () => {
+		mockSession.checkAuthorization.mockReturnValue(false);
+		await renderAccount();
+		await confirmAction("Delete Foundry data only");
+		await waitFor(() => expect(mockSignOut).toHaveBeenCalled());
+		expect(mockSession.checkAuthorization).not.toHaveBeenCalled();
+		expect(deleteData).toHaveBeenCalled();
+	});
+
+	it("deletes nothing when the sign-in cannot be checked", async () => {
+		mockSession.reload.mockRejectedValue(new Error("offline"));
+		await renderAccount();
+		await confirmAction("Delete my whole AppElent account");
+		expect(
+			await screen.findByText(
+				"Your sign-in could not be checked. Nothing was deleted. Reconnect and try again.",
+			),
+		).toBeTruthy();
+		expect(deleteData).not.toHaveBeenCalled();
+		expect(screen.queryByRole("button", { name: "Sign in again" })).toBeNull();
+	});
+
+	it("says to sign in again to finish when Clerk still refuses after the data is gone", async () => {
+		mockUser.delete.mockRejectedValueOnce({
+			errors: [{ code: "session_reverification_required" }],
+		});
+		await renderAccount();
+		await confirmAction("Delete my whole AppElent account");
+		expect(
+			await screen.findByText(
+				"Your data was deleted, but the account was not, because your sign-in is no longer recent. Sign out, sign in again and choose Delete my whole AppElent account to finish.",
+			),
+		).toBeTruthy();
+		expect(signedOutNotice()).toBeNull();
+	});
+});
+
 describe("an account that signs in with Apple on iOS", () => {
 	beforeEach(() => {
 		Platform.OS = "ios";
@@ -246,7 +345,10 @@ describe("an account that signs in with Apple on iOS", () => {
 		await renderAccount();
 		await confirmAction("Delete my whole AppElent account");
 		await waitFor(() => expect(mockUser.delete).toHaveBeenCalled());
-		expect(signedOutNotice()).toBe("accountDeleted");
+		expect(signedOutNotice()).toEqual({
+			kind: "accountDeleted",
+			apple: "revoked",
+		});
 		expect(getFunctionName(action.mock.calls[0][0])).toBe(
 			"account:revokeAppleSignIn",
 		);
@@ -285,7 +387,10 @@ describe("an account that signs in with Apple on iOS", () => {
 		await renderAccount();
 		await confirmAction("Delete my whole AppElent account");
 		await waitFor(() => expect(mockUser.delete).toHaveBeenCalled());
-		expect(signedOutNotice()).toBe("accountDeleted");
+		expect(signedOutNotice()).toEqual({
+			kind: "accountDeleted",
+			apple: "notRevoked",
+		});
 		expect(reportError).toHaveBeenCalledWith(
 			expect.any(Error),
 			"account.revokeAppleSignIn",
@@ -301,13 +406,54 @@ describe("an account that signs in with Apple on iOS", () => {
 		await renderAccount();
 		await confirmAction("Delete my whole AppElent account");
 		await waitFor(() => expect(mockUser.delete).toHaveBeenCalled());
-		expect(signedOutNotice()).toBe("accountDeleted");
+		expect(signedOutNotice()).toEqual({
+			kind: "accountDeleted",
+			apple: "notRevoked",
+		});
 		expect(action).not.toHaveBeenCalled();
 		expect(reportError).toHaveBeenCalledWith(
 			expect.any(Error),
 			"account.revokeAppleSignIn",
 		);
 		expect(mockUser.delete).toHaveBeenCalled();
+	});
+
+	it("checks the sign-in again after the Apple sheet, before deleting", async () => {
+		jest.mocked(AppleAuthentication.signInAsync).mockResolvedValue({
+			user: "apple-alex",
+			authorizationCode: "apple-code",
+		} as AppleAuthentication.AppleAuthenticationCredential);
+		mockSession.checkAuthorization
+			.mockReturnValueOnce(true)
+			.mockReturnValueOnce(false);
+		await renderAccount();
+		await confirmAction("Delete my whole AppElent account");
+		expect(
+			await screen.findByRole("button", { name: "Sign in again" }),
+		).toBeTruthy();
+		expect(mockSession.checkAuthorization).toHaveBeenCalledTimes(2);
+		expect(deleteData).not.toHaveBeenCalled();
+		expect(mockUser.delete).not.toHaveBeenCalled();
+	});
+
+	it("never opens the Apple sheet when the sign-in is old", async () => {
+		mockSession.checkAuthorization.mockReturnValue(false);
+		await renderAccount();
+		await confirmAction("Delete my whole AppElent account");
+		await screen.findByRole("button", { name: "Sign in again" });
+		expect(AppleAuthentication.signInAsync).not.toHaveBeenCalled();
+	});
+
+	it("tells the person the grant was not revoked on Android", async () => {
+		Platform.OS = "android";
+		await renderAccount();
+		await confirmAction("Delete my whole AppElent account");
+		await waitFor(() => expect(mockUser.delete).toHaveBeenCalled());
+		expect(AppleAuthentication.signInAsync).not.toHaveBeenCalled();
+		expect(signedOutNotice()).toEqual({
+			kind: "accountDeleted",
+			apple: "notRevoked",
+		});
 	});
 
 	it("does not ask Apple when only the data is deleted", async () => {

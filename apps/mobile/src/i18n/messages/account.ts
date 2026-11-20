@@ -58,6 +58,19 @@ export const accountEn = {
 		retryCleanup: "Retry device cleanup",
 		accountError:
 			"Your data was deleted, but the account could not be deleted. Try Delete my whole AppElent account again.",
+		signInCheckError:
+			"Your sign-in could not be checked. Nothing was deleted. Reconnect and try again.",
+		signInFirst:
+			"Deleting your account needs a recent sign-in. Nothing was deleted. Sign in again, then choose Delete my whole AppElent account.",
+		signInAgain: "Sign in again",
+		signInToDelete: "Sign in to continue deleting your account",
+		signInToDeleteDetail:
+			"Then open Profile, Account and choose Delete my whole AppElent account.",
+		signInToFinish:
+			"Your data was deleted, but the account was not, because your sign-in is no longer recent. Sign out, sign in again and choose Delete my whole AppElent account to finish.",
+		appleRevoked: "Foundry no longer uses Sign in with Apple for you.",
+		appleNotRevoked:
+			"Foundry could not stop Sign in with Apple for you. To stop it yourself, go to account.apple.com, open Sign in with Apple, choose Foundry and stop using it.",
 		refusals: {
 			activeActivity:
 				"Finish or cancel the running Activity before deleting your data.",
@@ -130,6 +143,20 @@ export const accountNl: typeof accountEn = {
 		retryCleanup: "Toestel opnieuw opschonen",
 		accountError:
 			"Je gegevens zijn verwijderd, maar het account kon niet worden verwijderd. Probeer Mijn hele AppElent-account verwijderen opnieuw.",
+		signInCheckError:
+			"Je login kon niet worden gecontroleerd. Er is niets verwijderd. Maak opnieuw verbinding en probeer het nogmaals.",
+		signInFirst:
+			"Voor het verwijderen van je account moet je kort geleden zijn ingelogd. Er is niets verwijderd. Log opnieuw in en kies daarna Mijn hele AppElent-account verwijderen.",
+		signInAgain: "Opnieuw inloggen",
+		signInToDelete:
+			"Log in om verder te gaan met het verwijderen van je account",
+		signInToDeleteDetail:
+			"Open daarna Profiel, Account en kies Mijn hele AppElent-account verwijderen.",
+		signInToFinish:
+			"Je gegevens zijn verwijderd, maar het account niet, omdat je niet meer kort geleden bent ingelogd. Log uit, log opnieuw in en kies Mijn hele AppElent-account verwijderen om het af te ronden.",
+		appleRevoked: "Foundry gebruikt Log in met Apple niet meer voor jou.",
+		appleNotRevoked:
+			"Foundry kon Log in met Apple voor jou niet stoppen. Stop het zelf: ga naar account.apple.com, open Log in met Apple, kies Foundry en stop het gebruik.",
 		refusals: {
 			activeActivity:
 				"Rond de actieve activiteit af of annuleer deze voordat je je gegevens verwijdert.",

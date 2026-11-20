@@ -37,6 +37,7 @@ const mocks = vi.hoisted(() => ({
 	// Another tab signs in to another account while the session reloads.
 	switchOnReload: false,
 	checkAuthorization: vi.fn(),
+	forgetGuestKey: vi.fn(),
 }));
 
 type Fetcher = (...args: unknown[]) => Promise<unknown>;
@@ -102,6 +103,9 @@ vi.mock("@clerk/react/errors", () => ({
 vi.mock("@tanstack/react-router", () => ({
 	useNavigate: () => mocks.navigate,
 }));
+vi.mock("#/components/hosted/guestKey", () => ({
+	forgetGuestKey: mocks.forgetGuestKey,
+}));
 vi.mock("#/lib/auth/appleRevocation", () => ({
 	revokeAppleSignIn: mocks.revokeApple,
 	preloadAppleJs: () => {},
@@ -123,7 +127,7 @@ beforeEach(() => {
 	mocks.switchOnReload = false;
 	mocks.checkAuthorization.mockImplementation(() => mocks.recentSignIn);
 	mocks.deleteData.mockResolvedValue({ done: true });
-	mocks.revokeApple.mockResolvedValue("continue");
+	mocks.revokeApple.mockResolvedValue("notLinked");
 	mocks.deleteUser.mockResolvedValue(undefined);
 	mocks.signOut.mockResolvedValue(undefined);
 });
@@ -290,6 +294,7 @@ it("revokes Apple, deletes data, deletes the account, then leaves for the start"
 	await waitFor(() =>
 		expect(mocks.navigate).toHaveBeenCalledWith({
 			to: "/",
+			search: { deleted: "account" },
 			replace: true,
 			reloadDocument: true,
 		}),
@@ -577,7 +582,7 @@ it("checks the sign-in again after Apple's step and deletes nothing when that is
 		// The 10-minute window runs out while Apple's window is open.
 		mocks.recentSignIn = false;
 		mocks.verifies = false;
-		return "continue";
+		return "revoked";
 	});
 	setup();
 	fireEvent.click(button("Delete my whole AppElent account"));
@@ -602,7 +607,7 @@ it("says the sign-in failed after Apple's step when the sign-in stays old", asyn
 	mocks.verifyRefreshes = false;
 	mocks.revokeApple.mockImplementation(async () => {
 		mocks.recentSignIn = false;
-		return "continue";
+		return "revoked";
 	});
 	setup();
 	fireEvent.click(button("Delete my whole AppElent account"));
@@ -645,4 +650,49 @@ it("asks for a sign-in within half of Clerk's window, so it can't lapse mid-dele
 	expect(mocks.checkAuthorization).toHaveBeenCalledWith({
 		reverification: { level: "second_factor", afterMinutes: 5 },
 	});
+});
+
+it.each([
+	["revoked", "accountAppleRevoked"],
+	["notRevoked", "accountAppleNotRevoked"],
+] as const)(
+	"lands on the start saying how Apple ended (%s)",
+	async (apple, deleted) => {
+		mocks.revokeApple.mockResolvedValue(apple);
+		setup();
+		fireEvent.click(button("Delete my whole AppElent account"));
+		fireEvent.click(
+			dialog().getByRole("button", {
+				name: "Delete my whole AppElent account",
+			}),
+		);
+		await waitFor(() =>
+			expect(mocks.navigate).toHaveBeenCalledWith(
+				expect.objectContaining({ search: { deleted } }),
+			),
+		);
+	},
+);
+
+it("forgets this browser's guest key once the account is deleted", async () => {
+	setup();
+	fireEvent.click(button("Delete my whole AppElent account"));
+	fireEvent.click(
+		dialog().getByRole("button", { name: "Delete my whole AppElent account" }),
+	);
+	await waitFor(() => expect(mocks.navigate).toHaveBeenCalled());
+	expect(mocks.forgetGuestKey).toHaveBeenCalledOnce();
+	expect(mocks.deleteUser.mock.invocationCallOrder[0]).toBeLessThan(
+		mocks.forgetGuestKey.mock.invocationCallOrder[0],
+	);
+});
+
+it("keeps the guest key when only the Foundry data is deleted", async () => {
+	setup();
+	fireEvent.click(button("Delete Foundry data only"));
+	fireEvent.click(
+		dialog().getByRole("button", { name: "Delete Foundry data only" }),
+	);
+	await waitFor(() => expect(mocks.signOut).toHaveBeenCalled());
+	expect(mocks.forgetGuestKey).not.toHaveBeenCalled();
 });

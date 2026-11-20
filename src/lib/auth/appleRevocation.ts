@@ -23,6 +23,13 @@ type AppleLinkedUser = {
 	externalAccounts: readonly { provider: string; providerUserId: string }[];
 };
 
+/**
+ * How Sign in with Apple ended for the account being deleted: not linked,
+ * revoked, or linked but not revoked (an origin Apple doesn't know, or a
+ * failure). The confirmation after deletion tells the person which.
+ */
+export type AppleRevocation = "notLinked" | "revoked" | "notRevoked";
+
 export type RevokeAppleSignIn = (args: {
 	authorizationCode: string;
 	bundleId: string;
@@ -117,6 +124,9 @@ function popupError(error: unknown) {
  * Apple shows the popup only for a return URL registered on the Services ID.
  * From any other origin (local, previews, until production is registered) the
  * grant is not revoked, as on Android.
+ *
+ * The result says whether the grant went, so the confirmation can tell the
+ * person; `cancelled` and `popupBlocked` stop the deletion.
  */
 export async function revokeAppleSignIn(
 	user: AppleLinkedUser,
@@ -127,14 +137,15 @@ export async function revokeAppleSignIn(
 		returnUrls?: readonly string[];
 		loadApple?: () => Promise<AppleIdAuth>;
 	} = {},
-): Promise<"continue" | "cancelled" | "popupBlocked"> {
+): Promise<AppleRevocation | "cancelled" | "popupBlocked"> {
+	const linked = appleUserIds(user);
+	if (linked.length === 0) return "notLinked";
 	const redirectUri = appleRevocationReturnUrl(
 		user,
 		options.origin,
 		options.returnUrls,
 	);
-	if (!redirectUri) return "continue";
-	const linked = appleUserIds(user);
+	if (!redirectUri) return "notRevoked";
 	try {
 		const apple = await (
 			options.loadApple ?? (() => loadAppleJs(options.locale ?? "en"))
@@ -160,12 +171,13 @@ export async function revokeAppleSignIn(
 			bundleId: APPLE_WEB_SERVICES_ID,
 			redirectUri,
 		});
+		return "revoked";
 	} catch (error) {
 		const code = popupError(error);
 		if (code === "popup_closed_by_user" || code === "user_cancelled_authorize")
 			return "cancelled";
 		if (code === "popup_blocked_by_browser") return "popupBlocked";
 		reportError(error, "account.revokeAppleSignIn");
+		return "notRevoked";
 	}
-	return "continue";
 }
