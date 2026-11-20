@@ -1,4 +1,13 @@
 export const account = {
+	export: {
+		title: "Je gegevens exporteren",
+		footer:
+			"Download een volledige back-up als JSON, of je setgeschiedenis als spreadsheet.",
+		setsCsv: "Sets als CSV",
+		fullJson: "Alles als JSON",
+		error:
+			"De export kon niet worden gemaakt. Maak opnieuw verbinding en probeer het nogmaals.",
+	},
 	deletionTitle: "Gegevens of account verwijderen",
 	deleteData: "Alleen Foundry-gegevens verwijderen",
 	deleteDataFooter:

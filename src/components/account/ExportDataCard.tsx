@@ -5,8 +5,10 @@ import { useConvex } from "convex/react";
 import { format } from "date-fns";
 import { Download, FileJson, FileSpreadsheet } from "lucide-react";
 import { useState } from "react";
+import { Button } from "#/components/ui/button";
 import { useConvexErrorMessage } from "#/lib/convexError";
 import { useExercises } from "#/lib/exercises";
+import { useI18n } from "#/lib/i18n";
 
 function download(filename: string, content: string, type: string) {
 	const blob = new Blob([content], { type });
@@ -69,15 +71,22 @@ function setsToCsv(
 	return [header.join(","), ...rows].join("\n");
 }
 
+type Kind = "json" | "csv";
+
 export function ExportDataCard() {
 	const convex = useConvex();
 	const exercises = useExercises();
 	const errorMessage = useConvexErrorMessage();
-	const [busy, setBusy] = useState(false);
+	const {
+		messages: {
+			account: { export: c },
+		},
+	} = useI18n();
+	const [busy, setBusy] = useState<Kind | null>(null);
 	const [error, setError] = useState<string | null>(null);
 
-	async function run(kind: "json" | "csv") {
-		setBusy(true);
+	async function run(kind: Kind) {
+		setBusy(kind);
 		setError(null);
 		try {
 			const tables = await collectExportTables((cursor) =>
@@ -101,9 +110,9 @@ export function ExportDataCard() {
 				);
 			}
 		} catch (e) {
-			setError(errorMessage(e, "Export failed."));
+			setError(errorMessage(e, c.error));
 		} finally {
-			setBusy(false);
+			setBusy(null);
 		}
 	}
 
@@ -111,32 +120,36 @@ export function ExportDataCard() {
 		<div className="rounded-xl bg-surface border border-border p-4 sm:p-5">
 			<div className="flex items-center gap-2 mb-1">
 				<Download size={16} className="text-accent-ink" />
-				<h2 className="text-sm font-semibold text-text">Export your data</h2>
+				<h2 className="text-sm font-semibold text-text">{c.title}</h2>
 			</div>
-			<p className="text-xs text-text-muted mb-4">
-				Download a full backup as JSON, or your set history as a spreadsheet.
-			</p>
+			<p className="text-xs text-text-muted mb-4">{c.footer}</p>
 			<div className="flex flex-col sm:flex-row gap-2">
-				<button
-					type="button"
+				<Button
+					variant="outline"
+					className="flex-1 h-11 font-semibold"
 					onClick={() => void run("csv")}
-					disabled={busy}
-					className="flex-1 h-11 rounded-lg bg-surface-2 border border-border text-sm font-semibold text-text flex items-center justify-center gap-2 hover:border-accent-ink/40 transition-colors disabled:opacity-40"
+					disabled={busy !== null}
+					loading={busy === "csv"}
 				>
-					<FileSpreadsheet size={15} />
-					Sets CSV
-				</button>
-				<button
-					type="button"
+					{busy !== "csv" && <FileSpreadsheet aria-hidden="true" />}
+					{c.setsCsv}
+				</Button>
+				<Button
+					variant="outline"
+					className="flex-1 h-11 font-semibold"
 					onClick={() => void run("json")}
-					disabled={busy}
-					className="flex-1 h-11 rounded-lg bg-surface-2 border border-border text-sm font-semibold text-text flex items-center justify-center gap-2 hover:border-accent-ink/40 transition-colors disabled:opacity-40"
+					disabled={busy !== null}
+					loading={busy === "json"}
 				>
-					<FileJson size={15} />
-					Full JSON
-				</button>
+					{busy !== "json" && <FileJson aria-hidden="true" />}
+					{c.fullJson}
+				</Button>
 			</div>
-			{error && <p className="text-xs text-danger mt-3">{error}</p>}
+			{error && (
+				<p role="alert" className="text-xs text-danger mt-3">
+					{error}
+				</p>
+			)}
 		</div>
 	);
 }
