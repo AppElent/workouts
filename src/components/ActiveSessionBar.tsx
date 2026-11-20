@@ -1,13 +1,12 @@
-import { api } from "@convex/_generated/api";
 import { formatClock } from "@foundry/core";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
 import { Dumbbell } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useMessages } from "#/lib/i18n";
+import { useActiveSession } from "./useActiveSession";
 
 export function ActiveSessionBar() {
-	const activeSession = useQuery(api.workoutSessions.getActive);
+	const activeSession = useActiveSession();
 	const { location } = useRouterState();
 	const [elapsed, setElapsed] = useState("");
 	const { shell } = useMessages();

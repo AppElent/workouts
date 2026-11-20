@@ -41,6 +41,10 @@ export const hostedEn = {
 	submitError: "Could not submit your score.",
 	submit: "Submit score",
 	submitting: "Submitting…",
+	pausedTitle: "Hosted workouts are paused",
+	pausedBody:
+		"Hosting and joining group workouts is switched off for now. Your own sessions, WODs, and scores are not affected.",
+	pausedAction: "Go to Train",
 };
 
 export const hostedNl: typeof hostedEn = {
@@ -86,4 +90,8 @@ export const hostedNl: typeof hostedEn = {
 	submitError: "Kon je score niet indienen.",
 	submit: "Score indienen",
 	submitting: "Indienen…",
+	pausedTitle: "Groepstrainingen staan op pauze",
+	pausedBody:
+		"Groepstrainingen hosten en eraan meedoen kan voorlopig niet. Je eigen trainingen, WODs en scores blijven gewoon staan.",
+	pausedAction: "Naar Trainen",
 };
