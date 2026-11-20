@@ -1,6 +1,12 @@
 import type { hosted as hostedEn } from "../en/hosted";
 
 export const hosted: typeof hostedEn = {
+	paused: {
+		title: "Groepstrainingen staan op pauze",
+		description:
+			"Groepstrainingen hosten en eraan meedoen kan voorlopig niet. Je eigen trainingen, WODs en scores blijven gewoon staan.",
+		home: "Naar Foundry",
+	},
 	claim: {
 		title: { one: "Bewaar je gastscore", other: "Bewaar je gastscores" },
 		signedIn: {

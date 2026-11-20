@@ -1,4 +1,5 @@
 import { formatClock } from "@foundry/core";
+import { HOSTED_WORKOUTS_ENABLED } from "@foundry/core/features";
 /** The live strength session: one table per exercise, one tap to log. */
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -547,12 +548,14 @@ export function StrengthSessionScreen() {
 									</AppText>
 								</Pressable>
 							) : null}
-							<HostedSessionPanel
-								sessionId={sessionId}
-								busy={false}
-								writable={writable}
-								write={(action) => sessions.run(sessionId, action)}
-							/>
+							{HOSTED_WORKOUTS_ENABLED ? (
+								<HostedSessionPanel
+									sessionId={sessionId}
+									busy={false}
+									writable={writable}
+									write={(action) => sessions.run(sessionId, action)}
+								/>
+							) : null}
 						</ScrollView>
 						{plan.order.length === 0 && wods === 0 ? (
 							<View
