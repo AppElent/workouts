@@ -1,16 +1,20 @@
-import { useConvexConnectionState } from "convex/react";
 import { useMessages } from "#/lib/i18n";
+import { useStalledOffline } from "#/lib/stalledOffline";
 
+/**
+ * Sits in the layout flow so it reserves its own row instead of covering the
+ * page. No dismiss button: it disappears when the condition does.
+ */
 export function OfflineBanner() {
-	const { isWebSocketConnected } = useConvexConnectionState();
 	const { shell } = useMessages();
-	if (isWebSocketConnected) return null;
+	if (!useStalledOffline()) return null;
 
 	return (
-		<div className="fixed top-0 inset-x-0 z-50 bg-surface">
-			<div className="flex items-center justify-center py-2 px-4 bg-warn-soft border-b border-warn-border">
-				<p className="text-xs text-warn font-medium">{shell.offline.message}</p>
-			</div>
+		<div
+			role="status"
+			className="flex shrink-0 items-center justify-center border-b border-warn-border bg-warn-soft px-4 py-2"
+		>
+			<p className="text-xs font-medium text-warn">{shell.offline.message}</p>
 		</div>
 	);
 }
