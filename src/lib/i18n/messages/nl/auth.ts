@@ -82,6 +82,14 @@ export const auth = {
 	ssoCallback: {
 		title: "Je wordt ingelogd…",
 	},
+	session: {
+		checking: "Je inlog wordt gecontroleerd…",
+		stalled: "Dit duurt langer dan normaal",
+		stalledHelp:
+			"Probeer het opnieuw, of log opnieuw in als het blijft gebeuren.",
+		retry: "Opnieuw proberen",
+		signInAgain: "Opnieuw inloggen",
+	},
 	testLogin: {
 		button: "▶ Dev: inloggen als testgebruiker",
 		needsSteps: "De testgebruiker heeft extra stappen nodig.",
