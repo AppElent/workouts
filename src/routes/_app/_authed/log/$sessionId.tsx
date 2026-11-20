@@ -2,6 +2,7 @@ import { api } from "@convex/_generated/api";
 import type { Doc, Id } from "@convex/_generated/dataModel";
 import { parseConvexError } from "@foundry/core";
 import type { ExerciseId } from "@foundry/core/exercises";
+import { HOSTED_WORKOUTS_ENABLED } from "@foundry/core/features";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { format } from "date-fns";
@@ -39,11 +40,13 @@ function ActiveSessionPage() {
 		useQuery(api.sets.listForSession, {
 			sessionId: sessionId as Id<"workoutSessions">,
 		}) ?? [];
+	// While Hosted Workouts are parked (APP-437), a session that came from one
+	// renders as a normal session: no hosted plan, and the normal WOD list.
 	const hostedParticipant = useQuery(
 		api.hostedWorkoutParticipants.getBySession,
-		{
-			sessionId: sessionId as Id<"workoutSessions">,
-		},
+		HOSTED_WORKOUTS_ENABLED
+			? { sessionId: sessionId as Id<"workoutSessions"> }
+			: "skip",
 	);
 
 	const finishSession = useMutation(api.workoutSessions.finish);

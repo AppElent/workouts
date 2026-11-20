@@ -1,8 +1,12 @@
+import { HOSTED_WORKOUTS_ENABLED } from "@foundry/core/features";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { HostedWorkoutBuilder } from "#/components/hosted/HostedWorkoutBuilder";
+import { HostedWorkoutsPaused } from "#/components/hosted/HostedWorkoutsPaused";
 
 export const Route = createFileRoute("/_app/_authed/hosted-workouts/new")({
-	component: NewHostedWorkoutPage,
+	component: HOSTED_WORKOUTS_ENABLED
+		? NewHostedWorkoutPage
+		: HostedWorkoutsPaused,
 });
 
 function NewHostedWorkoutPage() {

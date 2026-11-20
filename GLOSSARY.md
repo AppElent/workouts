@@ -71,7 +71,7 @@ _Avoid_: PR in formal domain language
 A dated measurement of a person's body, such as weight, body-fat percentage, or circumference.
 
 **Hosted Workout**:
-A host-owned shared event with a frozen workout prescription, participant list, and leaderboard. It is not the host's or a participant's personal training history.
+A host-owned shared event with a frozen workout prescription, participant list, and leaderboard. It is not the host's or a participant's personal training history. Parked since 20 Nov 2026: hidden on the web and the phone, code kept ([ADR 0018](docs/adr/0018-park-hosted-workouts.md)).
 
 **Participant**:
 A signed-in person who joins a Hosted Workout and records the resulting training in their own history.

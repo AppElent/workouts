@@ -47,6 +47,14 @@ export interface Feature {
 	};
 }
 
+/**
+ * Hosted Workouts are parked (APP-437): the web and the phone app hide every
+ * entry and show a paused state on their routes and join links. The code, the
+ * Convex functions, and the data stay. Flip to `true` to bring them back;
+ * docs/adr/0018-park-hosted-workouts.md lists the full steps.
+ */
+export const HOSTED_WORKOUTS_ENABLED: boolean = false;
+
 export const defineFeatures = <const T extends readonly Feature[]>(
 	features: T,
 ): T => features;
@@ -138,7 +146,8 @@ export const FEATURES = defineFeatures([
 	},
 
 	// Share target: the hosted-workout join link opens the app when installed
-	// (APP-36), else the web, which works in a phone browser.
+	// (APP-36), else the web, which works in a phone browser. Parked while
+	// HOSTED_WORKOUTS_ENABLED is false: the routes stay and show a paused state.
 	{
 		id: "hosted-workout-join",
 		kind: "share-target",
@@ -233,7 +242,8 @@ export const FEATURES = defineFeatures([
 		},
 	},
 	{
-		// Run the hosted workout: open, close, leaderboard, delete.
+		// Run the hosted workout: open, close, leaderboard, delete. Parked while
+		// HOSTED_WORKOUTS_ENABLED is false.
 		id: "hosted-workout-hosting",
 		kind: "product",
 		status: "parity",
@@ -249,6 +259,7 @@ export const FEATURES = defineFeatures([
 
 	// Product: web by design.
 	{
+		// Parked while HOSTED_WORKOUTS_ENABLED is false.
 		id: "hosted-workout-authoring",
 		kind: "product",
 		status: "exclusive",

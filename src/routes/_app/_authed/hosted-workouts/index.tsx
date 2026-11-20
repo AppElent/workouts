@@ -1,11 +1,15 @@
 import { api } from "@convex/_generated/api";
+import { HOSTED_WORKOUTS_ENABLED } from "@foundry/core/features";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { format } from "date-fns";
 import { Plus } from "lucide-react";
+import { HostedWorkoutsPaused } from "#/components/hosted/HostedWorkoutsPaused";
 
 export const Route = createFileRoute("/_app/_authed/hosted-workouts/")({
-	component: HostedWorkoutsPage,
+	component: HOSTED_WORKOUTS_ENABLED
+		? HostedWorkoutsPage
+		: HostedWorkoutsPaused,
 });
 
 function HostedWorkoutsPage() {

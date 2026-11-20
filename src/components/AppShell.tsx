@@ -1,13 +1,12 @@
-import { api } from "@convex/_generated/api";
 import { Outlet } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
 import { ActiveSessionBar } from "./ActiveSessionBar";
 import { BottomTabBar } from "./BottomTabBar";
 import { OfflineBanner } from "./OfflineBanner";
 import { Sidebar } from "./Sidebar";
+import { useActiveSession } from "./useActiveSession";
 
 export function AppShell() {
-	const activeSession = useQuery(api.workoutSessions.getActive);
+	const activeSession = useActiveSession();
 	const hasSession = !!activeSession;
 
 	return (

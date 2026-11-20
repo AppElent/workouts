@@ -1,4 +1,10 @@
 export const hosted = {
+	paused: {
+		title: "Hosted Workouts are paused",
+		description:
+			"Hosting and joining group workouts is switched off for now. Your own sessions, WODs, and scores are not affected.",
+		home: "Go to Foundry",
+	},
 	claim: {
 		title: { one: "Keep your guest score", other: "Keep your guest scores" },
 		signedIn: {

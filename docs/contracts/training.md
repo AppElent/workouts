@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing Training, Start activity, Strength Sessions, the set editor, Set Drafts, or strength references.
-version: 1.2.0
+version: 2.0.0
 status: current
 ---
 
@@ -18,7 +18,8 @@ references. Studies: [training](../../designs/app/training_final.html),
 ### Training screen
 
 - Start activity sits above compact routines; New sits beside the routine section;
-  library rows follow (Exercises, WODs, Hosted Workouts, History). One header menu
+  library rows follow (Exercises, WODs, History). Hosted Workouts are parked and
+  have no row ([ADR 0018](../adr/0018-park-hosted-workouts.md)). One header menu
   holds the history shortcuts (all, strength, running, cycling); no header +.
 - Tap a routine name to edit; a separate play button starts it. Row menu and long
   press expose Start, Edit, Delete. Swipe reveals Edit/Delete and never commits.
@@ -53,7 +54,8 @@ references. Studies: [training](../../designs/app/training_final.html),
   press offer the same set actions. Sets can be added from an empty start.
 - Keep set edit/delete, repeat (prepares a draft), set types, previous performance,
   equipment increments, plates, rest timer, elapsed time, resume, and hosted score
-  routes. Clearing a saved RPE leaves other fields unchanged.
+  routes (hidden while Hosted Workouts are parked). Clearing a saved RPE leaves
+  other fields unchanged.
 - **Default rest** is per session and set from session options; a new session
   starts from the account's last choice on this device. A running rest timer
   belongs to the session it began in: another session, including a new one, never
