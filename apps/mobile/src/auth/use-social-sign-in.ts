@@ -9,6 +9,10 @@
  * `<scheme>://sso-callback` (one scheme per install variant, see
  * `app.config.ts`), which must be on the Clerk instance's allowed redirect URLs.
  *
+ * An account with MFA (or a new device under Device Trust) comes back with
+ * no session and the sign-in at a second factor; the handoff opens
+ * `sign-in-second-factor` for it, as after a password.
+ *
  * Backing out of the sheet or browser is not an error and shows nothing.
  */
 
@@ -23,11 +27,14 @@ import { useCallback, useState } from "react";
 import { Platform } from "react-native";
 import { useI18n } from "../i18n";
 import { clerkErrorKey } from "./clerk-errors";
+import { needsSecondFactor } from "./second-factor";
+import { useSecondFactorHandoff } from "./use-second-factor";
 
 export function useSocialSignIn() {
 	const { t } = useI18n();
 	const { startSSOFlow } = useSSO();
 	const { startAppleAuthenticationFlow } = useSignInWithApple();
+	const toSecondFactor = useSecondFactorHandoff();
 	const [pending, setPending] = useState<SocialSignInProvider | null>(null);
 	const [error, setError] = useState<
 		ClerkErrorMessageKey | "incomplete" | null
@@ -39,10 +46,15 @@ export function useSocialSignIn() {
 			setError(null);
 			try {
 				if (provider === "apple" && Platform.OS === "ios") {
-					const { createdSessionId, setActive } =
+					const { createdSessionId, setActive, signIn } =
 						await startAppleAuthenticationFlow();
 					if (createdSessionId && setActive) {
 						await setActive({ session: createdSessionId });
+						return;
+					}
+					if (needsSecondFactor(signIn?.status)) {
+						setPending(null);
+						toSecondFactor();
 						return;
 					}
 				} else {
@@ -53,6 +65,11 @@ export function useSocialSignIn() {
 						return;
 					}
 					if (createdSessionId || signIn?.existingSession) return;
+					if (needsSecondFactor(signIn?.status)) {
+						setPending(null);
+						toSecondFactor();
+						return;
+					}
 				}
 				setError("incomplete");
 			} catch (err) {
@@ -62,7 +79,7 @@ export function useSocialSignIn() {
 			}
 			setPending(null);
 		},
-		[startSSOFlow, startAppleAuthenticationFlow],
+		[startSSOFlow, startAppleAuthenticationFlow, toSecondFactor],
 	);
 
 	return {

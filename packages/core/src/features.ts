@@ -73,6 +73,7 @@ export const FEATURES = defineFeatures([
 			mobile: [
 				"(auth)/sign-in",
 				"(auth)/sign-in-code",
+				"(auth)/sign-in-second-factor",
 				"(auth)/sign-up",
 				"(auth)/verify-email",
 			],

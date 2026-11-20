@@ -4,16 +4,20 @@
  * `send` runs on the sign-in screen (the address is already typed there) and
  * `verify` / `resend` on `sign-in-code`. Clerk's `signIn` resource survives
  * the navigation in between, the same way `signUp` does for `verify-email`.
- * A verified code still needs `finalize()` before `isSignedIn` flips.
+ * A verified code still needs `finalize()` before `isSignedIn` flips, unless
+ * the account has MFA: then the handoff opens `sign-in-second-factor`.
  */
 import { useSignIn } from "@clerk/expo";
 import { useCallback, useState } from "react";
+import { needsSecondFactor } from "./second-factor";
 import { useClerkFlow } from "./use-clerk-flow";
+import { useSecondFactorHandoff } from "./use-second-factor";
 
 export function useEmailCodeSignIn() {
 	const { signIn, errors } = useSignIn();
 	const flow = useClerkFlow(errors);
 	const { run, idle, fail, clear } = flow;
+	const toSecondFactor = useSecondFactorHandoff();
 	const [resending, setResending] = useState(false);
 
 	const send = useCallback(
@@ -52,12 +56,16 @@ export function useEmailCodeSignIn() {
 
 	const verify = useCallback(
 		async (code: string) => {
-			await run(
-				() => signIn.emailCode.verifyCode({ code }),
-				() => signIn.finalize(),
-			);
+			const verified = await run(() => signIn.emailCode.verifyCode({ code }));
+			if (!verified) return;
+			if (needsSecondFactor(signIn.status)) {
+				idle();
+				toSecondFactor();
+				return;
+			}
+			await run(() => signIn.finalize());
 		},
-		[signIn, run],
+		[signIn, run, idle, toSecondFactor],
 	);
 
 	return {

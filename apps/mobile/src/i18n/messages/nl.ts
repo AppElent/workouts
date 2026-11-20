@@ -20,6 +20,7 @@ import { profileNl } from "./profile";
 import { progressNl } from "./progress";
 import { resetPasswordNl } from "./reset-password";
 import { routesNl } from "./routes";
+import { secondFactorNl } from "./second-factor";
 import { signInNl } from "./sign-in";
 import { signUpNl } from "./sign-up";
 import { strengthNl } from "./strength";
@@ -44,6 +45,7 @@ export const nl = {
 	signUp: signUpNl,
 	verifyEmail: verifyEmailNl,
 	resetPassword: resetPasswordNl,
+	secondFactor: secondFactorNl,
 	profile: profileNl,
 	account: accountNl,
 	training: trainingNl,

@@ -10,8 +10,9 @@
  * text from `onEndEditing`. Resend and "Use a different email" stay disabled,
  * and the screen cannot be left, while any of them runs: all three act on the
  * same Clerk attempt as sign-in. After Clerk
- * accepts the password the fields lock and the button only signs in; when
- * the account needs a second factor, the screen ends with a way back.
+ * accepts the password the fields lock and the button only signs in (or
+ * reopens the second-factor step); when Clerk wants a step this app cannot
+ * do, the screen ends with a way back.
  */
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -78,7 +79,7 @@ export function ResetPasswordScreen({ email }: { email: string }) {
 							}}
 						/>
 					</>
-				) : stage === "needsWeb" ? (
+				) : stage === "unsupported" ? (
 					<AuthLink
 						label={copy.backToSignIn}
 						onPress={() => router.dismissTo("/sign-in")}
@@ -121,11 +122,11 @@ export function ResetPasswordScreen({ email }: { email: string }) {
 
 			<AuthMessage message={error} />
 			<AuthMessage
-				message={stage === "saved" ? copy.saved : notice}
+				message={stage === "entering" ? notice : copy.saved}
 				tone="muted"
 			/>
 
-			{stage === "needsWeb" ? null : (
+			{stage === "unsupported" ? null : (
 				<PrimaryButton
 					label={stage === "saved" ? copy.finishSignIn : copy.submit}
 					loading={busy}
