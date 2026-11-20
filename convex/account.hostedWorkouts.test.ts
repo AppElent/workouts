@@ -369,7 +369,7 @@ describe("account deletion with Hosted Workouts", () => {
 		await t
 			.withIdentity({ subject: "carol" })
 			.mutation(api.hostedWorkouts.close, { id });
-		// 1,100 more closed events, each with Alice's score and five guests'.
+		// 30 more closed events, each with Alice's score and five guests'.
 		await t.run(async (ctx) => {
 			const template = await ctx.db.get(id);
 			const first = await ctx.db
@@ -378,7 +378,7 @@ describe("account deletion with Hosted Workouts", () => {
 				.first();
 			if (!template || !first) throw new Error("setup failed");
 			const { _id, _creationTime, ...event } = template;
-			for (let day = 0; day < 1100; day++) {
+			for (let day = 0; day < 30; day++) {
 				const hostedWorkoutId = await ctx.db.insert("hostedWorkouts", {
 					...event,
 					joinToken: `day-${day}`,
@@ -409,10 +409,20 @@ describe("account deletion with Hosted Workouts", () => {
 			}
 		});
 
-		expect(await deleteInApp(t, "alice")).toBeGreaterThan(1);
+		// 31 participations with one score each, 10 rows per call.
+		let calls = 0;
+		for (;;) {
+			calls += 1;
+			const left = await t.run((ctx) =>
+				deleteHostedWorkoutData(ctx, "alice", 10),
+			);
+			if (left !== null) break;
+		}
+		expect(calls).toBe(7);
+		await deleteInApp(t, "alice");
 		expect(await rowsOf(t, "alice")).toEqual([]);
-		expect(await count(t, "hostedWorkouts")).toBe(1101);
+		expect(await count(t, "hostedWorkouts")).toBe(31);
 		expect(await count(t, "hostedWorkoutParticipants")).toBe(0);
-		expect(await count(t, "hostedWorkoutSubmissions")).toBe(5500);
+		expect(await count(t, "hostedWorkoutSubmissions")).toBe(150);
 	});
 });
