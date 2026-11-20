@@ -14,6 +14,9 @@ export const profileEn = {
 		"Unfinished sets and pending changes stay on this device for this account. Sign in to the same account to recover them. They are not available on other devices until saved online.",
 	signOutError: "Could not sign out. Please try again.",
 	offline: "Offline — settings remain available.",
+	buildVersion: "Version",
+	buildUpdate: "update",
+	buildNoUpdate: "no update",
 };
 export const profileNl: typeof profileEn = {
 	account: "Account",
@@ -31,4 +34,7 @@ export const profileNl: typeof profileEn = {
 		"Onvoltooide sets en wachtende wijzigingen blijven op dit toestel voor dit account. Log opnieuw in met hetzelfde account om ze te herstellen. Ze zijn pas op andere toestellen beschikbaar nadat ze online zijn opgeslagen.",
 	signOutError: "Uitloggen is niet gelukt. Probeer het opnieuw.",
 	offline: "Offline — instellingen blijven beschikbaar.",
+	buildVersion: "Versie",
+	buildUpdate: "update",
+	buildNoUpdate: "geen update",
 };
