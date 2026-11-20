@@ -1,5 +1,13 @@
 // Copy follows the mobile Account screen (apps/mobile/src/i18n/messages/account.ts).
 export const account = {
+	export: {
+		title: "Export your data",
+		footer:
+			"Download a full backup as JSON, or your set history as a spreadsheet.",
+		setsCsv: "Sets CSV",
+		fullJson: "Full JSON",
+		error: "The export could not be created. Reconnect and try again.",
+	},
 	deletionTitle: "Delete data or account",
 	deleteData: "Delete Foundry data only",
 	deleteDataFooter:
