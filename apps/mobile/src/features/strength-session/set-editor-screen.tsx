@@ -798,418 +798,426 @@ export function SetEditorScreen() {
 				</>
 			) : null}
 			<View style={[styles.screen, { paddingBottom: keyboard }]}>
-				<ScrollView
-					style={styles.scroll}
-					contentContainerStyle={styles.content}
-					contentInsetAdjustmentBehavior="automatic"
-					keyboardShouldPersistTaps="handled"
-				>
-					{!advanced ? null : bodyweight ? (
-						<AppText variant="secondary" style={{ color: colors.textMuted }}>
-							{text.bodyweightNote}
-						</AppText>
-					) : reference ? (
-						<View style={styles.lineRow}>
-							<AppText
-								variant="secondary"
-								style={[styles.lineText, { color: colors.textMuted }]}
-							>
-								{referenceLine}
+				<View collapsable={false} style={styles.scrollHost}>
+					<ScrollView
+						style={styles.scroll}
+						contentContainerStyle={styles.content}
+						contentInsetAdjustmentBehavior="automatic"
+						keyboardShouldPersistTaps="handled"
+					>
+						{!advanced ? null : bodyweight ? (
+							<AppText variant="secondary" style={{ color: colors.textMuted }}>
+								{text.bodyweightNote}
 							</AppText>
-							<Pressable
-								accessibilityRole="button"
-								hitSlop={8}
-								onPress={() => void onMenu("profile")}
-							>
-								<AppText variant="secondary" style={styles.link}>
-									{copy.profile.title} ›
-								</AppText>
-							</Pressable>
-						</View>
-					) : levels ? null : (
-						<View style={styles.noReference}>
-							<View style={styles.lineText}>
-								<AppText variant="row" style={{ fontWeight: "600" }}>
-									{text.noRefTitle}
-								</AppText>
-								<AppText
-									variant="secondary"
-									style={{ color: colors.textMuted }}
-								>
-									{row.percent !== null
-										? row.kg > 0
-											? fmt(text.noRefPlan, {
-													percent: row.percent,
-													load: loadOnly,
-												})
-											: fmt(text.noRefPlanEmpty, { percent: row.percent })
-										: text.noRefSub}
-								</AppText>
-							</View>
-							<Pressable
-								accessibilityRole="button"
-								hitSlop={8}
-								onPress={() => {
-									if (actions.blocked()) return;
-									router.push({
-										pathname: "/session-manual",
-										params: {
-											sessionId: params.sessionId,
-											exerciseId: row.exerciseId,
-										},
-									});
-								}}
-							>
-								<AppText variant="secondary" style={styles.link}>
-									{copy.refEnter}
-								</AppText>
-							</Pressable>
-						</View>
-					)}
-					{advanced && reference ? (
-						<View style={styles.chips}>
-							{PRESETS.map((percent) => {
-								const on = target === percent;
-								const priced = applyPercent(row, percent, reference, facts);
-								const chipLoad = formatNumber(
-									on ? shownLoad(row) : shownLoad(priced),
-									locale,
-									row.unit === "lbs" ? 1 : 2,
-								);
-								return (
-									<Pressable
-										key={percent}
-										accessibilityRole="button"
-										accessibilityState={{ selected: on }}
-										accessibilityLabel={`${percent}%, ${chipLoad} ${row.unit}`}
-										disabled={locked}
-										onPress={() => change(priced)}
-										style={[
-											styles.chip,
-											largeText && styles.chipLarge,
-											on && styles.chipOn,
-										]}
-										testID={`session-percent-${percent}`}
-									>
-										<AppText
-											variant="row"
-											style={[styles.chipTop, on && styles.chipInk]}
-										>
-											{percent}%
-										</AppText>
-										<AppText
-											variant="caption"
-											style={[styles.chipSub, on && styles.chipInk]}
-										>
-											{chipLoad}
-										</AppText>
-									</Pressable>
-								);
-							})}
-							<Pressable
-								accessibilityRole="button"
-								accessibilityLabel={text.customPercentTitle}
-								accessibilityState={{ selected: custom }}
-								disabled={locked}
-								onPress={() => {
-									setPercentText(custom && target ? String(target) : "");
-									setCustomOpen((value) => !value);
-									requestAnimationFrame(() => percentRef.current?.focus());
-								}}
-								style={[
-									styles.chip,
-									largeText && styles.chipLarge,
-									custom && styles.chipOn,
-								]}
-							>
-								<AppText
-									variant="row"
-									numberOfLines={1}
-									style={[styles.chipTop, custom && styles.chipInk]}
-								>
-									{custom && target
-										? `${formatNumber(target, locale, 1)}%`
-										: text.customPercent.replace(" %", "")}
-								</AppText>
-								<AppText
-									variant="caption"
-									style={[styles.chipSub, custom && styles.chipInk]}
-								>
-									{custom ? formatNumber(shownLoad(row), locale) : "%"}
-								</AppText>
-							</Pressable>
-						</View>
-					) : null}
-					{advanced && customOpen ? (
-						<View style={styles.customRow}>
-							<TextInput
-								ref={percentRef}
-								accessibilityLabel={text.customPercentTitle}
-								value={percentText}
-								onChangeText={setPercentText}
-								keyboardType="decimal-pad"
-								onFocus={() => setFocus("percent")}
-								onBlur={() => setFocus(null)}
-								placeholder={text.percentMax}
-								placeholderTextColor={colors.textFaint}
-								style={styles.customInput}
-							/>
-							<Pressable
-								accessibilityRole="button"
-								onPress={applyCustom}
-								style={styles.customApply}
-							>
-								<AppText variant="control" style={styles.link}>
-									{text.apply}
-								</AppText>
-							</Pressable>
-						</View>
-					) : null}
-					{advanced && levels ? (
-						<View style={styles.levels}>
+						) : reference ? (
 							<View style={styles.lineRow}>
 								<AppText
-									variant="label"
+									variant="secondary"
 									style={[styles.lineText, { color: colors.textMuted }]}
 								>
-									{bodyweightKg
-										? fmt(text.levelsTitle, {
-												weight: Math.round(bodyweightKg),
-											})
-										: text.levelsTitleRatio}
+									{referenceLine}
 								</AppText>
-								{bodyweightKg ? (
-									<AppText variant="label" style={{ color: colors.textMuted }}>
-										{text.levelsHint}
+								<Pressable
+									accessibilityRole="button"
+									hitSlop={8}
+									onPress={() => void onMenu("profile")}
+								>
+									<AppText variant="secondary" style={styles.link}>
+										{copy.profile.title} ›
 									</AppText>
-								) : null}
+								</Pressable>
 							</View>
-							<View style={styles.levelRow}>
-								{levels.map((level, index) => {
-									const on = where?.index === index;
-									const range =
-										level.fromKg !== null
-											? level.toKg !== null
-												? `${level.fromKg}–${level.toKg}`
-												: `${level.fromKg}+`
-											: level.to !== null
-												? `${formatNumber(level.from, locale)}–${formatNumber(level.to, locale)}×`
-												: `${formatNumber(level.from, locale)}×+`;
-									const off = !bodyweightKg || locked;
+						) : levels ? null : (
+							<View style={styles.noReference}>
+								<View style={styles.lineText}>
+									<AppText variant="row" style={{ fontWeight: "600" }}>
+										{text.noRefTitle}
+									</AppText>
+									<AppText
+										variant="secondary"
+										style={{ color: colors.textMuted }}
+									>
+										{row.percent !== null
+											? row.kg > 0
+												? fmt(text.noRefPlan, {
+														percent: row.percent,
+														load: loadOnly,
+													})
+												: fmt(text.noRefPlanEmpty, { percent: row.percent })
+											: text.noRefSub}
+									</AppText>
+								</View>
+								<Pressable
+									accessibilityRole="button"
+									hitSlop={8}
+									onPress={() => {
+										if (actions.blocked()) return;
+										router.push({
+											pathname: "/session-manual",
+											params: {
+												sessionId: params.sessionId,
+												exerciseId: row.exerciseId,
+											},
+										});
+									}}
+								>
+									<AppText variant="secondary" style={styles.link}>
+										{copy.refEnter}
+									</AppText>
+								</Pressable>
+							</View>
+						)}
+						{advanced && reference ? (
+							<View style={styles.chips}>
+								{PRESETS.map((percent) => {
+									const on = target === percent;
+									const priced = applyPercent(row, percent, reference, facts);
+									const chipLoad = formatNumber(
+										on ? shownLoad(row) : shownLoad(priced),
+										locale,
+										row.unit === "lbs" ? 1 : 2,
+									);
 									return (
 										<Pressable
-											key={level.id}
+											key={percent}
 											accessibilityRole="button"
-											accessibilityState={{ selected: on, disabled: off }}
-											accessibilityLabel={`${text.levels[level.id]}, ${range}${level.fromKg !== null ? " kg" : ""}`}
-											disabled={off}
-											onPress={() => {
-												if (!bodyweightKg) return;
-												const kg = snapLoad(
-													startLoadKg(level, bodyweightKg),
-													facts.stepKg,
-													row.unit,
-												);
-												change({
-													...withTypedLoad(
-														row,
-														row.unit === "lbs"
-															? Math.round(convertLoad(kg, "kg", "lbs"))
-															: kg,
-													),
-													reps: row.reps >= 1 ? row.reps : START_REPS,
-													blank: undefined,
-												});
-											}}
-											style={[styles.level, on && styles.levelOn]}
-											testID={`session-level-${level.id}`}
+											accessibilityState={{ selected: on }}
+											accessibilityLabel={`${percent}%, ${chipLoad} ${row.unit}`}
+											disabled={locked}
+											onPress={() => change(priced)}
+											style={[
+												styles.chip,
+												largeText && styles.chipLarge,
+												on && styles.chipOn,
+											]}
+											testID={`session-percent-${percent}`}
 										>
 											<AppText
-												variant="caption"
-												numberOfLines={1}
-												adjustsFontSizeToFit
-												style={{ fontWeight: "700" }}
+												variant="row"
+												style={[styles.chipTop, on && styles.chipInk]}
 											>
-												{text.levels[level.id]}
+												{percent}%
 											</AppText>
 											<AppText
-												variant="row"
-												numberOfLines={1}
-												adjustsFontSizeToFit
-												style={styles.chipTop}
+												variant="caption"
+												style={[styles.chipSub, on && styles.chipInk]}
 											>
-												{range}
+												{chipLoad}
 											</AppText>
 										</Pressable>
 									);
 								})}
-							</View>
-							<AppText variant="secondary" style={{ color: colors.textMuted }}>
-								{levelLine}
-							</AppText>
-						</View>
-					) : null}
-					{!advanced && check && note ? (
-						<AppText variant="secondary" style={{ color: colors.warn }}>
-							{note}
-						</AppText>
-					) : null}
-					{!advanced || bodyweight ? null : (
-						<View style={[styles.card, highlight && styles.cardHighlight]}>
-							<AppText variant="label" style={{ color: colors.textMuted }}>
-								{text.oneRmFromSet}
-							</AppText>
-							<AppText variant="display" testID="session-editor-one-rm">
-								{estimate
-									? `${row.reps === 1 ? "" : "≈"}${formatNumber(
-											row.reps === 1
-												? Math.round(estimate.value * 10) / 10
-												: Math.round(estimate.value),
-											locale,
-										)} kg`
-									: "—"}
-							</AppText>
-							{note ? (
-								<AppText
-									variant="secondary"
-									style={{
-										color: check
-											? colors.warn
-											: highlight
-												? colors.accent
-												: colors.textMuted,
+								<Pressable
+									accessibilityRole="button"
+									accessibilityLabel={text.customPercentTitle}
+									accessibilityState={{ selected: custom }}
+									disabled={locked}
+									onPress={() => {
+										setPercentText(custom && target ? String(target) : "");
+										setCustomOpen((value) => !value);
+										requestAnimationFrame(() => percentRef.current?.focus());
 									}}
+									style={[
+										styles.chip,
+										largeText && styles.chipLarge,
+										custom && styles.chipOn,
+									]}
 								>
-									{note}
-								</AppText>
-							) : null}
-						</View>
-					)}
-					{bodyweight && note ? (
-						<AppText variant="secondary" style={{ color: colors.warn }}>
-							{note}
-						</AppText>
-					) : null}
-					{advanced && plateLine ? (
-						<AppText variant="row" style={{ fontWeight: "600" }}>
-							{plateLine}
-						</AppText>
-					) : null}
-					{advanced && planLoad ? (
-						<Pressable
-							accessibilityRole={onPlan ? undefined : "button"}
-							disabled={Boolean(onPlan) || locked}
-							onPress={() => change(resetToPlan(row))}
-						>
-							<AppText
-								variant="secondary"
-								style={onPlan ? { color: colors.textMuted } : styles.link}
-							>
-								{fmt(onPlan ? text.onPlan : text.backToPlan, {
-									load: planLoad,
-								})}
-							</AppText>
-						</Pressable>
-					) : null}
-					<View style={styles.section}>
-						<AppText variant="label" style={{ color: colors.textMuted }}>
-							{text.kindTitle}
-						</AppText>
-						<Segmented
-							options={SET_TYPES.map((kind) => ({
-								value: kind,
-								label: {
-									warmup: text.kindWarmup,
-									working: text.kindWorking,
-									drop: text.kindDrop,
-									failure: text.kindFailure,
-								}[kind],
-							}))}
-							value={row.kind}
-							onChange={(kind) => {
-								if (!locked) change({ ...row, kind });
-							}}
-						/>
-					</View>
-					{advanced ? (
-						<View style={styles.moreBody}>
-							<View style={styles.section}>
+									<AppText
+										variant="row"
+										numberOfLines={1}
+										style={[styles.chipTop, custom && styles.chipInk]}
+									>
+										{custom && target
+											? `${formatNumber(target, locale, 1)}%`
+											: text.customPercent.replace(" %", "")}
+									</AppText>
+									<AppText
+										variant="caption"
+										style={[styles.chipSub, custom && styles.chipInk]}
+									>
+										{custom ? formatNumber(shownLoad(row), locale) : "%"}
+									</AppText>
+								</Pressable>
+							</View>
+						) : null}
+						{advanced && customOpen ? (
+							<View style={styles.customRow}>
+								<TextInput
+									ref={percentRef}
+									accessibilityLabel={text.customPercentTitle}
+									value={percentText}
+									onChangeText={setPercentText}
+									keyboardType="decimal-pad"
+									onFocus={() => setFocus("percent")}
+									onBlur={() => setFocus(null)}
+									placeholder={text.percentMax}
+									placeholderTextColor={colors.textFaint}
+									style={styles.customInput}
+								/>
+								<Pressable
+									accessibilityRole="button"
+									onPress={applyCustom}
+									style={styles.customApply}
+								>
+									<AppText variant="control" style={styles.link}>
+										{text.apply}
+									</AppText>
+								</Pressable>
+							</View>
+						) : null}
+						{advanced && levels ? (
+							<View style={styles.levels}>
 								<View style={styles.lineRow}>
 									<AppText
 										variant="label"
 										style={[styles.lineText, { color: colors.textMuted }]}
 									>
-										{text.rpeTitle}
+										{bodyweightKg
+											? fmt(text.levelsTitle, {
+													weight: Math.round(bodyweightKg),
+												})
+											: text.levelsTitleRatio}
 									</AppText>
-									{row.rpe === null ? null : (
+									{bodyweightKg ? (
 										<AppText
 											variant="label"
 											style={{ color: colors.textMuted }}
 										>
-											{fmt(text.rpeLeftShort, {
-												count: formatNumber(10 - row.rpe, locale, 1),
-											})}
+											{text.levelsHint}
 										</AppText>
-									)}
+									) : null}
 								</View>
-								<View style={styles.chips}>
-									{RPE_CHIPS.map((value) => {
-										const on = row.rpe === value;
+								<View style={styles.levelRow}>
+									{levels.map((level, index) => {
+										const on = where?.index === index;
+										const range =
+											level.fromKg !== null
+												? level.toKg !== null
+													? `${level.fromKg}–${level.toKg}`
+													: `${level.fromKg}+`
+												: level.to !== null
+													? `${formatNumber(level.from, locale)}–${formatNumber(level.to, locale)}×`
+													: `${formatNumber(level.from, locale)}×+`;
+										const off = !bodyweightKg || locked;
 										return (
 											<Pressable
-												key={value}
+												key={level.id}
 												accessibilityRole="button"
-												accessibilityState={{ selected: on }}
-												accessibilityLabel={fmt(text.rpeValue, {
-													value: formatNumber(value, locale, 1),
-												})}
-												disabled={locked}
-												onPress={() =>
-													change({ ...row, rpe: on ? null : value })
-												}
-												style={[styles.rpeChip, on && styles.chipOn]}
-												testID={`session-rpe-${value}`}
+												accessibilityState={{ selected: on, disabled: off }}
+												accessibilityLabel={`${text.levels[level.id]}, ${range}${level.fromKg !== null ? " kg" : ""}`}
+												disabled={off}
+												onPress={() => {
+													if (!bodyweightKg) return;
+													const kg = snapLoad(
+														startLoadKg(level, bodyweightKg),
+														facts.stepKg,
+														row.unit,
+													);
+													change({
+														...withTypedLoad(
+															row,
+															row.unit === "lbs"
+																? Math.round(convertLoad(kg, "kg", "lbs"))
+																: kg,
+														),
+														reps: row.reps >= 1 ? row.reps : START_REPS,
+														blank: undefined,
+													});
+												}}
+												style={[styles.level, on && styles.levelOn]}
+												testID={`session-level-${level.id}`}
 											>
 												<AppText
-													variant="row"
-													style={[styles.chipTop, on && styles.chipInk]}
+													variant="caption"
+													numberOfLines={1}
+													adjustsFontSizeToFit
+													style={{ fontWeight: "700" }}
 												>
-													{formatNumber(value, locale, 1)}
+													{text.levels[level.id]}
+												</AppText>
+												<AppText
+													variant="row"
+													numberOfLines={1}
+													adjustsFontSizeToFit
+													style={styles.chipTop}
+												>
+													{range}
 												</AppText>
 											</Pressable>
 										);
 									})}
 								</View>
+								<AppText
+									variant="secondary"
+									style={{ color: colors.textMuted }}
+								>
+									{levelLine}
+								</AppText>
 							</View>
-							{bodyweight ? null : (
-								<Segmented
-									options={[
-										{ value: "kg", label: text.unitKg },
-										{ value: "lbs", label: text.unitLbs },
-									]}
-									value={row.unit}
-									onChange={(unit) => change(switchUnit(row, unit, facts))}
-								/>
-							)}
-							{detail ? (
+						) : null}
+						{!advanced && check && note ? (
+							<AppText variant="secondary" style={{ color: colors.warn }}>
+								{note}
+							</AppText>
+						) : null}
+						{!advanced || bodyweight ? null : (
+							<View style={[styles.card, highlight && styles.cardHighlight]}>
+								<AppText variant="label" style={{ color: colors.textMuted }}>
+									{text.oneRmFromSet}
+								</AppText>
+								<AppText variant="display" testID="session-editor-one-rm">
+									{estimate
+										? `${row.reps === 1 ? "" : "≈"}${formatNumber(
+												row.reps === 1
+													? Math.round(estimate.value * 10) / 10
+													: Math.round(estimate.value),
+												locale,
+											)} kg`
+										: "—"}
+								</AppText>
+								{note ? (
+									<AppText
+										variant="secondary"
+										style={{
+											color: check
+												? colors.warn
+												: highlight
+													? colors.accent
+													: colors.textMuted,
+										}}
+									>
+										{note}
+									</AppText>
+								) : null}
+							</View>
+						)}
+						{bodyweight && note ? (
+							<AppText variant="secondary" style={{ color: colors.warn }}>
+								{note}
+							</AppText>
+						) : null}
+						{advanced && plateLine ? (
+							<AppText variant="row" style={{ fontWeight: "600" }}>
+								{plateLine}
+							</AppText>
+						) : null}
+						{advanced && planLoad ? (
+							<Pressable
+								accessibilityRole={onPlan ? undefined : "button"}
+								disabled={Boolean(onPlan) || locked}
+								onPress={() => change(resetToPlan(row))}
+							>
 								<AppText
 									variant="secondary"
-									style={{ color: colors.textMuted }}
+									style={onPlan ? { color: colors.textMuted } : styles.link}
 								>
-									{detail}
+									{fmt(onPlan ? text.onPlan : text.backToPlan, {
+										load: planLoad,
+									})}
 								</AppText>
-							) : null}
-							{detailReps ? (
-								<AppText
-									variant="secondary"
-									style={{ color: colors.textMuted }}
-								>
-									{detailReps}
-								</AppText>
-							) : null}
+							</Pressable>
+						) : null}
+						<View style={styles.section}>
+							<AppText variant="label" style={{ color: colors.textMuted }}>
+								{text.kindTitle}
+							</AppText>
+							<Segmented
+								options={SET_TYPES.map((kind) => ({
+									value: kind,
+									label: {
+										warmup: text.kindWarmup,
+										working: text.kindWorking,
+										drop: text.kindDrop,
+										failure: text.kindFailure,
+									}[kind],
+								}))}
+								value={row.kind}
+								onChange={(kind) => {
+									if (!locked) change({ ...row, kind });
+								}}
+							/>
 						</View>
-					) : null}
-				</ScrollView>
+						{advanced ? (
+							<View style={styles.moreBody}>
+								<View style={styles.section}>
+									<View style={styles.lineRow}>
+										<AppText
+											variant="label"
+											style={[styles.lineText, { color: colors.textMuted }]}
+										>
+											{text.rpeTitle}
+										</AppText>
+										{row.rpe === null ? null : (
+											<AppText
+												variant="label"
+												style={{ color: colors.textMuted }}
+											>
+												{fmt(text.rpeLeftShort, {
+													count: formatNumber(10 - row.rpe, locale, 1),
+												})}
+											</AppText>
+										)}
+									</View>
+									<View style={styles.chips}>
+										{RPE_CHIPS.map((value) => {
+											const on = row.rpe === value;
+											return (
+												<Pressable
+													key={value}
+													accessibilityRole="button"
+													accessibilityState={{ selected: on }}
+													accessibilityLabel={fmt(text.rpeValue, {
+														value: formatNumber(value, locale, 1),
+													})}
+													disabled={locked}
+													onPress={() =>
+														change({ ...row, rpe: on ? null : value })
+													}
+													style={[styles.rpeChip, on && styles.chipOn]}
+													testID={`session-rpe-${value}`}
+												>
+													<AppText
+														variant="row"
+														style={[styles.chipTop, on && styles.chipInk]}
+													>
+														{formatNumber(value, locale, 1)}
+													</AppText>
+												</Pressable>
+											);
+										})}
+									</View>
+								</View>
+								{bodyweight ? null : (
+									<Segmented
+										options={[
+											{ value: "kg", label: text.unitKg },
+											{ value: "lbs", label: text.unitLbs },
+										]}
+										value={row.unit}
+										onChange={(unit) => change(switchUnit(row, unit, facts))}
+									/>
+								)}
+								{detail ? (
+									<AppText
+										variant="secondary"
+										style={{ color: colors.textMuted }}
+									>
+										{detail}
+									</AppText>
+								) : null}
+								{detailReps ? (
+									<AppText
+										variant="secondary"
+										style={{ color: colors.textMuted }}
+									>
+										{detailReps}
+									</AppText>
+								) : null}
+							</View>
+						) : null}
+					</ScrollView>
+				</View>
 				<View
 					style={[
 						styles.footer,
@@ -1377,6 +1385,7 @@ const createStyles = (colors: Tokens) =>
 	StyleSheet.create({
 		screen: { flex: 1, backgroundColor: colors.bg },
 		headerTitle: { alignItems: "center", maxWidth: 240 },
+		scrollHost: { flex: 1 },
 		scroll: { flex: 1 },
 		content: { padding: spacing.md, gap: spacing.md },
 		lineRow: {
