@@ -13,8 +13,6 @@ export const resetPasswordEn = {
 	submit: "Reset password",
 	resend: "Send a new code",
 	resent: "A new code is on its way.",
-	changedNeedsStep:
-		"Your password is changed. Signing in needs another step this app doesn't support yet, so sign in with the new password in the web app.",
 	saved: "Your password is changed.",
 	finishSignIn: "Sign in",
 	changeEmail: "Use a different email",
@@ -36,8 +34,6 @@ export const resetPasswordNl: typeof resetPasswordEn = {
 	submit: "Wachtwoord opnieuw instellen",
 	resend: "Stuur een nieuwe code",
 	resent: "Er is een nieuwe code onderweg.",
-	changedNeedsStep:
-		"Je wachtwoord is gewijzigd. Inloggen vraagt nog een stap die deze app nog niet ondersteunt; log in de webapp in met het nieuwe wachtwoord.",
 	saved: "Je wachtwoord is gewijzigd.",
 	finishSignIn: "Inloggen",
 	changeEmail: "Ander e-mailadres gebruiken",
