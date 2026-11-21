@@ -1,9 +1,12 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FoodLogReviewResult, MacroKey, Macros } from "../types";
 import {
+	addItem,
 	changeItem,
 	type DraftItem,
+	draftText,
 	FoodConflictError,
+	findItem,
 	itemMacros,
 	logUnsaved,
 	parseQuantity,
@@ -101,6 +104,7 @@ export function FoodLog({
 	result,
 	text,
 	header,
+	bridge,
 }: ViewProps<FoodLogReviewResult>) {
 	const { t } = text;
 	const [items, setItems] = useState<DraftItem[]>(() =>
@@ -109,10 +113,91 @@ export function FoodLog({
 	const [logging, setLogging] = useState(false);
 	// What each quantity field shows; the item keeps the last valid amount.
 	const [quantityText, setQuantityText] = useState<Record<number, string>>({});
+	// App tools read and answer synchronously, so they keep their own copy.
+	const itemsRef = useRef(items);
+	itemsRef.current = items;
+	const loggingRef = useRef(false);
 	const update = (row: number, change: (item: DraftItem) => DraftItem) =>
 		setItems((current) =>
 			current.map((item) => (item.row === row ? change(item) : item)),
 		);
+
+	const { date, meal: mealName } = result;
+	useEffect(() => {
+		const busy =
+			"Foundry is logging this review right now; try again when it is done.";
+		const commit = (next: DraftItem[]) => {
+			itemsRef.current = next;
+			setItems(next);
+			return draftText(next);
+		};
+		const changeRow = (row: number, change: (item: DraftItem) => DraftItem) =>
+			commit(
+				itemsRef.current.map((item) =>
+					item.row === row ? change(item) : item,
+				),
+			);
+		const locked = (item: DraftItem) =>
+			item.status === "saved" || item.status === "saving";
+		return bridge.set("screen", {
+			addItem: async (input) => {
+				if (loggingRef.current) return busy;
+				const response = await app.callServerTool({
+					name: "review_food_log",
+					arguments: { date, meal: mealName, items: [input] },
+				});
+				const content = response.structuredContent as
+					| FoodLogReviewResult
+					| undefined;
+				const added =
+					content?.view === "food-log" ? content.items[0] : undefined;
+				if (response.isError || !added) {
+					const reason = response.content?.find(
+						(block) => block.type === "text",
+					);
+					return `Foundry could not add that food${reason && "text" in reason ? `: ${reason.text}` : "."} Use a foodId and servingIndex from search_foods.`;
+				}
+				if (loggingRef.current) return busy;
+				return commit(addItem(itemsRef.current, added, newKey()));
+			},
+			setQuantity: async ({ foodId, quantity, servingIndex }) => {
+				if (loggingRef.current) return busy;
+				const item = findItem(itemsRef.current, foodId);
+				if (!item) return `The review has no item with foodId ${foodId}.`;
+				if (locked(item))
+					return "That item is already logged, so it cannot change here. Change it in the diary with update_diary_entry.";
+				if (item.removed)
+					return "That item was removed from the review. Add it again with add_item.";
+				if (quantity === undefined && servingIndex === undefined)
+					return "Give a quantity, a servingIndex, or both.";
+				if (
+					servingIndex !== undefined &&
+					!item.servings.some((entry) => entry.servingIndex === servingIndex)
+				)
+					return `That food has no servingIndex ${servingIndex}. It offers: ${item.servings.map((entry) => `${entry.servingIndex} = ${entry.label.en}`).join(", ")}.`;
+				setQuantityText(({ [item.row]: _, ...rest }) => rest);
+				return changeRow(item.row, (current) =>
+					changeItem(
+						current,
+						{
+							...(quantity !== undefined ? { quantity } : {}),
+							...(servingIndex !== undefined ? { servingIndex } : {}),
+						},
+						newKey,
+					),
+				);
+			},
+			removeItem: async (foodId) => {
+				if (loggingRef.current) return busy;
+				const item = findItem(itemsRef.current, foodId);
+				if (!item) return `The review has no item with foodId ${foodId}.`;
+				if (locked(item))
+					return "That item is already logged, so it stays. Users delete diary entries in the app.";
+				if (item.removed) return draftText(itemsRef.current);
+				return changeRow(item.row, (current) => setRemoved(current, true));
+			},
+		});
+	}, [bridge, app, date, mealName]);
 
 	const kept = items.filter((item) => !item.removed);
 	const meal = sumMacros(kept.map(itemMacros));
@@ -128,6 +213,7 @@ export function FoodLog({
 	const final = removalsFinal(items);
 
 	const log = async () => {
+		loggingRef.current = true;
 		setLogging(true);
 		let latest = items;
 		const savedBefore = items.filter((item) => item.status === "saved").length;
@@ -161,6 +247,7 @@ export function FoodLog({
 				update(row, (item) => ({ ...item, ...change }));
 			},
 		);
+		loggingRef.current = false;
 		setLogging(false);
 		if (latest.filter((item) => item.status === "saved").length === savedBefore)
 			return;

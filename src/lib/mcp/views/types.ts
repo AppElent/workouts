@@ -4,6 +4,7 @@
  */
 
 export const VIEW_NAMES = [
+	"home",
 	"week-overview",
 	"food-log",
 	"exercise-progress",
@@ -141,7 +142,38 @@ export type ExerciseProgressResult = {
 	};
 };
 
+export type HomeSession = {
+	id: string;
+	name?: string;
+	/** "active" while it runs. */
+	status: string;
+	startedAt: string;
+	setCount: number;
+	exercises: { id: string; name: string }[];
+};
+
+/** What `open_foundry` shows with `{}`: today, the latest session, this week. */
+export type HomeResult = {
+	view: "home";
+	/** IANA zone whose calendar days the view uses ("UTC" when none was given). */
+	timeZone: string;
+	today: {
+		date: string;
+		nutrition: Macros & { entryCount: number };
+		goals: MacroGoal[];
+	};
+	/** The active Strength Session, else the latest one; null when there is none. */
+	session: HomeSession | null;
+	week: {
+		weekStart: string;
+		training: WeekOverviewResult["training"];
+		loggedDays: number;
+		energyAverageKcal: number | null;
+	};
+};
+
 export type ViewResult =
+	| HomeResult
 	| WeekOverviewResult
 	| FoodLogReviewResult
 	| ExerciseProgressResult;

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
 	type ExerciseProgressResult,
 	PROGRESS_METRICS,
@@ -6,6 +6,7 @@ import {
 	type ProgressMetric,
 	type ProgressRange,
 } from "../types";
+import { describeScreen } from "./appTools";
 import { BarChart, LineChart } from "./charts";
 import type { ViewText } from "./i18n";
 import type { ViewProps } from "./ViewRoot";
@@ -57,30 +58,44 @@ export function ExerciseProgress({
 	text,
 	reload,
 	header,
+	bridge,
 }: ViewProps<ExerciseProgressResult>) {
 	const { t } = text;
 	const [busy, setBusy] = useState(false);
 	const [failed, setFailed] = useState(false);
 	const load = (unit: number, digits = 1) =>
 		`${text.number(unit, digits)} ${result.unit}`;
-	const change = async (next: {
-		range?: ProgressRange;
-		metric?: ProgressMetric;
-	}) => {
-		setBusy(true);
-		setFailed(false);
-		try {
-			await reload("show_exercise_progress", {
-				exerciseId: result.exercise.id,
-				range: next.range ?? result.range,
-				metric: next.metric ?? result.metric,
-			});
-		} catch {
-			setFailed(true);
-		} finally {
-			setBusy(false);
-		}
-	};
+	const { id: exerciseId } = result.exercise;
+	const { range, metric } = result;
+	const show = useCallback(
+		async (next: { range?: ProgressRange; metric?: ProgressMetric }) => {
+			setBusy(true);
+			setFailed(false);
+			try {
+				return await reload("show_exercise_progress", {
+					exerciseId,
+					range: next.range ?? range,
+					metric: next.metric ?? metric,
+				});
+			} catch (error) {
+				setFailed(true);
+				throw error;
+			} finally {
+				setBusy(false);
+			}
+		},
+		[reload, exerciseId, range, metric],
+	);
+	const change = (next: { range?: ProgressRange; metric?: ProgressMetric }) =>
+		show(next).catch(() => undefined);
+	useEffect(
+		() =>
+			bridge.set("screen", {
+				setRange: async (range) => describeScreen(await show({ range })),
+				setMetric: async (metric) => describeScreen(await show({ metric })),
+			}),
+		[bridge, show],
+	);
 	const metricLabel = t.progress[result.metric];
 	// Labels carry the year once the range crosses New Year, so 2025-W46 and
 	// 2026-W46 stay apart.

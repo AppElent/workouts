@@ -178,3 +178,52 @@ export async function logUnsaved(
 		}
 	}
 }
+
+/**
+ * The row an app tool means by a food ID: the first one the user can still
+ * change, else the first with that food, so the answer can say why not.
+ */
+export function findItem(items: readonly DraftItem[], foodId: string) {
+	const matches = items.filter((item) => item.foodId === foodId);
+	return (
+		matches.find(
+			(item) =>
+				!item.removed && item.status !== "saved" && item.status !== "saving",
+		) ?? matches[0]
+	);
+}
+
+/**
+ * A food an app tool added. It gets a fresh key: a reloaded view drops it (the
+ * host sends the original result), so no other write can share that key.
+ */
+export function addItem(
+	items: readonly DraftItem[],
+	item: ReviewItem,
+	key: string,
+): DraftItem[] {
+	const row = items.reduce((max, entry) => Math.max(max, entry.row), -1) + 1;
+	return [
+		...items,
+		{
+			...item,
+			row,
+			key,
+			removed: false,
+			status: "pending",
+			attempted: false,
+		},
+	];
+}
+
+/** What Claude reads after an app tool changed the review. */
+export function draftText(items: readonly DraftItem[]) {
+	const kept = items.filter((item) => !item.removed);
+	if (kept.length === 0) return "The review has no items left.";
+	const kcal = sumMacros(kept.map(itemMacros)).energyKcal;
+	const lines = kept.map(
+		(item) =>
+			`${label(item)} (${item.foodId}${item.status === "saved" ? ", logged" : ""})`,
+	);
+	return `The review now holds ${kept.length} item(s): ${lines.join("; ")}. Meal ${kcal === null ? "has no kcal figure" : `${Math.round(kcal)} kcal`}. Nothing new is logged until the user presses Log.`;
+}
