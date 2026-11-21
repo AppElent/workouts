@@ -82,9 +82,11 @@ export function verifySecondFactor(
 }
 
 /**
- * Codes that end the attempt itself, not just this code: too many wrong
- * codes (`verification_failed`), or a sign-in that expired or was dropped
- * while the screen waited. Only a fresh sign-in gets past them.
+ * Codes that end the attempt here: too many wrong codes
+ * (`verification_failed`), or a sign-in that expired or was dropped while
+ * the screen waited. Clerk itself only locks the method after too many wrong
+ * codes (a new code or a backup code still finishes the same sign-in), so
+ * treating it as the end is this screen's simpler choice (APP-507).
  */
 const ATTEMPT_ENDED_CODES = new Set([
 	"verification_failed",

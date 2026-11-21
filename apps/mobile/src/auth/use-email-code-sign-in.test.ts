@@ -110,6 +110,15 @@ it("explains a wrong code in the phone's language", async () => {
 	expect(result.current.error).toBe("Die code klopt niet.");
 });
 
+it("asks for a new code after too many wrong ones", async () => {
+	mockVerifyCode.mockResolvedValue({ error: { code: "verification_failed" } });
+	const { result } = await renderHook(() => useEmailCodeSignIn(), {
+		wrapper: LocaleProvider,
+	});
+	await act(() => result.current.verify("000000"));
+	expect(result.current.error).toBe("Too many wrong codes. Send a new one.");
+});
+
 it("starts over so a corrected address gets a fresh sign-in", async () => {
 	mockReset.mockResolvedValue({ error: null });
 	const { result } = await renderHook(() => useEmailCodeSignIn(), {
