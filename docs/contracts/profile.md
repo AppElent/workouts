@@ -71,6 +71,19 @@ tap. Study: [profile](../../designs/app/profile_final.html).
     to come back and delete again. If Clerk still refuses after the data is
     gone, the person is told to sign in again and repeat
     ([APP-243](https://linear.app/appelent/issue/APP-243)).
+  - *Second factor and the sign-in check.* The phone and the web ask Clerk's
+    own check (`checkAuthorization`, level `second_factor`, 5 minutes) about
+    the live session's factor ages. A session that verified no second factor,
+    such as a social sign-in that Clerk let through without one, is judged by
+    its first factor, also when the account has a second factor. On dev Clerk
+    (21 Nov 2026, clerk-js 6.42.1, API 2026-08-20), `user.delete()` from
+    accounts with two-step verification on succeeded with factor ages
+    `[0, -1]` and also with `[11, 11]`, past Clerk's 10-minute window: the
+    server did not refuse. So the check before the data goes is stricter
+    than Clerk's server, and a passed check is not followed by a refusal for
+    want of a recent sign-in. The "sign in again to finish" handling stays
+    for the case Clerk starts enforcing the window
+    ([APP-528](https://linear.app/appelent/issue/APP-528)).
   - *Apple after deletion.* The confirmation after Delete account (phone
     sign-in screen, web start) says whether Foundry still uses Sign in with
     Apple: stopped, or, when revoking failed or was impossible (Android, an
