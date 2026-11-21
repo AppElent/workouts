@@ -12,6 +12,7 @@ export const authErrorsEn: Record<ClerkErrorMessageKey, string> = {
 	passwordDoesNotMeetRequirements: "That password is not strong enough.",
 	codeIncorrect: "That code is not right.",
 	codeExpired: "That code has expired. Send a new one.",
+	codeAttemptsExceeded: "Too many wrong codes. Send a new one.",
 	tooManyRequests: "Too many attempts. Try again in a moment.",
 	network: "Network error. Check your connection and try again.",
 	appleSignInIncomplete:
@@ -31,6 +32,7 @@ export const authErrorsNl: typeof authErrorsEn = {
 	passwordDoesNotMeetRequirements: "Dat wachtwoord is niet sterk genoeg.",
 	codeIncorrect: "Die code klopt niet.",
 	codeExpired: "Die code is verlopen. Vraag een nieuwe aan.",
+	codeAttemptsExceeded: "Te veel foute codes. Vraag een nieuwe aan.",
 	tooManyRequests: "Te veel pogingen. Probeer het zo opnieuw.",
 	network: "Netwerkfout. Controleer je verbinding en probeer het opnieuw.",
 	appleSignInIncomplete:
