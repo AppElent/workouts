@@ -1,5 +1,5 @@
-import { RedirectToSignIn, Show } from "@clerk/react";
 import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { SignedInGate } from "#/lib/auth/SessionGate";
 
 export const Route = createFileRoute("/_app/_authed")({
 	component: SignedInOnly,
@@ -7,13 +7,8 @@ export const Route = createFileRoute("/_app/_authed")({
 
 function SignedInOnly() {
 	return (
-		<>
-			<Show when="signed-in">
-				<Outlet />
-			</Show>
-			<Show when="signed-out">
-				<RedirectToSignIn />
-			</Show>
-		</>
+		<SignedInGate>
+			<Outlet />
+		</SignedInGate>
 	);
 }

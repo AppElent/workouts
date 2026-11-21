@@ -10,14 +10,16 @@ export function AppShell() {
 	const hasSession = !!activeSession;
 
 	return (
-		<div className="flex h-screen overflow-hidden bg-bg">
+		<div className="flex h-screen flex-col overflow-hidden bg-bg">
 			<OfflineBanner />
-			<Sidebar />
-			<main
-				className={`flex-1 overflow-y-auto ${hasSession ? "pb-32 sm:pb-14" : "pb-16 sm:pb-0"}`}
-			>
-				<Outlet />
-			</main>
+			<div className="flex min-h-0 flex-1">
+				<Sidebar />
+				<main
+					className={`flex-1 overflow-y-auto ${hasSession ? "pb-32 sm:pb-14" : "pb-16 sm:pb-0"}`}
+				>
+					<Outlet />
+				</main>
+			</div>
 			<BottomTabBar />
 			<ActiveSessionBar />
 		</div>

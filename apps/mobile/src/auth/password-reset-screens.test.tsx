@@ -259,7 +259,7 @@ it("after a saved password, only signs in again when that fails", async () => {
 	).toHaveBeenCalledTimes(1);
 });
 
-it("ends a reset that needs a second factor with a way back to sign in", async () => {
+it("continues a reset that needs a second factor into that step", async () => {
 	mockSignIn.resetPasswordEmailCode.verifyCode.mockResolvedValue(ok);
 	mockSignIn.resetPasswordEmailCode.submitPassword.mockImplementation(
 		async () => {
@@ -267,13 +267,33 @@ it("ends a reset that needs a second factor with a way back to sign in", async (
 			return ok;
 		},
 	);
+	await renderScreen(<ResetPasswordScreen email="sam@example.test" />);
+	await enterCodeAndPassword();
+
+	await waitFor(() =>
+		expect(mockPush).toHaveBeenCalledWith({
+			pathname: "/sign-in-second-factor",
+			params: { from: "reset" },
+		}),
+	);
+	expect(screen.queryByText(/web app/)).toBeNull();
+	expect(screen.getByText("Your password is changed.")).toBeTruthy();
+	expect(mockSignIn.finalize).not.toHaveBeenCalled();
+});
+
+it("ends a reset that needs a step the app cannot do with a way back", async () => {
+	mockSignIn.resetPasswordEmailCode.verifyCode.mockResolvedValue(ok);
+	mockSignIn.resetPasswordEmailCode.submitPassword.mockImplementation(
+		async () => {
+			mockSignIn.status = "needs_protect_check";
+			return ok;
+		},
+	);
 	const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
 	await renderScreen(<ResetPasswordScreen email="sam@example.test" />);
 	await enterCodeAndPassword();
 
-	expect(
-		await screen.findByText(/sign in with the new password in the web app/),
-	).toBeTruthy();
+	expect(await screen.findByText(/doesn't support yet/)).toBeTruthy();
 	expect(screen.queryByRole("button", { name: "Reset password" })).toBeNull();
 	await fireEvent.press(screen.getByRole("link", { name: "Back to sign in" }));
 	expect(mockDismissTo).toHaveBeenCalledWith("/sign-in");

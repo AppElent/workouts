@@ -79,6 +79,13 @@ export const auth = {
 	ssoCallback: {
 		title: "Signing you in…",
 	},
+	session: {
+		checking: "Checking your sign-in…",
+		stalled: "This is taking longer than usual",
+		stalledHelp: "Try again, or sign in again if it keeps happening.",
+		retry: "Try again",
+		signInAgain: "Sign in again",
+	},
 	testLogin: {
 		button: "▶ Dev: log in as test user",
 		needsSteps: "Test user requires additional steps.",

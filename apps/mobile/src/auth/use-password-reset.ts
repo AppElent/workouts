@@ -18,9 +18,11 @@
  * attempt, from both routes, so one module-wide lock lets only one run at a
  * time; `locked` reports this hook's own pending action to its screen.
  *
- * Mobile sign-in does not do second factors. If Clerk asks for one after
- * accepting the new password, the stage is `needsWeb`: the password has
- * changed but no session follows, and the message points to the web app.
+ * If Clerk asks for a second factor after accepting the new password (MFA,
+ * or Device Trust on a new device), the stage is `saved` and the handoff
+ * opens `sign-in-second-factor`.
+ * Any other step this app cannot do is `unsupported`: the password has
+ * changed but no session follows here.
  *
  * Resend and start-over turn a thrown SDK failure (no network) into the
  * catalog's network message instead of rejecting.
@@ -28,7 +30,9 @@
 import { useSignIn } from "@clerk/expo";
 import { useCallback, useState } from "react";
 import { useI18n } from "../i18n";
+import { needsSecondFactor } from "./second-factor";
 import { useClerkFlow } from "./use-clerk-flow";
+import { useSecondFactorHandoff } from "./use-second-factor";
 
 /** One Clerk sign-in attempt is shared by both reset routes. */
 let attemptBusy = false;
@@ -45,15 +49,16 @@ async function exclusive<T>(blocked: T, action: () => Promise<T>): Promise<T> {
 }
 
 /** `entering` until Clerk accepts the new password. */
-export type ResetStage = "entering" | "saved" | "needsWeb";
+export type ResetStage = "entering" | "saved" | "unsupported";
 
 const THROWN = { code: "network_error" };
 
 export function usePasswordReset() {
 	const { signIn, errors } = useSignIn();
-	const unsupportedText = useI18n().t.resetPassword.changedNeedsStep;
+	const unsupportedText = useI18n().t.signIn.unsupportedStep;
 	const flow = useClerkFlow(errors);
 	const { run, idle, fail, clear } = flow;
+	const toSecondFactor = useSecondFactorHandoff();
 	const [resending, setResending] = useState(false);
 	const [startingOver, setStartingOver] = useState(false);
 	const [stage, setStage] = useState<ResetStage>("entering");
@@ -119,13 +124,32 @@ export function usePasswordReset() {
 		[signIn, clear, fail],
 	);
 
-	/** Turns the completed attempt into a session; retried after a failure. */
+	/**
+	 * Turns the accepted password into a session: the second-factor step when
+	 * Clerk wants one, else `finalize()`. Retried after a failure.
+	 */
+	const proceed = useCallback(async () => {
+		if (needsSecondFactor(signIn.status)) {
+			idle();
+			toSecondFactor("reset");
+			return;
+		}
+		if (signIn.status === "complete") {
+			await run(() => signIn.finalize());
+			return;
+		}
+		if (__DEV__) {
+			console.warn(
+				`[auth] password reset stopped at an unhandled status: ${signIn.status}`,
+			);
+		}
+		setStage("unsupported");
+		idle();
+	}, [signIn, run, idle, toSecondFactor]);
+
 	const finish = useCallback(
-		(): Promise<void> =>
-			exclusive(undefined, async () => {
-				await run(() => signIn.finalize());
-			}),
-		[signIn, run],
+		(): Promise<void> => exclusive(undefined, proceed),
+		[proceed],
 	);
 
 	const reset = useCallback(
@@ -144,21 +168,10 @@ export function usePasswordReset() {
 				);
 				if (!saved) return;
 
-				if (signIn.status !== "complete") {
-					if (__DEV__) {
-						console.warn(
-							`[auth] password reset stopped at an unhandled status: ${signIn.status}`,
-						);
-					}
-					setStage("needsWeb");
-					idle();
-					return;
-				}
-
 				setStage("saved");
-				await run(() => signIn.finalize());
+				await proceed();
 			}),
-		[signIn, run, idle, stage],
+		[signIn, run, proceed, stage],
 	);
 
 	return {
@@ -172,6 +185,6 @@ export function usePasswordReset() {
 		busy: flow.busy,
 		/** True while any action on the attempt is pending. */
 		locked: flow.busy || resending || startingOver,
-		error: stage === "needsWeb" ? unsupportedText : flow.error,
+		error: stage === "unsupported" ? unsupportedText : flow.error,
 	};
 }

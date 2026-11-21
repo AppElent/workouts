@@ -1,6 +1,5 @@
 import { useAuth, useUser } from "@clerk/expo";
 import * as Sentry from "@sentry/react-native";
-import Constants from "expo-constants";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
@@ -13,6 +12,7 @@ import { DisclosureRow, FormScreen, FormSection } from "../../ui/form";
 import { AppText } from "../../ui/text";
 import { useToast } from "../../ui/toast";
 import { TestDataSection } from "../test-data/test-data-section";
+import { currentBuildInfo, formatBuildInfo } from "./build-info";
 
 export function ProfileScreen() {
 	const { user } = useUser();
@@ -205,7 +205,11 @@ export function ProfileScreen() {
 				</Pressable>
 			</FormSection>
 			<AppText variant="caption" style={{ textAlign: "center" }}>
-				Foundry {Constants.expoConfig?.version ?? ""}
+				{formatBuildInfo(currentBuildInfo(), {
+					version: c.buildVersion,
+					update: c.buildUpdate,
+					noUpdate: c.buildNoUpdate,
+				})}
 			</AppText>
 		</FormScreen>
 	);

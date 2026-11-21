@@ -76,7 +76,7 @@ export async function joinHosted(
 /**
  * Ends a participant's session if it is still running, so a removed Hosted
  * Workout leaves no one locked out of starting another session: completed when
- * anything was logged, otherwise cancelled.
+ * anything was logged, otherwise cancelled. True when it ended one.
  */
 export async function finishParticipantSession(
 	ctx: MutationCtx,
@@ -84,7 +84,7 @@ export async function finishParticipantSession(
 	now = Date.now(),
 ) {
 	const session = await ctx.db.get(participant.sessionId);
-	if (session?.status !== "active") return;
+	if (session?.status !== "active") return false;
 	const [set, wod] = await Promise.all([
 		ctx.db
 			.query("sets")
@@ -99,6 +99,7 @@ export async function finishParticipantSession(
 		status: set || wod ? "completed" : "cancelled",
 		endTime: now,
 	});
+	return true;
 }
 
 /**
