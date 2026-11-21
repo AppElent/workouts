@@ -170,6 +170,25 @@ function recordingIndexes(ctx: MutationCtx, used: string[]): MutationCtx {
 	return { ...ctx, db };
 }
 
+/** Counts the index reads (`query`, `get`) and deletes `ctx` makes. */
+function countingDb(
+	ctx: MutationCtx,
+	tally: { reads: number; deletes: number },
+) {
+	const db = new Proxy(ctx.db, {
+		get(target, prop) {
+			const value = Reflect.get(target, prop);
+			if (typeof value !== "function") return value;
+			return (...args: unknown[]) => {
+				if (prop === "query" || prop === "get") tally.reads += 1;
+				if (prop === "delete") tally.deletes += 1;
+				return value.apply(target, args);
+			};
+		},
+	});
+	return { ...ctx, db } as MutationCtx;
+}
+
 describe("account deletion with Hosted Workouts", () => {
 	it("no longer reports Hosted Workout involvement as a blocker", async () => {
 		const t = newTest();
@@ -290,7 +309,8 @@ describe("account deletion with Hosted Workouts", () => {
 		expect(
 			await t.run((ctx) => deleteHostedWorkoutData(ctx, "alice", 1000)),
 		).toBeNull();
-		expect(await count(t, "hostedWorkoutSubmissions")).toBe(2501);
+		// 1,000 units: the event lookup, the submissions read, 998 deletes.
+		expect(await count(t, "hostedWorkoutSubmissions")).toBe(2503);
 
 		expect(await deleteInApp(t, "alice")).toBeGreaterThan(1);
 		expect(await rowsOf(t, "alice")).toEqual([]);
@@ -301,7 +321,7 @@ describe("account deletion with Hosted Workouts", () => {
 		expect(await deleteInApp(t, "alice")).toBe(1);
 		expect(
 			await t.run((ctx) => deleteHostedWorkoutData(ctx, "alice", 10)),
-		).toBe(10);
+		).toBe(8);
 		expect(await counts(t)).toEqual(after);
 	});
 
@@ -356,8 +376,8 @@ describe("account deletion with Hosted Workouts", () => {
 			new Set(["hostedWorkoutSubmissions.by_participant"]),
 		);
 
-		// 25 linked scores and the participant row, 10 per call.
-		expect(calls).toBe(3);
+		// 26 rows; each call spends 2 of its 10 units on the two lookups.
+		expect(calls).toBe(4);
 		expect(await count(t, "hostedWorkoutParticipants")).toBe(0);
 		expect(await count(t, "hostedWorkoutSubmissions")).toBe(3000);
 	});
@@ -409,7 +429,7 @@ describe("account deletion with Hosted Workouts", () => {
 			}
 		});
 
-		// 31 participations with one score each, 10 rows per call.
+		// 31 participations, each 2 lookups and 2 deletes, at 10 units a call.
 		let calls = 0;
 		for (;;) {
 			calls += 1;
@@ -418,11 +438,70 @@ describe("account deletion with Hosted Workouts", () => {
 			);
 			if (left !== null) break;
 		}
-		expect(calls).toBe(7);
+		expect(calls).toBe(16);
 		await deleteInApp(t, "alice");
 		expect(await rowsOf(t, "alice")).toEqual([]);
 		expect(await count(t, "hostedWorkouts")).toBe(31);
 		expect(await count(t, "hostedWorkoutParticipants")).toBe(0);
 		expect(await count(t, "hostedWorkoutSubmissions")).toBe(150);
+	});
+	it("keeps each call's reads and deletes inside the budget for many empty events and running sessions", async () => {
+		const t = newTest();
+		const { id, token } = await openEvent(t, "alice");
+		await joinAndScore(t, "bob", token, 90);
+		// 140 empty drafts and 140 athletes mid-session in one event, at a tenth
+		// of the real budget: unbudgeted lookups came to about three reads per
+		// row, which at 2,000 rows per call passes Convex's 4,096 per mutation.
+		await t.run(async (ctx) => {
+			const event = await ctx.db.get(id);
+			const bob = await ctx.db
+				.query("hostedWorkoutParticipants")
+				.withIndex("by_user", (q) => q.eq("userId", "bob"))
+				.first();
+			const session = bob && (await ctx.db.get(bob.sessionId));
+			if (!event || !bob || !session) throw new Error("setup failed");
+			const { _id, _creationTime, ...draft } = event;
+			for (let index = 0; index < 140; index++)
+				await ctx.db.insert("hostedWorkouts", {
+					...draft,
+					status: "draft",
+					joinToken: `draft-${index}`,
+				});
+			const { _id: _sessionId, _creationTime: _at, ...running } = session;
+			for (let index = 0; index < 140; index++) {
+				const userId = `athlete-${index}`;
+				await ctx.db.insert("hostedWorkoutParticipants", {
+					hostedWorkoutId: id,
+					userId,
+					sessionId: await ctx.db.insert("workoutSessions", {
+						...running,
+						userId,
+					}),
+					joinedAt: index,
+				});
+			}
+		});
+
+		const budget = 200;
+		let calls = 0;
+		for (;;) {
+			calls += 1;
+			const tally = { reads: 0, deletes: 0 };
+			const left = await t.run((ctx) =>
+				deleteHostedWorkoutData(countingDb(ctx, tally), "alice", budget),
+			);
+			// `finishParticipantSession` also writes one patch per running session.
+			expect(tally.reads + tally.deletes).toBeLessThanOrEqual(budget);
+			if (left !== null) break;
+		}
+
+		expect(calls).toBeGreaterThan(1);
+		expect(await count(t, "hostedWorkouts")).toBe(0);
+		expect(await count(t, "hostedWorkoutParticipants")).toBe(0);
+		const sessions = await t.run((ctx) =>
+			ctx.db.query("workoutSessions").collect(),
+		);
+		expect(sessions.filter((row) => row.status === "active")).toEqual([]);
+		expect(sessions.length).toBeGreaterThanOrEqual(141);
 	});
 });

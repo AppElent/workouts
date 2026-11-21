@@ -102,9 +102,14 @@ export async function finishParticipantSession(
 	return true;
 }
 
+/** Index reads `finishParticipantSession` makes at most. */
+const FINISH_READS = 3;
+
 /**
- * Deletes at most `budget` Hosted Workout rows tied to a deleted account:
- * every event it hosts, whole, with all participants and submissions,
+ * Deletes Hosted Workout rows tied to a deleted account, spending at most
+ * `budget` units, one per index read and one per deleted row, so a call stays
+ * inside Convex's per-mutation read and write limits however the rows are
+ * shaped: every event it hosts, whole, with all participants and submissions,
  * guests included, ending the participants' running sessions as `remove` does;
  * then its participation in other hosts' events and every submission linked
  * to it, so its scores leave those leaderboards. Other accounts' sessions, WODs
@@ -117,23 +122,30 @@ export async function deleteHostedWorkoutData(
 	budget: number,
 ): Promise<number | null> {
 	let remaining = budget;
+	/** Spends `units`; false when the budget cannot cover them. */
+	function spend(units: number) {
+		if (remaining < units) return false;
+		remaining -= units;
+		return true;
+	}
 	/** Deletes rows until the budget runs out; false when some are left. */
 	async function deleteAll(rows: { _id: Id<HostedTable> }[]) {
 		for (const row of rows) {
-			if (remaining === 0) return false;
+			if (!spend(1)) return false;
 			await ctx.db.delete(row._id);
-			remaining -= 1;
 		}
 		return true;
 	}
 
 	const now = Date.now();
 	for (;;) {
+		if (!spend(1)) return null;
 		const hosted = await ctx.db
 			.query("hostedWorkouts")
 			.withIndex("by_host", (q) => q.eq("hostUserId", userId))
 			.first();
 		if (!hosted) break;
+		if (!spend(1)) return null;
 		const submissions = await ctx.db
 			.query("hostedWorkoutSubmissions")
 			.withIndex("by_hosted_workout", (q) =>
@@ -141,19 +153,23 @@ export async function deleteHostedWorkoutData(
 			)
 			.take(remaining + 1);
 		if (!(await deleteAll(submissions))) return null;
+		if (!spend(1)) return null;
 		const participants = await ctx.db
 			.query("hostedWorkoutParticipants")
 			.withIndex("by_hosted_workout", (q) =>
 				q.eq("hostedWorkoutId", hosted._id),
 			)
 			.take(remaining + 1);
-		for (const participant of participants.slice(0, remaining))
+		for (const participant of participants) {
+			if (!spend(FINISH_READS)) return null;
 			await finishParticipantSession(ctx, participant, now);
-		if (!(await deleteAll(participants))) return null;
+			if (!(await deleteAll([participant]))) return null;
+		}
 		if (!(await deleteAll([hosted]))) return null;
 	}
 
 	for (;;) {
+		if (!spend(1)) return null;
 		const participant = await ctx.db
 			.query("hostedWorkoutParticipants")
 			.withIndex("by_user", (q) => q.eq("userId", userId))
@@ -162,6 +178,7 @@ export async function deleteHostedWorkoutData(
 		// Signed-in submissions (`submitForSession`, `claimGuestSubmissions`)
 		// carry the participant together with the account's WOD and result, so
 		// matching the participant also finds every row pointing at those.
+		if (!spend(1)) return null;
 		const linked = await ctx.db
 			.query("hostedWorkoutSubmissions")
 			.withIndex("by_participant", (q) =>

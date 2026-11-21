@@ -309,7 +309,8 @@ describe("POST /clerk/webhook purge", () => {
 		});
 		const body = event("user.deleted");
 		expect((await post(t, body, signed(body))).status).toBe(200);
-		expect((await rowsOf(t, "alice")).length).toBe(500);
+		// 2,000 units, two of them the empty Hosted Workout lookups.
+		expect((await rowsOf(t, "alice")).length).toBe(502);
 		await t.finishAllScheduledFunctions(vi.runAllTimers);
 		expect(await rowsOf(t, "alice")).toEqual([]);
 	});
