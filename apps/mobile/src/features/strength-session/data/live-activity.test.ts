@@ -541,15 +541,100 @@ describe("session Live Activity", () => {
 		fake.endGate = null;
 	});
 
-	it("treats a dismissed activity as gone, without reporting it", async () => {
+	/** The user swipes the activity away: iOS ends it and stops listing it. */
+	const dismiss = () => {
+		for (const item of live()) item.ended = true;
+	};
+
+	it("stays dismissed for the rest of the session, without reporting it", async () => {
 		showSessionActivity(props());
 		await flush();
-		const [activity] = live();
-		if (activity) activity.ended = true;
+		dismiss();
 		showSessionActivity(props({ setIndex: 4 }));
 		await flush();
+		showSessionActivity(props({ setIndex: 4, restEndsAt: T0 + 60_000 }));
+		await flush();
 		expect(Sentry.captureException).not.toHaveBeenCalled();
+		expect(live()).toHaveLength(0);
+		expect(fake.activities).toHaveLength(1);
+	});
+
+	it("stays dismissed when the dismissal lands during an update", async () => {
+		showSessionActivity(props());
+		await flush();
+		let release: () => void = () => undefined;
+		fake.updateGate = new Promise((resolve) => {
+			release = resolve;
+		});
+		showSessionActivity(props({ setIndex: 4 }));
+		await flush();
+		dismiss();
+		release();
+		await flush();
+		fake.updateGate = null;
+		showSessionActivity(props({ setIndex: 2 }));
+		await flush();
+		expect(Sentry.captureException).not.toHaveBeenCalled();
+		expect(live()).toHaveLength(0);
+	});
+
+	it("starts a new activity for the next session after a dismissal", async () => {
+		showSessionActivity(props());
+		await flush();
+		dismiss();
+		showSessionActivity(props({ setIndex: 4 }));
+		await flush();
+		endSessionActivity();
+		showSessionActivity(props({ sessionName: "Leg day", startedAt: T0 + 1 }));
+		await flush();
 		expect(live()).toHaveLength(1);
+		expect(live()[0]?.props.title).toBe("Leg day");
+	});
+
+	it("starts a new activity for a session that directly follows a dismissed one", async () => {
+		showSessionActivity(props());
+		await flush();
+		dismiss();
+		showSessionActivity(props({ setIndex: 4 }));
+		await flush();
+		showSessionActivity(props({ sessionName: "Leg day", startedAt: T0 + 1 }));
+		await flush();
+		expect(live()).toHaveLength(1);
+		expect(live()[0]?.props.title).toBe("Leg day");
+	});
+
+	it("stays dismissed across a relaunch during the same session", async () => {
+		showSessionActivity(props());
+		await flush();
+		dismiss();
+		showSessionActivity(props({ setIndex: 4 }));
+		await flush();
+		// The owner kept on the phone survives; the dismissed activity does not.
+		const store = jest.requireMock("expo-sqlite/kv-store") as {
+			default: { getItemSync: (key: string) => string | null };
+		};
+		const kept = store.default.getItemSync("workouts:live-activity");
+		expect(kept).not.toBeNull();
+		const app = relaunch({ activities: [], owner: kept ?? undefined });
+		app.driver.showSessionActivity(props({ setIndex: 4 }));
+		await flush();
+		expect(app.live()).toHaveLength(0);
+		// A relaunch into the next session starts one again.
+		app.driver.showSessionActivity(props({ startedAt: T0 + 1 }));
+		await flush();
+		expect(app.live()).toHaveLength(1);
+	});
+
+	it("notices a dismissal that happened while the app was closed", async () => {
+		const app = relaunch({
+			activities: [],
+			owner: { activityId: "la-kept", startedAt: lifting.startedAt },
+		});
+		app.driver.showSessionActivity(props());
+		await flush();
+		app.driver.showSessionActivity(props({ setIndex: 4 }));
+		await flush();
+		expect(app.live()).toHaveLength(0);
 	});
 
 	it("starts only while the app is active, and retries once it is", async () => {
