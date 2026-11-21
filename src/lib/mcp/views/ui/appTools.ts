@@ -66,6 +66,9 @@ export class ControlBridge {
 const NOT_SHOWN =
 	"That is not on screen in this view right now, so nothing changed.";
 
+/** A server tool refused a view's call; the message is safe to show Claude. */
+export class ViewToolError extends Error {}
+
 export function textResult(text: string) {
 	return { content: [{ type: "text" as const, text }] };
 }
@@ -75,9 +78,13 @@ async function run(work: Promise<string> | undefined) {
 	if (!work) return textResult(NOT_SHOWN);
 	try {
 		return textResult(await work);
-	} catch {
+	} catch (error) {
+		// reload() throws with the Foundry tool's own text, which is written for
+		// agents (validation and user-facing messages only).
+		const reason =
+			error instanceof ViewToolError ? ` ${error.message}` : " Try again.";
 		return {
-			...textResult("The view could not make that change. Try again."),
+			...textResult(`The view could not make that change.${reason}`),
 			isError: true,
 		};
 	}
@@ -169,7 +176,7 @@ const SET_QUANTITY: ToolSpec = {
 	name: "set_quantity",
 	title: "Change food in review",
 	description:
-		"Change the quantity or serving of a food in the food log review on screen. Logs nothing; logged items cannot change.",
+		"Change the quantity or serving of a food in the food log review on screen. Logs nothing; logged items cannot change. With the same food twice, it changes the first one not yet logged.",
 	inputSchema: z.object({
 		foodId,
 		quantity: quantity.optional(),
@@ -185,7 +192,7 @@ const REMOVE_ITEM: ToolSpec = {
 	name: "remove_item",
 	title: "Remove food from review",
 	description:
-		"Remove a food from the food log review on screen, so Log leaves it out. Logged items cannot be removed here.",
+		"Remove a food from the food log review on screen, so Log leaves it out. Logged items cannot be removed here. With the same food twice, it removes the first one not yet logged.",
 	inputSchema: z.object({ foodId }),
 	call: ({ foodId }: { foodId: string }, bridge) =>
 		bridge.get("removeItem")?.(foodId),
@@ -212,6 +219,8 @@ export function registerViewTools(
 				title: tool.title,
 				description: tool.description,
 				inputSchema: tool.inputSchema,
+				// Read-only towards Foundry: the tools change only what the view
+				// shows; logging stays behind the view's Log button.
 				annotations: { readOnlyHint: true, openWorldHint: false },
 			},
 			(args: unknown) => {

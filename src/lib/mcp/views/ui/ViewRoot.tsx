@@ -2,7 +2,12 @@ import type { App, McpUiHostContext } from "@modelcontextprotocol/ext-apps";
 import { useApp, useHostStyles } from "@modelcontextprotocol/ext-apps/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ViewName, ViewResult } from "../types";
-import { ControlBridge, describeScreen, registerViewTools } from "./appTools";
+import {
+	ControlBridge,
+	describeScreen,
+	registerViewTools,
+	ViewToolError,
+} from "./appTools";
 import { ExerciseProgress } from "./ExerciseProgress";
 import { FoodLog } from "./FoodLog";
 import { Home } from "./Home";
@@ -155,8 +160,12 @@ export function ViewRoot({ view }: { view: ViewName }) {
 				arguments: timeZone ? { ...args, timeZone } : args,
 			});
 			const content = response.structuredContent as ViewResult | undefined;
-			if (response.isError || !content || !showsResult(view, content))
-				throw new Error(`${tool} failed`);
+			if (response.isError || !content || !showsResult(view, content)) {
+				const text = response.content?.find((block) => block.type === "text");
+				throw text && "text" in text && response.isError
+					? new ViewToolError(text.text)
+					: new Error(`${tool} failed`);
+			}
 			setResult(content);
 			return content;
 		},

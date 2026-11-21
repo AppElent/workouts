@@ -1,7 +1,12 @@
 import { App } from "@modelcontextprotocol/ext-apps";
 import { describe, expect, it, vi } from "vitest";
 import { VIEW_NAMES } from "../types";
-import { ControlBridge, registerViewTools, VIEW_APP_TOOLS } from "./appTools";
+import {
+	ControlBridge,
+	registerViewTools,
+	VIEW_APP_TOOLS,
+	ViewToolError,
+} from "./appTools";
 
 type Registered = {
 	inputSchema: {
@@ -108,7 +113,22 @@ describe("view app tools", () => {
 		});
 		const failed = await setRange.handler({ range: "1y" }, {} as never);
 		expect(failed.isError).toBe(true);
-		expect(failed.content[0].text).toMatch(/could not make that change/);
+		expect(failed.content[0].text).toBe(
+			"The view could not make that change. Try again.",
+		);
+
+		// A Foundry refusal passes its own words on, so Claude can fix the input.
+		bridge.set("screen", {
+			goToWeek: async () => {
+				throw new ViewToolError("weekStart must be a real YYYY-MM-DD date.");
+			},
+		});
+		expect(
+			(await goToWeek.handler({ weekStart: "2026-02-31" }, {} as never))
+				.content[0].text,
+		).toBe(
+			"The view could not make that change. weekStart must be a real YYYY-MM-DD date.",
+		);
 	});
 
 	it("rejects input outside the schema before any control runs", async () => {

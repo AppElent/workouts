@@ -115,12 +115,16 @@ export function FoodLog({
 	const [quantityText, setQuantityText] = useState<Record<number, string>>({});
 	// App tools read and answer synchronously, so they keep their own copy.
 	const itemsRef = useRef(items);
-	itemsRef.current = items;
 	const loggingRef = useRef(false);
-	const update = (row: number, change: (item: DraftItem) => DraftItem) =>
-		setItems((current) =>
-			current.map((item) => (item.row === row ? change(item) : item)),
+	// Every change goes through the ref first, so an app tool never builds on
+	// a state that misses an edit React has not rendered yet.
+	const update = (row: number, change: (item: DraftItem) => DraftItem) => {
+		const next = itemsRef.current.map((item) =>
+			item.row === row ? change(item) : item,
 		);
+		itemsRef.current = next;
+		setItems(next);
+	};
 
 	const { date, meal: mealName } = result;
 	useEffect(() => {
