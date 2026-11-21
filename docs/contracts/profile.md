@@ -73,16 +73,20 @@ tap. Study: [profile](../../designs/app/profile_final.html).
     ([APP-243](https://linear.app/appelent/issue/APP-243)).
   - *Second factor and the sign-in check.* The phone and the web ask Clerk's
     own check (`checkAuthorization`, level `second_factor`, 5 minutes) about
-    the live session's factor ages. A session that verified no second factor,
-    such as a social sign-in that Clerk let through without one, is judged by
-    its first factor, also when the account has a second factor. On dev Clerk
-    (21 Nov 2026, clerk-js 6.42.1, API 2026-08-20), `user.delete()` from
-    accounts with two-step verification on succeeded with factor ages
-    `[0, -1]` and also with `[11, 11]`, past Clerk's 10-minute window: the
-    server did not refuse. So the check before the data goes is stricter
-    than Clerk's server, and a passed check is not followed by a refusal for
-    want of a recent sign-in. The "sign in again to finish" handling stays
-    for the case Clerk starts enforcing the window
+    the live session's factor ages (minutes since the first and the second
+    factor; -1 when the session verified none). A session that verified no
+    second factor is judged by its first factor, also when the account has a
+    second factor; a Google or Apple sign-in that Clerk lets through without
+    one would look like that (expected, not tested: no throwaway Google or
+    Apple identity). On dev Clerk (21 Nov 2026, Frontend API calls as
+    clerk-js 6.42.1 sends them, API 2026-08-20, two-step by authenticator
+    app), `user.delete()` succeeded at `[0, -1]` and also at `[11, 11]`,
+    past Clerk's 10-minute window: dev refused nothing. So on dev the check
+    before the data goes is the stricter side. Production and the native
+    client were not tested, so the "sign in again to finish" handling stays.
+    Data first, account last still leaves the data gone and the account in
+    place when `user.delete()` fails for another reason (offline, a Clerk
+    error); whether to change that order is open
     ([APP-528](https://linear.app/appelent/issue/APP-528)).
   - *Apple after deletion.* The confirmation after Delete account (phone
     sign-in screen, web start) says whether Foundry still uses Sign in with
