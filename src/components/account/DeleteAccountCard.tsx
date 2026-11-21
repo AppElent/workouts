@@ -68,6 +68,9 @@ export function DeleteAccountCard() {
 	// still there. Reads the live session: verifying replaces it.
 	// Checked with half the window, so it doesn't lapse while the data is
 	// deleted and Clerk's dialog after the data is gone stays rare.
+	// A session without a second factor counts its first factor, also for a
+	// two-step account; on dev Clerk this check is stricter than the server's
+	// (APP-528, profile contract).
 	const recentSignIn = () =>
 		clerk.session?.checkAuthorization({
 			reverification: { level: "second_factor", afterMinutes: 5 },
