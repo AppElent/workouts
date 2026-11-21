@@ -6,6 +6,10 @@
  * anything is deleted and asks the person to sign in again: the app's own
  * sign-in (password, emailed code, Apple or Google) gives a fresh one.
  * Arcade Club does the same (AppElent/games#93).
+ *
+ * A session without a second factor counts its first factor, also for a
+ * two-step account; on dev Clerk this check is stricter than the server's
+ * (APP-528, profile contract).
  */
 
 /** Half Clerk's window, so it doesn't lapse while the data is deleted. */
