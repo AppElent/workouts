@@ -78,6 +78,7 @@ describe("SecondFactorStep", () => {
 		finalize.mockImplementation(ok());
 		reset.mockImplementation(ok({ status: "needs_identifier" }));
 		mfa.sendEmailCode.mockImplementation(ok());
+		mfa.sendPhoneCode.mockImplementation(ok());
 	});
 
 	afterEach(() => {
@@ -268,9 +269,54 @@ describe("SecondFactorStep", () => {
 		expect(reset).toHaveBeenCalled();
 	});
 
+	it("texts the first code and sends a new one on request", async () => {
+		signIn.supportedSecondFactors = [
+			{ strategy: "phone_code", safeIdentifier: "+31******89" },
+		];
+		renderStep();
+		expect(
+			screen.getByText("We texted a 6-digit code to +31******89."),
+		).toBeDefined();
+		await vi.waitFor(() => expect(mfa.sendPhoneCode).toHaveBeenCalledTimes(1));
+		fireEvent.click(
+			await screen.findByRole("button", { name: "Send a new code" }),
+		);
+		expect(await screen.findByText("A new code is on its way.")).toBeDefined();
+		expect(mfa.sendPhoneCode).toHaveBeenCalledTimes(2);
+	});
+
+	it("asks for the code instead of sending an empty one", () => {
+		signIn.supportedSecondFactors = [{ strategy: "totp" }];
+		renderStep();
+		enter("Code", "  ");
+		expect(screen.getByText("Enter the code first.")).toBeDefined();
+		expect(mfa.verifyTOTP).not.toHaveBeenCalled();
+	});
+
+	it("keeps its opening notice while the first code is sent", async () => {
+		signIn.supportedSecondFactors = [{ strategy: "email_code" }];
+		renderStep({ notice: "Your password has been changed." });
+		await vi.waitFor(() => expect(mfa.sendEmailCode).toHaveBeenCalledTimes(1));
+		await screen.findByRole("button", { name: "Verify" });
+		expect(screen.getByText("Your password has been changed.")).toBeDefined();
+	});
+
+	it("moves focus to the message when the attempt ends", async () => {
+		signIn.supportedSecondFactors = [{ strategy: "totp" }];
+		mfa.verifyTOTP.mockImplementation(clerkError("sign_in_expired"));
+		renderStep();
+		enter("Code", "424242");
+		const message = await screen.findByText(
+			"This sign-in took too long and can't continue. Go back and sign in again.",
+		);
+		await vi.waitFor(() =>
+			expect(document.activeElement?.contains(message)).toBe(true),
+		);
+	});
+
 	it("shows the notice it was opened with", () => {
 		signIn.supportedSecondFactors = [{ strategy: "totp" }];
-		renderStep({ notice: "Your password is changed." });
-		expect(screen.getByText("Your password is changed.")).toBeDefined();
+		renderStep({ notice: "Your password has been changed." });
+		expect(screen.getByText("Your password has been changed.")).toBeDefined();
 	});
 });

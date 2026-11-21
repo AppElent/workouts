@@ -82,11 +82,14 @@ export const auth = {
 			email_code: "Email a code to {destination}",
 			backup_code: "Use a backup code",
 		},
-		passwordChanged: "Your password is changed. One more step to sign in.",
+		passwordChanged:
+			"Your password has been changed. One more step to sign in.",
+		codeMissing: "Enter the code first.",
 		methodLocked:
 			"Too many wrong codes for this method. Use another method, or go back and sign in again.",
 		attemptEnded:
 			"This sign-in took too long and can't continue. Go back and sign in again.",
+		notFinished: "This sign-in couldn't finish. Go back and sign in again.",
 		noMethod:
 			"Your account's second sign-in step isn't available here. Contact support to sign in.",
 		backToSignIn: "Back to sign in",

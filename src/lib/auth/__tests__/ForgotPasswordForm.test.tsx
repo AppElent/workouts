@@ -186,7 +186,7 @@ describe("ForgotPasswordForm", () => {
 		fireEvent.click(screen.getByRole("button", { name: "Reset password" }));
 		expect(
 			await screen.findByText(
-				"Your password is changed. One more step to sign in.",
+				"Your password has been changed. One more step to sign in.",
 			),
 		).toBeDefined();
 		expect(finalize).not.toHaveBeenCalled();

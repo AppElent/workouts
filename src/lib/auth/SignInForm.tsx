@@ -27,8 +27,11 @@ function hasEmailCodeFactor(signIn: SignIn) {
 export function SignInForm({
 	onSuccess,
 	redirect,
+	resumeSocial = false,
 }: {
 	onSuccess?: () => void;
+	/** Arrived from `/sso-callback`: carry on with its open social sign-in. */
+	resumeSocial?: boolean;
 	/** Where to land after signing in, carried to social sign-in, sign-up, and password reset. */
 	redirect?: string;
 }) {
@@ -60,20 +63,22 @@ export function SignInForm({
 	}
 
 	// A social sign-in that needs a second factor comes back from
-	// `/sso-callback` with the attempt still open: carry on with it. Only an
-	// OAuth attempt, so an abandoned password attempt is not picked up again.
-	// Waits for Clerk: before load, `signIn` is a placeholder.
+	// `/sso-callback` with the attempt still open: carry on with it. Only when
+	// sent from there, and only an OAuth attempt, so an attempt someone else
+	// left in this browser is not picked up. Waits for Clerk: before load,
+	// `signIn` is a placeholder.
 	const resumed = useRef(false);
 	useEffect(() => {
 		if (!isLoaded || resumed.current) return;
 		resumed.current = true;
 		if (
+			resumeSocial &&
 			signIn.firstFactorVerification?.strategy?.startsWith("oauth_") &&
 			needsSecondFactor(signIn.status)
 		) {
 			setStep("secondFactor");
 		}
-	}, [isLoaded, signIn]);
+	}, [isLoaded, signIn, resumeSocial]);
 
 	async function finish(signIn: SignIn) {
 		if (needsSecondFactor(signIn.status)) {

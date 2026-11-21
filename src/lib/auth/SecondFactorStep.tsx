@@ -71,9 +71,10 @@ export function SecondFactorStep({
 	async function run(
 		current: SecondFactorStrategy,
 		action: () => Promise<boolean>,
+		{ keepNotice = false } = {},
 	): Promise<boolean> {
 		setError(null);
-		setNotice(null);
+		if (!keepNotice) setNotice(null);
 		setLoading(true);
 		try {
 			return await action();
@@ -91,18 +92,23 @@ export function SecondFactorStep({
 		return true;
 	}
 
-	// The default method's first code. The ref covers an effect run twice.
+	// The default method's first code, under any notice the step opened with.
+	// The ref covers an effect run twice.
 	const firstSend = useRef(false);
 	// biome-ignore lint/correctness/useExhaustiveDependencies: once, on mount; later sends go through resend and switchTo.
 	useEffect(() => {
 		if (firstSend.current || !strategy || !sendsCode(strategy)) return;
 		firstSend.current = true;
-		void run(strategy, () => send(strategy));
+		void run(strategy, () => send(strategy), { keepNotice: true });
 	}, []);
 
 	function submit(e: React.FormEvent) {
 		e.preventDefault();
 		if (!strategy || loading || ended) return;
+		if (signIn.status !== "complete" && !code.trim()) {
+			setError(copy.codeMissing);
+			return;
+		}
 		return run(strategy, async () => {
 			// A verified factor whose `finalize()` failed only needs the retry.
 			if (signIn.status !== "complete") {
@@ -114,7 +120,7 @@ export function SecondFactorStep({
 				if (error) throw error;
 			}
 			if (signIn.status !== "complete") {
-				setError(auth.signIn.needsVerification);
+				setError(copy.notFinished);
 				return false;
 			}
 			const { error } = await signIn.finalize();
@@ -135,7 +141,6 @@ export function SecondFactorStep({
 
 	async function switchTo(next: SecondFactorStrategy) {
 		if (loading || next === strategy) return;
-		firstSend.current = true;
 		if (await run(next, () => send(next))) {
 			setCode("");
 			setStrategy(next);
@@ -143,6 +148,8 @@ export function SecondFactorStep({
 	}
 
 	async function back() {
+		if (loading) return;
+		setLoading(true);
 		try {
 			await signIn.reset();
 		} catch {
@@ -152,6 +159,13 @@ export function SecondFactorStep({
 	}
 
 	const current = options.find((option) => option.strategy === strategy);
+
+	// The form (and its focused field) leaves for the error view: keep focus
+	// on the step so keyboard and screen-reader users land on the message.
+	const errorView = useRef<HTMLDivElement>(null);
+	useEffect(() => {
+		if (ended) errorView.current?.focus();
+	}, [ended]);
 
 	function destination(option: SecondFactorOption) {
 		return (
@@ -173,7 +187,11 @@ export function SecondFactorStep({
 
 	if (!current || ended) {
 		return (
-			<div className="flex flex-col gap-3">
+			<div
+				ref={errorView}
+				tabIndex={-1}
+				className="flex flex-col gap-3 outline-none"
+			>
 				<AuthError message={ended ? copy.attemptEnded : copy.noMethod} />
 				<div className="mt-1 text-xs text-text-muted">{backLink}</div>
 			</div>
@@ -187,11 +205,10 @@ export function SecondFactorStep({
 		<form onSubmit={submit} noValidate className="flex flex-col gap-3">
 			<h2 className="text-base font-semibold text-text">{copy.title}</h2>
 			<AuthError message={error} />
-			{notice ? (
-				<p className="text-sm text-text" role="status">
-					{notice}
-				</p>
-			) : null}
+			{/* Always mounted, so screen readers announce a notice set later. */}
+			<p className="text-sm text-text empty:hidden" role="status">
+				{notice}
+			</p>
 			<p className="text-sm text-text-muted">
 				{fmt(copy.prompt[current.strategy], {
 					destination: destination(current),

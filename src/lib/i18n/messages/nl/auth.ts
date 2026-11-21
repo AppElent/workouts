@@ -68,7 +68,7 @@ export const auth = {
 		prompt: {
 			totp: "Vul de code van 6 cijfers uit je authenticator-app in.",
 			phone_code:
-				"We hebben een code van 6 cijfers ge-sms't naar {destination}.",
+				"We hebben een code van 6 cijfers gesms't naar {destination}.",
 			email_code:
 				"We hebben een code van 6 cijfers gestuurd naar {destination}.",
 			backup_code: "Vul een van de back-upcodes in die je hebt bewaard.",
@@ -81,17 +81,20 @@ export const auth = {
 		resend: "Stuur een nieuwe code",
 		resent: "Er is een nieuwe code onderweg.",
 		switchTo: {
-			totp: "Authenticator-app gebruiken",
+			totp: "Gebruik je authenticator-app",
 			phone_code: "Sms een code naar {destination}",
 			email_code: "Mail een code naar {destination}",
-			backup_code: "Back-upcode gebruiken",
+			backup_code: "Gebruik een back-upcode",
 		},
 		passwordChanged:
 			"Je wachtwoord is gewijzigd. Nog één stap om in te loggen.",
+		codeMissing: "Vul eerst de code in.",
 		methodLocked:
 			"Te veel foute codes voor deze methode. Gebruik een andere methode, of ga terug en log opnieuw in.",
 		attemptEnded:
 			"Deze inlogpoging duurde te lang en kan niet verder. Ga terug en log opnieuw in.",
+		notFinished:
+			"Deze inlogpoging kon niet worden afgerond. Ga terug en log opnieuw in.",
 		noMethod:
 			"De tweede inlogstap van je account is hier niet beschikbaar. Neem contact op met support om in te loggen.",
 		backToSignIn: "Terug naar inloggen",

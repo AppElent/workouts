@@ -19,7 +19,9 @@ function SsoCallbackPage() {
 	// A social sign-in Clerk transfers to a sign-up (or back) ends on these
 	// fallbacks, so they carry the return path from `SocialButtons`.
 	const afterAuth = redirect ?? AUTH_PATHS.afterAuth;
-	const signInUrl = withRedirect(AUTH_PATHS.signIn, redirect);
+	// Marked so `SignInForm` carries on with the attempt only when it comes
+	// from here, not for whoever opens `/sign-in` later in the same browser.
+	const signInUrl = withResume(withRedirect(AUTH_PATHS.signIn, redirect));
 	return (
 		<AuthCard title={auth.ssoCallback.title}>
 			<AuthenticateWithRedirectCallback
@@ -29,10 +31,15 @@ function SsoCallbackPage() {
 				signUpFallbackRedirectUrl={afterAuth}
 				// Clerk's default is its own `#/factor-two` hash route, which
 				// `SignInForm` does not read; it picks up the open attempt instead.
+				// `needs_client_trust` has no URL of its own and lands on `signInUrl`.
 				secondFactorUrl={signInUrl}
 			/>
 			{/* A sign-in transferred to a sign-up may need Clerk's bot check. */}
 			<div id="clerk-captcha" data-cl-language={locale} />
 		</AuthCard>
 	);
+}
+
+function withResume(url: string) {
+	return `${url}${url.includes("?") ? "&" : "?"}resume=social`;
 }

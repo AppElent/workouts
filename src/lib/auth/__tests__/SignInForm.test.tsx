@@ -194,8 +194,19 @@ describe("SignInForm", () => {
 			supportedSecondFactors: [{ strategy: "totp" }],
 			firstFactorVerification: { strategy: "oauth_google" },
 		});
-		renderForm();
+		render(<SignInForm resumeSocial />);
 		expect(await screen.findByText("Verify it's you")).toBeDefined();
+	});
+
+	it("leaves an open social sign-in alone unless sent from the callback", () => {
+		Object.assign(signIn, {
+			status: "needs_second_factor",
+			supportedSecondFactors: [{ strategy: "totp" }],
+			firstFactorVerification: { strategy: "oauth_google" },
+		});
+		renderForm();
+		expect(screen.getByLabelText("Password")).toBeDefined();
+		expect(screen.queryByText("Verify it's you")).toBeNull();
 	});
 
 	it("leaves an abandoned password attempt alone on arrival", () => {
@@ -204,7 +215,7 @@ describe("SignInForm", () => {
 			supportedSecondFactors: [{ strategy: "totp" }],
 			firstFactorVerification: { strategy: "password" },
 		});
-		renderForm();
+		render(<SignInForm resumeSocial />);
 		expect(screen.getByLabelText("Password")).toBeDefined();
 		expect(screen.queryByText("Verify it's you")).toBeNull();
 	});
