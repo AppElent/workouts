@@ -53,6 +53,17 @@ describe("clerkErrorMessageKey", () => {
 		);
 	});
 
+	it("tells too many wrong codes apart from one wrong code", () => {
+		// Dev Clerk, 21 Nov 2026: three wrong codes give `form_code_incorrect`,
+		// the fourth `verification_failed` ("Too many failed attempts").
+		expect(clerkErrorMessageKey({ code: "form_code_incorrect" })).toBe(
+			"codeIncorrect",
+		);
+		expect(
+			clerkErrorMessageKey({ errors: [{ code: "verification_failed" }] }),
+		).toBe("codeAttemptsExceeded");
+	});
+
 	it("reads the nested code of a Clerk API response error", () => {
 		// Shape of @clerk/shared's ClerkAPIResponseError: own wrapper code, the
 		// API's codes in `errors[]`.

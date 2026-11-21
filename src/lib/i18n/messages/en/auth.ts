@@ -18,6 +18,7 @@ export const auth = {
 			"This password doesn't meet the requirements.",
 		codeIncorrect: "That code is incorrect.",
 		codeExpired: "That code has expired. Request a new one.",
+		codeAttemptsExceeded: "Too many wrong codes. Request a new one.",
 		tooManyRequests: "Too many attempts. Wait a moment and try again.",
 		network: "Can't reach the server. Check your connection.",
 		appleSignInIncomplete: "Apple sign-in didn't finish. Please try again.",
