@@ -20,10 +20,17 @@
 //   publish would bake in this machine's .env.local.
 // - The maps come from the exact `dist/` just published; never rebuild in
 //   between, or the debug IDs no longer match.
+// - The OTA label (`<version> · <d mmm> · <short sha>`, standards/releases.md):
+//   the commit's sha goes into the bundle as EXPO_PUBLIC_GIT_SHA, for the
+//   About screen, and the label becomes the update message. Any `--message`
+//   passed in is replaced, so every publish path names its update the same way.
 //
 // Production refuses to publish without SENTRY_AUTH_TOKEN. Preview publishes
 // without it and says so, so the pipeline can be tried without the token.
 import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { formatOtaLabel } from "./ota-label.mjs";
 import { appRoot, fingerprint, PLATFORMS } from "./fingerprint.mjs";
 
 const CHANNELS = ["preview", "production"];
@@ -38,7 +45,7 @@ if (!CHANNELS.includes(channel)) {
 const OWN_FLAGS = ["--upload-only", "--without-build"];
 const uploadOnly = rest.includes("--upload-only");
 const withoutBuild = rest.includes("--without-build");
-const easArgs = rest.filter((arg) => !OWN_FLAGS.includes(arg));
+const easArgs = withoutMessage(rest.filter((arg) => !OWN_FLAGS.includes(arg)));
 const upload = Boolean(process.env.SENTRY_AUTH_TOKEN);
 
 if (!upload) {
@@ -50,13 +57,28 @@ if (!upload) {
 	console.warn(`${message} Publishing to ${channel} without them.`);
 }
 
+const sha = spawnSync("git", ["rev-parse", "HEAD"], { cwd: appRoot, encoding: "utf8" }).stdout?.trim();
+const { version } = JSON.parse(readFileSync(join(appRoot, "app.json"), "utf8")).expo;
+const label = formatOtaLabel(version, new Date(), sha);
+
 const env = {
 	...process.env,
 	APP_VARIANT: channel,
+	EXPO_PUBLIC_GIT_SHA: sha,
 	// Same project as the @sentry/react-native plugin in app.json.
 	SENTRY_ORG: "appelent",
 	SENTRY_PROJECT: "foundry",
 };
+
+/** `args` without `--message <text>`, `--message=<text>` and `-m <text>`. */
+function withoutMessage(args) {
+	const kept = [];
+	for (let i = 0; i < args.length; i++) {
+		if (args[i] === "--message" || args[i] === "-m") i++;
+		else if (!args[i].startsWith("--message=")) kept.push(args[i]);
+	}
+	return kept;
+}
 
 function run(command, args) {
 	const result = spawnSync("pnpm", ["exec", command, ...args], {
@@ -123,6 +145,7 @@ if (!uploadOnly && !withoutBuild) {
 }
 
 if (!uploadOnly) {
-	run("eas", ["update", "--channel", channel, "--environment", channel, ...easArgs]);
+	run("eas", ["update", "--channel", channel, "--environment", channel, "--message", label, ...easArgs]);
+	console.log(`OTA label: ${label}`);
 }
 if (upload) run("sentry-expo-upload-sourcemaps", ["dist"]);

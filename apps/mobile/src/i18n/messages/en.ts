@@ -19,6 +19,7 @@ import { profileEn } from "./profile";
 import { progressEn } from "./progress";
 import { resetPasswordEn } from "./reset-password";
 import { routesEn } from "./routes";
+import { secondFactorEn } from "./second-factor";
 import { signInEn } from "./sign-in";
 import { signUpEn } from "./sign-up";
 import { strengthEn } from "./strength";
@@ -54,6 +55,7 @@ export const en = {
 	signUp: signUpEn,
 	verifyEmail: verifyEmailEn,
 	resetPassword: resetPasswordEn,
+	secondFactor: secondFactorEn,
 	profile: profileEn,
 	account: accountEn,
 	training: trainingEn,

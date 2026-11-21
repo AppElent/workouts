@@ -14,6 +14,11 @@ jest.mock("@clerk/expo/apple", () => ({
 	useSignInWithApple: () => ({ startAppleAuthenticationFlow: mockStartApple }),
 }));
 
+const mockPush = jest.fn();
+jest.mock("expo-router", () => ({
+	useRouter: () => ({ push: mockPush }),
+}));
+
 const originalOS = Platform.OS;
 
 afterEach(() => {
@@ -104,4 +109,32 @@ it("points to Settings when the device has no Apple Account", async () => {
 	mockStartApple.mockRejectedValue({ code: "ERR_REQUEST_UNKNOWN" });
 	const result = await run("apple");
 	expect(result.error).toMatch(/apple account in settings/i);
+});
+
+it("opens the second-factor step after a browser sign-in on an MFA account", async () => {
+	mockStartSSOFlow.mockResolvedValue({
+		createdSessionId: null,
+		signIn: { status: "needs_second_factor" },
+		authSessionResult: { type: "success" },
+	});
+	const result = await run("google");
+	expect(mockPush).toHaveBeenCalledWith({
+		pathname: "/sign-in-second-factor",
+		params: { from: "signIn" },
+	});
+	expect(result.error).toBeNull();
+	expect(result.pending).toBeNull();
+});
+
+it("opens the second-factor step after Apple's sheet on an MFA account", async () => {
+	Platform.OS = "ios";
+	mockStartApple.mockResolvedValue({
+		createdSessionId: null,
+		setActive: mockSetActive,
+		signIn: { status: "needs_client_trust" },
+	});
+	const result = await run("apple");
+	expect(mockSetActive).not.toHaveBeenCalled();
+	expect(mockPush).toHaveBeenCalledTimes(1);
+	expect(result.error).toBeNull();
 });
