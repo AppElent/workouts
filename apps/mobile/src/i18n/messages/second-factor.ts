@@ -21,7 +21,7 @@ export const secondFactorEn = {
 		backup_code: "Use a backup code",
 	},
 	passwordChanged: "Your password is changed. One more step to sign in.",
-	codeLocked: "Too many wrong codes. Send a new code to try again.",
+	codeLocked: "Too many wrong codes. Send a new one.",
 	methodLocked:
 		"Too many wrong codes for this method. Use another one below, or go back and sign in again.",
 	onlyMethodLocked: "Too many wrong codes. Go back and sign in again.",
@@ -54,8 +54,7 @@ export const secondFactorNl: typeof secondFactorEn = {
 		backup_code: "Back-upcode gebruiken",
 	},
 	passwordChanged: "Je wachtwoord is gewijzigd. Nog één stap om in te loggen.",
-	codeLocked:
-		"Te veel foute codes. Stuur een nieuwe code om het opnieuw te proberen.",
+	codeLocked: "Te veel foute codes. Vraag een nieuwe aan.",
 	methodLocked:
 		"Te veel foute codes voor deze methode. Kies hieronder een andere, of ga terug en log opnieuw in.",
 	onlyMethodLocked: "Te veel foute codes. Ga terug en log opnieuw in.",

@@ -141,6 +141,9 @@ it("locks the authenticator app after too many wrong codes and finishes with a b
 	).toBeTruthy();
 	expect(screen.queryByLabelText("Code")).toBeNull();
 	expect(screen.queryByTestId("second-factor-submit")).toBeNull();
+	expect(
+		screen.queryByText("Enter the 6-digit code from your authenticator app."),
+	).toBeNull();
 
 	await fireEvent.press(
 		screen.getByRole("link", { name: "Use a backup code" }),
@@ -187,6 +190,27 @@ it("sends a new texted code after too many wrong ones and signs in with it", asy
 	await fireEvent.press(screen.getByTestId("second-factor-submit"));
 	await waitFor(() => expect(mockSignIn.finalize).toHaveBeenCalled());
 	expect(mockMfa.verifyPhoneCode).toHaveBeenLastCalledWith({ code: "424242" });
+});
+
+it("does not offer a locked method as another one", async () => {
+	mockMfa.verifyTOTP.mockResolvedValue({
+		error: { code: "verification_failed" },
+	});
+	mockMfa.verifyBackupCode.mockResolvedValue({
+		error: { code: "verification_failed" },
+	});
+	await renderScreen(<SecondFactorScreen />);
+	await fireEvent.changeText(screen.getByLabelText("Code"), "000000");
+	await fireEvent.press(screen.getByTestId("second-factor-submit"));
+	await screen.findByText(/Too many wrong codes for this method/);
+	await fireEvent.press(
+		screen.getByRole("link", { name: "Use a backup code" }),
+	);
+	await fireEvent.changeText(screen.getByLabelText("Backup code"), "abcd1234");
+	await fireEvent.press(screen.getByTestId("second-factor-submit"));
+	expect(
+		await screen.findByText("Too many wrong codes. Go back and sign in again."),
+	).toBeTruthy();
 });
 
 it("ends an expired attempt with only a way back", async () => {

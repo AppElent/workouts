@@ -184,6 +184,7 @@ export function useSecondFactor({
 		cancel,
 		ended,
 		locked,
+		lockedOut,
 		busy: flow.busy,
 		error: switched ? null : flow.error,
 	};

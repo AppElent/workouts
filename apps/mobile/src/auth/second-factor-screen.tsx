@@ -47,6 +47,7 @@ export function SecondFactorScreen({
 		cancel,
 		ended,
 		locked,
+		lockedOut,
 		busy,
 		error,
 	} = useSecondFactor({
@@ -93,7 +94,8 @@ export function SecondFactorScreen({
 		if (ended) return copy.attemptEnded;
 		if (!locked || !current) return error;
 		if (sendsCode(current.strategy)) return error ?? copy.codeLocked;
-		return others.length > 0 ? copy.methodLocked : copy.onlyMethodLocked;
+		const usable = others.some((option) => !lockedOut.has(option.strategy));
+		return usable ? copy.methodLocked : copy.onlyMethodLocked;
 	}
 
 	function submit() {
@@ -134,9 +136,14 @@ export function SecondFactorScreen({
 	return (
 		<AuthScreen
 			title={copy.title}
-			subtitle={fmt(copy.prompt[current.strategy], {
-				destination: destination(current),
-			})}
+			subtitle={
+				// A locked authenticator app or backup code takes no code here.
+				locked && !sendsCode(current.strategy)
+					? undefined
+					: fmt(copy.prompt[current.strategy], {
+							destination: destination(current),
+						})
+			}
 			footer={
 				<>
 					{!ended && sendsCode(current.strategy) ? (
