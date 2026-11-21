@@ -11,6 +11,7 @@ import {
 	WodScoreFields,
 } from "#/components/wods/WodScoreFields";
 import { useConvexErrorMessage } from "#/lib/convexError";
+import { useMessages } from "#/lib/i18n";
 import { wodScoreFromForm } from "#/lib/wodScore";
 
 export type HostedScorePayload = {
@@ -25,11 +26,8 @@ type Props = {
 	onSubmit: (payload: HostedScorePayload) => Promise<unknown>;
 };
 
-export function HostedScoreForm({
-	wodBlocks,
-	submitLabel = "Submit score",
-	onSubmit,
-}: Props) {
+export function HostedScoreForm({ wodBlocks, submitLabel, onSubmit }: Props) {
+	const t = useMessages().hosted.scoreForm;
 	const [wodBlockId, setWodBlockId] = useState(wodBlocks[0]?.blockId ?? "");
 	const selectedWod =
 		wodBlocks.find((block) => block.blockId === wodBlockId) ?? wodBlocks[0];
@@ -64,9 +62,9 @@ export function HostedScoreForm({
 				...built.score,
 			});
 			setNotes("");
-			setMessage("Score submitted.");
+			setMessage(t.submitted);
 		} catch (err) {
-			setError(errorMessage(err, "Failed to submit score."));
+			setError(errorMessage(err, t.failed));
 		} finally {
 			setSaving(false);
 		}
@@ -75,7 +73,7 @@ export function HostedScoreForm({
 	if (wodBlocks.length === 0) {
 		return (
 			<div className="rounded-lg border border-border bg-surface p-4 text-sm text-text-muted">
-				This hosted workout has no WOD scores to submit.
+				{t.noWods}
 			</div>
 		);
 	}
@@ -85,10 +83,10 @@ export function HostedScoreForm({
 			onSubmit={(event) => void handleSubmit(event)}
 			className="flex flex-col gap-4 rounded-lg border border-border bg-surface p-4"
 		>
-			<h2 className="text-sm font-semibold text-text">Submit score</h2>
+			<h2 className="text-sm font-semibold text-text">{t.title}</h2>
 
 			<label className="flex flex-col gap-1 text-xs font-medium uppercase text-text-muted">
-				WOD
+				{t.wod}
 				<select
 					value={wodBlockId}
 					onChange={(event) => setWodBlockId(event.target.value)}
@@ -139,7 +137,7 @@ export function HostedScoreForm({
 			)}
 
 			<textarea
-				placeholder="Notes (optional)"
+				placeholder={t.notes}
 				value={notes}
 				onChange={(event) => setNotes(event.target.value)}
 				rows={2}
@@ -151,7 +149,7 @@ export function HostedScoreForm({
 				disabled={saving}
 				className="h-11 rounded-lg bg-accent-fill text-sm font-bold text-on-accent disabled:opacity-50"
 			>
-				{saving ? "Submitting..." : submitLabel}
+				{saving ? t.submitting : (submitLabel ?? t.submit)}
 			</button>
 			{message && <p className="text-sm text-accent-ink">{message}</p>}
 			{error && <p className="text-sm text-danger">{error}</p>}
