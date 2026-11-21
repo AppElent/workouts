@@ -29,6 +29,18 @@ export const mcpViews = {
 		dinner: "Dinner",
 		snacks: "Snacks",
 	},
+	home: {
+		title: "Foundry",
+		back: "Back to Foundry home",
+		today: "Today",
+		nothingToday: "Nothing logged yet",
+		activeSession: "Active session",
+		latestSession: "Latest session",
+		noSession: "No strength sessions yet",
+		sets: { one: "1 set", other: "{count} sets" },
+		progressFor: "Progress for {exercise}",
+		openWeek: "Open the week",
+	},
 	week: {
 		title: "Week of {date}",
 		thisWeek: "This week",

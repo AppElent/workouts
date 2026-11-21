@@ -67,12 +67,46 @@ describe("SignInScreen", () => {
 	});
 
 	it("confirms a deleted AppElent account", async () => {
-		leaveSignedOutNotice("accountDeleted");
+		leaveSignedOutNotice({ kind: "accountDeleted", apple: "notLinked" });
 		await render(<SignInScreen />);
 		expect(screen.getByText("Your AppElent account was deleted.")).toBeTruthy();
 		expect(
 			screen.getByText(
 				"Your login is gone, and with it your data in Gather, Foundry, Fairway and Arcade Club.",
+			),
+		).toBeTruthy();
+	});
+
+	it("says Sign in with Apple stopped when the grant was revoked", async () => {
+		leaveSignedOutNotice({ kind: "accountDeleted", apple: "revoked" });
+		await render(<SignInScreen />);
+		expect(
+			screen.getByText(
+				/Fairway and Arcade Club\. Foundry no longer uses Sign in with Apple for you\.$/,
+			),
+		).toBeTruthy();
+	});
+
+	it("says how to stop Sign in with Apple when the grant was not revoked", async () => {
+		leaveSignedOutNotice({ kind: "accountDeleted", apple: "notRevoked" });
+		await render(<SignInScreen />);
+		expect(
+			screen.getByText(
+				/Foundry could not stop Sign in with Apple for you\. To stop it yourself, go to account\.apple\.com/,
+			),
+		).toBeTruthy();
+		expect(screen.queryByText(/no longer uses Sign in with Apple/)).toBeNull();
+	});
+
+	it("asks to come back and delete after signing in again", async () => {
+		leaveSignedOutNotice("signInToDelete");
+		await render(<SignInScreen />);
+		expect(
+			screen.getByText("Sign in to continue deleting your account"),
+		).toBeTruthy();
+		expect(
+			screen.getByText(
+				"Then open Profile, Account and choose Delete my whole AppElent account.",
 			),
 		).toBeTruthy();
 	});

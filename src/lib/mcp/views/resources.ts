@@ -8,10 +8,26 @@ import { MCP_SCOPES } from "../auth";
 import type { ToolContext } from "../tools/define";
 import { VIEW_NAMES, type ViewName, viewUri } from "./types";
 
-const VIEWS: Record<ViewName, { title: string; description: string }> = {
+type ViewResource = {
+	title: string;
+	description: string;
+	/**
+	 * Claude's extension (not in the MCP Apps spec): after the tool returns, it
+	 * tries once to move the view to the side panel or full screen.
+	 */
+	preferredDisplayMode?: "fullscreen";
+};
+
+const VIEWS: Record<ViewName, ViewResource> = {
+	home: {
+		title: "Foundry",
+		description:
+			"Today's nutrition, the latest Strength Session, and this week.",
+	},
 	"week-overview": {
 		title: "Week overview",
 		description: "Training and nutrition for one Monday-to-Sunday week.",
+		preferredDisplayMode: "fullscreen",
 	},
 	"food-log": {
 		title: "Review food log",
@@ -48,7 +64,7 @@ export function registerViewResources(server: McpServer, context: ToolContext) {
 	if (!context.access.scopes.has(MCP_SCOPES.read)) return;
 	for (const view of VIEW_NAMES) {
 		const uri = viewUri(view);
-		const { title, description } = VIEWS[view];
+		const { title, description, preferredDisplayMode } = VIEWS[view];
 		registerAppResource(
 			server,
 			title,
@@ -64,6 +80,7 @@ export function registerViewResources(server: McpServer, context: ToolContext) {
 							ui: {
 								domain: await claudeViewDomain(context.endpointUrl),
 								prefersBorder: true,
+								...(preferredDisplayMode ? { preferredDisplayMode } : {}),
 							},
 						},
 					},

@@ -2,8 +2,15 @@ import type { App, McpUiHostContext } from "@modelcontextprotocol/ext-apps";
 import { useApp, useHostStyles } from "@modelcontextprotocol/ext-apps/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ViewName, ViewResult } from "../types";
+import {
+	ControlBridge,
+	describeScreen,
+	registerViewTools,
+	ViewToolError,
+} from "./appTools";
 import { ExerciseProgress } from "./ExerciseProgress";
 import { FoodLog } from "./FoodLog";
+import { Home } from "./Home";
 import { viewText } from "./i18n";
 import { WeekOverview } from "./WeekOverview";
 
@@ -12,9 +19,23 @@ export type ViewProps<Result> = {
 	result: Result;
 	text: ReturnType<typeof viewText>;
 	/** Calls a Foundry tool through the host and shows its result here. */
-	reload: (tool: string, args: Record<string, unknown>) => Promise<void>;
+	reload: (tool: string, args: Record<string, unknown>) => Promise<ViewResult>;
 	header: React.ReactNode;
+	/** Where the screen publishes what its app tools may do. */
+	bridge: ControlBridge;
 };
+
+/** Home links to the week and progress views and shows them in place. */
+const SHOWS: Record<ViewName, readonly ViewResult["view"][]> = {
+	home: ["home", "week-overview", "exercise-progress"],
+	"week-overview": ["week-overview"],
+	"exercise-progress": ["exercise-progress"],
+	"food-log": ["food-log"],
+};
+
+export function showsResult(view: ViewName, result: ViewResult | undefined) {
+	return !!result && SHOWS[view].includes(result.view);
+}
 
 function FullscreenToggle({
 	app,
@@ -74,6 +95,7 @@ function sameView(
 ): [string, Record<string, unknown>] | null {
 	if (result.view === "week-overview")
 		return ["show_week_overview", { weekStart: result.weekStart }];
+	if (result.view === "home") return ["open_foundry", {}];
 	if (result.view === "exercise-progress")
 		return [
 			"show_exercise_progress",
@@ -90,13 +112,19 @@ export function ViewRoot({ view }: { view: ViewName }) {
 	const [result, setResult] = useState<ViewResult | null>(null);
 	const [failed, setFailed] = useState(false);
 	const [context, setContext] = useState<McpUiHostContext | undefined>();
+	const [bridge] = useState(() => new ControlBridge());
 	const { app, error } = useApp({
 		appInfo: { name: "Foundry", version: "1.0.0" },
+		// Inline in the conversation, and the side panel or full screen where
+		// the host offers it (Claude: expand button, preferredDisplayMode).
 		capabilities: { availableDisplayModes: ["inline", "fullscreen"] },
 		onAppCreated: (created) => {
+			// Before connect(), so the view declares the tools capability.
+			registerViewTools(created, view, bridge);
 			created.ontoolresult = (params) => {
 				const content = params.structuredContent as ViewResult | undefined;
-				if (params.isError || content?.view !== view) setFailed(true);
+				if (params.isError || !content || !showsResult(view, content))
+					setFailed(true);
 				else {
 					setFailed(false);
 					setResult(content);
@@ -122,19 +150,40 @@ export function ViewRoot({ view }: { view: ViewName }) {
 	const timeZone = validTimeZone(hostContext?.timeZone);
 
 	const reload = useCallback(
-		async (tool: string, args: Record<string, unknown>) => {
-			if (!app) return;
+		async (
+			tool: string,
+			args: Record<string, unknown>,
+		): Promise<ViewResult> => {
+			if (!app) throw new Error("The view is not connected");
 			const response = await app.callServerTool({
 				name: tool,
 				arguments: timeZone ? { ...args, timeZone } : args,
 			});
 			const content = response.structuredContent as ViewResult | undefined;
-			if (response.isError || content?.view !== view)
-				throw new Error(`${tool} failed`);
+			if (response.isError || !content || !showsResult(view, content)) {
+				const text = response.content?.find((block) => block.type === "text");
+				throw text && "text" in text && response.isError
+					? new ViewToolError(text.text)
+					: new Error(`${tool} failed`);
+			}
 			setResult(content);
+			return content;
 		},
 		[app, view, timeZone],
 	);
+
+	// Home navigates between its screens; the screen on top adds its own tools.
+	useEffect(() => {
+		if (view !== "home") return;
+		const show = async (tool: string, args: Record<string, unknown>) =>
+			describeScreen(await reload(tool, args));
+		return bridge.set("root", {
+			goHome: () => show("open_foundry", {}),
+			goToWeek: (weekStart) => show("show_week_overview", { weekStart }),
+			showExercise: (exerciseId) =>
+				show("show_exercise_progress", { exerciseId }),
+		});
+	}, [view, bridge, reload]);
 
 	const [zoneTried, setZoneTried] = useState<string>();
 	const staleZone =
@@ -167,38 +216,38 @@ export function ViewRoot({ view }: { view: ViewName }) {
 				<p className="muted">{text.t.common.waiting}</p>
 			</main>
 		);
-	const header = (
+	const toggle = (
 		<FullscreenToggle app={app} context={hostContext} text={text} />
 	);
+	const header =
+		view === "home" && result.view !== "home" ? (
+			<>
+				<button
+					type="button"
+					className="icon-button"
+					aria-label={text.t.home.back}
+					title={text.t.home.back}
+					onClick={() => void reload("open_foundry", {}).catch(() => undefined)}
+				>
+					⌂
+				</button>
+				{toggle}
+			</>
+		) : (
+			toggle
+		);
+	const props = { app, text, reload, header, bridge };
 	return (
 		<main className={fullscreen ? "view fullscreen" : "view"}>
+			{result.view === "home" && <Home {...props} result={result} />}
 			{result.view === "week-overview" && (
-				<WeekOverview
-					app={app}
-					result={result}
-					text={text}
-					reload={reload}
-					header={header}
-				/>
+				<WeekOverview {...props} result={result} />
 			)}
 			{result.view === "food-log" && (
-				<FoodLog
-					key={result.reviewId}
-					app={app}
-					result={result}
-					text={text}
-					reload={reload}
-					header={header}
-				/>
+				<FoodLog {...props} key={result.reviewId} result={result} />
 			)}
 			{result.view === "exercise-progress" && (
-				<ExerciseProgress
-					app={app}
-					result={result}
-					text={text}
-					reload={reload}
-					header={header}
-				/>
+				<ExerciseProgress {...props} result={result} />
 			)}
 		</main>
 	);

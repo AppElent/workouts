@@ -2,6 +2,7 @@ import type { ConvexReactClient } from "convex/react";
 import * as AppleAuthentication from "expo-apple-authentication";
 import Constants from "expo-constants";
 import { Platform } from "react-native";
+import type { AppleRevocation } from "../../auth/signed-out-notice";
 import { api } from "../../convex/api";
 import { reportError } from "../../observability/errors";
 
@@ -19,7 +20,8 @@ function appleUserIds(user: AppleLinkedUser) {
  * Revokes the Sign in with Apple grant before the account is deleted, as Apple
  * requires. A fresh native sheet supplies the code Convex exchanges and
  * revokes. Backing out of the sheet cancels the deletion; any other failure is
- * reported and the deletion continues, so Apple never blocks it.
+ * reported and the deletion continues, so Apple never blocks it. The result
+ * says whether the grant went, so the confirmation can tell the person.
  *
  * The sheet signs in whoever owns the device's Apple Account, which need not
  * be the person linked to this account. A code for anyone else is never sent,
@@ -34,9 +36,10 @@ function appleUserIds(user: AppleLinkedUser) {
 export async function revokeAppleSignIn(
 	user: AppleLinkedUser,
 	convex: Pick<ConvexReactClient, "action">,
-): Promise<"continue" | "cancelled"> {
+): Promise<AppleRevocation | "cancelled"> {
 	const linked = appleUserIds(user);
-	if (Platform.OS !== "ios" || linked.length === 0) return "continue";
+	if (linked.length === 0) return "notLinked";
+	if (Platform.OS !== "ios") return "notRevoked";
 	try {
 		const bundleId = Constants.expoConfig?.ios?.bundleIdentifier;
 		if (!bundleId) throw new Error("This build has no iOS bundle ID");
@@ -50,10 +53,11 @@ export async function revokeAppleSignIn(
 			authorizationCode,
 			bundleId,
 		});
+		return "revoked";
 	} catch (error) {
 		if ((error as { code?: string } | null)?.code === "ERR_REQUEST_CANCELED")
 			return "cancelled";
 		reportError(error, "account.revokeAppleSignIn");
+		return "notRevoked";
 	}
-	return "continue";
 }

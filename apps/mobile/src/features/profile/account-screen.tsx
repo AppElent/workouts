@@ -1,14 +1,16 @@
-import { useUser } from "@clerk/expo";
+import { useAuth, useClerk, useUser } from "@clerk/expo";
 import { useConvex } from "convex/react";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useRef, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { leaveSignedOutNotice } from "../../auth/signed-out-notice";
 import { api } from "../../convex/api";
 import { useOnline } from "../../convex/online";
 import { useQuery } from "../../convex/query-cache";
 import { useI18n } from "../../i18n";
+import { reportError } from "../../observability/errors";
 import * as ImagePicker from "../../observability/native-presentation";
 import { spacing, useTokens } from "../../theme";
 import { useConfirm } from "../../ui/confirm-dialog";
@@ -25,6 +27,7 @@ import { useScreenWrite } from "../../ui/use-screen-write";
 import { useAccountDeletion } from "../local-data/account-data-maintenance-provider";
 import { exportAccountData } from "./account-export";
 import { revokeAppleSignIn } from "./apple-revocation";
+import { hasRecentSignIn } from "./recent-sign-in";
 
 const PRIVACY_STATEMENT_URL = "https://foundry.appelent.nl/privacy";
 const ACCOUNT_TASKS = ["name", "photo", "export"] as const;
@@ -32,6 +35,8 @@ type AccountTask = (typeof ACCOUNT_TASKS)[number];
 
 export function AccountScreen() {
 	const { user } = useUser();
+	const clerk = useClerk();
+	const { signOut } = useAuth();
 	const { t } = useI18n();
 	const c = t.account;
 	const colors = useTokens();
@@ -48,6 +53,9 @@ export function AccountScreen() {
 	const busy =
 		ACCOUNT_TASKS.find((task) => screenWrite.isPending(task)) ?? null;
 	const deletionPending = useRef(false);
+	// Delete account stopped for an old sign-in; offer to sign in again.
+	const [signInNeeded, setSignInNeeded] = useState(false);
+	const [signingOut, setSigningOut] = useState(false);
 
 	if (!user) return null;
 	const name = user.fullName || user.username || t.profile.account;
@@ -133,14 +141,47 @@ export function AccountScreen() {
 				destructive: true,
 			});
 			if (!confirmed || !user) return;
-			if (
-				mode === "deleteAccount" &&
-				(await revokeAppleSignIn(user, convex)) === "cancelled"
-			)
+			if (mode === "deleteData") {
+				deleteAccountData(mode);
 				return;
-			deleteAccountData(mode);
+			}
+			setSignInNeeded(false);
+			// Before anything is deleted, so an old sign-in never leaves the
+			// data gone and the account still there.
+			if (!(await recentSignIn())) return;
+			const apple = await revokeAppleSignIn(user, convex);
+			if (apple === "cancelled") return;
+			// The Apple sheet can outlast the window; check again. A failed
+			// revoke after the sheet is notRevoked too, so only notLinked skips.
+			if (apple !== "notLinked" && !(await recentSignIn())) return;
+			deleteAccountData(mode, apple);
 		} finally {
 			deletionPending.current = false;
+		}
+	}
+
+	/** Whether Clerk will delete the account; says why not when it won't. */
+	async function recentSignIn() {
+		try {
+			if (await hasRecentSignIn(clerk)) return true;
+			setSignInNeeded(true);
+		} catch (error) {
+			reportError(error, "account.checkRecentSignIn");
+			toast.error(c.deletion.signInCheckError);
+		}
+		return false;
+	}
+
+	/** Signs out; the sign-in screen says to come back and delete again. */
+	async function signInAgain() {
+		setSigningOut(true);
+		leaveSignedOutNotice("signInToDelete");
+		try {
+			await signOut();
+		} catch {
+			leaveSignedOutNotice(null);
+			setSigningOut(false);
+			toast.error(t.profile.signOutError);
 		}
 	}
 
@@ -267,9 +308,23 @@ export function AccountScreen() {
 				<TextAction
 					label={c.deleteAccount}
 					tone="destructive"
-					disabled={deletionDisabled || !user.deleteSelfEnabled}
+					disabled={deletionDisabled || !user.deleteSelfEnabled || signingOut}
 					onPress={() => void requestDeletion("deleteAccount")}
 				/>
+				{signInNeeded ? (
+					<>
+						<View style={styles.row}>
+							<AppText accessibilityRole="alert">
+								{c.deletion.signInFirst}
+							</AppText>
+						</View>
+						<TextAction
+							label={c.deletion.signInAgain}
+							disabled={signingOut}
+							onPress={() => void signInAgain()}
+						/>
+					</>
+				) : null}
 			</FormSection>
 		</FormScreen>
 	);
