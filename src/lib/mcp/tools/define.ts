@@ -48,6 +48,11 @@ type ToolDefinition<Input extends Shape> = {
 	/** Hosts with MCP Apps render this view with the result. */
 	view?: ViewName;
 	/**
+	 * Extra tool `_meta` next to `ui.resourceUri`, such as Claude's
+	 * `openai/ui` entry points. Only for view tools.
+	 */
+	meta?: Record<string, unknown>;
+	/**
 	 * The text half of the result, when the full JSON is too much to read. The
 	 * structured result is unchanged; views and clients that want it still get it.
 	 */
@@ -101,7 +106,13 @@ export function registerTools(
 			registerAppTool(
 				server,
 				tool.name,
-				{ ...config, _meta: { ui: { resourceUri: viewUri(tool.view) } } },
+				{
+					...config,
+					_meta: {
+						...tool.meta,
+						ui: { resourceUri: viewUri(tool.view) },
+					},
+				},
 				callback,
 			);
 		} else {

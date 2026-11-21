@@ -1,4 +1,5 @@
 import { api } from "@convex/_generated/api";
+import type { Id } from "@convex/_generated/dataModel";
 import {
 	calculateOneRepMax,
 	convertLoad,
@@ -17,6 +18,8 @@ import { MCP_SCOPES } from "../auth";
 import {
 	type ExerciseProgressResult,
 	type FoodLogReviewResult,
+	type HomeResult,
+	type HomeSession,
 	type MacroGoal,
 	type MacroKey,
 	type Macros,
@@ -156,6 +159,184 @@ function reviewSummary(result: FoodLogReviewResult) {
 	return `Showing ${result.items.length} proposed item(s) for ${result.meal} on ${result.date}: ${lines.join("; ")}. Meal ${kcalText(known ? meal : null)}; already logged that day ${kcalText(result.logged.energyKcal)}. ${next}`;
 }
 
+/** One Monday-to-Sunday week in `timeZone` (UTC when omitted). */
+async function weekOverview(
+	backend: FoundryBackend,
+	now: Date,
+	weekStart: string | undefined,
+	timeZone: string | undefined,
+): Promise<WeekOverviewResult> {
+	const zone = timeZone ?? "UTC";
+	const todayDate = zoneDate(now.getTime(), zone);
+	if (weekStart !== undefined && !isRealIsoDate(weekStart))
+		throw new ToolInputError("weekStart must be a real YYYY-MM-DD date.");
+	const start = weekStartMonday(weekStart ?? todayDate);
+	const dates = Array.from({ length: 7 }, (_, index) =>
+		shiftIsoDate(start, index),
+	);
+	const [fetched, review] = await Promise.all([
+		weekActivities(
+			backend,
+			startOfZoneDay(start, zone),
+			startOfZoneDay(shiftIsoDate(start, 7), zone),
+		),
+		backend.query(api.nutritionReview.week, {
+			startDate: start,
+			today: todayDate,
+		}),
+	]);
+	// The query bounds are the week's edges already; this keeps a boundary
+	// instant on the wrong side of a DST change out of the totals too.
+	const localDay = (activity: WeekActivity) =>
+		zoneDate(Date.parse(activity.occurredAt), zone);
+	const activities = fetched.filter((activity) =>
+		dates.includes(localDay(activity)),
+	);
+	const days = dates.map((day) => {
+		const nutrition = review.days.find((entry) => entry.date === day);
+		return {
+			date: day,
+			activities: activities
+				.filter((activity) => localDay(activity) === day)
+				.sort((a, b) => a.occurredAt.localeCompare(b.occurredAt)),
+			nutrition: nutrition
+				? {
+						entryCount: nutrition.entryCount,
+						...totalMacros(nutrition.totals, nutrition.entryCount),
+					}
+				: {
+						entryCount: 0,
+						energyKcal: null,
+						proteinG: null,
+						carbsG: null,
+						fatG: null,
+					},
+			goals: macroGoals(nutrition?.goals ?? []),
+		};
+	});
+	const count = (sport: WeekActivity["sport"]) =>
+		activities.filter((activity) => activity.sport === sport).length;
+	const result: WeekOverviewResult = {
+		view: "week-overview",
+		timeZone: zone,
+		weekStart: start,
+		weekEnd: dates[6],
+		previousWeekStart: shiftIsoDate(start, -7),
+		nextWeekStart: shiftIsoDate(start, 7),
+		isCurrentWeek: start === weekStartMonday(todayDate),
+		days,
+		training: {
+			strengthSessions: count("strength"),
+			runs: count("running"),
+			rides: count("cycling"),
+			distanceMeters: activities.reduce(
+				(sum, activity) => sum + (activity.distanceMeters ?? 0),
+				0,
+			),
+			durationSeconds: activities.reduce(
+				(sum, activity) => sum + activity.durationSeconds,
+				0,
+			),
+		},
+		nutrition: {
+			loggedDays: days.filter((day) => day.nutrition.entryCount > 0).length,
+			energyAverageKcal: review.averages.energy ?? null,
+			proteinAverageG: review.averages.protein ?? null,
+			goals: days[6].goals,
+		},
+	};
+	return result;
+}
+
+/** The active Strength Session, else the latest one in the last year. */
+async function homeSession(
+	backend: FoundryBackend,
+	now: Date,
+): Promise<HomeSession | null> {
+	const active = await backend.query(api.workoutSessions.getActive, {});
+	let session = active;
+	if (!session) {
+		const page = await backend.query(api.activities.list, {
+			sport: "strength",
+			from: now.getTime() - 365 * DAY_MS,
+			to: now.getTime() + DAY_MS,
+			limit: 1,
+			cursor: null,
+		});
+		const latest = page.items[0];
+		session = latest
+			? await backend.query(api.workoutSessions.getById, {
+					id: latest.id as Id<"workoutSessions">,
+				})
+			: null;
+	}
+	if (!session) return null;
+	const [sets, exercises] = await Promise.all([
+		backend.query(api.sets.listForSession, { sessionId: session._id }),
+		allExercises(backend),
+	]);
+	// Planned Exercises first, in plan order, then any logged outside the plan.
+	const ids = [
+		...new Set([
+			...(session.exercises ?? []).map((entry) => entry.exerciseId),
+			...sets.map((set) => set.exerciseId),
+		]),
+	];
+	return {
+		id: session._id,
+		name: session.name,
+		status: session.status,
+		startedAt: new Date(session.startTime).toISOString(),
+		setCount: sets.length,
+		exercises: ids.flatMap((id) => {
+			const exercise = exercises.find((entry) => entry._id === id);
+			return exercise ? [{ id, name: exercise.name }] : [];
+		}),
+	};
+}
+
+async function home(
+	backend: FoundryBackend,
+	now: Date,
+	timeZone: string | undefined,
+): Promise<HomeResult> {
+	const zone = timeZone ?? "UTC";
+	const date = zoneDate(now.getTime(), zone);
+	const [day, goals, session, week] = await Promise.all([
+		backend.query(api.nutritionDiary.day, { date }),
+		backend.query(api.nutritionGoals.forDate, { date }),
+		homeSession(backend, now),
+		weekOverview(backend, now, undefined, zone),
+	]);
+	return {
+		view: "home",
+		timeZone: zone,
+		today: {
+			date,
+			nutrition: {
+				entryCount: day.entries.length,
+				...totalMacros(day.totals, day.entries.length),
+			},
+			goals: goals.basis === "effective" ? macroGoals(goals.goals) : [],
+		},
+		session,
+		week: {
+			weekStart: week.weekStart,
+			training: week.training,
+			loggedDays: week.nutrition.loggedDays,
+			energyAverageKcal: week.nutrition.energyAverageKcal,
+		},
+	};
+}
+
+function homeSummary(result: HomeResult) {
+	const { today, session, week } = result;
+	const sessionText = session
+		? `${session.status === "active" ? "Active" : "Latest"} Strength Session${session.name ? ` "${session.name}"` : ""} started ${session.startedAt} with ${session.setCount} set(s)`
+		: "No Strength Session in the last year";
+	return `Showing Foundry home for ${today.date}: ${kcalText(today.nutrition.energyKcal)} logged today in ${today.nutrition.entryCount} entr${today.nutrition.entryCount === 1 ? "y" : "ies"}. ${sessionText}. This week (from ${week.weekStart}): ${week.training.strengthSessions} strength session(s), ${week.training.runs} run(s), ${week.training.rides} ride(s); nutrition logged on ${week.loggedDays} day(s).`;
+}
+
 const RANGE_DAYS: Record<ProgressRange, number> = {
 	"4w": 28,
 	"12w": 84,
@@ -178,88 +359,8 @@ export const viewTools = [
 				),
 			timeZone: timeZoneInput,
 		},
-		async run({ weekStart, timeZone }, { backend, now }) {
-			const zone = timeZone ?? "UTC";
-			const todayDate = zoneDate(now().getTime(), zone);
-			if (weekStart !== undefined && !isRealIsoDate(weekStart))
-				throw new ToolInputError("weekStart must be a real YYYY-MM-DD date.");
-			const start = weekStartMonday(weekStart ?? todayDate);
-			const dates = Array.from({ length: 7 }, (_, index) =>
-				shiftIsoDate(start, index),
-			);
-			const [fetched, review] = await Promise.all([
-				weekActivities(
-					backend,
-					startOfZoneDay(start, zone),
-					startOfZoneDay(shiftIsoDate(start, 7), zone),
-				),
-				backend.query(api.nutritionReview.week, {
-					startDate: start,
-					today: todayDate,
-				}),
-			]);
-			// The query bounds are the week's edges already; this keeps a boundary
-			// instant on the wrong side of a DST change out of the totals too.
-			const localDay = (activity: WeekActivity) =>
-				zoneDate(Date.parse(activity.occurredAt), zone);
-			const activities = fetched.filter((activity) =>
-				dates.includes(localDay(activity)),
-			);
-			const days = dates.map((day) => {
-				const nutrition = review.days.find((entry) => entry.date === day);
-				return {
-					date: day,
-					activities: activities
-						.filter((activity) => localDay(activity) === day)
-						.sort((a, b) => a.occurredAt.localeCompare(b.occurredAt)),
-					nutrition: nutrition
-						? {
-								entryCount: nutrition.entryCount,
-								...totalMacros(nutrition.totals, nutrition.entryCount),
-							}
-						: {
-								entryCount: 0,
-								energyKcal: null,
-								proteinG: null,
-								carbsG: null,
-								fatG: null,
-							},
-					goals: macroGoals(nutrition?.goals ?? []),
-				};
-			});
-			const count = (sport: WeekActivity["sport"]) =>
-				activities.filter((activity) => activity.sport === sport).length;
-			const result: WeekOverviewResult = {
-				view: "week-overview",
-				timeZone: zone,
-				weekStart: start,
-				weekEnd: dates[6],
-				previousWeekStart: shiftIsoDate(start, -7),
-				nextWeekStart: shiftIsoDate(start, 7),
-				isCurrentWeek: start === weekStartMonday(todayDate),
-				days,
-				training: {
-					strengthSessions: count("strength"),
-					runs: count("running"),
-					rides: count("cycling"),
-					distanceMeters: activities.reduce(
-						(sum, activity) => sum + (activity.distanceMeters ?? 0),
-						0,
-					),
-					durationSeconds: activities.reduce(
-						(sum, activity) => sum + activity.durationSeconds,
-						0,
-					),
-				},
-				nutrition: {
-					loggedDays: days.filter((day) => day.nutrition.entryCount > 0).length,
-					energyAverageKcal: review.averages.energy ?? null,
-					proteinAverageG: review.averages.protein ?? null,
-					goals: days[6].goals,
-				},
-			};
-			return result;
-		},
+		run: ({ weekStart, timeZone }, { backend, now }) =>
+			weekOverview(backend, now(), weekStart, timeZone),
 	}),
 	defineTool({
 		name: "review_food_log",
@@ -436,5 +537,19 @@ export const viewTools = [
 			};
 			return result;
 		},
+	}),
+	defineTool({
+		name: "open_foundry",
+		title: "Open Foundry",
+		description:
+			"Open Foundry as an interactive view: today's nutrition against goals, the active or latest Strength Session, and this week, with links to the week overview and exercise progress. Every input is optional; days are calendar days in timeZone (UTC when omitted).",
+		access: "read",
+		view: "home",
+		// Claude lists this tool as an app the user can open from the Artifacts
+		// page or pin to the sidebar.
+		meta: { "openai/ui": { entrypoints: [{ type: "global" }] } },
+		summary: homeSummary,
+		input: { timeZone: timeZoneInput },
+		run: ({ timeZone }, { backend, now }) => home(backend, now(), timeZone),
 	}),
 ];
