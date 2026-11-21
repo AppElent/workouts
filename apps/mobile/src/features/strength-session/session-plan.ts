@@ -504,6 +504,42 @@ export function seedPlan(
 		emptyPlan(restDefault),
 	);
 }
+/**
+ * A set logged elsewhere for a grouped exercise takes the place logging it here
+ * would have: that exercise's first open set in the group. With none open, it
+ * joins the first round that lacks the exercise, and only then a new round.
+ */
+function slotIntoGroup(group: SetGroup, set: ServerSet): SetGroup {
+	const logged = rowFromServer(set);
+	// A row with an attempt is being logged on this device; leave it to land.
+	const open = (row: PlanSet) =>
+		row.exerciseId === set.exerciseId && !row.done && !row.attempt;
+	const slot = group.rounds.findIndex((round) => round.items.some(open));
+	if (slot >= 0) {
+		const rounds = group.rounds.map((round, index) => {
+			if (index !== slot) return round;
+			const at = round.items.findIndex(open);
+			const row = round.items[at] as PlanSet;
+			return {
+				...round,
+				items: round.items.map((item, i) =>
+					i === at ? { ...logged, id: row.id, plan: row.plan } : item,
+				),
+			};
+		});
+		return normalizeGroup({ ...group, rounds });
+	}
+	const gap = group.rounds.findIndex(
+		(round) => !round.items.some((row) => row.exerciseId === set.exerciseId),
+	);
+	const rounds =
+		gap >= 0
+			? group.rounds.map((round, index) =>
+					index === gap ? { ...round, items: [...round.items, logged] } : round,
+				)
+			: [...group.rounds, { id: newRowId(), items: [logged] }];
+	return normalizeGroup({ ...group, rounds });
+}
 /** Server state wins for logged sets. Open sets and the session's shape stay local. */
 export function reconcilePlan(
 	plan: SessionPlan,
@@ -623,16 +659,7 @@ export function reconcilePlan(
 		if (home) {
 			next = {
 				...next,
-				groups: {
-					...next.groups,
-					[home.id]: {
-						...home,
-						rounds: [
-							...home.rounds,
-							{ id: newRowId(), items: [rowFromServer(set)] },
-						],
-					},
-				},
+				groups: { ...next.groups, [home.id]: slotIntoGroup(home, set) },
 			};
 			continue;
 		}

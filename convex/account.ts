@@ -16,19 +16,24 @@ import {
 import { getOptionalUserId, requireSubject, requireUserId } from "./lib/auth";
 import { rejectConnectedApps } from "./lib/connectedApps";
 import { appError } from "./lib/errors";
+import { deleteHostedWorkoutData } from "./lib/hosted";
 import {
+	accountDeletionBlocker,
 	personalDataBlockerValidator as blocker,
 	deletePersonalData,
-	personalDataBlocker,
 } from "./lib/personalData";
 
-/** Why deleting this account's personal data is currently unsafe, if at all. */
+/**
+ * Why deleting this account's data is currently unsafe, if at all: only a
+ * running Activity. `"hostedWorkout"` stays in the validator for installed
+ * clients but is no longer returned.
+ */
 export const deletionBlocker = query({
 	args: {},
 	returns: blocker,
 	handler: async (ctx) => {
 		const userId = await getOptionalUserId(ctx);
-		return userId ? await personalDataBlocker(ctx, userId) : null;
+		return userId ? await accountDeletionBlocker(ctx, userId) : null;
 	},
 });
 
@@ -79,18 +84,21 @@ export const firstRun = query({
 	},
 });
 
+const PURGE_BUDGET = 2000;
+
 /**
  * The one purge of an account's Foundry data, shared by in-app deletion and
- * the Clerk `user.deleted` webhook: one bounded batch of personal training and
- * nutrition data, Food photo files included. Returns whether nothing is left.
- * Shipped catalogs are untouched, and Foundry keeps no profile row, so a later
- * sign-in starts with a fresh, empty account.
+ * the Clerk `user.deleted` webhook: one bounded batch, first the Hosted
+ * Workouts it hosts (whole, guests included) and its participation and scores
+ * in other events, then its personal training and nutrition data, Food photo
+ * files included. Returns whether nothing is left. Shipped catalogs are
+ * untouched, and Foundry keeps no profile row, so a later sign-in starts with
+ * a fresh, empty account.
  */
-function purgeAccountBatch(ctx: MutationCtx, userId: string) {
-	return deletePersonalData(ctx, userId, {
-		budget: 2000,
-		keepPreferences: false,
-	});
+async function purgeAccountBatch(ctx: MutationCtx, userId: string) {
+	const budget = await deleteHostedWorkoutData(ctx, userId, PURGE_BUDGET);
+	if (budget === null) return false;
+	return deletePersonalData(ctx, userId, { budget, keepPreferences: false });
 }
 
 /**
@@ -104,7 +112,7 @@ export const deleteData = mutation({
 	handler: async (ctx, { expectedSubject }) => {
 		await rejectConnectedApps(ctx);
 		const userId = await requireSubject(ctx, expectedSubject);
-		const reason = await personalDataBlocker(ctx, userId);
+		const reason = await accountDeletionBlocker(ctx, userId);
 		if (reason) throw appError(reason);
 		return { done: await purgeAccountBatch(ctx, userId) };
 	},
@@ -114,21 +122,13 @@ export const deleteData = mutation({
  * Purges a Clerk user's Foundry data after the AppElent login was deleted
  * (`POST /clerk/webhook`). Repeats itself batch by batch until nothing is
  * left; a repeated delivery, or a user without Foundry data, finds nothing
- * and stops. A running Activity no longer blocks: nobody can finish it.
- * Hosted Workout involvement still does, because other accounts' records
- * point at it; that is logged for a person to resolve.
+ * and stops. Nothing blocks it: a running Activity can no longer be finished
+ * by anyone, and Hosted Workouts go as in in-app deletion.
  */
 export const purgeDeletedUser = internalMutation({
 	args: { userId: v.string() },
 	returns: v.null(),
 	handler: async (ctx, { userId }) => {
-		if ((await personalDataBlocker(ctx, userId)) === "hostedWorkout") {
-			console.error(
-				"account.purgeDeletedUser: Hosted Workout involvement, data kept",
-				userId,
-			);
-			return null;
-		}
 		if (!(await purgeAccountBatch(ctx, userId)))
 			await ctx.scheduler.runAfter(0, internal.account.purgeDeletedUser, {
 				userId,

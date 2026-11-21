@@ -1098,6 +1098,118 @@ describe("reconcile", () => {
 		const plan = plannedPlan();
 		expect(reconcilePlan(plan, [], [], lookup)).toBe(plan);
 	});
+	describe("a grouped set logged on another device (APP-233)", () => {
+		// What the server holds for the sets this device logged.
+		const known = (plan: SessionPlan) =>
+			allRows(plan)
+				.filter((row) => row.setId)
+				.map((row) => ({
+					_id: row.setId as string,
+					exerciseId: row.exerciseId,
+					setNumber: row.setNumber as number,
+					reps: row.reps,
+					weight: row.kg,
+					unit: "kg" as const,
+					setType: row.kind,
+				}));
+		const remote = (exerciseId: string, id: string, setNumber: number) => ({
+			...set(id, setNumber),
+			exerciseId,
+		});
+		const shape = (plan: SessionPlan, id: string) =>
+			plan.groups[id]?.rounds.map((round) =>
+				round.items.map(
+					(row) =>
+						`${row.exerciseId}:${row.setId ?? (row.done ? "?" : "open")}`,
+				),
+			);
+		const grouped = (sets: Parameters<typeof plannedPlan>[0]) => {
+			const result = groupWith(plannedPlan(sets), "squat", "curl");
+			return { plan: result.plan, id: result.groupId as string };
+		};
+		const planned = (count: number, weight = 95) =>
+			Array.from({ length: count }, () => ({ reps: 5, weight }));
+
+		it("fills the exercise's next open set in the existing round", () => {
+			const start = grouped({ squat: planned(3), curl: planned(3, 40) });
+			const plan = log(start.plan, firstOpen(start.plan), "sq-1");
+			const open = rowsOf(plan, "squat")[1] as PlanSet;
+			const next = reconcilePlan(
+				plan,
+				[],
+				[...known(plan), remote("squat", "web-1", 2)],
+				lookup,
+			);
+			expect(shape(next, start.id)).toEqual([
+				["squat:sq-1", "curl:open"],
+				["squat:web-1", "curl:open"],
+				["squat:open", "curl:open"],
+			]);
+			expect(findRow(next, open.id)).toMatchObject({
+				done: true,
+				setId: "web-1",
+				setNumber: 2,
+			});
+		});
+		it("passes over a set this device is still logging", () => {
+			const start = grouped({ squat: planned(3), curl: planned(3, 40) });
+			const row = firstOpen(start.plan);
+			const plan = updateRow(
+				start.plan,
+				row.id,
+				beginAttempt(start.plan, row.id, "op-1") as PlanSet,
+			);
+			const next = reconcilePlan(
+				plan,
+				[],
+				[remote("squat", "web-2", 2)],
+				lookup,
+			);
+			expect(findRow(next, row.id)).toMatchObject({ done: false });
+			expect(shape(next, start.id)?.[1]).toEqual(["squat:web-2", "curl:open"]);
+			expect(next.groups[start.id]?.rounds).toHaveLength(3);
+		});
+		it("joins a round that lacks the exercise when none is open", () => {
+			let plan = plannedPlan({ squat: planned(2), curl: planned(1, 40) });
+			plan = log(plan, firstOpen(plan, "curl"), "cu-1");
+			const result = groupWith(plan, "squat", "curl");
+			const id = result.groupId as string;
+			plan = log(result.plan, firstOpen(result.plan), "sq-1");
+			plan = log(plan, firstOpen(plan), "sq-2");
+			const next = reconcilePlan(
+				plan,
+				[],
+				[...known(plan), remote("curl", "web-3", 2)],
+				lookup,
+			);
+			expect(shape(next, id)).toEqual([
+				["squat:sq-1", "curl:cu-1"],
+				["squat:sq-2", "curl:web-3"],
+			]);
+		});
+		it("adds a round only when every round already has the exercise logged", () => {
+			const start = grouped({ squat: planned(1), curl: planned(1, 40) });
+			let plan = log(start.plan, firstOpen(start.plan), "sq-1");
+			plan = log(plan, firstOpen(plan, "curl"), "cu-1");
+			const next = reconcilePlan(
+				plan,
+				[],
+				[...known(plan), remote("squat", "web-4", 2)],
+				lookup,
+			);
+			expect(shape(next, start.id)).toEqual([
+				["squat:sq-1", "curl:cu-1"],
+				["squat:web-4"],
+			]);
+		});
+		it("keeps a set this device logged in its own round", () => {
+			const start = grouped({ squat: planned(2), curl: planned(2, 40) });
+			const plan = log(start.plan, firstOpen(start.plan), "sq-1");
+			const next = reconcilePlan(plan, [], known(plan), lookup);
+			expect(next).toBe(plan);
+			expect(next.groups[start.id]?.rounds).toHaveLength(2);
+		});
+	});
 });
 
 describe("history prefill", () => {

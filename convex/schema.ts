@@ -472,5 +472,6 @@ export default defineSchema({
 		submittedAt: v.number(),
 	})
 		.index("by_hosted_workout", ["hostedWorkoutId"])
-		.index("by_hosted_workout_wod", ["hostedWorkoutId", "wodBlockId"]),
+		.index("by_hosted_workout_wod", ["hostedWorkoutId", "wodBlockId"])
+		.index("by_participant", ["participantId"]),
 });

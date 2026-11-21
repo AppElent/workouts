@@ -28,9 +28,9 @@ export const accountEn = {
 	dataTitle: "Delete data or account",
 	deleteData: "Delete Foundry data only",
 	deleteDataFooter:
-		"Removes all your Foundry workouts, Routines, Runs and Rides, body metrics, foods, Combos, diary, goals and drafts, including Food photos, then signs you out here. Your AppElent login stays, so Gather, Fairway and Arcade Club keep working, and signing in to Foundry again starts fresh. Export your data first if you want a copy.",
+		"Removes all your Foundry workouts, Routines, Runs and Rides, body metrics, foods, Combos, diary, goals and drafts, including Food photos, then signs you out here. Hosted workouts you host are deleted for everyone in them, and your scores leave the ones you joined. Your AppElent login stays, so Gather, Fairway and Arcade Club keep working, and signing in to Foundry again starts fresh. Export your data first if you want a copy.",
 	deleteDataConfirm:
-		"All your Foundry training and nutrition data, including saved drafts and Food photos, will be permanently removed from every device, and you are signed out here. Your AppElent login and app preferences on this device stay. The login keeps working in Gather, Fairway and Arcade Club. This cannot be undone.",
+		"All your Foundry training and nutrition data, including saved drafts and Food photos, will be permanently removed from every device, and you are signed out here. Hosted workouts you host are deleted for everyone in them, and your scores leave the ones you joined. Your AppElent login and app preferences on this device stay. The login keeps working in Gather, Fairway and Arcade Club. This cannot be undone.",
 	deleteAccount: "Delete my whole AppElent account",
 	deleteAccountFooter:
 		"Deletes your AppElent login, the one sign-in for Gather, Foundry, Fairway and Arcade Club, and your data in all four apps. Export your data first if you want a copy.",
@@ -114,9 +114,9 @@ export const accountNl: typeof accountEn = {
 	dataTitle: "Gegevens of account verwijderen",
 	deleteData: "Alleen Foundry-gegevens verwijderen",
 	deleteDataFooter:
-		"Verwijdert al je Foundry-trainingen, routines, hardloop- en fietsritten, lichaamsmetingen, voedingsmiddelen, combo's, dagboek, doelen en notities, inclusief voedselfoto's, en logt je hier uit. Je AppElent-login blijft, dus Gather, Fairway en Arcade Club blijven werken, en als je weer inlogt bij Foundry begin je opnieuw. Exporteer eerst je gegevens als je een kopie wilt.",
+		"Verwijdert al je Foundry-trainingen, routines, hardloop- en fietsritten, lichaamsmetingen, voedingsmiddelen, combo's, dagboek, doelen en notities, inclusief voedselfoto's, en logt je hier uit. Groepstrainingen die je organiseert worden voor alle deelnemers verwijderd, en je scores verdwijnen uit de groepstrainingen waaraan je meedeed. Je AppElent-login blijft, dus Gather, Fairway en Arcade Club blijven werken, en als je weer inlogt bij Foundry begin je opnieuw. Exporteer eerst je gegevens als je een kopie wilt.",
 	deleteDataConfirm:
-		"Al je Foundry-trainings- en voedingsgegevens, inclusief opgeslagen notities en voedselfoto's, worden definitief van elk toestel verwijderd en je wordt hier uitgelogd. Je AppElent-login en app-voorkeuren op dit toestel blijven. De login werkt nog in Gather, Fairway en Arcade Club. Dit kan niet ongedaan worden gemaakt.",
+		"Al je Foundry-trainings- en voedingsgegevens, inclusief opgeslagen notities en voedselfoto's, worden definitief van elk toestel verwijderd en je wordt hier uitgelogd. Groepstrainingen die je organiseert worden voor alle deelnemers verwijderd, en je scores verdwijnen uit de groepstrainingen waaraan je meedeed. Je AppElent-login en app-voorkeuren op dit toestel blijven. De login werkt nog in Gather, Fairway en Arcade Club. Dit kan niet ongedaan worden gemaakt.",
 	deleteAccount: "Mijn hele AppElent-account verwijderen",
 	deleteAccountFooter:
 		"Verwijdert je AppElent-login, de ene login voor Gather, Foundry, Fairway en Arcade Club, en je gegevens in alle vier de apps. Exporteer eerst je gegevens als je een kopie wilt.",

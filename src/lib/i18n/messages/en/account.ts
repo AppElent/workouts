@@ -11,9 +11,9 @@ export const account = {
 	deletionTitle: "Delete data or account",
 	deleteData: "Delete Foundry data only",
 	deleteDataFooter:
-		"Removes all your Foundry workouts, Routines, Runs and Rides, body metrics, foods, Combos, diary, goals and drafts, including Food photos, then signs you out here. Your AppElent login stays, so Gather, Fairway and Arcade Club keep working, and signing in to Foundry again starts fresh. Export your data first if you want a copy.",
+		"Removes all your Foundry workouts, Routines, Runs and Rides, body metrics, foods, Combos, diary, goals and drafts, including Food photos, then signs you out here. Hosted workouts you host are deleted for everyone in them, and your scores leave the ones you joined. Your AppElent login stays, so Gather, Fairway and Arcade Club keep working, and signing in to Foundry again starts fresh. Export your data first if you want a copy.",
 	deleteDataConfirm:
-		"All your Foundry training and nutrition data, including saved drafts and Food photos, will be permanently removed from every device, and you are signed out here. Your AppElent login stays and keeps working in Gather, Fairway and Arcade Club. This cannot be undone.",
+		"All your Foundry training and nutrition data, including saved drafts and Food photos, will be permanently removed from every device, and you are signed out here. Hosted workouts you host are deleted for everyone in them, and your scores leave the ones you joined. Your AppElent login stays and keeps working in Gather, Fairway and Arcade Club. This cannot be undone.",
 	deleteAccount: "Delete my whole AppElent account",
 	deleteAccountFooter:
 		"Deletes your AppElent login, the one sign-in for Gather, Foundry, Fairway and Arcade Club, and your data in all four apps. Export your data first if you want a copy.",
