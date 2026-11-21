@@ -170,7 +170,9 @@ Only these are per app; everything above is already shared:
 ## Apple token revocation
 
 Apple requires apps that offer Sign in with Apple to revoke the user's Apple
-grant when the account is deleted. Clerk does not do this, so Foundry does:
+grant when the account is deleted. Clerk does not do this, so Foundry does,
+only for Delete my whole AppElent account; Delete Foundry data only keeps the
+AppElent login and never touches Apple:
 
 1. On iOS, Delete account opens the native Apple sheet once more for an
    Apple-linked account (`apps/mobile/src/features/profile/apple-revocation.ts`).
@@ -181,14 +183,22 @@ grant when the account is deleted. Clerk does not do this, so Foundry does:
    (`packages/core/src/auth.ts`). Closing the popup cancels the deletion.
 2. Convex `account.revokeAppleSignIn` exchanges the code at Apple's
    `/auth/token` (a web code with its return URL) and revokes the refresh
-   token at `/auth/revoke`.
+   token at `/auth/revoke`. For a web code it first refuses while the
+   deletion blocker applies, then reads the caller's Apple accounts from
+   `appleSignInLinks`, which Clerk's signed `user.created`/`user.updated`
+   webhook (`POST /clerk/webhook`) keeps in sync; it revokes only when the
+   `sub` of Apple's ID token is one of them. Otherwise nothing is revoked,
+   the action fails with `appleAccountMismatch`, and the card stops the
+   deletion.
 3. Any other failure is reported to Sentry, and the account is deleted anyway.
 
 The action signs Apple's client secret with the Sign in with Apple key from
 Infisical (`apple-team-id`, `apple-sso-key-id`, `apple-sso-key-value`).
 `pnpm env:apply <environment> --only convex` lands them as `APPLE_TEAM_ID`,
 `APPLE_SIGN_IN_KEY_ID` and `APPLE_SIGN_IN_PRIVATE_KEY`. Without them the action
-fails with `unavailable`.
+fails with `unavailable`. No Clerk admin key is on Convex: without a mirrored
+Apple link a web code is never exchanged and the action fails with
+`appleAccountMismatch`.
 
 Native codes are issued to the requesting build's bundle ID, so the app sends
 it and Convex uses it as `client_id` after checking it against
@@ -220,16 +230,30 @@ acceptable before adding a return URL. Web Apple sign-in on the development
 Clerk instance with Clerk's shared credentials has another Apple team's user
 ID, so the popup's account never matches and nothing is revoked there.
 
-The `state` and Apple-account checks run in the browser. Convex checks that
-the caller is signed in and that the return URL is registered, but it does not
-tie the code to this Foundry account. That matches native revocation. In the
-normal flow a code only comes from the person's own signed-in Apple popup,
-but a signed-in caller holding any valid code for this Services ID could
-revoke that grant. Before adding a return URL, Convex must bind the code's
-Apple user to the caller and check the deletion blocker before exchanging the
-code. Also test in Safari that the card asks for one more click before Apple's
-popup opens, and that Clerk asks to confirm the sign-in again when Apple's step
-takes longer than the card's 5-minute sign-in check.
+The browser checks the popup's `state` and Apple account. Convex checks again
+before it exchanges or revokes anything: the caller is signed in, the return
+URL is registered, the deletion blocker does not apply, and the code's Apple
+user (`sub` of the ID token from Apple's token endpoint, with Apple as issuer
+and the Services ID as audience) is one of the caller's mirrored Apple links.
+Native codes are not bound to the caller yet: installed apps would refuse
+every account whose link is not mirrored.
+
+Before the return URL goes live:
+
+1. Clerk (production) → Webhooks → the Foundry endpoint
+   `<convex-site-url>/clerk/webhook` (the one `user.deleted` uses): also
+   subscribe `user.created` and `user.updated`.
+2. Backfill logins linked before that, since signing in does not send
+   `user.updated`. Locally, with the production Clerk secret key given to this
+   one command only:
+   `CLERK_SECRET_KEY=sk_live_… node scripts/backfill-apple-links.mjs` (dry
+   run, counts only), then the same with `--apply -- --prod`. It is safe to
+   repeat; a newer webhook delivery always wins.
+After deploying, test in Safari that the card asks for one more click before
+Apple's popup opens, and that Clerk asks to confirm the sign-in again when
+Apple's step takes longer than the card's 5-minute sign-in check. The dev
+Clerk instance cannot test this end to end (see above), so the first full run
+is on production.
 
 ## Verify
 
@@ -255,6 +279,11 @@ takes longer than the card's 5-minute sign-in check.
   Testing mode.
 - Microsoft rejects personal accounts: registration's account types exclude
   personal Microsoft accounts.
+- Web Delete account says the Apple account is not the one linked, though
+  it is: Convex has no mirrored Apple link for that login. Check that the
+  Clerk webhook subscribes `user.created` and `user.updated` and delivers
+  (Clerk → Webhooks → attempts), then rerun the backfill. Nothing was
+  deleted or revoked.
 - Web Delete account says "Allow pop-ups for this site": the browser blocked
   Apple's revocation popup, often in Safari when the Profile page was opened
   moments before. Allowing pop-ups or retrying once Apple JS has loaded fixes

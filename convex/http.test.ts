@@ -250,3 +250,78 @@ describe("POST /clerk/webhook purge", () => {
 		expect(await rowsOf(t, "alice")).toEqual([]);
 	});
 });
+
+describe("POST /clerk/webhook Apple links", () => {
+	function userEvent(
+		type: "user.created" | "user.updated",
+		updatedAt: number,
+		externalAccounts: unknown[],
+		id = "alice",
+	) {
+		return JSON.stringify({
+			type,
+			object: "event",
+			data: {
+				id,
+				object: "user",
+				updated_at: updatedAt,
+				external_accounts: externalAccounts,
+			},
+		});
+	}
+	const apple = (sub: string, status = "verified") => ({
+		object: "external_account",
+		provider: "oauth_apple",
+		provider_user_id: sub,
+		verification: { status },
+	});
+	const links = (t: ReturnType<typeof convexTest>) =>
+		t.run(async (ctx) =>
+			(await ctx.db.query("appleSignInLinks").collect()).map(
+				({ userId, appleUserIds }) => ({ userId, appleUserIds }),
+			),
+		);
+
+	it("mirrors verified Apple links from user.created and user.updated", async () => {
+		const t = convexTest(schema, modules);
+		const created = userEvent("user.created", 10, [
+			apple("apple-alice"),
+			apple("apple-pending", "unverified"),
+		]);
+		expect((await post(t, created, signed(created))).status).toBe(200);
+		expect(await links(t)).toEqual([
+			{ userId: "alice", appleUserIds: ["apple-alice"] },
+		]);
+
+		const relinked = userEvent("user.updated", 20, [apple("apple-new")]);
+		await post(t, relinked, signed(relinked, SECRET, "msg_2"));
+		// A retried older delivery does not roll it back.
+		await post(t, created, signed(created, SECRET, "msg_3"));
+		expect(await links(t)).toEqual([
+			{ userId: "alice", appleUserIds: ["apple-new"] },
+		]);
+
+		const unlinked = userEvent("user.updated", 30, []);
+		await post(t, unlinked, signed(unlinked, SECRET, "msg_4"));
+		expect(await links(t)).toEqual([]);
+	});
+
+	it("never stores a link from an unsigned or forged event", async () => {
+		const t = convexTest(schema, modules);
+		const body = userEvent("user.updated", 10, [apple("apple-attacker")]);
+		expect((await post(t, body, {})).status).toBe(400);
+		expect((await post(t, body, signed(body, OTHER_SECRET))).status).toBe(401);
+		expect(await links(t)).toEqual([]);
+	});
+
+	it("drops the link when the login is deleted", async () => {
+		const t = convexTest(schema, modules);
+		const created = userEvent("user.created", 10, [apple("apple-alice")]);
+		await post(t, created, signed(created));
+		const deleted = event("user.deleted");
+		expect(
+			(await post(t, deleted, signed(deleted, SECRET, "msg_2"))).status,
+		).toBe(200);
+		expect(await links(t)).toEqual([]);
+	});
+});

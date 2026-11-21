@@ -1,8 +1,9 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import { clientSecret, revokeAppleAuthorization } from "./lib/appleSignIn";
+import { verifiedAppleUserIds } from "./lib/clerkUsers";
 import schema from "./schema";
 
 const modules = import.meta.glob("./**/*.*s");
@@ -268,5 +269,274 @@ describe("web Apple revocation", () => {
 			token: "refresh",
 		});
 		expect(revoke.redirect_uri).toBeUndefined();
+	});
+});
+
+describe("web Apple revocation server checks", () => {
+	const WEB = {
+		authorizationCode: "code",
+		bundleId: "nl.appelent.web",
+		redirectUri: "https://foundry.appelent.nl/account",
+	};
+
+	function idToken(claims: Record<string, unknown>) {
+		const part = (value: unknown) =>
+			btoa(JSON.stringify(value))
+				.replace(/\+/g, "-")
+				.replace(/\//g, "_")
+				.replace(/=+$/, "");
+		return `${part({ alg: "RS256" })}.${part(claims)}.signature`;
+	}
+
+	function appleToken(sub: string, overrides: Record<string, unknown> = {}) {
+		return Response.json({
+			refresh_token: "refresh",
+			id_token: idToken({
+				iss: "https://appleid.apple.com",
+				aud: "nl.appelent.web",
+				sub,
+				...overrides,
+			}),
+		});
+	}
+
+	/** Alice's Apple link as the Clerk webhook mirrors it; none when empty. */
+	async function setUp(
+		responses: Record<string, Response>,
+		appleUserIds: string[] = ["apple-alice"],
+	) {
+		await configure();
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		const result = appleResponses(responses);
+		const t = convexTest(schema, modules);
+		if (appleUserIds.length > 0)
+			await t.mutation(internal.account.syncAppleLink, {
+				userId: "alice",
+				appleUserIds,
+				clerkUpdatedAt: 1,
+			});
+		return { ...result, t, alice: t.withIdentity({ subject: "alice" }) };
+	}
+
+	const paths = (calls: { path: string }[]) => calls.map(({ path }) => path);
+
+	it("checks the deletion blocker before exchanging the code", async () => {
+		const { alice, calls } = await setUp({
+			"/auth/token": appleToken("apple-alice"),
+			"/auth/revoke": new Response(null, { status: 200 }),
+		});
+		await alice.mutation(api.workoutSessions.create, {});
+		await expect(
+			alice.action(api.account.revokeAppleSignIn, WEB),
+		).rejects.toMatchObject({ data: { code: "activeActivity" } });
+		expect(calls).toEqual([]);
+	});
+
+	it("revokes when the code's Apple user is the one mirrored for the caller", async () => {
+		const { alice, calls } = await setUp({
+			"/auth/token": appleToken("apple-alice"),
+			"/auth/revoke": new Response(null, { status: 200 }),
+		});
+		await alice.action(api.account.revokeAppleSignIn, WEB);
+		expect(paths(calls)).toEqual(["/auth/token", "/auth/revoke"]);
+		expect(Object.fromEntries(calls[1].form)).toMatchObject({
+			token: "refresh",
+		});
+	});
+
+	it("binds to the caller's link, not another account's", async () => {
+		const { t, alice, calls } = await setUp(
+			{
+				"/auth/token": appleToken("apple-bob"),
+				"/auth/revoke": new Response(null, { status: 200 }),
+			},
+			["apple-alice"],
+		);
+		await t.mutation(internal.account.syncAppleLink, {
+			userId: "bob",
+			appleUserIds: ["apple-bob"],
+			clerkUpdatedAt: 1,
+		});
+		await expect(
+			alice.action(api.account.revokeAppleSignIn, WEB),
+		).rejects.toMatchObject({ data: { code: "appleAccountMismatch" } });
+		expect(paths(calls)).toEqual(["/auth/token"]);
+	});
+
+	it("refuses an ID token for another audience or issuer, or without one", async () => {
+		for (const token of [
+			appleToken("apple-alice", { aud: "com.example.other" }),
+			appleToken("apple-alice", { iss: "https://evil.example" }),
+			Response.json({ refresh_token: "refresh" }),
+		]) {
+			const { alice, calls } = await setUp({
+				"/auth/token": token,
+				"/auth/revoke": new Response(null, { status: 200 }),
+			});
+			await expect(
+				alice.action(api.account.revokeAppleSignIn, WEB),
+			).rejects.toMatchObject({ data: { code: "appleAccountMismatch" } });
+			expect(paths(calls)).not.toContain("/auth/revoke");
+		}
+	});
+
+	it("does not exchange the code without a mirrored Apple link", async () => {
+		const { alice, calls } = await setUp(
+			{ "/auth/token": appleToken("apple-alice") },
+			[],
+		);
+		await expect(
+			alice.action(api.account.revokeAppleSignIn, WEB),
+		).rejects.toMatchObject({ data: { code: "appleAccountMismatch" } });
+		expect(calls).toEqual([]);
+	});
+
+	it("refuses connected apps before any lookup", async () => {
+		const { t, calls } = await setUp({});
+		const app = t.withIdentity({
+			subject: "alice",
+			client_id: "mcp-client",
+			scope: "foundry:read foundry:write",
+		});
+		await expect(
+			app.action(api.account.revokeAppleSignIn, WEB),
+		).rejects.toMatchObject({ data: { code: "readOnly" } });
+		expect(calls).toEqual([]);
+	});
+
+	it("refuses an unregistered return URL before any lookup", async () => {
+		const { alice, calls } = await setUp({});
+		await expect(
+			alice.action(api.account.revokeAppleSignIn, {
+				...WEB,
+				redirectUri: "https://foundry-stg.appelent.nl/account",
+			}),
+		).rejects.toMatchObject({
+			data: { code: "invalid", field: "redirectUri" },
+		});
+		expect(calls).toEqual([]);
+	});
+
+	it("keeps native revocation unbound", async () => {
+		const { alice, calls } = await setUp(
+			{
+				"/auth/token": appleToken("apple-bob", {
+					aud: "com.appelent.foundry",
+				}),
+				"/auth/revoke": new Response(null, { status: 200 }),
+			},
+			[],
+		);
+		await alice.action(api.account.revokeAppleSignIn, {
+			authorizationCode: "code",
+			bundleId: "com.appelent.foundry",
+		});
+		expect(paths(calls)).toEqual(["/auth/token", "/auth/revoke"]);
+	});
+});
+
+describe("Apple link mirror", () => {
+	const links = (t: ReturnType<typeof convexTest>) =>
+		t.run((ctx) => ctx.db.query("appleSignInLinks").collect());
+
+	it("keeps the newest delivery and drops the row when Apple is unlinked", async () => {
+		const t = convexTest(schema, modules);
+		const sync = (appleUserIds: string[], clerkUpdatedAt: number) =>
+			t.mutation(internal.account.syncAppleLink, {
+				userId: "alice",
+				appleUserIds,
+				clerkUpdatedAt,
+			});
+		await sync(["apple-1"], 10);
+		await sync(["apple-1"], 10);
+		await sync(["apple-old"], 5);
+		expect(await links(t)).toMatchObject([
+			{ userId: "alice", appleUserIds: ["apple-1"], clerkUpdatedAt: 10 },
+		]);
+		await sync(["apple-2"], 20);
+		expect((await links(t))[0].appleUserIds).toEqual(["apple-2"]);
+		await sync([], 30);
+		expect(await links(t)).toEqual([]);
+	});
+
+	it("backfills in bounded batches with the same rules", async () => {
+		const t = convexTest(schema, modules);
+		await t.mutation(internal.account.syncAppleLink, {
+			userId: "alice",
+			appleUserIds: ["apple-new"],
+			clerkUpdatedAt: 20,
+		});
+		await t.mutation(internal.account.backfillAppleLinks, {
+			links: [
+				{ userId: "alice", appleUserIds: ["apple-stale"], clerkUpdatedAt: 10 },
+				{ userId: "bob", appleUserIds: ["apple-bob"], clerkUpdatedAt: 10 },
+			],
+		});
+		expect(
+			(await links(t)).map(({ userId, appleUserIds }) => [
+				userId,
+				appleUserIds,
+			]),
+		).toEqual(
+			expect.arrayContaining([
+				["alice", ["apple-new"]],
+				["bob", ["apple-bob"]],
+			]),
+		);
+		const tooMany = Array.from({ length: 101 }, (_, i) => ({
+			userId: `user-${i}`,
+			appleUserIds: ["apple"],
+			clerkUpdatedAt: 1,
+		}));
+		await expect(
+			t.mutation(internal.account.backfillAppleLinks, { links: tooMany }),
+		).rejects.toMatchObject({ data: { code: "tooLarge" } });
+	});
+
+	it("reads only verified Apple accounts from a Clerk user", () => {
+		expect(
+			verifiedAppleUserIds({
+				external_accounts: [
+					{
+						provider: "oauth_apple",
+						provider_user_id: "a",
+						verification: { status: "verified" },
+					},
+					{
+						provider: "apple",
+						provider_user_id: "b",
+						verification: { status: "verified" },
+					},
+					{
+						provider: "oauth_apple",
+						provider_user_id: "a",
+						verification: { status: "verified" },
+					},
+					{
+						provider: "oauth_apple",
+						provider_user_id: "c",
+						verification: { status: "unverified" },
+					},
+					{
+						provider: "oauth_apple",
+						provider_user_id: "d",
+						verification: null,
+					},
+					{
+						provider: "oauth_google",
+						provider_user_id: "e",
+						verification: { status: "verified" },
+					},
+					{
+						provider: "oauth_apple",
+						provider_user_id: "",
+						verification: { status: "verified" },
+					},
+					null,
+				],
+			}),
+		).toEqual(["a", "b"]);
+		expect(verifiedAppleUserIds({})).toEqual([]);
+		expect(verifiedAppleUserIds({ external_accounts: "nope" })).toEqual([]);
 	});
 });
