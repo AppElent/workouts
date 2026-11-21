@@ -25,6 +25,13 @@ export const account = {
 		dataDeleted: "Je Foundry-gegevens zijn verwijderd.",
 		dataDeletedDetail:
 			"Je AppElent-login werkt nog in Gather, Fairway en Arcade Club. Als je weer inlogt bij Foundry, begin je opnieuw.",
+		accountDeleted: "Je AppElent-account is verwijderd.",
+		accountDeletedDetail:
+			"Je login is weg, en daarmee je gegevens in Gather, Foundry, Fairway en Arcade Club.",
+		accountDeletedAppleRevokedDetail:
+			"Je login is weg, en daarmee je gegevens in Gather, Foundry, Fairway en Arcade Club. Foundry gebruikt Log in met Apple niet meer voor jou.",
+		accountDeletedAppleNotRevokedDetail:
+			"Je login is weg, en daarmee je gegevens in Gather, Foundry, Fairway en Arcade Club. Foundry kon Log in met Apple voor jou niet stoppen. Stop het zelf: ga naar account.apple.com, open Log in met Apple, kies Foundry en stop het gebruik.",
 		signOutError:
 			"Je Foundry-gegevens zijn verwijderd, maar je kon niet worden uitgelogd. Log zelf uit via het menu.",
 		error:

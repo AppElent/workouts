@@ -64,6 +64,17 @@ tap. Study: [profile](../../designs/app/profile_final.html).
   - *Delete my whole AppElent account.* Names the other apps whose data goes
     too. The same deletion, then Clerk's self-deletion, which signs out; on
     iOS the sign-in screen confirms that the login is gone. Unavailable when the Clerk instance disables self-deletion.
+    Before anything is deleted, the phone checks that the sign-in is younger
+    than half of Clerk's reverification window (5 of 10 minutes), again after
+    Apple's sheet. Clerk's verify dialog is web-only, so an old sign-in stops
+    there with **Sign in again**, which signs out; the sign-in screen then says
+    to come back and delete again. If Clerk still refuses after the data is
+    gone, the person is told to sign in again and repeat
+    ([APP-243](https://linear.app/appelent/issue/APP-243)).
+  - *Apple after deletion.* The confirmation after Delete account (phone
+    sign-in screen, web start) says whether Foundry still uses Sign in with
+    Apple: stopped, or, when revoking failed or was impossible (Android, an
+    origin Apple doesn't know), how to stop it at account.apple.com.
   - *Login deleted elsewhere.* When the AppElent login is deleted from another
     app or the Clerk dashboard, Clerk's signed `user.deleted` webhook
     (`POST /clerk/webhook`) runs the same purge on the server, in batches,

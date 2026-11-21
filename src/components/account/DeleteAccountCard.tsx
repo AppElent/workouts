@@ -10,16 +10,18 @@ import {
 	useQuery,
 } from "convex/react";
 import { useEffect, useId, useRef, useState } from "react";
+import { forgetGuestKey } from "#/components/hosted/guestKey";
 import { Button } from "#/components/ui/button";
 import { useConfirm } from "#/components/ui/confirm-dialog";
 import { useToast } from "#/components/ui/toast";
 import {
+	type AppleRevocation,
 	appleRevocationReturnUrl,
 	preloadAppleJs,
 	revokeAppleSignIn,
 } from "#/lib/auth/appleRevocation";
 import { useI18n } from "#/lib/i18n";
-import { DATA_DELETED_SEARCH } from "./dataDeletedNotice";
+import { accountDeleted, DATA_DELETED_SEARCH } from "./dataDeletedNotice";
 
 type Mode = "deleteData" | "deleteAccount";
 
@@ -156,6 +158,7 @@ export function DeleteAccountCard() {
 				mode === "deleteAccount" && clerk.session
 					? { userId, sessionId: clerk.session.id }
 					: null;
+			let apple: AppleRevocation = "notLinked";
 			if (mode === "deleteAccount") {
 				if (!account || !sameAccount(account)) {
 					toast.error(c.deletion.accountChanged);
@@ -191,9 +194,11 @@ export function DeleteAccountCard() {
 					toast.error(c.deletion.accountChanged);
 					return;
 				}
-				const apple = await revokeAppleSignIn(user, revokeApple, { locale });
-				if (apple === "popupBlocked") toast.error(c.deletion.applePopupBlocked);
-				if (apple !== "continue") return;
+				const revoked = await revokeAppleSignIn(user, revokeApple, { locale });
+				if (revoked === "popupBlocked")
+					toast.error(c.deletion.applePopupBlocked);
+				if (revoked === "cancelled" || revoked === "popupBlocked") return;
+				apple = revoked;
 				// Apple's step can outlast the sign-in window; check again so the
 				// data is never deleted while Clerk would refuse the account.
 				if (
@@ -236,8 +241,17 @@ export function DeleteAccountCard() {
 					);
 					return;
 				}
-				// The signed-out start; a full load also drops in-memory account state.
-				await navigate({ to: "/", replace: true, reloadDocument: true });
+				// Hosted Workouts are parked and their scores wiped (APP-452);
+				// the key would only tie this browser to the deleted account.
+				forgetGuestKey();
+				// The signed-out start, which confirms the deletion; a full load
+				// also drops in-memory account state.
+				await navigate({
+					to: "/",
+					search: { deleted: accountDeleted(apple) },
+					replace: true,
+					reloadDocument: true,
+				});
 				return;
 			}
 			// The AppElent login stays: no `user.delete()`, no Apple revocation.

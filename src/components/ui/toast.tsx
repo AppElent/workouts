@@ -19,8 +19,18 @@ const TOAST_ICONS = {
 export function useToast() {
 	const manager = Toast.useToastManager();
 	return {
-		success: (title: string, description?: string) =>
-			manager.add({ title, description, type: "success" }),
+		/** `persist` keeps it until dismissed, for steps the person must read. */
+		success: (
+			title: string,
+			description?: string,
+			options?: { persist?: boolean },
+		) =>
+			manager.add({
+				title,
+				description,
+				type: "success",
+				...(options?.persist ? { timeout: 0 } : {}),
+			}),
 		error: (title: string, description?: string) =>
 			manager.add({
 				title,

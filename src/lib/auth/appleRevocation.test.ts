@@ -54,7 +54,7 @@ beforeEach(() => vi.clearAllMocks());
 it("sends the popup's code with the Services ID and return URL", async () => {
 	const auth = signedIn();
 	const { revoke, result } = run(auth);
-	await expect(result).resolves.toBe("continue");
+	await expect(result).resolves.toBe("revoked");
 	expect(auth.init).toHaveBeenCalledWith(
 		expect.objectContaining({
 			clientId: "nl.appelent.web",
@@ -72,9 +72,10 @@ it("sends the popup's code with the Services ID and return URL", async () => {
 it("skips accounts without Apple and origins Apple does not know", async () => {
 	const auth = signedIn();
 	const noApple = run(auth, { externalAccounts: [] });
-	await expect(noApple.result).resolves.toBe("continue");
+	await expect(noApple.result).resolves.toBe("notLinked");
+	// Linked but skipped: the grant stays, and the confirmation says so.
 	const unregistered = run(auth, appleUser, []);
-	await expect(unregistered.result).resolves.toBe("continue");
+	await expect(unregistered.result).resolves.toBe("notRevoked");
 	expect(auth.signIn).not.toHaveBeenCalled();
 	expect(noApple.revoke).not.toHaveBeenCalled();
 	expect(unregistered.revoke).not.toHaveBeenCalled();
@@ -90,7 +91,7 @@ it("cancels the deletion when the popup is closed", async () => {
 
 it("never revokes another Apple Account's grant", async () => {
 	const { revoke, result } = run(signedIn("someone-else"));
-	await expect(result).resolves.toBe("continue");
+	await expect(result).resolves.toBe("notRevoked");
 	expect(revoke).not.toHaveBeenCalled();
 	expect(mocks.report).toHaveBeenCalledOnce();
 });
@@ -100,7 +101,7 @@ it("rejects a response for another request", async () => {
 		authorization: { code: "code", id_token: idToken("apple-sub"), state: "x" },
 	}));
 	const { revoke, result } = run(auth);
-	await expect(result).resolves.toBe("continue");
+	await expect(result).resolves.toBe("notRevoked");
 	expect(revoke).not.toHaveBeenCalled();
 });
 
@@ -113,7 +114,7 @@ it("reports a failed revocation and lets the deletion continue", async () => {
 			returnUrls: [RETURN_URL],
 			loadApple: async () => auth,
 		}),
-	).resolves.toBe("continue");
+	).resolves.toBe("notRevoked");
 	expect(mocks.report).toHaveBeenCalledWith(
 		expect.any(Error),
 		"account.revokeAppleSignIn",
@@ -127,7 +128,7 @@ it("reads the Apple user from a base64url ID token", async () => {
 	const { revoke, result } = run(auth, {
 		externalAccounts: [{ provider: "oauth_apple", providerUserId: sub }],
 	});
-	await expect(result).resolves.toBe("continue");
+	await expect(result).resolves.toBe("revoked");
 	expect(revoke).toHaveBeenCalledOnce();
 });
 
