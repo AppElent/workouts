@@ -5,13 +5,28 @@ import { AuthButton } from "./AuthButton";
 import { AuthError } from "./AuthError";
 import { AuthField } from "./AuthField";
 import { orThrow, useClerkErrorMessage } from "./clerkError";
+import { SecondFactorStep } from "./SecondFactorStep";
+import { needsSecondFactor } from "./secondFactor";
 import { UsernameHint } from "./UsernameHint";
 
-export function ForgotPasswordForm({ onSuccess }: { onSuccess: () => void }) {
+/**
+ * Emailed reset code, then a new password. On an account with MFA the reset
+ * changes the password and then still asks for the second factor.
+ */
+export function ForgotPasswordForm({
+	onSuccess,
+	onBackToSignIn,
+}: {
+	onSuccess: () => void;
+	/** Leaves the second-factor step; the password is already changed. */
+	onBackToSignIn: () => void;
+}) {
 	const { signIn } = useSignIn();
 	const { auth } = useMessages();
 	const errorMessage = useClerkErrorMessage();
-	const [step, setStep] = useState<"request" | "reset">("request");
+	const [step, setStep] = useState<"request" | "reset" | "secondFactor">(
+		"request",
+	);
 	const [email, setEmail] = useState("");
 	const [code, setCode] = useState("");
 	const [password, setPassword] = useState("");
@@ -44,7 +59,9 @@ export function ForgotPasswordForm({ onSuccess }: { onSuccess: () => void }) {
 				await orThrow(signIn.resetPasswordEmailCode.verifyCode({ code }));
 			}
 			await orThrow(signIn.resetPasswordEmailCode.submitPassword({ password }));
-			if (signIn.status === "complete") {
+			if (needsSecondFactor(signIn.status)) {
+				setStep("secondFactor");
+			} else if (signIn.status === "complete") {
 				await orThrow(signIn.finalize());
 				onSuccess();
 			} else {
@@ -55,6 +72,16 @@ export function ForgotPasswordForm({ onSuccess }: { onSuccess: () => void }) {
 		} finally {
 			setLoading(false);
 		}
+	}
+
+	if (step === "secondFactor") {
+		return (
+			<SecondFactorStep
+				onSuccess={onSuccess}
+				onBack={onBackToSignIn}
+				notice={auth.secondFactor.passwordChanged}
+			/>
+		);
 	}
 
 	if (step === "reset") {

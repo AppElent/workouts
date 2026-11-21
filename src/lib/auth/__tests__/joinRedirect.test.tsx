@@ -262,7 +262,8 @@ describe("join link through auth", () => {
 		expect(callbackProps).toMatchObject({
 			signInFallbackRedirectUrl: JOIN,
 			signUpFallbackRedirectUrl: JOIN,
-			signInUrl: `/sign-in${WITH_JOIN}`,
+			signInUrl: `/sign-in${WITH_JOIN}&resume=social`,
+			secondFactorUrl: `/sign-in${WITH_JOIN}&resume=social`,
 			signUpUrl: `/sign-up${WITH_JOIN}`,
 		});
 	});
@@ -280,7 +281,8 @@ describe("join link through auth", () => {
 		expect(callbackProps).toMatchObject({
 			signInFallbackRedirectUrl: "/dashboard",
 			signUpFallbackRedirectUrl: "/dashboard",
-			signInUrl: "/sign-in",
+			signInUrl: "/sign-in?resume=social",
+			secondFactorUrl: "/sign-in?resume=social",
 			signUpUrl: "/sign-up",
 		});
 	});
@@ -349,7 +351,8 @@ describe("join link through auth", () => {
 			expect(callbackProps).toMatchObject({
 				signInFallbackRedirectUrl: "/dashboard",
 				signUpFallbackRedirectUrl: "/dashboard",
-				signInUrl: "/sign-in",
+				signInUrl: "/sign-in?resume=social",
+				secondFactorUrl: "/sign-in?resume=social",
 				signUpUrl: "/sign-up",
 			});
 		});
@@ -386,6 +389,7 @@ describe("join link through auth", () => {
 				"signInFallbackRedirectUrl",
 				"signUpFallbackRedirectUrl",
 				"signInUrl",
+				"secondFactorUrl",
 				"signUpUrl",
 			]) {
 				expect(String(props[key])).toMatch(/^\/(?![/\\])/);

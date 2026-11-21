@@ -8,15 +8,19 @@ import { useMessages } from "#/lib/i18n";
 
 export const Route = createFileRoute("/sign-in")({
 	ssr: false,
-	validateSearch: (search: Record<string, unknown>): { redirect?: string } => ({
+	validateSearch: (
+		search: Record<string, unknown>,
+	): { redirect?: string; resume?: true } => ({
 		redirect: safeRedirect(search.redirect),
+		// Set by `/sso-callback` for a social sign-in that still needs a step.
+		resume: search.resume === "social" || undefined,
 	}),
 	component: SignInPage,
 });
 
 function SignInPage() {
 	const navigate = useNavigate();
-	const { redirect } = Route.useSearch();
+	const { redirect, resume } = Route.useSearch();
 	const { isSignedIn } = useAuth();
 	const { auth } = useMessages();
 
@@ -30,6 +34,7 @@ function SignInPage() {
 		<AuthCard title={auth.signIn.title} subtitle={auth.signIn.subtitle}>
 			<SignInForm
 				redirect={redirect}
+				resumeSocial={resume}
 				onSuccess={() => navigate({ href: redirect ?? AUTH_PATHS.afterAuth })}
 			/>
 		</AuthCard>

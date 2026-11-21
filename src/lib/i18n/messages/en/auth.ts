@@ -60,6 +60,40 @@ export const auth = {
 		resent: "A new code is on its way.",
 		usePassword: "Use your password instead",
 	},
+	secondFactor: {
+		title: "Verify it's you",
+		prompt: {
+			totp: "Enter the 6-digit code from your authenticator app.",
+			phone_code: "We texted a 6-digit code to {destination}.",
+			email_code: "We sent a 6-digit code to {destination}.",
+			backup_code: "Enter one of the backup codes you saved.",
+		},
+		/** Shown when Clerk gives no masked number or address. */
+		yourPhone: "your phone",
+		yourEmail: "your email",
+		code: "Code",
+		backupCode: "Backup code",
+		submit: "Verify",
+		resend: "Send a new code",
+		resent: "A new code is on its way.",
+		switchTo: {
+			totp: "Use your authenticator app",
+			phone_code: "Text a code to {destination}",
+			email_code: "Email a code to {destination}",
+			backup_code: "Use a backup code",
+		},
+		passwordChanged:
+			"Your password has been changed. One more step to sign in.",
+		codeMissing: "Enter the code first.",
+		methodLocked:
+			"Too many wrong codes for this method. Use another method, or go back and sign in again.",
+		attemptEnded:
+			"This sign-in took too long and can't continue. Go back and sign in again.",
+		notFinished: "This sign-in couldn't finish. Go back and sign in again.",
+		noMethod:
+			"Your account's second sign-in step isn't available here. Contact support to sign in.",
+		backToSignIn: "Back to sign in",
+	},
 	signUp: {
 		title: "Create your account",
 		submit: "Create account",
