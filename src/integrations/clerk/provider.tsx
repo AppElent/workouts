@@ -10,7 +10,7 @@ const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
  * Clerk's own UI (the reverification dialog) in the app's language. English is
  * passed explicitly so switching back from Dutch resets Clerk's strings.
  */
-export const CLERK_LOCALIZATION = {
+const CLERK_LOCALIZATION = {
 	en: enUS,
 	nl: nlNL,
 } satisfies Record<Locale, typeof enUS>;
