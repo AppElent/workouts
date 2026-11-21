@@ -13,7 +13,11 @@ vi.mock("@clerk/react", () => ({
 	},
 }));
 vi.mock("#/lib/observability/user", () => ({ SentryUser: () => null }));
-vi.stubEnv("VITE_CLERK_PUBLISHABLE_KEY", "pk_test_placeholder");
+// The provider reads the key when its module loads, so stub it before the
+// imports run; CI has no .env.local to supply one.
+vi.hoisted(() => {
+	vi.stubEnv("VITE_CLERK_PUBLISHABLE_KEY", "pk_test_placeholder");
+});
 
 let switchLocale: (locale: "en" | "nl") => void = () => {};
 function LocaleSwitch() {
