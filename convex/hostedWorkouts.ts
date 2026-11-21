@@ -1,13 +1,17 @@
 import { HOSTED_LEVELS } from "@foundry/core";
 import { type ObjectType, v } from "convex/values";
 import { internal } from "./_generated/api";
-import type { Doc, Id } from "./_generated/dataModel";
+import type { Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 import { internalMutation, mutation, query } from "./_generated/server";
 import { requireUserId } from "./lib/auth";
 import { appError } from "./lib/errors";
 import { requireExercise } from "./lib/exerciseCatalog";
-import { joinHosted, toPublicHostedTemplate } from "./lib/hosted";
+import {
+	finishParticipantSession,
+	joinHosted,
+	toPublicHostedTemplate,
+} from "./lib/hosted";
 import {
 	hostedPrescriptions,
 	validatePrescriptions,
@@ -222,35 +226,6 @@ export const open = mutation({
 		}
 	},
 });
-
-/**
- * Ends the participant's session if it is still active: completed when they
- * logged a set or WOD result, cancelled otherwise, so no one is left locked
- * out of starting another session.
- */
-async function finishParticipantSession(
-	ctx: MutationCtx,
-	participant: Doc<"hostedWorkoutParticipants">,
-	now: number,
-) {
-	const session = await ctx.db.get(participant.sessionId);
-	if (session?.status !== "active") return false;
-	const [set, wod] = await Promise.all([
-		ctx.db
-			.query("sets")
-			.withIndex("by_session", (q) => q.eq("sessionId", session._id))
-			.first(),
-		ctx.db
-			.query("wodResults")
-			.withIndex("by_session", (q) => q.eq("sessionId", session._id))
-			.first(),
-	]);
-	await ctx.db.patch(session._id, {
-		status: set || wod ? "completed" : "cancelled",
-		endTime: now,
-	});
-	return true;
-}
 
 /** Ends every participant session still active when the workout ends. */
 async function finishParticipantSessions(

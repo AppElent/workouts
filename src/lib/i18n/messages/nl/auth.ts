@@ -20,6 +20,7 @@ export const auth = {
 			"Dit wachtwoord voldoet niet aan de eisen.",
 		codeIncorrect: "Deze code klopt niet.",
 		codeExpired: "Deze code is verlopen. Vraag een nieuwe aan.",
+		codeAttemptsExceeded: "Te veel foute codes. Vraag een nieuwe aan.",
 		tooManyRequests: "Te veel pogingen. Wacht even en probeer het opnieuw.",
 		network: "De server is niet bereikbaar. Controleer je verbinding.",
 		appleSignInIncomplete:

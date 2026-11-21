@@ -44,6 +44,7 @@ const CLERK_ERROR_MESSAGE_KEYS = [
 	"passwordDoesNotMeetRequirements",
 	"codeIncorrect",
 	"codeExpired",
+	"codeAttemptsExceeded",
 	"tooManyRequests",
 	"network",
 	"appleSignInIncomplete",
@@ -64,7 +65,8 @@ const CLERK_ERROR_CODE_MAP: Readonly<
 	form_password_pwned: "passwordPwned",
 	form_password_validation_failed: "passwordDoesNotMeetRequirements",
 	form_code_incorrect: "codeIncorrect",
-	verification_failed: "codeIncorrect",
+	// Too many wrong codes: this code is spent, a new one works (APP-507).
+	verification_failed: "codeAttemptsExceeded",
 	verification_expired: "codeExpired",
 	too_many_requests: "tooManyRequests",
 	rate_limit_exceeded: "tooManyRequests",
