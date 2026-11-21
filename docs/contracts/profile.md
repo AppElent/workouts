@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing Profile, settings, account actions, or sign-out.
-version: 2.0.2
+version: 2.1.0
 status: current
 ---
 
@@ -45,16 +45,29 @@ tap. Study: [profile](../../designs/app/profile_final.html).
     Apple revocation. On iOS the sign-in screen then confirms the deletion and
     says the login still works in the other apps; a signed-in toast would
     unmount with the session. Foundry keeps no profile row, so signing in again starts with an
-    empty account. Device preferences remain. Blocked offline, during a running
-    Activity, and with Hosted Workout involvement, like test-data reset.
+    empty account. Device preferences remain. Blocked offline and during a
+    running Activity.
+  - *Hosted Workouts.* Deletion takes them along instead of blocking
+    ([APP-408](https://linear.app/appelent/issue/APP-408)). A Hosted Workout
+    the account hosts is deleted whole: its participants and every
+    submission, guests' included, leave with it, and participants' running
+    sessions end as when the host removes it. In other hosts' events the
+    account's participation and its scores are deleted, so it leaves their
+    leaderboards. Its scores are found through the participant
+    (`hostedWorkoutSubmissions.by_participant`); every signed-in submission
+    carries the participant together with the account's WOD and WOD result.
+    Other athletes keep their own sessions, WODs and WOD results; a session
+    whose event is gone opens as an ordinary session. The deletion
+    copy names both. `deletionBlocker` no longer returns `hostedWorkout`; the
+    code stays in the validator for installed apps. Test-data reset still
+    refuses Hosted Workout involvement.
   - *Delete my whole AppElent account.* Names the other apps whose data goes
     too. The same deletion, then Clerk's self-deletion, which signs out; on
     iOS the sign-in screen confirms that the login is gone. Unavailable when the Clerk instance disables self-deletion.
   - *Login deleted elsewhere.* When the AppElent login is deleted from another
     app or the Clerk dashboard, Clerk's signed `user.deleted` webhook
     (`POST /clerk/webhook`) runs the same purge on the server, in batches,
-    without the running-Activity blocker; Hosted Workout involvement still
-    keeps the data and is logged.
+    without the running-Activity blocker, Hosted Workouts included.
   - *Web.* The web Profile page offers both deletions with the same
     confirmations and blockers. Web keeps no account data outside Convex
     queries, so neither deletion needs a local reset. Delete Foundry data only
@@ -88,10 +101,10 @@ Lifetime totals and distance breakdown are not built yet. Linear
 [APP-57](https://linear.app/appelent/issue/APP-57) (closed with the approved
 [design study](../../designs/app/profile-totals_final.md), not the feature)
 tracks them; once they exist they become the Summary: all-time totals, no
-period menu, each figure linking to its source view. Deleting accounts with Hosted
-Workout involvement needs a separate shared-event cleanup design. Never show
+period menu, each figure linking to its source view. Never show
 invented figures or simulated success.
 
 ## Acceptance
 
-Evidence: [app redesign](../records/2026-10-07-app-redesign/README.md).
+Evidence: [app redesign](../records/2026-10-07-app-redesign/README.md);
+Hosted Workout deletion: [APP-408](../records/2026-11-20-delete-hosted-workouts/README.md).
