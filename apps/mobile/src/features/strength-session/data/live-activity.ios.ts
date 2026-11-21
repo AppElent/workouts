@@ -4,7 +4,8 @@
  * kept on the phone, so a relaunch during the same session takes the running
  * activity over instead of ending and restarting it. Any other activity, such
  * as one left from a session finished on another device, is ended and
- * replaced. When the user turned Live Activities off, `start` throws and the
+ * replaced. When the user dismisses the activity, the session stays without
+ * one, also across a relaunch; the next session starts a new one. When the user turned Live Activities off, `start` throws and the
  * session carries on without one.
  *
  * Every change runs one at a time against the latest wanted state, so an end
@@ -34,16 +35,29 @@ let currentId: string | null = null;
 /** The `startedAt` of the session the current activity shows. */
 let currentSession: number | null = null;
 let sentKey = "";
+/** The current session's activity was dismissed by the user: don't start another. */
+let dismissed = false;
 /** Whether the owner kept by an earlier launch has been read back. */
 let restored = false;
 
-type Owner = { activityId: string; startedAt: number };
+type Owner = { activityId: string; startedAt: number; dismissed?: true };
 
 function parseOwner(value: unknown): Owner {
-	const { activityId, startedAt } = (value ?? {}) as Partial<Owner>;
+	const { activityId, startedAt, dismissed } = (value ?? {}) as Partial<Owner>;
 	if (typeof activityId !== "string" || typeof startedAt !== "number")
 		throw new Error("Unexpected Live Activity owner");
-	return { activityId, startedAt };
+	return dismissed === true
+		? { activityId, startedAt, dismissed }
+		: { activityId, startedAt };
+}
+
+function keepOwner() {
+	if (currentId === null || currentSession === null) return;
+	writeLocalJson(DEVICE_KEYS.liveActivity, {
+		activityId: currentId,
+		startedAt: currentSession,
+		...(dismissed ? { dismissed: true as const } : {}),
+	} satisfies Owner);
 }
 
 /**
@@ -58,6 +72,7 @@ function restore() {
 	if (!read.ok || !read.value) return;
 	currentId = read.value.activityId;
 	currentSession = read.value.startedAt;
+	dismissed = read.value.dismissed === true;
 }
 
 /** Set once creating the factory threw: reported then, skipped after. */
@@ -93,7 +108,19 @@ function forget() {
 	currentId = null;
 	currentSession = null;
 	sentKey = "";
+	dismissed = false;
 	removeLocal(DEVICE_KEYS.liveActivity);
+}
+
+/**
+ * The session's own activity vanished without the app ending it: the user
+ * dismissed it (or iOS ended it). Remember that, so this session doesn't
+ * bring it back.
+ */
+function markDismissed() {
+	dismissed = true;
+	sentKey = "";
+	keepOwner();
 }
 
 /** Brings the system's activities in line with `props`; null ends them all. */
@@ -102,8 +129,9 @@ async function sync(props: LiveActivityProps | null) {
 	try {
 		restore();
 		const instances = getFactory().getInstances();
+		const ownSession = props !== null && currentSession === props.startedAt;
 		const owned =
-			props && currentSession === props.startedAt
+			ownSession && !dismissed
 				? instances.find((item) => item.getId() === currentId)
 				: undefined;
 		// Never this session's: ended right away, also from the background.
@@ -111,6 +139,12 @@ async function sync(props: LiveActivityProps | null) {
 		if (extras.length) await Promise.all(extras.map(end));
 		if (!props) {
 			forget();
+			return;
+		}
+		if (ownSession && !owned) {
+			// Only the app's own end forgets the session, so its activity is
+			// missing because the user dismissed it.
+			if (!dismissed) markDismissed();
 			return;
 		}
 		// iOS starts activities only from the foreground; becoming active
@@ -123,14 +157,19 @@ async function sync(props: LiveActivityProps | null) {
 				.getId();
 			currentSession = props.startedAt;
 			sentKey = key;
-			writeLocalJson(DEVICE_KEYS.liveActivity, {
-				activityId: currentId,
-				startedAt: currentSession,
-			} satisfies Owner);
+			dismissed = false;
+			keepOwner();
 			return;
 		}
 		if (key === sentKey) return;
-		await owned.update(props, staleDateOf(props));
+		try {
+			await owned.update(props, staleDateOf(props));
+		} catch (error) {
+			// Dismissed while the update was on its way.
+			if (!isGone(error)) throw error;
+			markDismissed();
+			return;
+		}
 		sentKey = key;
 	} catch (error) {
 		forget();
