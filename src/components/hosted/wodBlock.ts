@@ -1,5 +1,6 @@
 import type { Doc } from "@convex/_generated/dataModel";
 import {
+	fmt,
 	formatClock,
 	WOD_TIMING_FIELD,
 	type WodMovement,
@@ -30,13 +31,16 @@ export function wodTimingLabel(type: WodType): string | null {
 }
 
 /** "Time cap 12:00" for For Time, "20 min" for AMRAP/EMOM, or null. */
-export function formatWodTiming(block: { type: WodType } & WodTiming) {
+export function formatWodTiming(
+	block: { type: WodType } & WodTiming,
+	messages: { timeCap: string; minutes: string },
+) {
 	const field = WOD_TIMING_FIELD[block.type];
 	const seconds = field ? block[field] : undefined;
 	if (!seconds) return null;
 	return field === "timeCapSeconds"
-		? `Time cap ${formatClock(seconds)}`
-		: `${Math.round(seconds / 60)} min`;
+		? fmt(messages.timeCap, { time: formatClock(seconds) })
+		: fmt(messages.minutes, { count: Math.round(seconds / 60) });
 }
 
 /** Persisted movements have no id; read-only lists key them by content. */

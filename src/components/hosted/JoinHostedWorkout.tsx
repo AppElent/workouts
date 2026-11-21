@@ -3,7 +3,6 @@ import { api } from "@convex/_generated/api";
 import { plural } from "@foundry/core";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useConvexAuth, useMutation, useQuery } from "convex/react";
-import { format } from "date-fns";
 import { History, LogIn, Play, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { GuestSubmissionForm } from "#/components/hosted/GuestSubmissionForm";
@@ -15,8 +14,20 @@ import {
 import { useConvexErrorMessage } from "#/lib/convexError";
 import { fmt, useI18n } from "#/lib/i18n";
 
+/** A scheduled time in the viewer's language, e.g. "Nov 21, 8:30 AM". */
+function formatSchedule(locale: string, at: number) {
+	return new Intl.DateTimeFormat(locale, {
+		month: "short",
+		day: "numeric",
+		hour: "numeric",
+		minute: "2-digit",
+	}).format(new Date(at));
+}
+
 export function JoinHostedWorkout({ token }: { token: string }) {
 	const navigate = useNavigate();
+	const { locale, messages } = useI18n();
+	const t = messages.hosted.join;
 	const { isSignedIn } = useAuth();
 	const { user } = useUser();
 	const data = useQuery(api.hostedWorkouts.getByJoinToken, { token });
@@ -48,19 +59,17 @@ export function JoinHostedWorkout({ token }: { token: string }) {
 			});
 			void navigate({ to: "/log/$sessionId", params: { sessionId } });
 		} catch (err) {
-			setJoinError(errorMessage(err, "Failed to join workout."));
+			setJoinError(errorMessage(err, t.joinFailed));
 			setJoining(false);
 		}
 	}
 
 	if (data === undefined) {
-		return <div className="p-6 text-sm text-text-muted">Loading...</div>;
+		return <div className="p-6 text-sm text-text-muted">{t.loading}</div>;
 	}
 
 	if (data === null) {
-		return (
-			<div className="p-6 text-sm text-danger">Hosted workout not found.</div>
-		);
+		return <div className="p-6 text-sm text-danger">{t.notFound}</div>;
 	}
 
 	const { hosted, submissions } = data;
@@ -74,12 +83,12 @@ export function JoinHostedWorkout({ token }: { token: string }) {
 						<div className="flex flex-wrap items-center gap-2">
 							<h1 className="text-2xl font-bold text-text">{hosted.title}</h1>
 							<span className="rounded-full border border-border px-2 py-1 text-xs uppercase text-text-muted">
-								{hosted.status}
+								{t.status[hosted.status]}
 							</span>
 						</div>
 						{hosted.scheduledAt && (
 							<p className="mt-1 text-sm text-text-muted">
-								{format(new Date(hosted.scheduledAt), "MMM d, h:mm a")}
+								{formatSchedule(locale, hosted.scheduledAt)}
 							</p>
 						)}
 						{hosted.notes && (
@@ -90,12 +99,12 @@ export function JoinHostedWorkout({ token }: { token: string }) {
 					<Show when="signed-in">
 						<div className="flex flex-col gap-2 sm:w-56">
 							<label className="flex flex-col gap-1 text-xs font-medium uppercase text-text-muted">
-								Your name
+								{t.yourName}
 								<input
 									type="text"
 									value={displayName}
 									onChange={(event) => setNameInput(event.target.value)}
-									placeholder="Name on leaderboard"
+									placeholder={t.namePlaceholder}
 									className="h-10 rounded-lg border border-border bg-surface-2 px-3 text-sm normal-case text-text placeholder:text-text-muted"
 								/>
 							</label>
@@ -106,7 +115,7 @@ export function JoinHostedWorkout({ token }: { token: string }) {
 								className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent-fill px-4 py-2 text-sm font-bold text-on-accent disabled:opacity-50"
 							>
 								<Play size={15} />
-								{joining ? "Joining..." : "Join workout"}
+								{joining ? t.joining : t.join}
 							</button>
 						</div>
 					</Show>
@@ -117,7 +126,7 @@ export function JoinHostedWorkout({ token }: { token: string }) {
 							className="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-semibold text-text"
 						>
 							<LogIn size={15} />
-							Sign in to join
+							{t.signIn}
 						</Link>
 					</Show>
 				</div>
@@ -149,9 +158,7 @@ export function JoinHostedWorkout({ token }: { token: string }) {
 					/>
 				) : (
 					<div className="h-fit rounded-lg border border-border bg-surface p-4 text-sm text-text-muted">
-						{hosted.status === "closed"
-							? "This workout has closed. Scores are final."
-							: "This workout hasn't started yet. Check back once the host opens it."}
+						{hosted.status === "closed" ? t.closed : t.notStarted}
 					</div>
 				)}
 
@@ -166,7 +173,7 @@ export function JoinHostedWorkout({ token }: { token: string }) {
 									id: `${submission.athleteName}-${submission.submittedAt}-${index}`,
 									name:
 										submission.athleteName ??
-										(submission.byHost ? "Host" : "Signed-in athlete"),
+										(submission.byHost ? t.host : t.signedInAthlete),
 									level: submission.level,
 									submittedAt: submission.submittedAt,
 									score: submission,
