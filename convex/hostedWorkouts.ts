@@ -1,8 +1,9 @@
 import { HOSTED_LEVELS } from "@foundry/core";
 import { type ObjectType, v } from "convex/values";
-import type { Id } from "./_generated/dataModel";
+import { internal } from "./_generated/api";
+import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 import { requireUserId } from "./lib/auth";
 import { appError } from "./lib/errors";
 import { requireExercise } from "./lib/exerciseCatalog";
@@ -223,9 +224,35 @@ export const open = mutation({
 });
 
 /**
- * Ends every participant session still active when the workout ends, so no
- * one is left locked out of starting another session.
+ * Ends the participant's session if it is still active: completed when they
+ * logged a set or WOD result, cancelled otherwise, so no one is left locked
+ * out of starting another session.
  */
+async function finishParticipantSession(
+	ctx: MutationCtx,
+	participant: Doc<"hostedWorkoutParticipants">,
+	now: number,
+) {
+	const session = await ctx.db.get(participant.sessionId);
+	if (session?.status !== "active") return false;
+	const [set, wod] = await Promise.all([
+		ctx.db
+			.query("sets")
+			.withIndex("by_session", (q) => q.eq("sessionId", session._id))
+			.first(),
+		ctx.db
+			.query("wodResults")
+			.withIndex("by_session", (q) => q.eq("sessionId", session._id))
+			.first(),
+	]);
+	await ctx.db.patch(session._id, {
+		status: set || wod ? "completed" : "cancelled",
+		endTime: now,
+	});
+	return true;
+}
+
+/** Ends every participant session still active when the workout ends. */
 async function finishParticipantSessions(
 	ctx: MutationCtx,
 	hostedWorkoutId: Id<"hostedWorkouts">,
@@ -237,24 +264,8 @@ async function finishParticipantSessions(
 		)
 		.collect();
 	const now = Date.now();
-	for (const participant of participants) {
-		const session = await ctx.db.get(participant.sessionId);
-		if (session?.status !== "active") continue;
-		const [set, wod] = await Promise.all([
-			ctx.db
-				.query("sets")
-				.withIndex("by_session", (q) => q.eq("sessionId", session._id))
-				.first(),
-			ctx.db
-				.query("wodResults")
-				.withIndex("by_session", (q) => q.eq("sessionId", session._id))
-				.first(),
-		]);
-		await ctx.db.patch(session._id, {
-			status: set || wod ? "completed" : "cancelled",
-			endTime: now,
-		});
-	}
+	for (const participant of participants)
+		await finishParticipantSession(ctx, participant, now);
 }
 
 export const close = mutation({
@@ -283,5 +294,137 @@ export const remove = mutation({
 			for (const row of rows) await ctx.db.delete(row._id);
 		}
 		await ctx.db.delete(id);
+	},
+});
+
+/** Rows one `wipeAll` call deletes at most, well inside Convex limits. */
+const WIPE_BATCH_SIZE = 200;
+/** Rows a dry run counts per table before reporting `atLeast`. */
+const WIPE_COUNT_CAP = 1000;
+
+const wipeCounts = v.object({
+	hostedWorkouts: v.number(),
+	hostedWorkoutParticipants: v.number(),
+	hostedWorkoutSubmissions: v.number(),
+	runningSessions: v.number(),
+});
+type WipeCounts = ObjectType<(typeof wipeCounts)["fields"]>;
+
+const NO_WIPE_COUNTS: WipeCounts = {
+	hostedWorkouts: 0,
+	hostedWorkoutParticipants: 0,
+	hostedWorkoutSubmissions: 0,
+	runningSessions: 0,
+};
+
+/**
+ * Wipes every Hosted Workout row (APP-452, ADR 0018). Run by hand from the
+ * Convex dashboard or `convex run`; no client calls it.
+ *
+ * `dryRun: true` only counts: each table up to `WIPE_COUNT_CAP` rows, with
+ * `atLeast` set when a table holds more. `runningSessions` counts the
+ * participant sessions a wipe would end.
+ *
+ * `dryRun: false` deletes up to `batchSize` rows per call, Submissions first,
+ * then Participants (ending each one's running session the way deleting a
+ * workout does), then the workouts, and schedules itself until all three
+ * tables are empty. Participants keep their own sessions, sets, WODs, and WOD
+ * Results. A repeat run finds nothing and stops. Logs counts only. Start a
+ * new run only after the previous one logged `done`.
+ *
+ * Retires with the hosted code: delete it when the Hosted Workout functions
+ * and tables are removed, or superseded by a revived feature (ADR 0018).
+ */
+export const wipeAll = internalMutation({
+	args: {
+		dryRun: v.boolean(),
+		batchSize: v.optional(v.number()),
+		/** Running totals carried between scheduled batches. */
+		totals: v.optional(wipeCounts),
+	},
+	returns: v.union(
+		v.object({
+			dryRun: v.literal(true),
+			counts: wipeCounts,
+			atLeast: v.boolean(),
+		}),
+		v.object({
+			dryRun: v.literal(false),
+			deleted: wipeCounts,
+			totals: wipeCounts,
+			done: v.boolean(),
+		}),
+	),
+	handler: async (ctx, { dryRun, batchSize = WIPE_BATCH_SIZE, totals }) => {
+		if (!Number.isInteger(batchSize) || batchSize < 1 || batchSize > 1000)
+			throw appError("invalid", "batchSize");
+		if (dryRun) {
+			const [workouts, participants, submissions] = await Promise.all([
+				ctx.db.query("hostedWorkouts").take(WIPE_COUNT_CAP + 1),
+				ctx.db.query("hostedWorkoutParticipants").take(WIPE_COUNT_CAP + 1),
+				ctx.db.query("hostedWorkoutSubmissions").take(WIPE_COUNT_CAP + 1),
+			]);
+			let runningSessions = 0;
+			for (const participant of participants.slice(0, WIPE_COUNT_CAP))
+				if ((await ctx.db.get(participant.sessionId))?.status === "active")
+					runningSessions++;
+			const counts = {
+				hostedWorkouts: Math.min(workouts.length, WIPE_COUNT_CAP),
+				hostedWorkoutParticipants: Math.min(
+					participants.length,
+					WIPE_COUNT_CAP,
+				),
+				hostedWorkoutSubmissions: Math.min(submissions.length, WIPE_COUNT_CAP),
+				runningSessions,
+			};
+			const atLeast = [workouts, participants, submissions].some(
+				(rows) => rows.length > WIPE_COUNT_CAP,
+			);
+			console.log("hostedWorkouts.wipeAll dry run", { ...counts, atLeast });
+			return { dryRun: true as const, counts, atLeast };
+		}
+
+		const deleted = { ...NO_WIPE_COUNTS };
+		let budget = batchSize;
+		const submissions = await ctx.db
+			.query("hostedWorkoutSubmissions")
+			.take(budget);
+		for (const row of submissions) await ctx.db.delete(row._id);
+		deleted.hostedWorkoutSubmissions = submissions.length;
+		budget -= submissions.length;
+		if (budget > 0) {
+			const participants = await ctx.db
+				.query("hostedWorkoutParticipants")
+				.take(budget);
+			const now = Date.now();
+			for (const participant of participants) {
+				if (await finishParticipantSession(ctx, participant, now))
+					deleted.runningSessions++;
+				await ctx.db.delete(participant._id);
+			}
+			deleted.hostedWorkoutParticipants = participants.length;
+			budget -= participants.length;
+		}
+		if (budget > 0) {
+			const workouts = await ctx.db.query("hostedWorkouts").take(budget);
+			for (const row of workouts) await ctx.db.delete(row._id);
+			deleted.hostedWorkouts = workouts.length;
+			budget -= workouts.length;
+		}
+		const sum = { ...(totals ?? NO_WIPE_COUNTS) };
+		for (const key of Object.keys(sum) as (keyof WipeCounts)[])
+			sum[key] += deleted[key];
+		// A full batch may have left rows behind; a short one emptied all three.
+		const done = budget > 0;
+		if (done) console.log("hostedWorkouts.wipeAll done", sum);
+		else {
+			console.log("hostedWorkouts.wipeAll batch", deleted);
+			await ctx.scheduler.runAfter(0, internal.hostedWorkouts.wipeAll, {
+				dryRun: false,
+				batchSize,
+				totals: sum,
+			});
+		}
+		return { dryRun: false as const, deleted, totals: sum, done };
 	},
 });
