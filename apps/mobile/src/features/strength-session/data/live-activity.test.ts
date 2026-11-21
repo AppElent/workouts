@@ -1,8 +1,14 @@
+import { convertLoad } from "@foundry/core";
 import * as Sentry from "@sentry/react-native";
 import { renderHook } from "@testing-library/react-native";
 import { AppState } from "react-native";
 import { DICTIONARIES } from "../../../i18n/dictionaries";
-import { type ExerciseFacts, seedPlan } from "../session-plan";
+import {
+	type ExerciseFacts,
+	seedPlan,
+	switchUnit,
+	withTypedLoad,
+} from "../session-plan";
 import { endSessionActivity, showSessionActivity } from "./live-activity.ios";
 import {
 	contentKey,
@@ -94,6 +100,42 @@ describe("Live Activity props", () => {
 		).toBe("82,5 kg × 8");
 	});
 
+	it("shows pounds for a set in lb, as the session screen does", () => {
+		const lb = { ...lifting, kg: 101.6, unit: "lbs" as const, typedLbs: 224 };
+		expect(liveActivityProps(lb, en, "en", false, T0).loadLine).toBe(
+			"224 lbs × 8",
+		);
+		// Without a typed value the pounds are rounded to a tenth, as on screen.
+		expect(
+			liveActivityProps(
+				{ ...lifting, kg: 95, unit: "lbs" },
+				nl,
+				"nl",
+				false,
+				T0,
+			).loadLine,
+		).toBe("209,4 lbs × 8");
+		expect(
+			liveActivityProps(
+				{ ...lifting, kg: 20, unit: "lbs", reps: null, durationSeconds: 45 },
+				en,
+				"en",
+				false,
+				T0,
+			).loadLine,
+		).toBe("44.1 lbs × 45 s");
+	});
+
+	it("keeps kg for a set in kg or without a unit", () => {
+		expect(
+			liveActivityProps({ ...lifting, unit: "kg" }, en, "en", false, T0)
+				.loadLine,
+		).toBe("80 kg × 8");
+		expect(liveActivityProps(lifting, en, "en", false, T0).loadLine).toBe(
+			"80 kg × 8",
+		);
+	});
+
 	it("falls back to the session alone when no set is open", () => {
 		const free = {
 			...lifting,
@@ -153,8 +195,30 @@ describe("nextSetOf", () => {
 			setIndex: 2,
 			setCount: 2,
 			kg: 100,
+			unit: "kg",
 			reps: 5,
 			durationSeconds: null,
+		});
+	});
+	it("carries a pound set's unit and typed load", () => {
+		const plan = seedPlan(
+			[
+				{
+					exerciseId: "squat",
+					plannedSets: [{ reps: 5, weight: 100, unit: "kg" }],
+				},
+			],
+			[],
+			facts,
+		);
+		// The set editor's unit switch makes a set read in pounds.
+		plan.sets.squat = (plan.sets.squat ?? []).map((row) =>
+			withTypedLoad(switchUnit(row, "lbs", facts()), 225),
+		);
+		expect(nextSetOf(plan)).toMatchObject({
+			unit: "lbs",
+			typedLbs: 225,
+			kg: convertLoad(225, "lbs", "kg"),
 		});
 	});
 	it("counts working sets only, as the rest notification does", () => {
@@ -200,6 +264,7 @@ describe("nextSetOf", () => {
 			setIndex: 2,
 			setCount: 2,
 			kg: 100,
+			unit: "kg",
 			reps: 5,
 			durationSeconds: null,
 		});
@@ -333,6 +398,120 @@ describe("session Live Activity", () => {
 		await flush();
 		expect(widgets?.createLiveActivity).toHaveBeenCalledTimes(1);
 		expect(sentry?.captureException).toHaveBeenCalledTimes(1);
+	});
+
+	/** A relaunch: a fresh driver over the activities and store left by the last run. */
+	function relaunch(left: {
+		activities: FakeState["activities"];
+		owner?: { activityId: string; startedAt: number } | string;
+	}) {
+		let driver: typeof import("./live-activity.ios") | undefined;
+		let state: FakeState | undefined;
+		jest.isolateModules(() => {
+			state = (
+				jest.requireMock("expo-widgets") as { __liveActivities: FakeState }
+			).__liveActivities;
+			state.activities.push(...left.activities);
+			if (left.owner !== undefined) {
+				const store = jest.requireMock("expo-sqlite/kv-store") as {
+					default: { setItemSync: (key: string, value: string) => void };
+				};
+				store.default.setItemSync(
+					"workouts:live-activity",
+					typeof left.owner === "string"
+						? left.owner
+						: JSON.stringify(left.owner),
+				);
+			}
+			driver = require("./live-activity.ios");
+		});
+		if (!driver || !state) throw new Error("no driver");
+		return {
+			driver,
+			live: () => state?.activities.filter((item) => !item.ended) ?? [],
+		};
+	}
+
+	it("keeps the running activity across a relaunch during the same session", async () => {
+		const running = { id: "la-kept", props: props(), ended: false };
+		const app = relaunch({
+			activities: [running],
+			owner: { activityId: "la-kept", startedAt: lifting.startedAt },
+		});
+		app.driver.showSessionActivity(props({ setIndex: 4 }));
+		await flush();
+		expect(running.ended).toBe(false);
+		expect(app.live()).toEqual([running]);
+		expect(running.props.setLine).toBe("Set 4 of 4");
+	});
+
+	it("still replaces a leftover from another session after a relaunch", async () => {
+		const leftover = { id: "la-other", props: props(), ended: false };
+		const app = relaunch({
+			activities: [leftover],
+			owner: { activityId: "la-other", startedAt: lifting.startedAt - 1 },
+		});
+		app.driver.showSessionActivity(props());
+		await flush();
+		expect(leftover.ended).toBe(true);
+		expect(app.live()).toHaveLength(1);
+		expect(app.live()[0]?.id).not.toBe("la-other");
+	});
+
+	it("replaces the leftover when the kept owner is unreadable", async () => {
+		const leftover = { id: "la-kept", props: props(), ended: false };
+		const app = relaunch({ activities: [leftover], owner: "{not json" });
+		app.driver.showSessionActivity(props());
+		await flush();
+		expect(leftover.ended).toBe(true);
+		expect(app.live()).toHaveLength(1);
+	});
+
+	it("ends another session's leftover during a background launch, and keeps its own", async () => {
+		const setState = (value: string) =>
+			Object.defineProperty(AppState, "currentState", {
+				value,
+				configurable: true,
+				writable: true,
+			});
+		try {
+			setState("background");
+			const leftover = { id: "la-other", props: props(), ended: false };
+			const other = relaunch({
+				activities: [leftover],
+				owner: { activityId: "la-other", startedAt: lifting.startedAt - 1 },
+			});
+			other.driver.showSessionActivity(props());
+			await flush();
+			expect(leftover.ended).toBe(true);
+			expect(other.live()).toHaveLength(0);
+
+			const running = { id: "la-kept", props: props(), ended: false };
+			const own = relaunch({
+				activities: [running],
+				owner: { activityId: "la-kept", startedAt: lifting.startedAt },
+			});
+			own.driver.showSessionActivity(props({ setIndex: 4 }));
+			await flush();
+			expect(own.live()).toEqual([running]);
+			expect(running.props.setLine).toBe("Set 4 of 4");
+		} finally {
+			setState("active");
+		}
+	});
+
+	it("forgets the owner once the session's activity ends", async () => {
+		showSessionActivity(props());
+		await flush();
+		const [first] = live();
+		endSessionActivity();
+		await flush();
+		const app = relaunch({
+			activities: first ? [{ ...first, ended: false }] : [],
+		});
+		app.driver.showSessionActivity(props());
+		await flush();
+		expect(app.live().map((item) => item.id)).not.toContain(first?.id);
 	});
 
 	it("does nothing when Live Activities are turned off", async () => {

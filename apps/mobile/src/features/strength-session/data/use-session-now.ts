@@ -3,7 +3,7 @@
  * the rest countdown. The Live Activity and the session screens read this one
  * shape, so keep it stable.
  */
-import { isTimedExercise } from "@foundry/core";
+import { isTimedExercise, type LoadUnit } from "@foundry/core";
 import { useMemo, useSyncExternalStore } from "react";
 import { useExercise } from "../../../data/exercises";
 import { useActiveSession } from "../../../data/session-data";
@@ -32,6 +32,13 @@ export interface SessionNow {
 	setCount: number | null;
 	/** Planned load in kg; 0 on bodyweight. */
 	kg: number | null;
+	/**
+	 * The unit the set reads in on the session screen. Absent means kg; `kg`
+	 * above stays canonical either way.
+	 */
+	unit?: LoadUnit;
+	/** A pound load exactly as typed, so it reads back the same. */
+	typedLbs?: number;
 	/** Planned reps; null on a timed hold. */
 	reps: number | null;
 	/** Planned seconds on a timed hold; null otherwise. */
@@ -44,7 +51,13 @@ export interface SessionNow {
 
 type NextSet = Pick<
 	SessionNow,
-	"setIndex" | "setCount" | "kg" | "reps" | "durationSeconds"
+	| "setIndex"
+	| "setCount"
+	| "kg"
+	| "unit"
+	| "typedLbs"
+	| "reps"
+	| "durationSeconds"
 > & { exerciseId: string };
 
 /** The next open set of a plan, as the Live Activity and the header read it. */
@@ -79,6 +92,8 @@ function loadOf(row: PlanSet) {
 	return {
 		exerciseId: row.exerciseId,
 		kg: row.kg,
+		unit: row.unit,
+		...(row.typedLbs === undefined ? {} : { typedLbs: row.typedLbs }),
 		reps: timed ? null : row.reps,
 		durationSeconds: timed ? row.reps : null,
 	};
@@ -115,6 +130,8 @@ export function useSessionNow(): SessionNow | null {
 			setIndex: next?.setIndex ?? null,
 			setCount: next?.setCount ?? null,
 			kg: next?.kg ?? null,
+			unit: next?.unit,
+			typedLbs: next?.typedLbs,
 			reps: next?.reps ?? null,
 			durationSeconds: next?.durationSeconds ?? null,
 			restEndsAt: rest.over ? null : rest.endsAt,
