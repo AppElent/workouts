@@ -12,12 +12,16 @@ const sendCode = vi.fn();
 const verifyCode = vi.fn();
 const submitPassword = vi.fn();
 const finalize = vi.fn();
+const verifyTOTP = vi.fn();
 // Core 3 methods resolve to `{ error }` and update the resource in place.
 const signIn = {
 	status: "needs_identifier",
+	supportedSecondFactors: [] as { strategy: string }[],
 	create,
 	resetPasswordEmailCode: { sendCode, verifyCode, submitPassword },
+	mfa: { verifyTOTP },
 	finalize,
+	reset: vi.fn(async () => ({ error: null })),
 };
 vi.mock("@clerk/react", () => ({ useSignIn: () => ({ signIn }) }));
 
@@ -39,17 +43,30 @@ function render(ui: React.ReactElement) {
 	});
 }
 
-function renderForm(onSuccess = vi.fn()) {
-	return render(<ForgotPasswordForm onSuccess={onSuccess} />);
+function renderForm(onSuccess = vi.fn(), onBackToSignIn = vi.fn()) {
+	return render(
+		<ForgotPasswordForm
+			onSuccess={onSuccess}
+			onBackToSignIn={onBackToSignIn}
+		/>,
+	);
 }
 
 describe("ForgotPasswordForm", () => {
 	afterEach(() => {
 		cleanup();
-		for (const m of [create, sendCode, verifyCode, submitPassword, finalize]) {
+		for (const m of [
+			create,
+			sendCode,
+			verifyCode,
+			submitPassword,
+			finalize,
+			verifyTOTP,
+		]) {
 			m.mockReset();
 		}
 		signIn.status = "needs_identifier";
+		signIn.supportedSecondFactors = [];
 	});
 
 	it("requests a reset code then sets a new password", async () => {
@@ -139,5 +156,45 @@ describe("ForgotPasswordForm", () => {
 		expect(verifyCode).toHaveBeenCalledTimes(1);
 		expect(submitPassword).toHaveBeenLastCalledWith({ password: "newpw123!" });
 		expect(onSuccess).toHaveBeenCalled();
+	});
+
+	it("asks for the second factor after the new password on an MFA account", async () => {
+		create.mockImplementation(ok({ status: "needs_first_factor" }));
+		sendCode.mockImplementation(ok());
+		verifyCode.mockImplementation(ok({ status: "needs_new_password" }));
+		submitPassword.mockImplementation(
+			ok({
+				status: "needs_second_factor",
+				supportedSecondFactors: [{ strategy: "totp" }],
+			}),
+		);
+		verifyTOTP.mockImplementation(ok({ status: "complete" }));
+		finalize.mockImplementation(ok());
+		const onSuccess = vi.fn();
+		const onBackToSignIn = vi.fn();
+		renderForm(onSuccess, onBackToSignIn);
+		fireEvent.change(screen.getByLabelText("Email"), {
+			target: { value: "a@b.com" },
+		});
+		fireEvent.click(screen.getByRole("button", { name: "Send code" }));
+		fireEvent.change(await screen.findByLabelText("Code"), {
+			target: { value: "123456" },
+		});
+		fireEvent.change(screen.getByLabelText("New password"), {
+			target: { value: "new-password-1" },
+		});
+		fireEvent.click(screen.getByRole("button", { name: "Reset password" }));
+		expect(
+			await screen.findByText(
+				"Your password is changed. One more step to sign in.",
+			),
+		).toBeDefined();
+		expect(finalize).not.toHaveBeenCalled();
+		fireEvent.change(screen.getByLabelText("Code"), {
+			target: { value: "424242" },
+		});
+		fireEvent.click(screen.getByRole("button", { name: "Verify" }));
+		await vi.waitFor(() => expect(onSuccess).toHaveBeenCalled());
+		expect(onBackToSignIn).not.toHaveBeenCalled();
 	});
 });

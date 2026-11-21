@@ -1,12 +1,14 @@
-import { useSignIn } from "@clerk/react";
-import { useState } from "react";
+import { useAuth, useSignIn } from "@clerk/react";
+import { useEffect, useRef, useState } from "react";
 import { fmt, useMessages } from "#/lib/i18n";
 import { AuthButton } from "./AuthButton";
 import { AuthError } from "./AuthError";
 import { AuthField } from "./AuthField";
 import { orThrow, useClerkErrorMessage } from "./clerkError";
 import { AUTH_PATHS, withRedirect } from "./paths";
+import { SecondFactorStep } from "./SecondFactorStep";
 import { SocialButtons } from "./SocialButtons";
+import { needsSecondFactor } from "./secondFactor";
 import { TestLoginButton } from "./TestLoginButton";
 
 type SignIn = ReturnType<typeof useSignIn>["signIn"];
@@ -18,6 +20,9 @@ function hasEmailCodeFactor(signIn: SignIn) {
 /**
  * Email + password, or passwordless: "Email me a sign-in code" sends a
  * one-time code to the typed address and swaps the form for a code field.
+ * An account with MFA (or a new device under Device Trust) then gets the
+ * second-factor step, as does a social sign-in that `/sso-callback` sends
+ * back here with its attempt still open.
  */
 export function SignInForm({
 	onSuccess,
@@ -28,9 +33,12 @@ export function SignInForm({
 	redirect?: string;
 }) {
 	const { signIn } = useSignIn();
+	const { isLoaded } = useAuth();
 	const { auth } = useMessages();
 	const errorMessage = useClerkErrorMessage();
-	const [step, setStep] = useState<"password" | "code">("password");
+	const [step, setStep] = useState<"password" | "code" | "secondFactor">(
+		"password",
+	);
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [code, setCode] = useState("");
@@ -51,7 +59,27 @@ export function SignInForm({
 		}
 	}
 
+	// A social sign-in that needs a second factor comes back from
+	// `/sso-callback` with the attempt still open: carry on with it. Only an
+	// OAuth attempt, so an abandoned password attempt is not picked up again.
+	// Waits for Clerk: before load, `signIn` is a placeholder.
+	const resumed = useRef(false);
+	useEffect(() => {
+		if (!isLoaded || resumed.current) return;
+		resumed.current = true;
+		if (
+			signIn.firstFactorVerification?.strategy?.startsWith("oauth_") &&
+			needsSecondFactor(signIn.status)
+		) {
+			setStep("secondFactor");
+		}
+	}, [isLoaded, signIn]);
+
 	async function finish(signIn: SignIn) {
+		if (needsSecondFactor(signIn.status)) {
+			setStep("secondFactor");
+			return;
+		}
 		if (signIn.status === "complete") {
 			await orThrow(signIn.finalize());
 			onSuccess?.();
@@ -94,6 +122,20 @@ export function SignInForm({
 			await orThrow(signIn.emailCode.verifyCode({ code }));
 			await finish(signIn);
 		});
+	}
+
+	if (step === "secondFactor") {
+		return (
+			<SecondFactorStep
+				onSuccess={onSuccess}
+				onBack={() => {
+					setError(null);
+					setNotice(null);
+					setCode("");
+					setStep("password");
+				}}
+			/>
+		);
 	}
 
 	if (step === "code") {

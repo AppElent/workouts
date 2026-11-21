@@ -7,6 +7,8 @@ export function AuthField({
 	onChange,
 	error,
 	autoComplete,
+	inputMode,
+	autoFocus,
 	required,
 }: {
 	label: string;
@@ -15,6 +17,9 @@ export function AuthField({
 	onChange: (value: string) => void;
 	error?: string;
 	autoComplete?: string;
+	inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+	/** Only for a field that replaces the one the person just submitted. */
+	autoFocus?: boolean;
 	required?: boolean;
 }) {
 	const id = useId();
@@ -30,6 +35,9 @@ export function AuthField({
 				value={value}
 				required={required}
 				autoComplete={autoComplete}
+				inputMode={inputMode}
+				// biome-ignore lint/a11y/noAutofocus: opt-in, for a step that replaces the submitted form.
+				autoFocus={autoFocus}
 				aria-describedby={error ? errorId : undefined}
 				onChange={(e) => onChange(e.target.value)}
 				className="rounded-xl border border-border bg-surface-2 px-3 py-2 text-sm text-text outline-none focus:border-accent-ink"

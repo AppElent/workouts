@@ -63,6 +63,39 @@ export const auth = {
 		resent: "Er is een nieuwe code onderweg.",
 		usePassword: "Gebruik je wachtwoord",
 	},
+	secondFactor: {
+		title: "Bevestig dat jij het bent",
+		prompt: {
+			totp: "Vul de code van 6 cijfers uit je authenticator-app in.",
+			phone_code:
+				"We hebben een code van 6 cijfers ge-sms't naar {destination}.",
+			email_code:
+				"We hebben een code van 6 cijfers gestuurd naar {destination}.",
+			backup_code: "Vul een van de back-upcodes in die je hebt bewaard.",
+		},
+		yourPhone: "je telefoon",
+		yourEmail: "je e-mailadres",
+		code: "Code",
+		backupCode: "Back-upcode",
+		submit: "Bevestigen",
+		resend: "Stuur een nieuwe code",
+		resent: "Er is een nieuwe code onderweg.",
+		switchTo: {
+			totp: "Authenticator-app gebruiken",
+			phone_code: "Sms een code naar {destination}",
+			email_code: "Mail een code naar {destination}",
+			backup_code: "Back-upcode gebruiken",
+		},
+		passwordChanged:
+			"Je wachtwoord is gewijzigd. Nog één stap om in te loggen.",
+		methodLocked:
+			"Te veel foute codes voor deze methode. Gebruik een andere methode, of ga terug en log opnieuw in.",
+		attemptEnded:
+			"Deze inlogpoging duurde te lang en kan niet verder. Ga terug en log opnieuw in.",
+		noMethod:
+			"De tweede inlogstap van je account is hier niet beschikbaar. Neem contact op met support om in te loggen.",
+		backToSignIn: "Terug naar inloggen",
+	},
 	signUp: {
 		title: "Maak je account aan",
 		submit: "Account aanmaken",
