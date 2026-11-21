@@ -10,7 +10,10 @@
  * `useSecondFactor` runs on that screen: it picks the default method, sends
  * its code once when it needs one (`sent` / `markSent` carry that through a
  * remount, since Clerk rate-limits sends), and verifies, switches method,
- * resends, and drops the attempt on the way back. A verified second factor
+ * resends, and drops the attempt on the way back. Too many wrong codes lock
+ * only that method (`locked`): a new texted or emailed code unlocks it, and an
+ * authenticator app or backup code stays locked while another method can
+ * still finish the same sign-in. A verified second factor
  * still needs `finalize()` before `isSignedIn` flips and the `(auth)` layout
  * redirects.
  */
@@ -19,6 +22,7 @@ import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	endsAttempt,
+	locksMethod,
 	type SecondFactorStrategy,
 	secondFactorOptions,
 	sendSecondFactorCode,
@@ -61,12 +65,30 @@ export function useSecondFactor({
 		() => options[0]?.strategy ?? null,
 	);
 	const [sending, setSending] = useState(false);
-	// Too many wrong codes, or the attempt expired: only a new sign-in helps.
+	// After a switch, the last error (still in Clerk's `errors` signal until the
+	// next request) was about the method left behind; hide it until the next
+	// send or verify.
+	const [switched, setSwitched] = useState(false);
+	// The attempt expired or was dropped: only a new sign-in helps.
 	const [ended, setEnded] = useState(false);
+	// Methods with too many wrong codes on this attempt.
+	const [lockedOut, setLockedOut] = useState<ReadonlySet<SecondFactorStrategy>>(
+		() => new Set(),
+	);
+	const lock = useCallback((target: SecondFactorStrategy, on: boolean) => {
+		setLockedOut((prev) => {
+			if (prev.has(target) === on) return prev;
+			const next = new Set(prev);
+			if (on) next.add(target);
+			else next.delete(target);
+			return next;
+		});
+	}, []);
 
 	const send = useCallback(
 		async (next: SecondFactorStrategy): Promise<boolean> => {
 			setSending(true);
+			setSwitched(false);
 			clear();
 			try {
 				const result = await sendSecondFactorCode(signIn, next);
@@ -75,6 +97,8 @@ export function useSecondFactor({
 					fail(result.error);
 					return false;
 				}
+				// A new code starts its count of wrong codes over.
+				lock(next, false);
 				return true;
 			} catch {
 				fail(THROWN);
@@ -83,7 +107,7 @@ export function useSecondFactor({
 				setSending(false);
 			}
 		},
-		[signIn, clear, fail],
+		[signIn, clear, fail, lock],
 	);
 
 	// The default method's first code. The ref covers an effect run twice.
@@ -110,15 +134,19 @@ export function useSecondFactor({
 			firstSend.current = true;
 			if (sendsCode(next) && !(await send(next))) return false;
 			clear();
+			setSwitched(true);
 			setStrategy(next);
 			return true;
 		},
 		[send, sending, flow.busy, strategy, clear],
 	);
 
+	const locked = !!strategy && lockedOut.has(strategy);
+
 	const verify = useCallback(
 		async (code: string) => {
-			if (!strategy || sending || ended) return;
+			if (!strategy || sending || ended || locked) return;
+			setSwitched(false);
 			// A verified factor whose `finalize()` failed only needs the retry.
 			if (signIn.status === "complete") {
 				await run(() => signIn.finalize());
@@ -127,12 +155,13 @@ export function useSecondFactor({
 			const verified = await run(async () => {
 				const result = await verifySecondFactor(signIn, strategy, code.trim());
 				if (result.error && endsAttempt(result.error)) setEnded(true);
+				if (result.error && locksMethod(result.error)) lock(strategy, true);
 				return result;
 			});
 			if (!verified) return;
 			await run(() => signIn.finalize());
 		},
-		[signIn, run, strategy, sending, ended],
+		[signIn, run, strategy, sending, ended, locked, lock],
 	);
 
 	/** Drops the attempt so the next sign-in starts clean. */
@@ -154,7 +183,8 @@ export function useSecondFactor({
 		verify,
 		cancel,
 		ended,
+		locked,
 		busy: flow.busy,
-		error: flow.error,
+		error: switched ? null : flow.error,
 	};
 }

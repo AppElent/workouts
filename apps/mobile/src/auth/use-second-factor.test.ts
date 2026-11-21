@@ -26,11 +26,10 @@ const mockSignIn = {
 };
 const mockPush = jest.fn();
 
+const mockErrors = { fields: {}, global: null as { code: string }[] | null };
+
 jest.mock("@clerk/expo", () => ({
-	useSignIn: () => ({
-		signIn: mockSignIn,
-		errors: { fields: {}, global: null },
-	}),
+	useSignIn: () => ({ signIn: mockSignIn, errors: mockErrors }),
 }));
 jest.mock("expo-router", () => ({
 	useRouter: () => ({ push: mockPush }),
@@ -43,6 +42,7 @@ const EMAIL = { strategy: "email_code", safeIdentifier: "s***@example.test" };
 
 beforeEach(() => {
 	jest.resetAllMocks();
+	mockErrors.global = null;
 	mockSignIn.status = "needs_second_factor";
 	mockSignIn.supportedSecondFactors = [BACKUP, TOTP];
 	for (const fn of Object.values(mockMfa)) fn.mockResolvedValue(ok);
@@ -127,8 +127,8 @@ it("explains a wrong code in Dutch", async () => {
 });
 
 it.each([
-	["too many wrong codes", "verification_failed"],
-	["an expired sign-in", "resource_not_found"],
+	["an expired sign-in", "sign_in_expired"],
+	["a dropped sign-in", "resource_not_found"],
 ])("ends the attempt after %s", async (_, code) => {
 	mockMfa.verifyTOTP.mockResolvedValue({ error: { code } });
 	const { result } = await mount();
@@ -136,6 +136,80 @@ it.each([
 	expect(result.current.ended).toBe(true);
 	await act(() => result.current.verify("123456"));
 	expect(mockMfa.verifyTOTP).toHaveBeenCalledTimes(1);
+});
+
+it("locks the authenticator app after too many wrong codes, and a backup code still signs in", async () => {
+	mockMfa.verifyTOTP.mockResolvedValue({
+		error: { code: "verification_failed" },
+	});
+	const { result } = await mount();
+	await act(() => result.current.verify("000000"));
+	expect(result.current.ended).toBe(false);
+	expect(result.current.locked).toBe(true);
+	// Clerk keeps the failure in its errors signal until the next request.
+	mockErrors.global = [{ code: "verification_failed" }];
+	await act(() => result.current.verify("123456"));
+	expect(mockMfa.verifyTOTP).toHaveBeenCalledTimes(1);
+
+	await act(async () => {
+		await result.current.switchTo("backup_code");
+	});
+	expect(result.current.locked).toBe(false);
+	// The authenticator app's lock is not the backup code's error.
+	expect(result.current.error).toBeNull();
+	// Back on the authenticator app, it is still locked.
+	await act(async () => {
+		await result.current.switchTo("totp");
+	});
+	expect(result.current.locked).toBe(true);
+
+	await act(async () => {
+		await result.current.switchTo("backup_code");
+	});
+	await act(() => result.current.verify("abcd1234"));
+	expect(mockMfa.verifyBackupCode).toHaveBeenCalledWith({ code: "abcd1234" });
+	expect(mockSignIn.finalize).toHaveBeenCalled();
+});
+
+it("unlocks a texted code with a new one, which signs in", async () => {
+	mockSignIn.supportedSecondFactors = [PHONE];
+	mockMfa.verifyPhoneCode.mockResolvedValueOnce({
+		error: { code: "verification_failed" },
+	});
+	const { result } = await mount(true);
+	await act(() => result.current.verify("000000"));
+	expect(result.current.locked).toBe(true);
+	expect(result.current.ended).toBe(false);
+	expect(result.current.error).toMatch(/too many wrong codes/i);
+
+	let sent = false;
+	await act(async () => {
+		sent = await result.current.resend();
+	});
+	expect(sent).toBe(true);
+	expect(mockMfa.sendPhoneCode).toHaveBeenCalledTimes(1);
+	expect(result.current.locked).toBe(false);
+	expect(result.current.error).toBeNull();
+	await act(() => result.current.verify("424242"));
+	expect(mockMfa.verifyPhoneCode).toHaveBeenLastCalledWith({ code: "424242" });
+	expect(mockSignIn.finalize).toHaveBeenCalled();
+});
+
+it("keeps a texted code locked when the new one fails to send", async () => {
+	mockSignIn.supportedSecondFactors = [PHONE];
+	mockMfa.verifyPhoneCode.mockResolvedValue({
+		error: { code: "verification_failed" },
+	});
+	mockMfa.sendPhoneCode.mockResolvedValue({
+		error: { code: "too_many_requests" },
+	});
+	const { result } = await mount(true);
+	await act(() => result.current.verify("000000"));
+	await act(async () => {
+		await result.current.resend();
+	});
+	expect(result.current.locked).toBe(true);
+	expect(result.current.error).toMatch(/too many attempts/i);
 });
 
 it("finds the code of a thrown-style API error nested in errors[]", async () => {
@@ -147,7 +221,7 @@ it("finds the code of a thrown-style API error nested in errors[]", async () => 
 	});
 	const { result } = await mount();
 	await act(() => result.current.verify("000000"));
-	expect(result.current.ended).toBe(true);
+	expect(result.current.locked).toBe(true);
 });
 
 it("switches to a backup code and verifies with it", async () => {
