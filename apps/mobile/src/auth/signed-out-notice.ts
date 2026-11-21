@@ -9,17 +9,17 @@
  * Memory only: the sign-in screen mounts in the same app run. A notice the
  * person never saw because the app was killed is not worth keeping.
  */
-/**
- * How Sign in with Apple ended for a deleted account: not linked, revoked, or
- * linked but not revoked (no native sheet on Android, or a failure).
- */
-export type AppleRevocation = "notLinked" | "revoked" | "notRevoked";
-
 export type SignedOutNotice =
 	| "dataDeleted"
 	| { kind: "accountDeleted"; apple: AppleRevocation }
 	// Deleting the account needed a fresh sign-in; nothing was deleted.
 	| "signInToDelete";
+
+/**
+ * How Sign in with Apple ended for a deleted account: not linked, revoked, or
+ * linked but not revoked (no native sheet on Android, or a failure).
+ */
+export type AppleRevocation = "notLinked" | "revoked" | "notRevoked";
 
 let pending: SignedOutNotice | null = null;
 
