@@ -1,8 +1,14 @@
+import { convertLoad } from "@foundry/core";
 import * as Sentry from "@sentry/react-native";
 import { renderHook } from "@testing-library/react-native";
 import { AppState } from "react-native";
 import { DICTIONARIES } from "../../../i18n/dictionaries";
-import { type ExerciseFacts, seedPlan } from "../session-plan";
+import {
+	type ExerciseFacts,
+	seedPlan,
+	switchUnit,
+	withTypedLoad,
+} from "../session-plan";
 import { endSessionActivity, showSessionActivity } from "./live-activity.ios";
 import {
 	contentKey,
@@ -94,6 +100,42 @@ describe("Live Activity props", () => {
 		).toBe("82,5 kg × 8");
 	});
 
+	it("shows pounds for a set in lb, as the session screen does", () => {
+		const lb = { ...lifting, kg: 101.6, unit: "lbs" as const, typedLbs: 224 };
+		expect(liveActivityProps(lb, en, "en", false, T0).loadLine).toBe(
+			"224 lbs × 8",
+		);
+		// Without a typed value the pounds are rounded to a tenth, as on screen.
+		expect(
+			liveActivityProps(
+				{ ...lifting, kg: 95, unit: "lbs" },
+				nl,
+				"nl",
+				false,
+				T0,
+			).loadLine,
+		).toBe("209,4 lbs × 8");
+		expect(
+			liveActivityProps(
+				{ ...lifting, kg: 20, unit: "lbs", reps: null, durationSeconds: 45 },
+				en,
+				"en",
+				false,
+				T0,
+			).loadLine,
+		).toBe("44.1 lbs × 45 s");
+	});
+
+	it("keeps kg for a set in kg or without a unit", () => {
+		expect(
+			liveActivityProps({ ...lifting, unit: "kg" }, en, "en", false, T0)
+				.loadLine,
+		).toBe("80 kg × 8");
+		expect(liveActivityProps(lifting, en, "en", false, T0).loadLine).toBe(
+			"80 kg × 8",
+		);
+	});
+
 	it("falls back to the session alone when no set is open", () => {
 		const free = {
 			...lifting,
@@ -153,8 +195,30 @@ describe("nextSetOf", () => {
 			setIndex: 2,
 			setCount: 2,
 			kg: 100,
+			unit: "kg",
 			reps: 5,
 			durationSeconds: null,
+		});
+	});
+	it("carries a pound set's unit and typed load", () => {
+		const plan = seedPlan(
+			[
+				{
+					exerciseId: "squat",
+					plannedSets: [{ reps: 5, weight: 100, unit: "kg" }],
+				},
+			],
+			[],
+			facts,
+		);
+		// The set editor's unit switch makes a set read in pounds.
+		plan.sets.squat = (plan.sets.squat ?? []).map((row) =>
+			withTypedLoad(switchUnit(row, "lbs", facts()), 225),
+		);
+		expect(nextSetOf(plan)).toMatchObject({
+			unit: "lbs",
+			typedLbs: 225,
+			kg: convertLoad(225, "lbs", "kg"),
 		});
 	});
 	it("counts working sets only, as the rest notification does", () => {
@@ -200,6 +264,7 @@ describe("nextSetOf", () => {
 			setIndex: 2,
 			setCount: 2,
 			kg: 100,
+			unit: "kg",
 			reps: 5,
 			durationSeconds: null,
 		});
