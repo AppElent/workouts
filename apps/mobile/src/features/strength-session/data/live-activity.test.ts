@@ -335,6 +335,120 @@ describe("session Live Activity", () => {
 		expect(sentry?.captureException).toHaveBeenCalledTimes(1);
 	});
 
+	/** A relaunch: a fresh driver over the activities and store left by the last run. */
+	function relaunch(left: {
+		activities: FakeState["activities"];
+		owner?: { activityId: string; startedAt: number } | string;
+	}) {
+		let driver: typeof import("./live-activity.ios") | undefined;
+		let state: FakeState | undefined;
+		jest.isolateModules(() => {
+			state = (
+				jest.requireMock("expo-widgets") as { __liveActivities: FakeState }
+			).__liveActivities;
+			state.activities.push(...left.activities);
+			if (left.owner !== undefined) {
+				const store = jest.requireMock("expo-sqlite/kv-store") as {
+					default: { setItemSync: (key: string, value: string) => void };
+				};
+				store.default.setItemSync(
+					"workouts:live-activity",
+					typeof left.owner === "string"
+						? left.owner
+						: JSON.stringify(left.owner),
+				);
+			}
+			driver = require("./live-activity.ios");
+		});
+		if (!driver || !state) throw new Error("no driver");
+		return {
+			driver,
+			live: () => state?.activities.filter((item) => !item.ended) ?? [],
+		};
+	}
+
+	it("keeps the running activity across a relaunch during the same session", async () => {
+		const running = { id: "la-kept", props: props(), ended: false };
+		const app = relaunch({
+			activities: [running],
+			owner: { activityId: "la-kept", startedAt: lifting.startedAt },
+		});
+		app.driver.showSessionActivity(props({ setIndex: 4 }));
+		await flush();
+		expect(running.ended).toBe(false);
+		expect(app.live()).toEqual([running]);
+		expect(running.props.setLine).toBe("Set 4 of 4");
+	});
+
+	it("still replaces a leftover from another session after a relaunch", async () => {
+		const leftover = { id: "la-other", props: props(), ended: false };
+		const app = relaunch({
+			activities: [leftover],
+			owner: { activityId: "la-other", startedAt: lifting.startedAt - 1 },
+		});
+		app.driver.showSessionActivity(props());
+		await flush();
+		expect(leftover.ended).toBe(true);
+		expect(app.live()).toHaveLength(1);
+		expect(app.live()[0]?.id).not.toBe("la-other");
+	});
+
+	it("replaces the leftover when the kept owner is unreadable", async () => {
+		const leftover = { id: "la-kept", props: props(), ended: false };
+		const app = relaunch({ activities: [leftover], owner: "{not json" });
+		app.driver.showSessionActivity(props());
+		await flush();
+		expect(leftover.ended).toBe(true);
+		expect(app.live()).toHaveLength(1);
+	});
+
+	it("ends another session's leftover during a background launch, and keeps its own", async () => {
+		const setState = (value: string) =>
+			Object.defineProperty(AppState, "currentState", {
+				value,
+				configurable: true,
+				writable: true,
+			});
+		try {
+			setState("background");
+			const leftover = { id: "la-other", props: props(), ended: false };
+			const other = relaunch({
+				activities: [leftover],
+				owner: { activityId: "la-other", startedAt: lifting.startedAt - 1 },
+			});
+			other.driver.showSessionActivity(props());
+			await flush();
+			expect(leftover.ended).toBe(true);
+			expect(other.live()).toHaveLength(0);
+
+			const running = { id: "la-kept", props: props(), ended: false };
+			const own = relaunch({
+				activities: [running],
+				owner: { activityId: "la-kept", startedAt: lifting.startedAt },
+			});
+			own.driver.showSessionActivity(props({ setIndex: 4 }));
+			await flush();
+			expect(own.live()).toEqual([running]);
+			expect(running.props.setLine).toBe("Set 4 of 4");
+		} finally {
+			setState("active");
+		}
+	});
+
+	it("forgets the owner once the session's activity ends", async () => {
+		showSessionActivity(props());
+		await flush();
+		const [first] = live();
+		endSessionActivity();
+		await flush();
+		const app = relaunch({
+			activities: first ? [{ ...first, ended: false }] : [],
+		});
+		app.driver.showSessionActivity(props());
+		await flush();
+		expect(app.live().map((item) => item.id)).not.toContain(first?.id);
+	});
+
 	it("does nothing when Live Activities are turned off", async () => {
 		fake.enabled = false;
 		expect(() => showSessionActivity(props())).not.toThrow();

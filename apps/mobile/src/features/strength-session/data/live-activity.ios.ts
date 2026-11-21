@@ -1,9 +1,11 @@
 /**
  * The strength session's Live Activity on iOS. One activity at a time, owned
- * by one session (its start time): an activity this run did not start for the
- * current session, such as one left from before a restart or from a session
- * finished on another device, is ended and replaced. When the user turned
- * Live Activities off, `start` throws and the session carries on without one.
+ * by one session (its start time). The owner's activity id and session are
+ * kept on the phone, so a relaunch during the same session takes the running
+ * activity over instead of ending and restarting it. Any other activity, such
+ * as one left from a session finished on another device, is ended and
+ * replaced. When the user turned Live Activities off, `start` throws and the
+ * session carries on without one.
  *
  * Every change runs one at a time against the latest wanted state, so an end
  * finishes before a new activity starts and a later change never lands first.
@@ -14,6 +16,12 @@ import {
 	type LiveActivityFactory,
 } from "expo-widgets";
 import { AppState } from "react-native";
+import {
+	DEVICE_KEYS,
+	readLocalJson,
+	removeLocal,
+	writeLocalJson,
+} from "../../../local-store/local-store";
 import { reportError } from "../../../observability/errors";
 import { sessionLiveActivityLayout } from "./live-activity-layout";
 import { contentKey, type LiveActivityProps } from "./live-activity-props";
@@ -26,6 +34,31 @@ let currentId: string | null = null;
 /** The `startedAt` of the session the current activity shows. */
 let currentSession: number | null = null;
 let sentKey = "";
+/** Whether the owner kept by an earlier launch has been read back. */
+let restored = false;
+
+type Owner = { activityId: string; startedAt: number };
+
+function parseOwner(value: unknown): Owner {
+	const { activityId, startedAt } = (value ?? {}) as Partial<Owner>;
+	if (typeof activityId !== "string" || typeof startedAt !== "number")
+		throw new Error("Unexpected Live Activity owner");
+	return { activityId, startedAt };
+}
+
+/**
+ * On the first change after a launch, takes over the owner an earlier launch
+ * kept. Its content is unknown (`sentKey` stays empty), so the first show
+ * updates it.
+ */
+function restore() {
+	if (restored) return;
+	restored = true;
+	const read = readLocalJson(DEVICE_KEYS.liveActivity, parseOwner);
+	if (!read.ok || !read.value) return;
+	currentId = read.value.activityId;
+	currentSession = read.value.startedAt;
+}
 
 /** Set once creating the factory threw: reported then, skipped after. */
 let factoryFailed = false;
@@ -60,27 +93,29 @@ function forget() {
 	currentId = null;
 	currentSession = null;
 	sentKey = "";
+	removeLocal(DEVICE_KEYS.liveActivity);
 }
 
 /** Brings the system's activities in line with `props`; null ends them all. */
 async function sync(props: LiveActivityProps | null) {
 	if (factoryFailed) return;
 	try {
+		restore();
 		const instances = getFactory().getInstances();
 		const owned =
 			props && currentSession === props.startedAt
 				? instances.find((item) => item.getId() === currentId)
 				: undefined;
-		// iOS starts activities only from the foreground; becoming active
-		// retries. Until then a replaced activity stays as it is, rather than
-		// leaving the Lock Screen empty after a background launch.
-		if (props && !owned && AppState.currentState !== "active") return;
+		// Never this session's: ended right away, also from the background.
 		const extras = instances.filter((item) => item !== owned);
 		if (extras.length) await Promise.all(extras.map(end));
 		if (!props) {
 			forget();
 			return;
 		}
+		// iOS starts activities only from the foreground; becoming active
+		// retries.
+		if (!owned && AppState.currentState !== "active") return;
 		const key = contentKey(props);
 		if (!owned) {
 			currentId = getFactory()
@@ -88,6 +123,10 @@ async function sync(props: LiveActivityProps | null) {
 				.getId();
 			currentSession = props.startedAt;
 			sentKey = key;
+			writeLocalJson(DEVICE_KEYS.liveActivity, {
+				activityId: currentId,
+				startedAt: currentSession,
+			} satisfies Owner);
 			return;
 		}
 		if (key === sentKey) return;
