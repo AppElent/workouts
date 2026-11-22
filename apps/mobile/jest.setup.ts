@@ -389,7 +389,7 @@ jest.mock("@expo/ui/swift-ui", () => {
 			)?.args[0];
 			return React.createElement(
 				View,
-				null,
+				{ modifiers, testID: "swiftui-menu" },
 				React.createElement(
 					Pressable,
 					{
