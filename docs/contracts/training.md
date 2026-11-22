@@ -149,6 +149,8 @@ the app; there is no separate data.
   its plan or the set it copied, or a failed log) and the logged values differ, the
   phone shows one notice naming the logged set, for example "Logged on another
   device: Barbell Back Squat 52.5 × 5". The change is not kept or offered back.
+  A notice raised while a sheet such as the set editor covers the session waits
+  until the session shows again.
 
 ### Strength references
 

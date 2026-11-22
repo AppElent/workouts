@@ -1,5 +1,6 @@
 import { formatClock } from "@foundry/core";
 /** What floats over the session: the toast, a group's clock, and rest. */
+import { useIsFocused } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -75,18 +76,20 @@ function Notice() {
 	const styles = useThemedStyles(createStyles);
 	const large = useWindowDimensions().fontScale >= 1.35;
 	const [voiceOver, setVoiceOver] = useState(false);
+	// Under a sheet such as the set editor the notice can't be seen, so it waits.
+	const focused = useIsFocused();
 	useEffect(() => {
 		void AccessibilityInfo.isScreenReaderEnabled().then(setVoiceOver);
 	}, []);
 	useEffect(() => {
-		if (!notice) return;
+		if (!notice || !focused) return;
 		AccessibilityInfo.announceForAccessibility(notice.text);
 		const timer = setTimeout(
 			() => workspaceStore.dismissNotice(key, notice.id),
 			voiceOver ? NOTICE_VOICEOVER_MS : NOTICE_MS,
 		);
 		return () => clearTimeout(timer);
-	}, [notice, key, voiceOver]);
+	}, [notice, key, voiceOver, focused]);
 	if (!notice) return null;
 	const actionLabel = notice.undoLabel ?? notice.retryLabel;
 	return (

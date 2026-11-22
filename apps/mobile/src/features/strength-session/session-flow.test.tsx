@@ -639,6 +639,64 @@ it("says when a set logged on another device replaces a change here (APP-529)", 
 	).toMatchObject({ done: true, setId: "web-1", kg: 52.5 });
 });
 
+it("keeps that notice until the set editor over it closes (APP-529)", async () => {
+	const facts = {
+		exercise: { equipment: "barbell" as const },
+		bodyweight: false,
+		timed: false,
+		stepKg: 2.5,
+		measured: 100,
+		estimated: null,
+		savedManual: null,
+		measuredDate: 1,
+		last: null,
+	};
+	const second = "shipped:exercise:barbell-bench-press";
+	const plannedSets = [{ weight: 60, reps: 8, unit: "kg" as const }];
+	const exercises = [
+		{ exerciseId, plannedSets },
+		{ exerciseId: second, plannedSets },
+	];
+	currentSession = { ...currentSession, exercises };
+	const grouped = groupWith(
+		seedPlan(exercises, [], () => facts),
+		exerciseId,
+		second,
+	);
+	const id = grouped.groupId as string;
+	const row = grouped.plan.groups[id]?.rounds[0]?.items[0] as PlanSet;
+	workspaceStore.setPlan(
+		planKey(),
+		updateRow(grouped.plan, row.id, { ...row, kg: 70 }),
+	);
+	await mount();
+	await act(() =>
+		router.push(`/set-editor?sessionId=session-1&rowId=${row.id}`),
+	);
+	await screen.findByTestId("session-editor-load");
+	jest.useFakeTimers();
+	try {
+		loggedSets = [{ ...serverSet("web-1", 5, 1), weight: 52.5 }];
+		await act(async () =>
+			workspaceStore.setPlan(planKey(), {
+				...(workspaceStore.plan(planKey()) as SessionPlan),
+			}),
+		);
+		await act(async () => jest.advanceTimersByTime(10_000));
+		expect(workspaceStore.notice(planKey())?.text).toBe(
+			"Logged on another device: Barbell Back Squat 52.5 × 5",
+		);
+		await act(() => router.back());
+		expect(
+			screen.getByText("Logged on another device: Barbell Back Squat 52.5 × 5"),
+		).toBeTruthy();
+		await act(async () => jest.advanceTimersByTime(10_000));
+		expect(workspaceStore.notice(planKey())).toBeNull();
+	} finally {
+		jest.useRealTimers();
+	}
+});
+
 it("takes one exercise out of a group from the group sheet (APP-215)", async () => {
 	const facts = {
 		exercise: { equipment: "barbell" as const },
