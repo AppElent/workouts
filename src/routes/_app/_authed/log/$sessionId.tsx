@@ -21,6 +21,7 @@ import { Modal, ModalHeader } from "#/components/ui/Modal";
 import { useToast } from "#/components/ui/toast";
 import { useConvexErrorMessage } from "#/lib/convexError";
 import { useExercises } from "#/lib/exercises";
+import { useMessages } from "#/lib/i18n";
 
 function isEmptySessionError(error: unknown) {
 	return parseConvexError(error).code === "emptySession";
@@ -55,6 +56,7 @@ function ActiveSessionPage() {
 	const confirm = useConfirm();
 	const toast = useToast();
 	const errorMessage = useConvexErrorMessage();
+	const hostedCopy = useMessages().hosted;
 	const submitHostedScore = useMutation(
 		api.hostedWorkoutSubmissions.submitForSession,
 	);
@@ -306,7 +308,7 @@ function ActiveSessionPage() {
 					<div className="mt-4">
 						<HostedScoreForm
 							wodBlocks={hostedParticipant.hosted.template.wodBlocks}
-							submitLabel="Submit hosted score"
+							submitLabel={hostedCopy.scoreForm.submitHosted}
 							onSubmit={async (payload) => {
 								if (
 									!(await write(() =>

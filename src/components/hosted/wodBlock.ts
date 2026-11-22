@@ -12,22 +12,13 @@ import {
 export type HostedWodBlock =
 	Doc<"hostedWorkouts">["template"]["wodBlocks"][number];
 
-export const WOD_TYPE_LABELS: Record<WodType, string> = {
-	forTime: "For Time",
-	amrap: "AMRAP",
-	emom: "EMOM",
-	load: "Load",
-};
-
-const WOD_TIMING_LABELS: Record<WodTimingField, string> = {
-	timeCapSeconds: "Time cap",
-	durationSeconds: "Duration",
-};
-
-/** "Time cap" or "Duration" for a WOD type that has timing, else null. */
-export function wodTimingLabel(type: WodType): string | null {
+/** The `labels` entry for a WOD type's timing field, or null when it has none. */
+export function wodTimingLabel<T>(
+	type: WodType,
+	labels: Record<WodTimingField, T>,
+): T | null {
 	const field = WOD_TIMING_FIELD[type];
-	return field ? WOD_TIMING_LABELS[field] : null;
+	return field ? labels[field] : null;
 }
 
 /** "Time cap 12:00" for For Time, "20 min" for AMRAP/EMOM, or null. */
