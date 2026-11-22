@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing Profile, settings, account actions, or sign-out.
-version: 2.1.0
+version: 2.2.0
 status: current
 ---
 
@@ -35,6 +35,12 @@ tap. Study: [profile](../../designs/app/profile_final.html).
   - *Export.* An online JSON file of every personal table, shared through the
     system share sheet. Receipts and counters are omitted; Food photo files are
     not included.
+  - *Account portal.* `convex/accountPortal.ts` serves the AppElent account
+    portal (developer-home `standards/account-portal.md`, contract 1):
+    `summary` counts each exported table (capped at 1,000), `deletionBlocker`
+    wraps the one above, and `exportPage` pages the same export. Foundry
+    tracks no latest write, so `lastActiveAt` is `null`. `deleteAppData`
+    follows [APP-392](https://linear.app/appelent/issue/APP-392).
   - *Shared login.* Gather, Foundry, Fairway and Arcade Club share one
     AppElent (Clerk) login, so deletion offers two choices, Foundry data only
     first ([APP-392](https://linear.app/appelent/issue/APP-392)).
