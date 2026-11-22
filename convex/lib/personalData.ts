@@ -3,6 +3,7 @@ import type { GenericTableInfo, Query } from "convex/server";
 import { v } from "convex/values";
 import type { Id, TableNames } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
+import { appError } from "./errors";
 import { literals } from "./validators";
 
 type Db = QueryCtx["db"];
@@ -208,6 +209,37 @@ export const exportTables = (Object.keys(all) as PersonalTable[]).filter(
 
 export function readPersonalTable(db: Db, table: ExportTable, userId: string) {
 	return all[table].read(db, userId);
+}
+
+export type ExportCursor = { table: string; cursor: string | null } | null;
+
+/** Rows per export page; bounded so a page stays within one query's limits. */
+export const EXPORT_PAGE_SIZE = 200;
+
+/**
+ * One bounded page of the account export, walking `exportTables` in order:
+ * the cursor names the table and its Convex cursor. Shared by the in-app
+ * export (`exportData.personalPage`) and the account portal.
+ */
+export async function readExportStep(
+	db: Db,
+	userId: string,
+	cursor: ExportCursor,
+) {
+	const index = cursor ? exportTables.indexOf(cursor.table as ExportTable) : 0;
+	if (index < 0) throw appError("invalid", "cursor");
+	const table = exportTables[index];
+	const page = await readPersonalTable(db, table, userId).paginate({
+		cursor: cursor?.cursor ?? null,
+		numItems: EXPORT_PAGE_SIZE,
+	});
+	const following = exportTables[index + 1];
+	const next: ExportCursor = !page.isDone
+		? { table, cursor: page.continueCursor }
+		: following
+			? { table: following, cursor: null }
+			: null;
+	return { table, rows: page.page, next };
 }
 
 const PERSONAL_DATA_BLOCKERS = [
