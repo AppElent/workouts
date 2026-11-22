@@ -1,8 +1,9 @@
 import type { Doc } from "@convex/_generated/dataModel";
 import { Link } from "@tanstack/react-router";
-import { WOD_TYPE_LABELS } from "#/components/hosted/wodBlock";
+import { useMessages } from "#/lib/i18n";
 
 export function WodCard({ wod }: { wod: Doc<"wods"> }) {
+	const wodTypes = useMessages().wods.type;
 	return (
 		<Link
 			to="/wods/$id"
@@ -14,7 +15,7 @@ export function WodCard({ wod }: { wod: Doc<"wods"> }) {
 					{wod.name}
 				</span>
 				<span className="shrink-0 text-micro font-medium uppercase tracking-wide px-2 py-0.5 rounded-full bg-accent-dim text-accent-ink">
-					{WOD_TYPE_LABELS[wod.type]}
+					{wodTypes[wod.type]}
 				</span>
 			</div>
 			{wod.repScheme && (
