@@ -7,6 +7,7 @@ import {
 	type ExportCursor,
 	type ExportTable,
 	exportTables,
+	personalDataBlockerCode,
 	readExportStep,
 	readPersonalTable,
 } from "./lib/personalData";
@@ -61,13 +62,12 @@ export const deletionBlocker = query({
 	args: {},
 	returns: v.union(
 		v.null(),
-		v.object({ code: v.literal("activeActivity"), params: v.object({}) }),
+		v.object({ code: personalDataBlockerCode, params: v.object({}) }),
 	),
 	handler: async (ctx) => {
 		const userId = await getOptionalUserId(ctx);
 		const code = userId ? await accountDeletionBlocker(ctx, userId) : null;
-		// `accountDeletionBlocker` answers only `"activeActivity"` or null.
-		return code === "activeActivity" ? { code, params: {} } : null;
+		return code ? { code, params: {} } : null;
 	},
 });
 

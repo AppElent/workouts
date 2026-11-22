@@ -248,8 +248,9 @@ const PERSONAL_DATA_BLOCKERS = [
 ] as const satisfies readonly AppErrorCode[];
 type PersonalDataBlocker = (typeof PERSONAL_DATA_BLOCKERS)[number];
 
+export const personalDataBlockerCode = literals(PERSONAL_DATA_BLOCKERS);
 export const personalDataBlockerValidator = v.union(
-	literals(PERSONAL_DATA_BLOCKERS),
+	personalDataBlockerCode,
 	v.null(),
 );
 

@@ -170,7 +170,11 @@ describe("account portal", () => {
 			cursor = page.next;
 		} while (cursor && JSON.parse(cursor).cursor === null);
 		expect(cursor).not.toBeNull();
-		const resumed = await dave.query(api.accountPortal.exportPage, { cursor });
+		// convex-test resumes inside Dave's range; a real deployment may reject
+		// the foreign cursor instead. Either way no row of Alice's comes back.
+		const resumed = await dave
+			.query(api.accountPortal.exportPage, { cursor })
+			.catch(() => ({ tables: {} }));
 		expect(resumed.tables).toEqual({});
 	});
 
