@@ -31,6 +31,7 @@ import {
 	type PlanSet,
 	payloadFor,
 	recapOf,
+	reconcile,
 	reconcilePlan,
 	referenceFor,
 	removeExercise,
@@ -1208,6 +1209,81 @@ describe("reconcile", () => {
 			const next = reconcilePlan(plan, [], known(plan), lookup);
 			expect(next).toBe(plan);
 			expect(next.groups[start.id]?.rounds).toHaveLength(2);
+		});
+		describe("over changes made on this device (APP-529)", () => {
+			const edited = (change: Partial<PlanSet>) => {
+				const start = grouped({ squat: planned(2), curl: planned(2, 40) });
+				const row = firstOpen(start.plan);
+				return {
+					row,
+					plan: updateRow(start.plan, row.id, { ...row, ...change }),
+				};
+			};
+			it("names the logged set that replaced a changed load", () => {
+				const { plan, row } = edited({ kg: 100 });
+				const result = reconcile(
+					plan,
+					[],
+					[{ ...remote("squat", "web-5", 1), weight: 52.5 }],
+					lookup,
+				);
+				expect(findRow(result.plan, row.id)).toMatchObject({
+					done: true,
+					setId: "web-5",
+					kg: 52.5,
+				});
+				expect(result.overwrote).toEqual([
+					expect.objectContaining({ setId: "web-5", kg: 52.5, reps: 5 }),
+				]);
+			});
+			it("counts a changed reps, an RPE or a failed log as a change", () => {
+				for (const change of [
+					{ reps: 8 },
+					{ rpe: 8 },
+					{ failed: true },
+				] as Partial<PlanSet>[]) {
+					const { plan } = edited(change);
+					const result = reconcile(
+						plan,
+						[],
+						[{ ...remote("squat", "web-6", 1), weight: 52.5 }],
+						lookup,
+					);
+					expect(result.overwrote).toHaveLength(1);
+				}
+			});
+			it("says nothing when the open set still matched its plan", () => {
+				const start = grouped({ squat: planned(2), curl: planned(2, 40) });
+				const result = reconcile(
+					start.plan,
+					[],
+					[{ ...remote("squat", "web-7", 1), weight: 52.5 }],
+					lookup,
+				);
+				expect(result.overwrote).toEqual([]);
+			});
+			it("says nothing when the logged set equals the change", () => {
+				const { plan } = edited({ kg: 100 });
+				const result = reconcile(
+					plan,
+					[],
+					[{ ...remote("squat", "web-8", 1), weight: 100 }],
+					lookup,
+				);
+				expect(result.overwrote).toEqual([]);
+			});
+			it("says nothing when the set joins a round instead", () => {
+				const start = grouped({ squat: planned(1), curl: planned(1, 40) });
+				let plan = log(start.plan, firstOpen(start.plan), "sq-1");
+				plan = log(plan, firstOpen(plan, "curl"), "cu-1");
+				const result = reconcile(
+					plan,
+					[],
+					[...known(plan), remote("squat", "web-9", 2)],
+					lookup,
+				);
+				expect(result.overwrote).toEqual([]);
+			});
 		});
 	});
 });

@@ -589,6 +589,56 @@ it("won't drop a failed set by shrinking its group or switching it to a clock", 
 	expect(workspaceStore.plan(planKey())?.groups[id]?.mode).toBe("rounds");
 });
 
+it("says when a set logged on another device replaces a change here (APP-529)", async () => {
+	const facts = {
+		exercise: { equipment: "barbell" as const },
+		bodyweight: false,
+		timed: false,
+		stepKg: 2.5,
+		measured: 100,
+		estimated: null,
+		savedManual: null,
+		measuredDate: 1,
+		last: null,
+	};
+	const second = "shipped:exercise:barbell-bench-press";
+	const plannedSets = [{ weight: 60, reps: 8, unit: "kg" as const }];
+	const exercises = [
+		{ exerciseId, plannedSets },
+		{ exerciseId: second, plannedSets },
+	];
+	currentSession = { ...currentSession, exercises };
+	const grouped = groupWith(
+		seedPlan(exercises, [], () => facts),
+		exerciseId,
+		second,
+	);
+	const id = grouped.groupId as string;
+	const row = grouped.plan.groups[id]?.rounds[0]?.items[0] as PlanSet;
+	workspaceStore.setPlan(
+		planKey(),
+		updateRow(grouped.plan, row.id, { ...row, kg: 70 }),
+	);
+	await mount();
+	await screen.findAllByLabelText(/Barbell Back Squat/);
+	expect(screen.queryByText(/another device/)).toBeNull();
+	loggedSets = [{ ...serverSet("web-1", 5, 1), weight: 52.5 }];
+	// The sets query answering again is what re-renders the session.
+	await act(async () =>
+		workspaceStore.setPlan(planKey(), {
+			...(workspaceStore.plan(planKey()) as SessionPlan),
+		}),
+	);
+	expect(
+		await screen.findByText(
+			"Logged on another device: Barbell Back Squat 52.5 × 5",
+		),
+	).toBeTruthy();
+	expect(
+		findRow(workspaceStore.plan(planKey()) as SessionPlan, row.id),
+	).toMatchObject({ done: true, setId: "web-1", kg: 52.5 });
+});
+
 it("takes one exercise out of a group from the group sheet (APP-215)", async () => {
 	const facts = {
 		exercise: { equipment: "barbell" as const },

@@ -509,17 +509,22 @@ export function seedPlan(
  * would have: that exercise's first open set in the group. With none open, it
  * joins the first round that lacks the exercise, and only then a new round.
  */
-function slotIntoGroup(group: SetGroup, set: ServerSet): SetGroup {
+function slotIntoGroup(
+	group: SetGroup,
+	set: ServerSet,
+): { group: SetGroup; overwrote?: PlanSet } {
 	const logged = rowFromServer(set);
 	// A row with an attempt is being logged on this device; leave it to land.
 	const open = (row: PlanSet) =>
 		row.exerciseId === set.exerciseId && !row.done && !row.attempt;
 	const slot = group.rounds.findIndex((round) => round.items.some(open));
 	if (slot >= 0) {
+		let replaced: PlanSet | undefined;
 		const rounds = group.rounds.map((round, index) => {
 			if (index !== slot) return round;
 			const at = round.items.findIndex(open);
 			const row = round.items[at] as PlanSet;
+			replaced = row;
 			return {
 				...round,
 				items: round.items.map((item, i) =>
@@ -527,7 +532,12 @@ function slotIntoGroup(group: SetGroup, set: ServerSet): SetGroup {
 				),
 			};
 		});
-		return normalizeGroup({ ...group, rounds });
+		const lost =
+			replaced && editedLocally(replaced) && !sameSet(replaced, logged);
+		return {
+			group: normalizeGroup({ ...group, rounds }),
+			...(lost ? { overwrote: logged } : {}),
+		};
 	}
 	const gap = group.rounds.findIndex(
 		(round) => !round.items.some((row) => row.exerciseId === set.exerciseId),
@@ -538,7 +548,26 @@ function slotIntoGroup(group: SetGroup, set: ServerSet): SetGroup {
 					index === gap ? { ...round, items: [...round.items, logged] } : round,
 				)
 			: [...group.rounds, { id: newRowId(), items: [logged] }];
-	return normalizeGroup({ ...group, rounds });
+	return { group: normalizeGroup({ ...group, rounds }) };
+}
+/**
+ * Whether an open set holds changes made on this device: a failed log, or
+ * values that moved from where the set started (its plan, or for a free set
+ * the set it copied). A set with neither start point is not counted.
+ */
+function editedLocally(row: PlanSet) {
+	if (row.failed) return true;
+	const start = row.plan ?? row.baseline;
+	if (!start) return false;
+	return !near(row.kg, start.kg) || row.reps !== start.reps || row.rpe !== null;
+}
+export interface ReconcileResult {
+	plan: SessionPlan;
+	/**
+	 * Sets logged elsewhere that took the place of an open set with unsaved
+	 * changes on this device, as the logged rows now in the plan.
+	 */
+	overwrote: PlanSet[];
 }
 /** Server state wins for logged sets. Open sets and the session's shape stay local. */
 export function reconcilePlan(
@@ -549,6 +578,17 @@ export function reconcilePlan(
 	/** Ids known to have reached this client; absent on a first reconcile. */
 	seen?: ReadonlySet<string>,
 ): SessionPlan {
+	return reconcile(plan, exercises, serverSets, getFacts, seen).plan;
+}
+/** `reconcilePlan`, and which unsaved changes on this device it replaced. */
+export function reconcile(
+	plan: SessionPlan,
+	exercises: ServerExercise[],
+	serverSets: ServerSet[],
+	getFacts: PlanFacts,
+	seen?: ReadonlySet<string>,
+): ReconcileResult {
+	const overwrote: PlanSet[] = [];
 	const byId = new Map(serverSets.map((set) => [set._id, set]));
 	const linked = new Set(
 		allRows(plan).flatMap((row) => (row.setId ? [row.setId] : [])),
@@ -657,9 +697,11 @@ export function reconcilePlan(
 		linked.add(set._id);
 		const home = groupOfExercise(next, set.exerciseId);
 		if (home) {
+			const slotted = slotIntoGroup(home, set);
+			if (slotted.overwrote) overwrote.push(slotted.overwrote);
 			next = {
 				...next,
-				groups: { ...next.groups, [home.id]: slotIntoGroup(home, set) },
+				groups: { ...next.groups, [home.id]: slotted.group },
 			};
 			continue;
 		}
@@ -692,7 +734,7 @@ export function reconcilePlan(
 			},
 		};
 	}
-	return changed ? next : plan;
+	return { plan: changed ? next : plan, overwrote };
 }
 /** Fills rows the plan left without a load, once last time's result is known. */
 export function fillFromLast(

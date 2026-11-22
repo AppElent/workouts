@@ -1,14 +1,17 @@
 /** Keeps one open session's plan in step with the server and the clock. */
 import type { RequestForQueries } from "convex/react";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { api, type Id } from "../../../convex/api";
 import { useQueries } from "../../../convex/query-cache";
+import { fmt, plural, useI18n } from "../../../i18n";
+import { formatSetShort } from "../session-format";
 import {
 	allRows,
 	fillFromLast,
 	markFailed,
 	markLogged,
-	reconcilePlan,
+	type PlanSet,
+	reconcile,
 	seedPlan,
 	tickClocks,
 } from "../session-plan";
@@ -32,6 +35,19 @@ export function SessionSync({
 	const { key, plan, data, session, sets, getFacts, active, held, factsById } =
 		workspace;
 	const rest = useRestTimer();
+	const { locale, t } = useI18n();
+	// Read when a sync lands, so a language or catalog change doesn't re-sync.
+	const describeOverwrite = useRef<(rows: PlanSet[]) => string>(() => "");
+	describeOverwrite.current = (rows) => {
+		const copy = t.strength.plan.notes;
+		const [row] = rows;
+		if (rows.length !== 1 || !row)
+			return plural(locale, rows.length, copy.loggedElsewhereMany);
+		return fmt(copy.loggedElsewhere, {
+			name: workspace.nameOf(row.exerciseId),
+			set: formatSetShort(row, getFacts(row.exerciseId), locale),
+		});
+	};
 	useEffect(() => {
 		if (!key || !session || !sets || !active || !data.verified || held) return;
 		const exercises = (session.exercises ?? []).map((item) => ({
@@ -39,20 +55,28 @@ export function SessionSync({
 			plannedSets: item.plannedSets,
 		}));
 		const current = workspaceStore.plan(key);
-		const next = current
-			? reconcilePlan(
+		const result = current
+			? reconcile(
 					current,
 					exercises,
 					sets,
 					getFacts,
 					workspaceStore.seen(key) ?? undefined,
 				)
-			: seedPlan(exercises, sets, getFacts, savedRestDefault(subject));
+			: {
+					plan: seedPlan(exercises, sets, getFacts, savedRestDefault(subject)),
+					overwrote: [],
+				};
 		workspaceStore.markSeen(
 			key,
 			sets.map((set) => set._id),
 		);
-		workspaceStore.setPlan(key, next);
+		workspaceStore.setPlan(key, result.plan);
+		// A set done elsewhere stands, but the changes it replaced here are named.
+		if (result.overwrote.length)
+			workspaceStore.notify(key, {
+				text: describeOverwrite.current(result.overwrote),
+			});
 	}, [key, subject, session, sets, active, data.verified, held, getFacts]);
 	// Rows a routine left empty take last time's load once that query answers.
 	useEffect(() => {

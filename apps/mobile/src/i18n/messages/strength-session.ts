@@ -139,6 +139,11 @@ export const strengthSessionEn = {
 		},
 		clockStarted: "The clock has already started.",
 		otherClockRunning: "Another group's clock is running. Stop that first.",
+		loggedElsewhere: "Logged on another device: {name} {set}",
+		loggedElsewhereMany: {
+			one: "1 set logged on another device replaced your changes",
+			other: "{count} sets logged on another device replaced your changes",
+		},
 	},
 	checks: {
 		repsHigh: "{reps} reps? Check this before it counts.",
@@ -632,6 +637,12 @@ export const strengthSessionNl: typeof strengthSessionEn = {
 		},
 		clockStarted: "De klok is al gestart.",
 		otherClockRunning: "De klok van een andere groep loopt. Stop die eerst.",
+		loggedElsewhere: "Gelogd op een ander apparaat: {name} {set}",
+		loggedElsewhereMany: {
+			one: "1 set gelogd op een ander apparaat verving je wijzigingen",
+			other:
+				"{count} sets gelogd op een ander apparaat vervingen je wijzigingen",
+		},
 	},
 	checks: {
 		repsHigh: "{reps} reps? Controleer dit voordat het telt.",

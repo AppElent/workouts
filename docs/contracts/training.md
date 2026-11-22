@@ -143,6 +143,12 @@ the app; there is no separate data.
   sent, rest still runs, and finishing is blocked until it is retried or removed. A
   stable operation identity prevents a duplicate after a lost acknowledgement; input
   stays after failure.
+- A Set logged on another device (web, MCP, a second phone) for a grouped exercise
+  fills that exercise's next open set in the group, because the set was done. When
+  that open set held changes made on this device (a load, reps or RPE that moved from
+  its plan or the set it copied, or a failed log) and the logged values differ, the
+  phone shows one notice naming the logged set, for example "Logged on another
+  device: Barbell Back Squat 52.5 × 5". The change is not kept or offered back.
 
 ### Strength references
 
