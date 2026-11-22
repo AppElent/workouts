@@ -34,3 +34,17 @@ it("logs a load score in the chosen unit", async () => {
 		expect.objectContaining({ load: 2.5, loadUnit: "lbs" }),
 	);
 });
+
+it("shows the score form in Dutch", () => {
+	render(
+		<LocaleProvider initialLocale="nl">
+			<LogWodResultForm wodId={"wod" as Id<"wods">} type="forTime" />
+		</LocaleProvider>,
+	);
+	expect(screen.getByText("Tijdslimiet gehaald (niet afgemaakt)")).toBeTruthy();
+	fireEvent.click(screen.getByRole("checkbox"));
+	expect(screen.getByText("Herh.")).toBeTruthy();
+	expect(
+		screen.getByRole("button", { name: "Resultaat vastleggen" }),
+	).toBeTruthy();
+});

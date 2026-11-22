@@ -9,6 +9,7 @@ import { privacy } from "./privacy";
 import { shell } from "./shell";
 import { support } from "./support";
 import { testData } from "./test-data";
+import { wods } from "./wods";
 
 export const en = {
 	account,
@@ -22,5 +23,6 @@ export const en = {
 	shell,
 	support,
 	testData,
+	wods,
 };
 export type Messages = typeof en;

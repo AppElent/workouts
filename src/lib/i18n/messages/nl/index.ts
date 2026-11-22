@@ -10,6 +10,7 @@ import { privacy } from "./privacy";
 import { shell } from "./shell";
 import { support } from "./support";
 import { testData } from "./test-data";
+import { wods } from "./wods";
 
 export const nl = {
 	account,
@@ -23,4 +24,5 @@ export const nl = {
 	shell,
 	support,
 	testData,
+	wods,
 } satisfies Messages;

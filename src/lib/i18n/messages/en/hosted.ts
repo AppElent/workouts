@@ -1,5 +1,3 @@
-import type { WodType } from "@foundry/core";
-
 type HostedStatus = "draft" | "open" | "closed";
 
 export const hosted = {
@@ -36,12 +34,6 @@ export const hosted = {
 	},
 	blocks: {
 		strength: "Strength",
-		type: {
-			forTime: "For Time",
-			amrap: "AMRAP",
-			emom: "EMOM",
-			load: "Load",
-		} satisfies Record<WodType, string>,
 		timeCap: "Time cap {time}",
 		minutes: "{count} min",
 		noMovements: "No movements",
@@ -55,6 +47,7 @@ export const hosted = {
 	scoreForm: {
 		title: "Submit score",
 		submit: "Submit score",
+		submitHosted: "Submit hosted score",
 		submitting: "Submitting...",
 		submitted: "Score submitted.",
 		failed: "Failed to submit score.",

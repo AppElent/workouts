@@ -1,6 +1,7 @@
 import { api } from "@convex/_generated/api";
 import type { Doc, Id } from "@convex/_generated/dataModel";
 import {
+	fmt,
 	HOSTED_LEVEL_LABELS,
 	HOSTED_LEVELS,
 	type HostedLevel,
@@ -14,9 +15,10 @@ import {
 import { useMutation } from "convex/react";
 import { Plus, Save, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { WOD_TYPE_LABELS, wodTimingLabel } from "#/components/hosted/wodBlock";
+import { wodTimingLabel } from "#/components/hosted/wodBlock";
 import { useConvexErrorMessage } from "#/lib/convexError";
 import { useExercises } from "#/lib/exercises";
+import { useMessages } from "#/lib/i18n";
 
 type HostedWorkout = Doc<"hostedWorkouts">;
 type StrengthBlock = HostedWorkout["template"]["strengthBlocks"][number];
@@ -86,6 +88,7 @@ export function HostedWorkoutBuilder({
 	initial?: HostedWorkoutBuilderInitial;
 	onSaved: (id: string) => void;
 }) {
+	const wodCopy = useMessages().wods;
 	const createDraft = useMutation(api.hostedWorkouts.createDraft);
 	const updateDraft = useMutation(api.hostedWorkouts.updateDraft);
 	const exercises = useExercises();
@@ -465,7 +468,7 @@ export function HostedWorkoutBuilder({
 											: "border-border text-text"
 									}`}
 								>
-									{WOD_TYPE_LABELS[type]}
+									{wodCopy.type[type]}
 								</button>
 							))}
 						</div>
@@ -483,7 +486,7 @@ export function HostedWorkoutBuilder({
 								className="h-9 w-full rounded-lg border border-border bg-surface-2 px-3 text-xs text-text placeholder:text-text-muted"
 								placeholder="Rep scheme (e.g. 21-15-9)"
 							/>
-							{wodTimingLabel(block.type) && (
+							{wodTimingLabel(block.type, wodCopy.timingAria) && (
 								<div className="flex items-center gap-2">
 									<input
 										type="number"
@@ -499,11 +502,15 @@ export function HostedWorkoutBuilder({
 												),
 											)
 										}
-										aria-label={`WOD ${index + 1} ${wodTimingLabel(
-											block.type,
-										)?.toLowerCase()} in minutes`}
+										aria-label={fmt(
+											wodTimingLabel(block.type, wodCopy.timingAria) ?? "",
+											{ number: index + 1 },
+										)}
 										className="h-9 w-full rounded-lg border border-border bg-surface-2 px-3 text-xs text-text placeholder:text-text-muted"
-										placeholder={`${wodTimingLabel(block.type)} (min)`}
+										placeholder={
+											wodTimingLabel(block.type, wodCopy.timingMinutes) ??
+											undefined
+										}
 									/>
 									<span className="text-xs text-text-muted">min</span>
 								</div>

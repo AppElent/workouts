@@ -59,7 +59,9 @@ export function HostedWodBlockCard<RowId extends string>({
 	rows: LeaderboardRow<RowId>[];
 	onRemove?: (id: RowId) => void;
 }) {
-	const t = useMessages().hosted.blocks;
+	const messages = useMessages();
+	const t = messages.hosted.blocks;
+	const wodTypes = messages.wods.type;
 	const timing = formatWodTiming(block, t);
 	return (
 		<section className="rounded-lg border border-border bg-surface p-4">
@@ -75,7 +77,7 @@ export function HostedWodBlockCard<RowId extends string>({
 					)}
 				</div>
 				<span className="text-xs uppercase text-text-muted">
-					{t.type[block.type]}
+					{wodTypes[block.type]}
 				</span>
 			</div>
 			<div className="mt-3 grid gap-2 sm:grid-cols-2">
