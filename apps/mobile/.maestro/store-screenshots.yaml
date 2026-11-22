@@ -1,0 +1,112 @@
+# App Store screenshots (APP-559). Run by developer-home
+# scripts/store-screenshots.mjs, which sets the language, status bar and
+# appearance, launches the dev client against Metro, and passes the L_* labels
+# for the language with -e (.maestro/store-screenshots.json). Screenshots land
+# in --test-output-dir.
+#
+# The flow signs in the dev account with the pre-filled form (a reinstall keeps
+# the Clerk session in the keychain, so it only taps when the sign-in screen is
+# up) and then only reads: the account must hold the demo data from
+# `node scripts/store-screenshots-seed.mjs` (docs/runbooks/store-screenshots.md).
+# No shot shows Profile or the sign-in screen, which carry the test email, and
+# none opens a food detail or search, which credit third-party data sources.
+appId: com.appelent.foundry.dev
+---
+- extendedWaitUntil:
+    visible:
+      id: "sign-in-submit|home-screen"
+    timeout: 90000
+- runFlow:
+    when:
+      visible:
+        id: sign-in-submit
+    commands:
+      - tapOn:
+          id: sign-in-submit
+- extendedWaitUntil:
+    visible:
+      id: home-screen
+    timeout: 60000
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 01-home
+
+- tapOn: ${L_TRAIN}
+- extendedWaitUntil:
+    visible:
+      id: train-start-activity
+    timeout: 15000
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 02-train
+
+- tapOn: ${L_HOME}
+- extendedWaitUntil:
+    visible:
+      id: home-screen
+    timeout: 15000
+# The Upper body row sits under the floating tab bar until it is scrolled up.
+- scrollUntilVisible:
+    element: ".*Upper body.*"
+    centerElement: true
+- tapOn: ".*Upper body.*"
+- extendedWaitUntil:
+    visible: ${L_WORKOUT_COMPLETE}
+    timeout: 15000
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 03-session
+- tapOn: ${L_BACK}
+# Home is still scrolled from the Upper body tap, which collapses the tab bar
+# to a single button; a scroll up only expands it after a scroll down.
+- scroll
+- swipe:
+    direction: DOWN
+    duration: 300
+- swipe:
+    direction: DOWN
+    duration: 300
+- waitForAnimationToEnd:
+    timeout: 5000
+
+- tapOn: ${L_PROGRESS}
+- tapOn: Barbell Bench Press
+- extendedWaitUntil:
+    visible: "W.*[0-9]+"
+    timeout: 15000
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 04-progress
+
+# The diary screen exposes no accessibility tree to XCTest (Maestro sees an
+# empty app), so this stretch uses screen points and screenshots only. The menu
+# and the week screen are ordinary trees again.
+- tapOn: ${L_NUTRITION}
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 05-nutrition
+
+# The ... button sits at the top right: in the nav bar on iPad, under the
+# status bar on iPhone. Tap the iPad spot first (the status bar on iPhone, which
+# a tap leaves alone), then the iPhone spot if the menu did not open (an empty
+# part of the header on iPad).
+- tapOn:
+    point: "96%,4%"
+- waitForAnimationToEnd:
+    timeout: 2000
+- runFlow:
+    when:
+      notVisible: ${L_WEEK_OVERVIEW}
+    commands:
+      - tapOn:
+          point: "90%,9%"
+- extendedWaitUntil:
+    visible: ${L_WEEK_OVERVIEW}
+    timeout: 15000
+- tapOn: ${L_WEEK_OVERVIEW}
+- extendedWaitUntil:
+    visible: ${L_THIS_WEEK}
+    timeout: 15000
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 06-week
