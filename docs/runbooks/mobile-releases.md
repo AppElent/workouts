@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when building a development client, shipping to TestFlight, or publishing an OTA update.
-version: 2.2.0
+version: 2.3.0
 ---
 
 # iOS test builds and OTA updates
@@ -304,6 +304,37 @@ the build to fail with a local/EAS runtime-version mismatch even when every
 package version matches. After changing pnpm layout settings, run
 `pnpm install --frozen-lockfile` at the repository root before building or
 publishing updates. Keep the fingerprint policy enabled.
+
+## Store screenshots
+
+`node scripts/store-screenshots.mjs --issue <ISSUE> --name foundry` writes the
+App Store screenshots: six per device and language (iPhone 6.9" and iPad 13",
+en-US and nl-NL) in `~/Developer/.screenshots/<ISSUE>/foundry/`, with a contact
+sheet per device. The script is synced from developer-home like
+`run-mobile.mjs`; the flow is `apps/mobile/.maestro/store-screenshots.yaml` and
+its labels `store-screenshots.json`. It never uploads to App Store Connect.
+
+1. Point the dev client at a local or disposable dev Convex deployment, never
+   production, with `convex dev` running (`CONVEX_AGENT_MODE=anonymous` for a
+   local one). The dev Clerk user is the shared test user.
+2. Fill that user with the demo data (it clears the user first and refuses a
+   production deployment):
+
+   ```sh
+   CONVEX_AGENT_MODE=anonymous node scripts/store-screenshots-seed.mjs --user user_...
+   ```
+
+   Run it again on the day of the shoot: every date is relative to now, so
+   "today" is empty once the date has rolled over.
+3. Run the script. It claims `store-<device>` simulators (respecting the
+   simulator cap), starts its own Metro, signs in with the pre-filled form and
+   reads only. `--devices ipad` and `--langs nl` narrow the run.
+4. Open every PNG. The flow avoids Profile, sign-in, food search and food
+   detail, which would show the test email or a third-party data credit.
+
+The Nutrition tab exposes no accessibility tree to Maestro, so its steps tap
+screen points. Check the week header's ... button: its native menu can draw
+offset.
 
 ## Local preflight
 

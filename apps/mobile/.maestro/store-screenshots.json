@@ -1,0 +1,25 @@
+{
+  "$comment": "Labels the store-screenshots flow taps or waits for, per language (developer-home scripts/store-screenshots.mjs passes them with maestro -e). Tab names: apps/mobile/src/i18n/messages/tabs.ts; others from diary.ts, nutrition-meals.ts, week-review.ts and workout-summary.ts. Exercise names are English in both languages. L_BACK is the system back button.",
+  "languages": {
+    "en": {
+      "L_TRAIN": "Train",
+      "L_HOME": "Home",
+      "L_NUTRITION": "Nutrition",
+      "L_PROGRESS": "Progress",
+      "L_WORKOUT_COMPLETE": "Workout complete",
+      "L_WEEK_OVERVIEW": "Week overview",
+      "L_THIS_WEEK": "This week",
+      "L_BACK": "Back"
+    },
+    "nl": {
+      "L_TRAIN": "Trainen",
+      "L_HOME": "Home",
+      "L_NUTRITION": "Voeding",
+      "L_PROGRESS": "Voortgang",
+      "L_WORKOUT_COMPLETE": "Training afgerond",
+      "L_WEEK_OVERVIEW": "Weekoverzicht",
+      "L_THIS_WEEK": "Deze week",
+      "L_BACK": "Vorige"
+    }
+  }
+}
