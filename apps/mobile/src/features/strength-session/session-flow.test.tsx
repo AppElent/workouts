@@ -229,6 +229,18 @@ it("shows the plan against the measured 1RM, with what each set would be worth",
 	).toHaveLength(1);
 });
 
+it("says the session ended when it was finished elsewhere and the plan is gone", async () => {
+	await mount();
+	await screen.findByText(/Measured 1RM 100 kg/);
+	await act(async () => {
+		currentSession = { ...currentSession, status: "completed" };
+		workspaceStore.clear(planKey());
+	});
+	await mount();
+	expect(await screen.findByText(/This session has ended/)).toBeTruthy();
+	expect(screen.queryByText(/Checking/)).toBeNull();
+});
+
 it("logs a planned set from its check, says what it was worth, and starts rest", async () => {
 	await mount();
 	await fireEvent.press(await firstCheck());
@@ -241,7 +253,7 @@ it("logs a planned set from its check, says what it was worth, and starts rest",
 	});
 	expect(add.mock.calls[0][0].operationId).toBeTruthy();
 	expect(await screen.findByText(/60 × 8 logged · ≈76 kg/)).toBeTruthy();
-	expect(await screen.findByTestId("session-rest-stop")).toBeTruthy();
+	expect(await screen.findByTestId("session-rest-timer")).toBeTruthy();
 	// The answer links to the planned row rather than adding one beside it.
 	expect(screen.getAllByLabelText(/, Logged/)).toHaveLength(1);
 	expect(
@@ -277,7 +289,7 @@ it("recovers a committed log after losing its response, without a second write",
 	await fireEvent.press(await firstCheck());
 	await app.unmount();
 	await mount();
-	expect(await screen.findByText(/1 logged/)).toBeTruthy();
+	expect(await screen.findByText(/· 1 set$/)).toBeTruthy();
 	expect(add).toHaveBeenCalledTimes(1);
 });
 
@@ -322,10 +334,17 @@ it("starts rest when a send fails, but not again when it is retried", async () =
 	add.mockRejectedValueOnce(new Error("Connection lost"));
 	await mount();
 	await fireEvent.press(await firstCheck());
-	await fireEvent.press(await screen.findByTestId("session-rest-stop"));
+	// The Now card has no close button; VoiceOver's "stop" action ends rest.
+	await fireEvent(
+		await screen.findByTestId("session-rest-timer"),
+		"accessibilityAction",
+		{
+			nativeEvent: { actionName: "stop" },
+		},
+	);
 	await fireEvent.press(await screen.findByTestId("session-toast-action"));
 	expect(add).toHaveBeenCalledTimes(2);
-	expect(screen.queryByTestId("session-rest-stop")).toBeNull();
+	expect(screen.queryByTestId("session-rest-timer")).toBeNull();
 });
 
 it("starts the next rest offline once the last one has run out", async () => {
@@ -399,7 +418,7 @@ it("won't finish while a set failed, and offers the retry instead", async () => 
 	add.mockRejectedValueOnce(new Error("Connection lost"));
 	await mount();
 	await fireEvent.press(await firstCheck());
-	await fireEvent.press(await screen.findByRole("button", { name: "Done" }));
+	await fireEvent.press(await screen.findByRole("button", { name: "Finish" }));
 	expect(await screen.findByText(/Retry or remove it/)).toBeTruthy();
 	expect(screen.queryByText("Lower A done")).toBeNull();
 	expect(finish).not.toHaveBeenCalled();
@@ -420,7 +439,7 @@ it("won't finish on a send left unresolved by a restart, and retries it", async 
 	);
 	await app.unmount();
 	app = await mount();
-	await fireEvent.press(await screen.findByRole("button", { name: "Done" }));
+	await fireEvent.press(await screen.findByRole("button", { name: "Finish" }));
 	expect(await screen.findByText(/Retry or remove it/)).toBeTruthy();
 	expect(finish).not.toHaveBeenCalled();
 	const sent = add.mock.calls[0][0];
@@ -816,7 +835,7 @@ it("says so at Finish when a correction to a logged set isn't saved", async () =
 	);
 	await app.unmount();
 	await mount();
-	await fireEvent.press(await screen.findByRole("button", { name: "Done" }));
+	await fireEvent.press(await screen.findByRole("button", { name: "Finish" }));
 	expect(
 		await screen.findByText(/1 change to a logged set is not saved/),
 	).toBeTruthy();
@@ -840,12 +859,13 @@ it("applies a Krachtprofiel row only at Apply, and logs nothing", async () => {
 	expect(add).not.toHaveBeenCalled();
 });
 
-it("opens Krachtprofiel from the current exercise card and applies to its next set (APP-393)", async () => {
+it("opens Krachtprofiel from the current exercise's menu and applies to its next set (APP-393)", async () => {
 	await mount();
 	await fireEvent.press(
-		await screen.findByRole("button", {
-			name: "Strength profile, Barbell Back Squat",
-		}),
+		await screen.findByLabelText(/^Options for Barbell Back Squat/),
+	);
+	await fireEvent.press(
+		await screen.findByRole("button", { name: "Strength profile" }),
 	);
 	await fireEvent.press(await screen.findByText("80%"));
 	await fireEvent.press(
@@ -873,10 +893,10 @@ it("asks before dropping a change to a logged set", async () => {
 	expect(await screen.findAllByLabelText(/set 1, Logged/)).toBeTruthy();
 });
 
-it("finishes through the recap, saving only at Done", async () => {
+it("finishes through the recap, saving only at Save", async () => {
 	loggedSets = [serverSet("set-1", 8, 1)];
 	await mount();
-	await fireEvent.press(await screen.findByRole("button", { name: "Done" }));
+	await fireEvent.press(await screen.findByRole("button", { name: "Finish" }));
 	await fireEvent.press(
 		await screen.findByRole("button", { name: /Finish · 1 set/ }),
 	);
@@ -889,7 +909,7 @@ it("starts empty and offers to delete a session with nothing in it", async () =>
 	currentSession = { ...emptySession, userId: mockSubject };
 	await mount();
 	expect(await screen.findByTestId("session-add-exercise")).toBeTruthy();
-	await fireEvent.press(await screen.findByRole("button", { name: "Done" }));
+	await fireEvent.press(await screen.findByRole("button", { name: "Finish" }));
 	await fireEvent.press(
 		await screen.findByRole("button", { name: "Delete session" }),
 	);
@@ -927,7 +947,9 @@ describe("Live Activity", () => {
 		);
 		expect(running()).toHaveLength(1);
 
-		await fireEvent.press(await screen.findByRole("button", { name: "Done" }));
+		await fireEvent.press(
+			await screen.findByRole("button", { name: "Finish" }),
+		);
 		await fireEvent.press(
 			await screen.findByRole("button", { name: /Finish · 1 set/ }),
 		);

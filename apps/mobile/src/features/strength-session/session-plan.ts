@@ -116,7 +116,14 @@ export interface ExerciseFacts {
 	estimated: number | null;
 	savedManual: { value: number; date: number } | null;
 	measuredDate: number | null;
-	last: { kg: number; reps: number } | null;
+	/** The last logged set of this exercise in another session. */
+	last: {
+		kg: number;
+		reps: number;
+		rpe?: number | null;
+		/** When it was logged, epoch ms. */
+		date?: number | null;
+	} | null;
 }
 export type PlanFacts = (exerciseId: string) => ExerciseFacts;
 export interface PlanNote {
@@ -479,8 +486,9 @@ function seedExercise(
 			...plan.sets,
 			[exercise.exerciseId]: [
 				...logged.map(rowFromServer),
+				// Planned sets are working sets: a logged warm-up uses none of them.
 				...exercise.plannedSets
-					.slice(logged.length)
+					.slice(logged.filter((set) => set.setType !== "warmup").length)
 					.map((planned) =>
 						plannedRow(plan, exercise.exerciseId, planned, facts),
 					),
@@ -957,6 +965,35 @@ export function moveEntry(
 	if (at < 0 || to < 0 || to >= plan.order.length) return plan;
 	const order = [...plan.order];
 	[order[at], order[to]] = [order[to] as OrderEntry, order[at] as OrderEntry];
+	return { ...plan, order };
+}
+/**
+ * Makes an exercise the current one: its entry moves to just before the
+ * entry that holds the next open set, so the Now card, the highlight and the
+ * Live Activity all follow it. Done entries keep their place.
+ */
+export function focusExercise(
+	plan: SessionPlan,
+	exerciseId: string,
+): SessionPlan {
+	const from = plan.order.findIndex(
+		(item) => item.kind === "exercise" && item.exerciseId === exerciseId,
+	);
+	if (from < 0) return plan;
+	if (!(plan.sets[exerciseId] ?? []).some((row) => !row.done)) return plan;
+	const next = nextOpenRow(plan);
+	if (!next || next.exerciseId === exerciseId) return plan;
+	const current = plan.order.findIndex((item) =>
+		item.kind === "exercise"
+			? item.exerciseId === next.exerciseId && !groupOfRow(plan, next.id)
+			: (plan.groups[item.groupId]?.rounds ?? []).some((round) =>
+					round.items.some((row) => row.id === next.id),
+				),
+	);
+	if (current < 0 || current > from) return plan;
+	const order = [...plan.order];
+	const [entry] = order.splice(from, 1);
+	order.splice(current, 0, entry as OrderEntry);
 	return { ...plan, order };
 }
 const sameEntry = (a: OrderEntry, b: OrderEntry) =>

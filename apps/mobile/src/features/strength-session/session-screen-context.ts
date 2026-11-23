@@ -1,4 +1,5 @@
 import { createContext, useContext } from "react";
+import type { Doc } from "../../convex/api";
 import type { SessionActions } from "./data/session-actions";
 import type { SessionWorkspace } from "./data/session-workspace";
 import type { SessionPlan } from "./session-plan";
@@ -18,7 +19,13 @@ export interface SessionScreenValue {
 	openPicker: (request: PickerRequest) => void;
 	confirmDelete: (rowId: string) => void;
 	toggleRow: (rowId: string) => void;
+	/** Sets of the last finished session of this routine, for "Last time". */
+	previousSets: readonly PreviousSet[] | null;
 }
+type PreviousSet = Pick<
+	Doc<"sets">,
+	"exerciseId" | "weight" | "unit" | "reps" | "setType" | "setNumber"
+>;
 export const SessionScreenContext = createContext<SessionScreenValue | null>(
 	null,
 );

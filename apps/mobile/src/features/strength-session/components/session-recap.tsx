@@ -180,7 +180,6 @@ export function SessionRecap({
 	exerciseOf,
 	busy,
 	onConfirm,
-	onBack,
 }: {
 	name: string;
 	session: Pick<
@@ -195,7 +194,6 @@ export function SessionRecap({
 	exerciseOf: (exerciseId: string) => Exercise | undefined;
 	busy: boolean;
 	onConfirm: () => void;
-	onBack: () => void;
 }) {
 	const { locale, t } = useI18n();
 	const copy = t.strength.plan.finish;
@@ -523,16 +521,6 @@ export function SessionRecap({
 						{copy.save}
 					</AppText>
 				</Pressable>
-				<Pressable
-					accessibilityRole="button"
-					disabled={busy}
-					onPress={onBack}
-					style={[styles.secondary, compact && styles.secondaryCompact]}
-				>
-					<AppText variant="control" style={{ color: colors.text }}>
-						{copy.back}
-					</AppText>
-				</Pressable>
 			</View>
 		</View>
 	);
@@ -648,12 +636,6 @@ const createStyles = (colors: Tokens) =>
 		},
 		footerCompact: { flexDirection: "row-reverse", gap: spacing.sm },
 		grow: { flex: 1 },
-		secondaryCompact: {
-			minHeight: 56,
-			paddingHorizontal: spacing.md,
-			borderRadius: radius.pill,
-			backgroundColor: colors.surface2,
-		},
 		section: { gap: spacing.sm },
 		sectionHead: { color: colors.textMuted, paddingHorizontal: spacing.xs },
 		card: {
@@ -703,10 +685,5 @@ const createStyles = (colors: Tokens) =>
 			justifyContent: "center",
 			borderRadius: radius.pill,
 			backgroundColor: colors.accentFill,
-		},
-		secondary: {
-			minHeight: 48,
-			alignItems: "center",
-			justifyContent: "center",
 		},
 	});

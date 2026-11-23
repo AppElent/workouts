@@ -25,12 +25,12 @@ import type { ExerciseId } from "@foundry/core/exercises";
 import { useMutation } from "convex/react";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { Platform, ScrollView, StyleSheet, View } from "react-native";
 import { api } from "../../../convex/api";
 import { useQuery } from "../../../convex/query-cache";
 import { useExercise } from "../../../data/exercises";
 import { formatSessionDate } from "../../../data/session-data";
-import { dateLocale, fmt, type Locale, useI18n } from "../../../i18n";
+import { dateLocale, fmt, type Locale, plural, useI18n } from "../../../i18n";
 import {
 	radius,
 	spacing,
@@ -39,6 +39,7 @@ import {
 	useThemedStyles,
 	useTokens,
 } from "../../../theme";
+import { BackLink } from "../../../ui/back-link";
 import { TrendChart } from "../../../ui/chart";
 import { Card, Eyebrow, StatBox } from "../../../ui/coach";
 import { useConfirm } from "../../../ui/confirm-dialog";
@@ -48,6 +49,7 @@ import { Segmented } from "../../../ui/segmented";
 import { SkeletonBlock, SkeletonList } from "../../../ui/skeleton";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
+import { TrendLine } from "../../../ui/trend-line";
 import { useWriteFailureMessage } from "../../../ui/use-screen-write";
 import {
 	latestBodyweightKg,
@@ -55,10 +57,10 @@ import {
 	levelOf,
 	strengthLevels,
 } from "../../strength-session/strength-levels";
-import { dailyBest, exerciseInsight } from "./exercise-insight";
+import { dailyBest, dayOf, exerciseInsight } from "./exercise-insight";
 import { MuscleIcon } from "./muscle-icon";
 
-type Tab = "Overview" | "Progress" | "History";
+type Tab = "Overview" | "History" | "Records";
 
 /** Rep counts the strength curve covers — beyond ten, Epley stops meaning much. */
 const CURVE_REPS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
@@ -82,7 +84,7 @@ export function ExerciseDetailScreen() {
 	const remove = useMutation(api.exercises.remove);
 	const [deleting, setDeleting] = useState(false);
 	const styles = useThemedStyles(createStyles);
-	const params = useLocalSearchParams<{ id?: string }>();
+	const params = useLocalSearchParams<{ id?: string; from?: string }>();
 	const exerciseId = params.id as ExerciseId | undefined;
 
 	const [tab, setTab] = useState<Tab>("Overview");
@@ -165,10 +167,37 @@ export function ExerciseDetailScreen() {
 			contentContainerStyle={styles.content}
 			showsVerticalScrollIndicator={false}
 		>
+			{params.from === "session" ? (
+				<Stack.Toolbar placement="left">
+					{Platform.OS === "ios" ? (
+						// "‹ Sessie": an icon button would hide the label (APP-619).
+						<Stack.Toolbar.View hidesSharedBackground>
+							<BackLink
+								label={t.exercises.backSession}
+								onPress={() => router.back()}
+								testID="exercise-back-session"
+							/>
+						</Stack.Toolbar.View>
+					) : (
+						<Stack.Toolbar.Button
+							icon="chevron.left"
+							accessibilityLabel={t.exercises.backSession}
+							onPress={() => router.back()}
+						>
+							{t.exercises.backSession}
+						</Stack.Toolbar.Button>
+					)}
+				</Stack.Toolbar>
+			) : null}
 			<View style={styles.header}>
-				<MuscleIcon group={primaryMuscleGroup(exercise)} size={80} />
+				<View style={styles.iconTile}>
+					<MuscleIcon group={primaryMuscleGroup(exercise)} size={60} />
+				</View>
 				<View style={styles.flex}>
-					<ScreenHeader title={exercise.name} />
+					{/* In the session sheet the big title below is the only one (APP-619). */}
+					<ScreenHeader
+						title={params.from === "session" ? "" : exercise.name}
+					/>
 					<Stack.Toolbar placement="right">
 						<Stack.Toolbar.Menu
 							icon="ellipsis"
@@ -211,7 +240,9 @@ export function ExerciseDetailScreen() {
 							)}
 						</Stack.Toolbar.Menu>
 					</Stack.Toolbar>
-					<AppText variant="title">{exercise.name}</AppText>
+					<AppText variant="title" numberOfLines={2}>
+						{exercise.name}
+					</AppText>
 					<AppText variant="caption" style={{ color: colors.textMuted }}>
 						{[
 							t.exercises.groupNames[primaryMuscleGroup(exercise)],
@@ -229,22 +260,21 @@ export function ExerciseDetailScreen() {
 				onChange={setTab}
 				options={[
 					{ value: "Overview", label: t.exercises.overview },
-					{ value: "Progress", label: t.exercises.progress },
 					{ value: "History", label: t.exercises.history },
+					{ value: "Records", label: t.exercises.recordsTab },
 				]}
 			/>
 
 			{tab === "Overview" ? (
+				<OverviewInsight
+					exerciseId={exercise._id}
+					timed={timed}
+					weighted={isLoadedEquipment(exercise.equipment)}
+					currentOrm={currentOrm}
+					insight={insight}
+				/>
+			) : tab === "Records" ? (
 				<>
-					<OverviewInsight
-						exerciseId={exercise._id}
-						timed={timed}
-						weighted={isLoadedEquipment(exercise.equipment)}
-						currentOrm={currentOrm}
-						insight={insight}
-						bodyweightKg={latestBodyweightKg(bodyMetrics)}
-					/>
-
 					{records ? (
 						<>
 							<Eyebrow>{t.exercises.detail.records}</Eyebrow>
@@ -281,6 +311,17 @@ export function ExerciseDetailScreen() {
 						</>
 					) : null}
 
+					<LevelCard
+						exerciseId={exercise._id}
+						timed={timed}
+						currentOrm={currentOrm}
+						bodyweightKg={latestBodyweightKg(bodyMetrics)}
+					/>
+					<ProgressTab
+						exerciseId={exerciseId}
+						repMaxes={records?.repMaxes ?? []}
+						currentOrm={currentOrm ?? null}
+					/>
 					{exercise.notes ? (
 						<>
 							<Eyebrow>{t.exercises.detail.notes}</Eyebrow>
@@ -306,12 +347,6 @@ export function ExerciseDetailScreen() {
 						</>
 					) : null}
 				</>
-			) : tab === "Progress" ? (
-				<ProgressTab
-					exerciseId={exerciseId}
-					repMaxes={records?.repMaxes ?? []}
-					currentOrm={currentOrm ?? null}
-				/>
 			) : (
 				<HistoryTab
 					sessions={
@@ -410,57 +445,106 @@ function ProgressTab({
 
 type Insight = ReturnType<typeof exerciseInsight>;
 
+type Orm = { value: number; unit: "kg" | "lbs"; source: string };
+
+/** A tile under the 1RM card: a label, a number, and what it is relative to. */
+function Tile({
+	label,
+	value,
+	unit,
+	caption,
+}: {
+	label: string;
+	value: string;
+	unit?: string;
+	caption?: string;
+}) {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
+	return (
+		<View style={styles.tile} accessible>
+			<AppText
+				variant="overline"
+				numberOfLines={1}
+				adjustsFontSizeToFit
+				minimumFontScale={0.7}
+				style={{ color: colors.textMuted }}
+			>
+				{label}
+			</AppText>
+			<AppText
+				variant="stat"
+				numberOfLines={1}
+				adjustsFontSizeToFit
+				minimumFontScale={0.6}
+				style={styles.tabular}
+			>
+				{value}
+				{unit ? (
+					<AppText variant="stat" style={{ color: colors.text }}>
+						{` ${unit}`}
+					</AppText>
+				) : null}
+			</AppText>
+			{caption ? (
+				<AppText
+					variant="caption"
+					numberOfLines={1}
+					style={{ color: colors.textMuted }}
+				>
+					{caption}
+				</AppText>
+			) : null}
+		</View>
+	);
+}
+
 function OverviewInsight({
 	exerciseId,
 	timed,
 	weighted,
 	currentOrm,
 	insight,
-	bodyweightKg,
 }: {
 	exerciseId: string;
 	timed: boolean;
 	/** Loaded equipment: only these have a Krachtprofiel. */
 	weighted: boolean;
-	currentOrm:
-		| { value: number; unit: "kg" | "lbs"; source: string }
-		| null
-		| undefined;
+	currentOrm: Orm | null | undefined;
 	insight: Insight | null;
-	bodyweightKg: number | null;
 }) {
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
 	const router = useRouter();
 	const { t, locale } = useI18n();
 	const copy = t.exercises.detail;
-	const levelNames = t.strength.plan.editor.levels;
 	const ormKg = currentOrm
 		? convertLoad(currentOrm.value, currentOrm.unit, "kg")
 		: null;
-	const levels = timed
-		? null
-		: strengthLevels(levelKey(exerciseId), bodyweightKg);
-	const where =
-		levels && ormKg && bodyweightKg
-			? levelOf(levels, ormKg, bodyweightKg)
-			: null;
 	const trend = insight?.trend;
 	const volume = insight?.volume ?? 0;
+	const points = insight?.points ?? [];
+	const first = insight?.sessions.at(-1)?.date ?? null;
 	return (
 		<>
-			<Card style={styles.ormCard}>
+			<View style={styles.ormCard}>
 				<View style={styles.ormHead}>
 					<View style={styles.flex}>
-						<Eyebrow>{copy.estimatedOrm}</Eyebrow>
+						<AppText variant="overline" style={{ color: colors.textMuted }}>
+							{currentOrm?.source === "manual"
+								? copy.manualOrm
+								: currentOrm?.source === "actual"
+									? copy.measuredOrm
+									: copy.estimatedOrm}
+						</AppText>
 						{currentOrm === undefined ? (
 							<SkeletonBlock height={40} />
 						) : currentOrm === null ? (
 							<AppText variant="caption">{copy.noOrm}</AppText>
 						) : (
-							<AppText variant="display" style={styles.tabular}>
+							<AppText variant="valueSmall" style={styles.tabular}>
 								{formatKg(currentOrm.value, locale)}
-								<AppText variant="label" style={{ color: colors.textMuted }}>
+								<AppText variant="stat" style={{ color: colors.textMuted }}>
 									{` ${currentOrm.unit}`}
 								</AppText>
 							</AppText>
@@ -479,18 +563,37 @@ function OverviewInsight({
 							<AppText
 								variant="label"
 								style={{
+									fontWeight: "700",
 									color: trend.kg > 0 ? colors.accentInk : colors.textMuted,
 								}}
 							>
 								{fmt(trend.kg > 0 ? copy.trendUp : copy.trendDown, {
 									value: formatKg(Math.abs(trend.kg), locale),
-									weeks: trend.weeks,
+									weeks: fmt(plural(locale, trend.weeks, copy.weeks), {
+										count: trend.weeks,
+									}),
 								})}
 							</AppText>
 						</View>
 					) : null}
 				</View>
-				{currentOrm ? (
+				{points.length >= 2 ? (
+					<TrendLine
+						height={150}
+						summary={fmt(copy.trendSummary, {
+							from: formatKg(points[0]?.kg ?? 0, locale),
+							to: formatKg(points.at(-1)?.kg ?? 0, locale),
+						})}
+						points={points.map((point, index) => ({
+							value: Math.round(point.kg * 10) / 10,
+							label:
+								index === points.length - 1 &&
+								dayOf(point.date) === dayOf(Date.now())
+									? copy.today
+									: shortDate(point.date, locale),
+						}))}
+					/>
+				) : currentOrm ? (
 					<AppText variant="caption" style={{ color: colors.textMuted }}>
 						{currentOrm.source === "calculated"
 							? copy.calculated
@@ -499,112 +602,62 @@ function OverviewInsight({
 								: copy.manual}
 					</AppText>
 				) : null}
-			</Card>
-
-			{weighted && !timed ? (
-				<View style={styles.profileRow}>
-					<DisclosureRow
-						label={t.strength.plan.profile.title}
-						onPress={() =>
-							router.push({
-								pathname: "/strength-profile",
-								params: { exerciseId },
-							})
-						}
-					/>
-				</View>
-			) : null}
-
-			{insight && insight.points.length >= 2 ? (
-				<TrendChart
-					title={copy.ormOverTime}
-					points={insight.points.map((point) => ({
-						value: Math.round(point.kg * 10) / 10,
-						label: shortDate(point.date, locale),
-					}))}
-				/>
-			) : null}
+			</View>
 
 			{insight && insight.sessionCount > 0 ? (
 				<View style={styles.statRow}>
-					<StatBox
+					<Tile
+						label={copy.bestSet}
 						value={
 							insight.best
 								? `${formatKg(insight.best.kg, locale, 2)} × ${insight.best.reps}`
 								: "—"
 						}
-						label={copy.bestSet}
+						caption={
+							insight.best ? shortDate(insight.best.date, locale) : undefined
+						}
 					/>
 					{timed ? null : (
-						<StatBox
+						<Tile
+							label={copy.volume4w}
 							value={
 								volume >= 1000
 									? formatKg(volume / 1000, locale)
 									: formatKg(volume, locale, 0)
 							}
 							unit={volume >= 1000 ? "t" : "kg"}
-							label={
+							caption={
 								insight.volumeChange === null
-									? copy.volume4w
-									: `${copy.volume4w} · ${insight.volumeChange >= 0 ? "▲" : "▼"} ${Math.abs(insight.volumeChange)}%`
+									? undefined
+									: `${insight.volumeChange >= 0 ? "▲" : "▼"} ${Math.abs(insight.volumeChange)}%`
 							}
 						/>
 					)}
-					<StatBox value={String(insight.sessionCount)} label={copy.sessions} />
+					<Tile
+						label={copy.sessions}
+						value={String(insight.sessionCount)}
+						caption={
+							first === null
+								? undefined
+								: fmt(copy.since, {
+										month: new Date(first).toLocaleDateString(
+											dateLocale(locale),
+											{ month: "short" },
+										),
+									})
+						}
+					/>
 				</View>
-			) : null}
-
-			{levels ? (
-				<Card style={styles.ormCard}>
-					<Eyebrow>{copy.level}</Eyebrow>
-					<View style={styles.levelBar}>
-						{levels.map((level, index) => (
-							<View key={level.id} style={styles.levelCell}>
-								<View
-									style={[
-										styles.levelFill,
-										{
-											backgroundColor:
-												where && index <= where.index
-													? colors.accentFill
-													: colors.surface2,
-										},
-									]}
-								/>
-								<AppText
-									variant="caption"
-									numberOfLines={1}
-									adjustsFontSizeToFit
-									style={{
-										color:
-											where?.index === index ? colors.text : colors.textMuted,
-										fontWeight: where?.index === index ? "700" : "500",
-									}}
-								>
-									{levelNames[level.id]}
-								</AppText>
-							</View>
-						))}
-					</View>
-					<AppText variant="secondary" style={{ color: colors.textMuted }}>
-						{!bodyweightKg
-							? t.strength.plan.editor.levelsNoWeight
-							: !where
-								? t.strength.plan.editor.levelGuide
-								: where.toNextKg === null
-									? copy.levelTop
-									: fmt(copy.levelNext, {
-											next: where.toNextKg,
-											level:
-												levelNames[levels[where.index + 1]?.id ?? "expert"],
-										})}
-					</AppText>
-				</Card>
 			) : null}
 
 			{ormKg && !timed ? (
 				<>
-					<Eyebrow>{copy.canLift}</Eyebrow>
+					<AppText
+						variant="overline"
+						style={[styles.sectionLabel, { color: colors.textMuted }]}
+					>
+						{copy.canLift}
+					</AppText>
 					<View style={styles.canLift}>
 						{repMaxCurve(ormKg, CAN_LIFT_REPS).map(
 							({ reps, weight }, index) => (
@@ -629,7 +682,94 @@ function OverviewInsight({
 					</View>
 				</>
 			) : null}
+
+			{weighted && !timed ? (
+				<View style={styles.profileRow}>
+					<DisclosureRow
+						label={t.strength.plan.profile.title}
+						onPress={() =>
+							router.push({
+								pathname: "/strength-profile",
+								params: { exerciseId },
+							})
+						}
+					/>
+				</View>
+			) : null}
 		</>
+	);
+}
+
+/** Where your 1RM sits against common strength standards. */
+function LevelCard({
+	exerciseId,
+	timed,
+	currentOrm,
+	bodyweightKg,
+}: {
+	exerciseId: string;
+	timed: boolean;
+	currentOrm: Orm | null | undefined;
+	bodyweightKg: number | null;
+}) {
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
+	const { t } = useI18n();
+	const copy = t.exercises.detail;
+	const levelNames = t.strength.plan.editor.levels;
+	const ormKg = currentOrm
+		? convertLoad(currentOrm.value, currentOrm.unit, "kg")
+		: null;
+	const levels = timed
+		? null
+		: strengthLevels(levelKey(exerciseId), bodyweightKg);
+	if (!levels) return null;
+	const where =
+		ormKg && bodyweightKg ? levelOf(levels, ormKg, bodyweightKg) : null;
+	return (
+		<Card style={styles.levelCard}>
+			<Eyebrow>{copy.level}</Eyebrow>
+			<View style={styles.levelBar}>
+				{levels.map((level, index) => (
+					<View key={level.id} style={styles.levelCell}>
+						<View
+							style={[
+								styles.levelFill,
+								{
+									backgroundColor:
+										where && index <= where.index
+											? colors.accentFill
+											: colors.surface2,
+								},
+							]}
+						/>
+						<AppText
+							variant="caption"
+							numberOfLines={1}
+							adjustsFontSizeToFit
+							style={{
+								color: where?.index === index ? colors.text : colors.textMuted,
+								fontWeight: where?.index === index ? "700" : "500",
+							}}
+						>
+							{levelNames[level.id]}
+						</AppText>
+					</View>
+				))}
+			</View>
+			<AppText variant="secondary" style={{ color: colors.textMuted }}>
+				{!bodyweightKg
+					? t.strength.plan.editor.levelsNoWeight
+					: !where
+						? t.strength.plan.editor.levelGuide
+						: where.toNextKg === null
+							? copy.levelTop
+							: fmt(copy.levelNext, {
+									next: where.toNextKg,
+									level: levelNames[levels[where.index + 1]?.id ?? "expert"],
+								})}
+			</AppText>
+		</Card>
 	);
 }
 
@@ -745,11 +885,42 @@ const createStyles = (colors: Tokens) =>
 			gap: spacing.sm,
 		},
 		centeredText: { textAlign: "center" },
-		header: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+		header: { flexDirection: "row", alignItems: "center", gap: spacing.md },
 		flex: { flex: 1 },
 		meta: { textTransform: "capitalize" },
 		chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs + 2 },
-		ormCard: { gap: spacing.xs },
+		ormCard: {
+			gap: spacing.sm,
+			padding: spacing.md,
+			backgroundColor: colors.surface,
+			borderRadius: 24,
+			borderCurve: "continuous",
+			borderWidth: 1,
+			borderColor: colors.border,
+		},
+		levelCard: { gap: spacing.xs },
+		iconTile: {
+			width: 64,
+			height: 64,
+			alignItems: "center",
+			justifyContent: "center",
+			borderRadius: 18,
+			borderCurve: "continuous",
+			backgroundColor: colors.surface2,
+		},
+		tile: {
+			flex: 1,
+			minWidth: 0,
+			gap: 2,
+			paddingVertical: spacing.sm + 2,
+			paddingHorizontal: spacing.sm + 4,
+			backgroundColor: colors.surface,
+			borderRadius: 20,
+			borderCurve: "continuous",
+			borderWidth: 1,
+			borderColor: colors.border,
+		},
+		sectionLabel: { paddingHorizontal: spacing.xs, paddingTop: spacing.sm },
 		ormValue: {
 			fontSize: type.display.fontSize,
 			fontWeight: "800",
@@ -764,7 +935,7 @@ const createStyles = (colors: Tokens) =>
 		tabular: { fontVariant: ["tabular-nums"] },
 		ormHead: {
 			flexDirection: "row",
-			alignItems: "flex-start",
+			alignItems: "center",
 			gap: spacing.sm,
 		},
 		trend: {
