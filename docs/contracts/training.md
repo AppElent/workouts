@@ -118,8 +118,9 @@ the app; there is no separate data.
   subtitle. Without advanced details it shows last time's sets, never an empty
   middle. Advanced adds percentage chips and optional RPE showing reps remaining
   (half values reachable). The 1RM source (measured, manual, estimated) is named
-  wherever it is used. There is no
-  advanced mode: Meer only folds details, and it offers no other way to log.
+  wherever it is used. Simple or advanced is a choice in the editor menu,
+  remembered on the device; advanced only shows more and offers no other way to
+  log.
 - Percentage chips use the session's 1RM: Measured unless a newer manual 1RM is
   saved. Choosing one changes the weight; the sheet shows the 1RM this set would
   produce. Missing references are unknown and do not block logging. Never replace

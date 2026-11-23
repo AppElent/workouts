@@ -42,13 +42,15 @@ import { useSessionScreen } from "../session-screen-context";
 export function nowSet(plan: SessionPlan) {
 	const row = nextOpenRow(plan);
 	if (!row || groupOfRow(plan, row.id)) return null;
-	const working = rowsOf(plan, row.exerciseId).filter(
-		(item) => item.kind !== "warmup",
-	);
-	const index = working.findIndex((item) => item.id === row.id);
+	const warmup = row.kind === "warmup";
+	const rows = rowsOf(plan, row.exerciseId);
+	const working = rows.filter((item) => item.kind !== "warmup");
+	// Its place among sets of its own kind: a warm-up is warm-up 1, 2, …
+	const same = warmup ? rows.filter((item) => item.kind === "warmup") : working;
+	const index = same.findIndex((item) => item.id === row.id);
 	return {
 		row,
-		warmup: row.kind === "warmup",
+		warmup,
 		number: index + 1,
 		total: working.length,
 	};
@@ -205,7 +207,7 @@ export function NowCard() {
 	const previous =
 		(previousSets
 			? previousSetOf(previousSets, row.exerciseId, now.number, now.warmup)
-			: null) ?? facts.last;
+			: null) ?? (now.warmup ? null : facts.last);
 	const logLabel = now.warmup
 		? copy.logWarmup
 		: fmt(copy.log, { number: now.number });
@@ -365,7 +367,11 @@ export function NowCard() {
 				) : (
 					<Pressable
 						accessibilityRole="button"
-						accessibilityLabel={fmt(copy.edit, { number: now.number })}
+						accessibilityLabel={
+							now.warmup
+								? copy.editWarmup
+								: fmt(copy.edit, { number: now.number })
+						}
 						onPress={() => openEditor(materialize())}
 						testID="session-now-edit"
 					>
@@ -383,6 +389,7 @@ export function NowCard() {
 					<Pressable
 						accessibilityRole="button"
 						accessibilityLabel={copy.spokenOther}
+						accessibilityState={{ disabled: !workspace.online }}
 						disabled={!workspace.online}
 						onPress={() => openPicker({ mode: "add" })}
 						style={[styles.other, !workspace.online && styles.off]}
@@ -423,7 +430,11 @@ export function NowCard() {
 				</View>
 				<Pressable
 					accessibilityRole="button"
-					accessibilityLabel={fmt(copy.edit, { number: now.number })}
+					accessibilityLabel={
+						now.warmup
+							? copy.editWarmup
+							: fmt(copy.edit, { number: now.number })
+					}
 					onPress={() => openEditor(materialize())}
 					style={styles.edit}
 					testID="session-now-edit"

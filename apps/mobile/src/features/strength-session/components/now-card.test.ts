@@ -66,4 +66,25 @@ describe("nowTarget", () => {
 		expect(real?.number).toBe(draft?.number);
 		expect(real?.row.kg).toBe(draft?.row.kg);
 	});
+
+	it("numbers a warm-up among warm-ups and counts only working sets", () => {
+		const added = addExerciseToPlan(emptyPlan(), "bench", FACTS).plan;
+		const work = (added.sets.bench ?? [])[0];
+		if (!work) throw new Error("no row");
+		const plan: SessionPlan = {
+			...added,
+			sets: {
+				bench: [
+					{ ...work, id: "w1", kind: "warmup", done: true },
+					{ ...work, id: "w2", kind: "warmup" },
+					{ ...work, id: "s1" },
+				],
+			},
+		};
+		expect(nowTarget(plan)).toMatchObject({
+			warmup: true,
+			number: 2,
+			total: 1,
+		});
+	});
 });

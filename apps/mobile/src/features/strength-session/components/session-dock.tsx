@@ -276,6 +276,7 @@ function SearchCard() {
 			<Pressable
 				accessibilityRole="search"
 				accessibilityLabel={copy.quickSearch}
+				accessibilityState={{ disabled: !workspace.online }}
 				disabled={!workspace.online}
 				onPress={() => openPicker({ mode: "add" })}
 				style={[styles.search, !workspace.online && styles.dimmed]}

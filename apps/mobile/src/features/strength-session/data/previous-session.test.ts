@@ -1,5 +1,10 @@
 import type { Doc, Id } from "../../../convex/api";
-import { pickPrevious, totalsOf } from "./previous-session";
+import {
+	pickPrevious,
+	previousSetOf,
+	previousSetsOf,
+	totalsOf,
+} from "./previous-session";
 
 const id = (value: string) => value as Id<"workoutSessions">;
 const routine = (value: string) => value as Id<"routines">;
@@ -90,5 +95,62 @@ describe("totalsOf", () => {
 		expect(totals.byExercise.bench).toEqual({ sets: 2, volume: 80 * 17 });
 		expect(totals.byExercise.row).toEqual({ sets: 1, volume: 600 });
 		expect(totals.durationSeconds).toBe(3600);
+	});
+});
+
+describe("previousSetOf", () => {
+	const set = (
+		setNumber: number,
+		setType: "warmup" | "working",
+		weight: number,
+		exerciseId = "bench",
+	) => ({
+		exerciseId,
+		setNumber,
+		setType,
+		weight,
+		unit: "kg" as const,
+		reps: 5,
+		rpe: 8,
+		loggedAt: 1000 + setNumber,
+	});
+	// Logged out of order, with another exercise in between.
+	const last = [
+		set(4, "working", 100),
+		set(1, "warmup", 20),
+		set(2, "warmup", 60),
+		set(1, "working", 50, "squat"),
+		set(3, "working", 90),
+	];
+
+	it("lists one exercise's sets in the order they were done", () => {
+		expect(previousSetsOf(last, "bench").map((s) => s.weight)).toEqual([
+			20, 60, 90, 100,
+		]);
+	});
+
+	it("matches a working set by its place among working sets", () => {
+		expect(previousSetOf(last, "bench", 1)).toEqual({
+			kg: 90,
+			reps: 5,
+			rpe: 8,
+			date: 1003,
+		});
+		expect(previousSetOf(last, "bench", 2)?.kg).toBe(100);
+	});
+
+	it("matches a warm-up among warm-ups only", () => {
+		expect(previousSetOf(last, "bench", 1, true)?.kg).toBe(20);
+		expect(previousSetOf(last, "bench", 2, true)?.kg).toBe(60);
+	});
+
+	it("uses the last one of its kind past the end", () => {
+		expect(previousSetOf(last, "bench", 5)?.kg).toBe(100);
+		expect(previousSetOf(last, "bench", 3, true)?.kg).toBe(60);
+	});
+
+	it("has nothing when that kind was not done last time", () => {
+		expect(previousSetOf(last, "squat", 1, true)).toBeNull();
+		expect(previousSetOf(last, "row", 1)).toBeNull();
 	});
 });

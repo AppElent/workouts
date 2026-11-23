@@ -386,6 +386,8 @@ export function StrengthSessionScreen() {
 						headerLeft: () => (
 							<Pressable
 								accessibilityRole="button"
+								accessibilityState={{ disabled: finishing }}
+								disabled={finishing}
 								onPress={() => setRecapOpen(false)}
 								style={styles.androidHeaderButton}
 							>
@@ -431,7 +433,16 @@ export function StrengthSessionScreen() {
 					}
 				: {}),
 		}),
-		[colors.accent, copy, headerTitle, minimise, name, recapOpen, showChrome],
+		[
+			colors.accent,
+			copy,
+			finishing,
+			headerTitle,
+			minimise,
+			name,
+			recapOpen,
+			showChrome,
+		],
 	);
 	return (
 		<>

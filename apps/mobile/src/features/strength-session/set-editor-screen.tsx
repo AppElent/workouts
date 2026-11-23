@@ -39,7 +39,13 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { api, type Id } from "../../convex/api";
 import { useQuery } from "../../convex/query-cache";
-import { fmt, parseLocalizedDecimal, useI18n } from "../../i18n";
+import {
+	dateLocale,
+	fmt,
+	type Locale,
+	parseLocalizedDecimal,
+	useI18n,
+} from "../../i18n";
 import {
 	PREFERENCE_KEYS,
 	readLocal,
@@ -214,7 +220,7 @@ const NAV_TITLE_MAX_SCALE = 1.3;
 function lastLine(
 	last: { kg: number; reps: number; rpe?: number | null; date?: number | null },
 	text: { previous: string; previousRpe: string; previousDate: string },
-	locale: string,
+	locale: Locale,
 	format: (set: { kg: number; reps: number }) => string,
 ) {
 	const load = format(last);
@@ -224,7 +230,7 @@ function lastLine(
 			: fmt(text.previous, { load });
 	if (typeof last.date !== "number") return line;
 	const date = new Date(last.date)
-		.toLocaleDateString(locale, { day: "numeric", month: "short" })
+		.toLocaleDateString(dateLocale(locale), { day: "numeric", month: "short" })
 		.replace(".", "");
 	return fmt(text.previousDate, { line, date });
 }
@@ -588,7 +594,8 @@ export function SetEditorScreen() {
 								estimated: theory(others.estimated),
 							})
 						: "";
-	const lastSet = matched ?? facts.last;
+	// A warm-up never borrows last time's work set.
+	const lastSet = matched ?? (row?.kind === "warmup" ? null : facts.last);
 	const previousLine = logged
 		? text.loggedSub
 		: lastSet
@@ -971,7 +978,7 @@ export function SetEditorScreen() {
 								<AppText variant="overline" style={styles.sectionTitle}>
 									{fmt(text.lastTimeTitle, {
 										date: new Date(previous.date)
-											.toLocaleDateString(locale, {
+											.toLocaleDateString(dateLocale(locale), {
 												day: "numeric",
 												month: "short",
 											})
