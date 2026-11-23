@@ -53,6 +53,17 @@ describe("clerkErrorMessageKey", () => {
 		);
 	});
 
+	it.each([
+		["form_password_not_strong_enough", "passwordDoesNotMeetRequirements"],
+		["form_password_no_uppercase", "passwordDoesNotMeetRequirements"],
+		["form_password_no_lowercase", "passwordDoesNotMeetRequirements"],
+		["form_password_no_number", "passwordDoesNotMeetRequirements"],
+		["form_password_no_special_char", "passwordDoesNotMeetRequirements"],
+		["form_conditional_param_missing", "required"],
+	])("maps %s to %s (APP-538)", (code, key) => {
+		expect(clerkErrorMessageKey({ errors: [{ code }] })).toBe(key);
+	});
+
 	it("tells too many wrong codes apart from one wrong code", () => {
 		// Dev Clerk, 21 Nov 2026: three wrong codes give `form_code_incorrect`,
 		// the fourth `verification_failed` ("Too many failed attempts").
