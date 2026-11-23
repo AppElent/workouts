@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing Profile, settings, account actions, or sign-out.
-version: 2.2.0
+version: 2.3.0
 status: current
 ---
 
@@ -32,6 +32,11 @@ tap. Study: [profile](../../designs/app/profile_final.html).
     the shape iOS AutoFill needs. Clerk changes it and signs out the account's
     other sessions; its error shows on the field it concerns. Accounts that sign
     in only with a social provider or an emailed code see no row.
+  - *Manage your AppElent account.* A row (web: a link in a new tab;
+    phone: the in-app browser) opens the AppElent account
+    portal at `ACCOUNT_PORTAL_URL` (`packages/core`) for sign-in methods,
+    devices, two-step verification, and each app's data. Every account screen
+    here stays ([APP-666](https://linear.app/appelent/issue/APP-666)).
   - *Export.* An online JSON file of every personal table, shared through the
     system share sheet. Receipts and counters are omitted; Food photo files are
     not included.

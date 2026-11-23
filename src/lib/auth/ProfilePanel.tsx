@@ -1,5 +1,6 @@
 import { useClerk, useUser } from "@clerk/react";
 import { useEffect, useState } from "react";
+import { AccountPortalLink } from "#/components/account/AccountPortalLink";
 import { useToast } from "#/components/ui/toast";
 import { fmt, useMessages } from "#/lib/i18n";
 import { AuthButton } from "./AuthButton";
@@ -140,6 +141,8 @@ export function ProfilePanel() {
 					</form>
 				</section>
 			)}
+
+			<AccountPortalLink />
 
 			<section className="rounded-xl border border-border bg-surface p-4">
 				<p className="text-sm font-semibold text-text">{text.session}</p>

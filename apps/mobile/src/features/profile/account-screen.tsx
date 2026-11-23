@@ -1,4 +1,5 @@
 import { useAuth, useClerk, useUser } from "@clerk/expo";
+import { ACCOUNT_PORTAL_URL } from "@foundry/core";
 import { useConvex } from "convex/react";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
@@ -258,6 +259,13 @@ export function AccountScreen() {
 						onPress={() => router.push("/change-password")}
 					/>
 				) : null}
+			</FormSection>
+
+			<FormSection footer={c.portalFooter}>
+				<DisclosureRow
+					label={c.portal}
+					onPress={() => WebBrowser.openBrowserAsync(ACCOUNT_PORTAL_URL)}
+				/>
 			</FormSection>
 
 			<FormSection

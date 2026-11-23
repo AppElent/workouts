@@ -1,13 +1,20 @@
+import { ACCOUNT_PORTAL_URL } from "@foundry/core";
 import { fireEvent, screen, waitFor } from "@testing-library/react-native";
 import { useConvex, useMutation, useQuery } from "convex/react";
 import { getFunctionName } from "convex/server";
 import * as AppleAuthentication from "expo-apple-authentication";
+import * as WebBrowser from "expo-web-browser";
 import { Platform } from "react-native";
 import {
 	clearSignedOutNotice,
 	signedOutNotice,
 } from "../../auth/signed-out-notice";
-import { registerAccountStore } from "../../local-store/local-store";
+import {
+	PREFERENCE_KEYS,
+	registerAccountStore,
+	removeLocal,
+	writeLocal,
+} from "../../local-store/local-store";
 import { reportError } from "../../observability/errors";
 import { renderScreen } from "../../test-support/render-screen";
 import { AccountDataMaintenanceProvider } from "../local-data/account-data-maintenance-provider";
@@ -52,6 +59,7 @@ const mockPush = jest.fn();
 jest.mock("expo-router", () => ({ useRouter: () => ({ push: mockPush }) }));
 
 jest.mock("expo-apple-authentication", () => ({ signInAsync: jest.fn() }));
+jest.mock("expo-web-browser", () => ({ openBrowserAsync: jest.fn() }));
 jest.mock("expo-constants", () => ({
 	__esModule: true,
 	default: {
@@ -133,6 +141,25 @@ it("saves an edited name through Clerk", async () => {
 		}),
 	);
 	expect(await screen.findByText("Name saved.")).toBeTruthy();
+});
+
+describe("the account portal row", () => {
+	afterEach(() => removeLocal(PREFERENCE_KEYS.locale));
+
+	it.each([
+		["en", "Manage your AppElent account"],
+		["nl", "Beheer je AppElent-account"],
+	])(
+		"opens the AppElent account portal in the browser (%s)",
+		async (locale, label) => {
+			writeLocal(PREFERENCE_KEYS.locale, locale);
+			await renderAccount();
+			await fireEvent.press(screen.getByRole("button", { name: label }));
+			expect(WebBrowser.openBrowserAsync).toHaveBeenCalledWith(
+				ACCOUNT_PORTAL_URL,
+			);
+		},
+	);
 });
 
 describe("the Change password row", () => {
