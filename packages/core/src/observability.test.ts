@@ -76,6 +76,39 @@ it("drops console output and network payloads from breadcrumbs", () => {
 	).toEqual({ url: "https://api.test", status_code: 500 });
 });
 
+it("drops interaction breadcrumbs, whose messages are accessible names", () => {
+	for (const [category, message] of [
+		["ui.click", 'button[aria-label="Monday 23 Nov, 2,150 kcal"]'],
+		["ui.input", 'input[title="Body weight 82.4 kg"]'],
+		["touch", "Touch event within element: Bench press, 3 sets of 80 kg"],
+		["ui.multiClick", "Rage Tap on Account details, Jane Doe"],
+	]) {
+		expect(sanitizeBreadcrumb({ category, message })).toBeNull();
+	}
+	expect(
+		sanitizeBreadcrumb({
+			category: "navigation",
+			data: { from: "/", to: "/x" },
+		}),
+	).toEqual({ category: "navigation", data: { from: "/", to: "/x" } });
+});
+
+it("sanitizes breadcrumbs merged into an event after beforeBreadcrumb", () => {
+	const result = sanitizeEvent({
+		breadcrumbs: [
+			{ category: "ui.click", message: 'button[aria-label="Jane Doe"]' },
+			{ category: "console", message: "private payload" },
+			{
+				category: "http",
+				data: { url: "https://api.test?token=secret", body: "private" },
+			},
+		],
+	});
+	expect(result.breadcrumbs).toEqual([
+		{ category: "http", data: { url: "https://api.test" } },
+	]);
+});
+
 it("redacts typed feedback text, which bypasses beforeSend", () => {
 	const event = {
 		type: "feedback",
