@@ -76,6 +76,24 @@ it("drops console output and network payloads from breadcrumbs", () => {
 	).toEqual({ url: "https://api.test", status_code: 500 });
 });
 
+it("drops touch and rage-tap breadcrumbs, whose messages are accessibility labels", () => {
+	expect(
+		sanitizeBreadcrumb({
+			category: "touch",
+			message: "Touch event within element: Monday 23 Nov, 4 items, 2,150 kcal",
+		}),
+	).toBeNull();
+	expect(
+		sanitizeBreadcrumb({
+			category: "ui.multiClick",
+			message: "Rage Tap on Account details, Jane Doe",
+		}),
+	).toBeNull();
+	expect(
+		sanitizeBreadcrumb({ category: "navigation", message: "go" }),
+	).not.toBeNull();
+});
+
 it("redacts typed feedback text, which bypasses beforeSend", () => {
 	const event = {
 		type: "feedback",

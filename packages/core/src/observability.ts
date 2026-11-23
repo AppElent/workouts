@@ -68,6 +68,14 @@ export function sanitizeBreadcrumb<T extends ReportBreadcrumb>(
 ): T | null {
 	// Convex server console output can contain entire mutation payloads.
 	if (breadcrumb.category === "console") return null;
+	// Sentry's touch and rage-tap breadcrumbs use the tapped element's
+	// accessibility label as the message, and ours carry workout and nutrition
+	// values and the account name.
+	if (
+		breadcrumb.category === "touch" ||
+		breadcrumb.category === "ui.multiClick"
+	)
+		return null;
 	return {
 		...breadcrumb,
 		message: breadcrumb.message ? sanitizeText(breadcrumb.message) : undefined,
