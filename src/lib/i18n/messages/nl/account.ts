@@ -1,4 +1,9 @@
 export const account = {
+	portal: {
+		label: "Beheer je AppElent-account",
+		footer:
+			"Inlogmethoden, apparaten, tweestapsverificatie en je gegevens in elke AppElent-app.",
+	},
 	export: {
 		title: "Je gegevens exporteren",
 		footer:
