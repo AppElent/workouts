@@ -38,6 +38,8 @@ export function SessionProgress() {
 			? fmt(copy.volume, { volume: formatNumber(Math.round(volume), locale) })
 			: null;
 	if (!rows.some((row) => row.plan)) {
+		// Nothing logged yet: "0 sets · 0 exercises" says nothing (APP-624).
+		if (done.length === 0) return null;
 		const exercises = new Set(done.map((row) => row.exerciseId)).size;
 		const totals = `${plural(locale, done.length, copy.sets)} · ${plural(locale, exercises, copy.exercises)}`;
 		return (

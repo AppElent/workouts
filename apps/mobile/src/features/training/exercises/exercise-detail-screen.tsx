@@ -29,7 +29,7 @@ import { Platform, ScrollView, StyleSheet, View } from "react-native";
 import { api } from "../../../convex/api";
 import { useQuery } from "../../../convex/query-cache";
 import { useExercise } from "../../../data/exercises";
-import { formatSessionDate } from "../../../data/session-data";
+import { dayLabel, formatSessionDate } from "../../../data/session-data";
 import { dateLocale, fmt, type Locale, plural, useI18n } from "../../../i18n";
 import {
 	radius,
@@ -135,9 +135,15 @@ export function ExerciseDetailScreen() {
 	const insight = useMemo(
 		() =>
 			history
-				? exerciseInsight(history, ormHistory ?? [], Date.now(), timed)
+				? exerciseInsight(
+						history,
+						ormHistory ?? [],
+						Date.now(),
+						timed,
+						currentOrm,
+					)
 				: null,
-		[history, ormHistory, timed],
+		[history, ormHistory, timed, currentOrm],
 	);
 
 	if (exercise === undefined) {
@@ -174,6 +180,7 @@ export function ExerciseDetailScreen() {
 						<Stack.Toolbar.View hidesSharedBackground>
 							<BackLink
 								label={t.exercises.backSession}
+								spokenLabel={t.exercises.backSessionSpoken}
 								onPress={() => router.back()}
 								testID="exercise-back-session"
 							/>
@@ -181,7 +188,7 @@ export function ExerciseDetailScreen() {
 					) : (
 						<Stack.Toolbar.Button
 							icon="chevron.left"
-							accessibilityLabel={t.exercises.backSession}
+							accessibilityLabel={t.exercises.backSessionSpoken}
 							onPress={() => router.back()}
 						>
 							{t.exercises.backSession}
@@ -445,7 +452,12 @@ function ProgressTab({
 
 type Insight = ReturnType<typeof exerciseInsight>;
 
-type Orm = { value: number; unit: "kg" | "lbs"; source: string };
+type Orm = {
+	value: number;
+	unit: "kg" | "lbs";
+	source: string;
+	date: number;
+};
 
 /** A tile under the 1RM card: a label, a number, and what it is relative to. */
 function Tile({
@@ -614,7 +626,11 @@ function OverviewInsight({
 								: "—"
 						}
 						caption={
-							insight.best ? shortDate(insight.best.date, locale) : undefined
+							insight.best
+								? dayLabel(insight.best.date, copy.today, (time) =>
+										shortDate(time, locale),
+									)
+								: undefined
 						}
 					/>
 					{timed ? null : (
@@ -812,7 +828,12 @@ function HistoryTab({
 							numberOfLines={1}
 							style={[styles.flex, { color: colors.textMuted }]}
 						>
-							{[formatSessionDate(session.date, locale), session.name]
+							{[
+								dayLabel(session.date, copy.today, (time) =>
+									formatSessionDate(time, locale),
+								),
+								session.name,
+							]
 								.filter(Boolean)
 								.join(" · ")}
 						</AppText>

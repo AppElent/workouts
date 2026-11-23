@@ -32,6 +32,8 @@ import {
 
 const restKeys = accountKeyspace("strength-rest:v1");
 const ALERT_ID = "strength-rest";
+/** How long "Rest over" stays up before it clears itself (APP-624). */
+export const REST_OVER_LINGER_MS = 30_000;
 
 type Stored = {
 	endsAt: number | null;
@@ -184,6 +186,20 @@ export function RestTimerProvider({
 			current: () => visible.current.endsAt,
 		};
 	}, [copy, subject]);
+	// "Rest over" is a nudge, not a state: it clears itself after a while, so
+	// the Now card and the dock go back to the next set without a log.
+	const endsAt = stored.endsAt;
+	useEffect(() => {
+		if (endsAt === null) return;
+		const timer = setTimeout(
+			() => {
+				// A +15 in the meantime moved the end, so this one is stale.
+				if (visible.current.endsAt === endsAt) api.stop();
+			},
+			Math.max(0, endsAt + REST_OVER_LINGER_MS - Date.now()),
+		);
+		return () => clearTimeout(timer);
+	}, [endsAt, api]);
 	// A rest left by another session is cleared once the active one is known.
 	// An entry from before rests carried a session id is taken over by the
 	// active session while it still runs, so shipping this mid-rest keeps it.

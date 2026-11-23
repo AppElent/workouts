@@ -45,12 +45,34 @@ export function dailyBest(records: readonly OneRepMax[]) {
 		.map(([date, kg]) => ({ date, kg }));
 }
 
+/**
+ * The 1RM trend: the best record per day, up to the day the current 1RM was
+ * set, ending at the current value. A later estimate that the session rule
+ * does not use never pulls the line past the headline.
+ */
+export function trendPoints(
+	records: readonly OneRepMax[],
+	current: OneRepMax | null,
+) {
+	if (!current) return dailyBest(records);
+	const day = dayOf(current.date);
+	const kg = convertLoad(current.value, current.unit, "kg");
+	const upTo = dailyBest(records).filter((point) => point.date < day);
+	return [...upTo, { date: day, kg }];
+}
+
 export function exerciseInsight(
 	history: readonly HistorySet[],
 	records: readonly OneRepMax[],
 	now: number,
 	/** A hold counts seconds, so there is no load per rep to add up. */
 	timed = false,
+	/**
+	 * The 1RM the headline shows (the session rule: Measured, or a newer
+	 * Manual, else Estimated). The trend ends at it, so "▲ x kg" is the change
+	 * to the number above it (APP-624).
+	 */
+	current: OneRepMax | null = null,
 ) {
 	const working = history.filter((set) => set.setType !== "warmup");
 	const kgOf = (set: HistorySet) => convertLoad(set.weight, set.unit, "kg");
@@ -81,7 +103,7 @@ export function exerciseInsight(
 		null,
 	);
 
-	const points = dailyBest(records);
+	const points = trendPoints(records, current);
 	const recent = points.filter(
 		(point) => point.date >= now - TREND_WEEKS * 7 * DAY,
 	);

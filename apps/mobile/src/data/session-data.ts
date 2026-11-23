@@ -17,6 +17,30 @@ export function formatSessionDate(ms: number, locale: Locale) {
 	});
 }
 
+/** True when both times fall on the same local calendar day. */
+export function isSameDay(a: number, b: number) {
+	const first = new Date(a);
+	const second = new Date(b);
+	return (
+		first.getFullYear() === second.getFullYear() &&
+		first.getMonth() === second.getMonth() &&
+		first.getDate() === second.getDate()
+	);
+}
+
+/**
+ * A day as a label: today's own word (the caller's, localized) when `ms` is
+ * today, otherwise `format`. A same-day "last time" reads "today", not a date.
+ */
+export function dayLabel(
+	ms: number,
+	todayLabel: string,
+	format: (ms: number) => string,
+	now = Date.now(),
+) {
+	return isSameDay(ms, now) ? todayLabel : format(ms);
+}
+
 /** The user's routine templates, each with its exercises' names resolved. */
 export function useRoutines() {
 	return useQuery(api.routines.list, {});

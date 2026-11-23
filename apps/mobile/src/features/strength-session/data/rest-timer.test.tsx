@@ -6,6 +6,7 @@ import {
 	writeLocalJson,
 } from "../../../local-store/local-store";
 import {
+	REST_OVER_LINGER_MS,
 	type RestTimerApi,
 	RestTimerProvider,
 	useRestState,
@@ -119,4 +120,37 @@ it("drops a stored rest from before rests had a session once it has run out", as
 	writeLocalJson(key(subject), { endsAt: Date.now() - 1000, body: null });
 	const { probe } = await mount(subject, "session-a");
 	expect(probe.state.running).toBe(false);
+});
+
+describe("Rest over", () => {
+	beforeEach(() => jest.useFakeTimers());
+	afterEach(() => jest.useRealTimers());
+
+	it("clears itself a while after the rest ran out (APP-624)", async () => {
+		const { probe } = await mount(newSubject(), "session-a");
+		await act(async () => probe.api.start("session-a", 60, "Squat"));
+		await act(async () => jest.advanceTimersByTime(61_000));
+		expect(probe.state.over).toBe(true);
+		await act(async () =>
+			jest.advanceTimersByTime(REST_OVER_LINGER_MS - 2_000),
+		);
+		expect(probe.state.running).toBe(true);
+		await act(async () => jest.advanceTimersByTime(2_000));
+		expect(probe.state.running).toBe(false);
+		expect(probe.state.over).toBe(false);
+	});
+
+	it("starts the wait again when +15 lands after the rest ran out", async () => {
+		const { probe } = await mount(newSubject(), "session-a");
+		await act(async () => probe.api.start("session-a", 10, "Squat"));
+		await act(async () => jest.advanceTimersByTime(20_000));
+		await act(async () => probe.api.adjust(15));
+		expect(probe.state.over).toBe(false);
+		await act(async () => jest.advanceTimersByTime(16_000));
+		expect(probe.state.over).toBe(true);
+		await act(async () =>
+			jest.advanceTimersByTime(REST_OVER_LINGER_MS + 1_000),
+		);
+		expect(probe.state.running).toBe(false);
+	});
 });
