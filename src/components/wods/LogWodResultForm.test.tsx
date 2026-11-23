@@ -48,3 +48,20 @@ it("shows the score form in Dutch", () => {
 		screen.getByRole("button", { name: "Resultaat vastleggen" }),
 	).toBeTruthy();
 });
+
+// APP-600: two steppers side by side overflow a phone-width card.
+it.each(["forTime", "amrap"] as const)(
+	"stacks the %s steppers below the sm breakpoint",
+	(type) => {
+		render(
+			<LocaleProvider initialLocale="en">
+				<LogWodResultForm wodId={"wod" as Id<"wods">} type={type} />
+			</LocaleProvider>,
+		);
+		const steppers = screen.getAllByRole("button", { name: /^Increase/ });
+		expect(steppers).toHaveLength(2);
+		const grid = steppers[0].closest(".grid");
+		expect(grid?.className).toContain("grid-cols-1");
+		expect(grid?.className).toContain("sm:grid-cols-2");
+	},
+);

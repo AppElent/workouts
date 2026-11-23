@@ -77,7 +77,7 @@ export function WodScoreFields({
 					{draft.timeCapped ? (
 						reps
 					) : (
-						<div className="grid grid-cols-2 gap-2">
+						<div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
 							<Stepper
 								value={draft.minutes}
 								onChange={(value) => onChange({ minutes: value })}
@@ -99,7 +99,7 @@ export function WodScoreFields({
 			);
 		case "amrap":
 			return (
-				<div className="grid grid-cols-2 gap-2">
+				<div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
 					<Stepper
 						value={draft.rounds}
 						onChange={(value) => onChange({ rounds: value })}
