@@ -53,7 +53,7 @@ On 23 Nov 2026 Eric chose option A on a decision card: recognise the foods where
 | `T-tray-se.dc.html` | The tray on iPhone SE, light |
 | `R-review.dc.html` | Review: 3 recognised, 1 unmatched (not logged) |
 | `R-resolved.dc.html` | After "Vraag hulp" on the unmatched part only |
-| `R-offline.dc.html` | Offline: local items still log, help disabled |
+| `R-offline.dc.html` | Offline: recognition and review still work; logging and help are disabled until a connection returns |
 | `A-search-se.dc.html` | Round 1's card under the chips (rejected), for the record |
 
 ## Layout (iPhone SE, keyboard open)
