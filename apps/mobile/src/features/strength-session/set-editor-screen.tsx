@@ -39,6 +39,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { api, type Id } from "../../convex/api";
 import { useQuery } from "../../convex/query-cache";
+import { dayLabel } from "../../data/session-data";
 import {
 	dateLocale,
 	fmt,
@@ -82,6 +83,7 @@ import {
 import {
 	applyPercent,
 	bestKnown,
+	chipPercentOf,
 	confirmKey,
 	findRow,
 	groupOfRow,
@@ -216,12 +218,18 @@ function ValueCard({
 /** The sheet's header has a fixed height, so its title scales only so far. */
 const NAV_TITLE_MAX_SCALE = 1.3;
 
+const shortDay = (time: number, locale: Locale) =>
+	new Date(time)
+		.toLocaleDateString(dateLocale(locale), { day: "numeric", month: "short" })
+		.replace(".", "");
+
 /** "Last time 80 × 8 @ RPE 8 · 11 Nov": the set this one follows. */
 function lastLine(
 	last: { kg: number; reps: number; rpe?: number | null; date?: number | null },
 	text: { previous: string; previousRpe: string; previousDate: string },
 	locale: Locale,
 	format: (set: { kg: number; reps: number }) => string,
+	todayLabel: string,
 ) {
 	const load = format(last);
 	const line =
@@ -229,9 +237,9 @@ function lastLine(
 			? fmt(text.previousRpe, { load, rpe: formatNumber(last.rpe, locale, 1) })
 			: fmt(text.previous, { load });
 	if (typeof last.date !== "number") return line;
-	const date = new Date(last.date)
-		.toLocaleDateString(dateLocale(locale), { day: "numeric", month: "short" })
-		.replace(".", "");
+	const date = dayLabel(last.date, todayLabel, (time) =>
+		shortDay(time, locale),
+	);
 	return fmt(text.previousDate, { line, date });
 }
 
@@ -409,7 +417,10 @@ export function SetEditorScreen() {
 	const others = bestKnown(plan, row.exerciseId, facts, row.id);
 	const estimate = rowOneRepMax(row, facts);
 	const target = targetPercent(row, reference, facts.stepKg);
-	const custom = target !== null && !PRESETS.includes(target);
+	// The chip that matches the weight: the planned percentage, else what the
+	// weight is of the 1RM, so 83% or 100% lights the custom chip (APP-624).
+	const chipPercent = chipPercentOf(row, target, reference, bodyweight);
+	const custom = chipPercent !== null && !PRESETS.includes(chipPercent);
 	const clockIdle =
 		group?.mode === "amrap" && group.state === "idle" && !logged;
 	const fullLoad = formatSetFull(row, facts, locale);
@@ -599,8 +610,12 @@ export function SetEditorScreen() {
 	const previousLine = logged
 		? text.loggedSub
 		: lastSet
-			? lastLine(lastSet, text, locale, (last) =>
-					formatSetShort({ ...last, unit: "kg" }, facts, locale),
+			? lastLine(
+					lastSet,
+					text,
+					locale,
+					(last) => formatSetShort({ ...last, unit: "kg" }, facts, locale),
+					copy.now.today,
 				)
 			: text.firstTime;
 	const restLine = restState.running
@@ -977,12 +992,9 @@ export function SetEditorScreen() {
 							<View style={styles.history} testID="session-editor-history">
 								<AppText variant="overline" style={styles.sectionTitle}>
 									{fmt(text.lastTimeTitle, {
-										date: new Date(previous.date)
-											.toLocaleDateString(dateLocale(locale), {
-												day: "numeric",
-												month: "short",
-											})
-											.replace(".", ""),
+										date: dayLabel(previous.date, copy.now.today, (time) =>
+											shortDay(time, locale),
+										),
 									})}
 								</AppText>
 								{history.map((set, index) => {
@@ -1172,8 +1184,9 @@ export function SetEditorScreen() {
 									style={styles.chipScroll}
 								>
 									{PRESETS.map((percent) => {
-										const on = target === percent;
 										const priced = applyPercent(row, percent, reference, facts);
+										const on =
+											chipPercent === percent && near(priced.kg, row.kg);
 										const chipLoad = formatNumber(
 											on ? shownLoad(row) : shownLoad(priced),
 											locale,
@@ -1205,7 +1218,9 @@ export function SetEditorScreen() {
 										accessibilityState={{ selected: custom }}
 										disabled={locked}
 										onPress={() => {
-											setPercentText(custom && target ? String(target) : "");
+											setPercentText(
+												custom && chipPercent ? String(chipPercent) : "",
+											);
 											setCustomOpen((value) => !value);
 											requestAnimationFrame(() => percentRef.current?.focus());
 										}}
@@ -1216,8 +1231,8 @@ export function SetEditorScreen() {
 											numberOfLines={1}
 											style={[styles.chipTop, custom && styles.chipInk]}
 										>
-											{custom && target
-												? `${formatNumber(target, locale, 1)}%`
+											{custom && chipPercent
+												? `${formatNumber(chipPercent, locale, 1)}%`
 												: text.customPercent}
 										</AppText>
 									</Pressable>

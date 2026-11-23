@@ -9,6 +9,7 @@ import {
 	applyPercent,
 	beginAttempt,
 	canSwap,
+	chipPercentOf,
 	clearManual,
 	closeGroup,
 	closeOpenClocks,
@@ -24,12 +25,14 @@ import {
 	groupOfExercise,
 	groupWith,
 	isValidRow,
+	loggedCount,
 	manualIsOdd,
 	markFailed,
 	markLogged,
 	moveEntry,
 	nextOpenRow,
 	nextSetNumber,
+	openCount,
 	type PlanSet,
 	payloadFor,
 	recapOf,
@@ -62,6 +65,7 @@ import {
 	typoCheck,
 	updateRow,
 	withTypedLoad,
+	workedCount,
 } from "./session-plan";
 
 const facts = (over: Partial<ExerciseFacts> = {}): ExerciseFacts => ({
@@ -1441,7 +1445,9 @@ describe("recap", () => {
 		plan = addWarmup(plan, "squat", SQUAT).plan;
 		for (const row of rowsOf(plan, "squat")) plan = log(plan, row);
 		const recap = recapOf(plan, lookup);
-		expect(recap.sets).toBe(2);
+		// Working sets only, as the header and the strip count (APP-624).
+		expect(recap.sets).toBe(1);
+		expect(recap.exercises[0]?.sets).toBe(1);
 		expect(recap.volume).toBe(125);
 		expect(recap.exercises[0]).toMatchObject({
 			tag: "newMeasured",
@@ -1462,6 +1468,49 @@ describe("recap", () => {
 			tag: "newMeasured",
 			best: { value: 200, measured: true },
 		});
+	});
+});
+
+describe("set counts (APP-624)", () => {
+	it("count working sets everywhere: header, Finish and recap", () => {
+		let plan = plannedPlan({ squat: [{ reps: 5, weight: 100 }] });
+		plan = addWarmup(plan, "squat", SQUAT).plan;
+		const [warm, work] = [...rowsOf(plan, "squat")].sort(
+			(a, b) => Number(b.kind === "warmup") - Number(a.kind === "warmup"),
+		) as [PlanSet, PlanSet];
+		plan = log(plan, warm);
+		expect(loggedCount(plan)).toBe(1);
+		expect(workedCount(plan)).toBe(0);
+		// An unlogged warm-up is not a set left to do.
+		expect(openCount(plan)).toBe(1);
+		plan = log(plan, work);
+		expect(loggedCount(plan)).toBe(2);
+		expect(workedCount(plan)).toBe(1);
+		expect(openCount(plan)).toBe(0);
+	});
+	it("does not count an unlogged warm-up as open", () => {
+		const plan = addWarmup(
+			plannedPlan({ squat: [{ reps: 5, weight: 100 }] }),
+			"squat",
+			SQUAT,
+		).plan;
+		expect(openCount(plan)).toBe(1);
+	});
+});
+
+describe("chipPercentOf", () => {
+	const ref = { value: 99 };
+	it("keeps the planned percentage while the weight prices it", () => {
+		expect(chipPercentOf({ kg: 82.5 }, 83, ref, false)).toBe(83);
+	});
+	it("falls back to the weight's share of the 1RM, so 83% lights a chip", () => {
+		expect(chipPercentOf({ kg: 82.5 }, null, ref, false)).toBe(83.3);
+		expect(chipPercentOf({ kg: 60 }, null, { value: 60 }, false)).toBe(100);
+	});
+	it("shows none without a reference, a load, or on bodyweight", () => {
+		expect(chipPercentOf({ kg: 80 }, null, null, false)).toBeNull();
+		expect(chipPercentOf({ kg: 0 }, null, ref, false)).toBeNull();
+		expect(chipPercentOf({ kg: 10 }, null, ref, true)).toBeNull();
 	});
 });
 

@@ -43,6 +43,7 @@ import {
 	recapOf,
 	sessionExercises,
 	unsavedEdits,
+	workedCount,
 } from "./session-plan";
 import {
 	type PickerRequest,
@@ -59,12 +60,15 @@ const HEADER_BUTTONS = 260;
 function SessionTitle({
 	name,
 	startTime,
+	endTime,
 	logged,
 	online,
 	wrap = false,
 }: {
 	name: string;
 	startTime: number;
+	/** An ended session shows how long it ran; its clock stops (APP-624). */
+	endTime?: number;
 	logged: number;
 	online: boolean;
 	/** In the body at large text there is room to wrap; the header has none. */
@@ -74,11 +78,16 @@ function SessionTitle({
 	const copy = t.strength.plan;
 	const colors = useTokens();
 	const [now, setNow] = useState(Date.now);
+	const ended = endTime !== undefined;
 	useEffect(() => {
+		if (ended) return;
 		const timer = setInterval(() => setNow(Date.now()), 1000);
 		return () => clearInterval(timer);
-	}, []);
-	const elapsed = Math.max(0, Math.floor((now - startTime) / 1000));
+	}, [ended]);
+	const elapsed = Math.max(
+		0,
+		Math.floor(((endTime ?? now) - startTime) / 1000),
+	);
 	const { width } = useWindowDimensions();
 	return (
 		<View
@@ -247,10 +256,9 @@ export function StrengthSessionScreen() {
 	}, [router]);
 	const wods = workspace.wods?.length ?? 0;
 	const logged = plan ? loggedCount(plan) : 0;
-	// The header counts what the progress strip counts: working sets (APP-619).
-	const worked = plan
-		? allRows(plan).filter((row) => row.done && row.kind !== "warmup").length
-		: 0;
+	// The header, the Finish prompt and the recap count what the progress strip
+	// counts: working sets (APP-619, APP-624).
+	const worked = plan ? workedCount(plan) : 0;
 	const open = plan ? openCount(plan) : 0;
 	const name = session?.name ?? strength.freeSession;
 	async function finish() {
@@ -273,11 +281,11 @@ export function StrengthSessionScreen() {
 				message: [
 					open > 0 && plural(locale, open, copy.finish.open),
 					edits > 0 && plural(locale, edits, copy.finish.unsavedEdits),
-					plural(locale, logged, copy.finish.loggedCounts),
+					plural(locale, worked, copy.finish.loggedCounts),
 				]
 					.filter(Boolean)
 					.join(" "),
-				confirm: { label: plural(locale, logged, copy.finish.confirmOpen) },
+				confirm: { label: plural(locale, worked, copy.finish.confirmOpen) },
 				cancel: copy.keepTraining,
 			});
 			if (!yes) return;
@@ -311,6 +319,7 @@ export function StrengthSessionScreen() {
 	}
 	const restDefault = plan?.restDefault ?? 0;
 	const startTime = session?.startTime;
+	const endTime = session?.endTime;
 	const headerTitle = useCallback(
 		() =>
 			// A null title falls back to the plain name; these two carry their own.
@@ -320,11 +329,12 @@ export function StrengthSessionScreen() {
 				<SessionTitle
 					name={name}
 					startTime={startTime}
+					endTime={endTime}
 					logged={worked}
 					online={online}
 				/>
 			),
-		[large, worked, name, online, recapOpen, startTime],
+		[large, worked, name, online, recapOpen, startTime, endTime],
 	);
 	const menuGroups = [
 		{
@@ -386,6 +396,7 @@ export function StrengthSessionScreen() {
 						headerLeft: () => (
 							<Pressable
 								accessibilityRole="button"
+								accessibilityLabel={copy.finish.back}
 								accessibilityState={{ disabled: finishing }}
 								disabled={finishing}
 								onPress={() => setRecapOpen(false)}
@@ -560,6 +571,7 @@ export function StrengthSessionScreen() {
 								<SessionTitle
 									name={name}
 									startTime={session.startTime}
+									endTime={session.endTime}
 									logged={worked}
 									online={online}
 									wrap

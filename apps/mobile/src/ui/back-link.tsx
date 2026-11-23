@@ -10,11 +10,14 @@ import { AppText } from "./text";
 
 export function BackLink({
 	label,
+	spokenLabel,
 	onPress,
 	disabled,
 	testID,
 }: {
 	label: string;
+	/** What VoiceOver says; "Back to session" where the words show "Session". */
+	spokenLabel?: string;
 	onPress: () => void;
 	disabled?: boolean;
 	testID?: string;
@@ -23,7 +26,7 @@ export function BackLink({
 	return (
 		<Pressable
 			accessibilityRole="button"
-			accessibilityLabel={label}
+			accessibilityLabel={spokenLabel ?? label}
 			accessibilityState={{ disabled: Boolean(disabled) }}
 			disabled={disabled}
 			hitSlop={8}

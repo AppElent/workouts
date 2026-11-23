@@ -280,6 +280,21 @@ export function targetPercent(
 		? row.percent
 		: null;
 }
+/**
+ * The percentage the chips should show for a set: its planned one while the
+ * weight still prices it, otherwise the weight's share of the 1RM to a tenth.
+ */
+export function chipPercentOf(
+	row: Pick<PlanSet, "kg">,
+	target: number | null,
+	reference: { value: number } | null,
+	bodyweight: boolean,
+) {
+	if (target !== null) return target;
+	if (!reference || bodyweight || !(row.kg > 0) || !(reference.value > 0))
+		return null;
+	return Math.round((row.kg / reference.value) * 1000) / 10;
+}
 export function shownPercent(
 	row: PlanSet,
 	reference: { value: number } | null,
@@ -2380,7 +2395,8 @@ export function recapOf(plan: SessionPlan, getFacts: PlanFacts) {
 					: null;
 		return {
 			exerciseId,
-			sets: mine.length,
+			// Working sets, as the header and the progress strip count them.
+			sets: mine.filter((row) => row.kind !== "warmup").length,
 			best: newMeasured
 				? { value: today.measured as number, measured: true }
 				: newEstimated
@@ -2393,7 +2409,7 @@ export function recapOf(plan: SessionPlan, getFacts: PlanFacts) {
 		};
 	});
 	return {
-		sets: rows.length,
+		sets: rows.filter((row) => row.kind !== "warmup").length,
 		volume,
 		exercises,
 		heroes: exercises.filter(
@@ -2420,9 +2436,17 @@ export function closeOpenClocks(plan: SessionPlan): SessionPlan {
 		)
 		.reduce((next, group) => closeGroup(next, group.id), plan);
 }
+/** Working sets still to do: warm-ups never count (APP-624). */
 export function openCount(plan: SessionPlan) {
-	return allRows(plan).filter((row) => !row.done).length;
+	return allRows(plan).filter((row) => !row.done && row.kind !== "warmup")
+		.length;
 }
+/** Everything logged, warm-ups too: with none, finishing offers to delete. */
 export function loggedCount(plan: SessionPlan) {
 	return allRows(plan).filter((row) => row.done).length;
+}
+/** Working sets logged: the number the header, the strip and Finish show. */
+export function workedCount(plan: SessionPlan) {
+	return allRows(plan).filter((row) => row.done && row.kind !== "warmup")
+		.length;
 }

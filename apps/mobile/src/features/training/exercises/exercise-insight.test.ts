@@ -73,4 +73,26 @@ describe("exerciseInsight", () => {
 		expect(exerciseInsight(history, [], NOW, true).volume).toBe(0);
 		expect(exerciseInsight(history, [], NOW).trend).toBeNull();
 	});
+
+	it("ends the trend at the headline 1RM, so the delta matches it (APP-624)", () => {
+		// A manual 99 entered 19 days ago; today's estimate is higher (101.8).
+		const manual = { value: 99, unit: "kg" as const, date: NOW - 19 * DAY };
+		const stored = [
+			{ value: 92.5, unit: "kg" as const, date: NOW - 60 * DAY },
+			{ value: 95, unit: "kg" as const, date: NOW - 40 * DAY },
+			manual,
+			{ value: 101.8, unit: "kg" as const, date: NOW },
+		];
+		const insight = exerciseInsight(history, stored, NOW, false, manual);
+		expect(insight.points.map((point) => point.kg)).toEqual([92.5, 95, 99]);
+		expect(insight.points.at(-1)?.kg).toBe(99);
+		// From the first point in the 12-week window to the headline.
+		expect(insight.trend?.kg).toBe(6.5);
+	});
+
+	it("follows an estimated headline to today", () => {
+		const current = { value: 101, unit: "kg" as const, date: NOW };
+		const insight = exerciseInsight(history, records, NOW, false, current);
+		expect(insight.points.map((point) => point.kg)).toEqual([95, 101]);
+	});
 });

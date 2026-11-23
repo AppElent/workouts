@@ -905,6 +905,68 @@ it("finishes through the recap, saving only at Save", async () => {
 	expect(finish).toHaveBeenCalled();
 });
 
+describe("session leftovers (APP-624)", () => {
+	const benchId = "shipped:exercise:barbell-bench-press";
+	const warmup = (id: string, number: number) => ({
+		...serverSet(id, 5, number),
+		weight: 20,
+		setType: "warmup",
+	});
+
+	it("counts working sets at Finish, not the logged warm-up", async () => {
+		loggedSets = [warmup("w-1", 1), serverSet("set-2", 8, 2)];
+		await mount();
+		await fireEvent.press(
+			await screen.findByRole("button", { name: "Finish" }),
+		);
+		// One work set is logged, one is open; the warm-up counts for neither.
+		expect(await screen.findByText(/1 set is still open/)).toBeTruthy();
+		expect(screen.getByText(/Only the logged set counts/)).toBeTruthy();
+		expect(
+			screen.getByRole("button", { name: /Finish · 1 set$/ }),
+		).toBeTruthy();
+	});
+
+	it("keeps an exercise with only logged warm-ups open, never '0 sets'", async () => {
+		currentSession = {
+			...currentSession,
+			exercises: [
+				{
+					exerciseId: benchId,
+					plannedSets: [{ weight: 60, reps: 8, unit: "kg" }],
+					references: { measured: null, estimated: null, manual: null },
+				},
+				{
+					exerciseId,
+					plannedSets: [],
+					references: { measured: null, estimated: null, manual: null },
+				},
+			],
+		};
+		loggedSets = [warmup("w-1", 1)];
+		await mount();
+		await screen.findAllByLabelText(/Barbell Back Squat/);
+		expect(screen.queryByLabelText(/Barbell Back Squat, 0 sets/)).toBeNull();
+		expect(screen.queryByText(/^0 sets$/)).toBeNull();
+	});
+
+	it("shows no totals before the first set of a free exercise is logged", async () => {
+		currentSession = {
+			...currentSession,
+			exercises: [
+				{
+					exerciseId,
+					plannedSets: [],
+					references: { measured: null, estimated: null, manual: null },
+				},
+			],
+		};
+		await mount();
+		await screen.findAllByLabelText(/Barbell Back Squat/);
+		expect(screen.queryByText(/0 sets · 0 exercises/)).toBeNull();
+	});
+});
+
 it("starts empty and offers to delete a session with nothing in it", async () => {
 	currentSession = { ...emptySession, userId: mockSubject };
 	await mount();

@@ -444,8 +444,9 @@ export function SessionExerciseBlock({ exerciseId }: { exerciseId: string }) {
 	const current = nowTarget(plan)?.row.exerciseId === exerciseId;
 	const showPercent =
 		!facts.bodyweight && referenceFor(plan, facts, exerciseId) !== null;
-	// An exercise without sets stays open: its card is where a first set is added.
-	if (!current && !open && rows.length > 0)
+	// An exercise without working sets stays open: its card is where a first set
+	// is added, also after only warm-ups were logged (APP-624).
+	if (!current && !open && rows.some((row) => row.kind !== "warmup"))
 		return allDone ? (
 			<DoneCard exerciseId={exerciseId} onOpen={() => setOpen(true)} />
 		) : (
