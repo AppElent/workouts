@@ -34,6 +34,12 @@ Before the task, read the matching project doc:
 | Taking a pull request through review and CI | The `babysit-pr` skill |
 | Reviewing the app, or capturing a review the user leads | The `review-app` skill |
 
+`upgrade-dependencies` and `review-app` are toolkit skills from developer-home
+[`skills/`](https://github.com/AppElent/developer-home/tree/main/skills), installed
+globally with `npx skills add`. `babysit-pr` is not in the toolkit and is installed
+only on Eric's Mac; without it, follow the runbook's
+[Review by risk tier](https://github.com/AppElent/developer-home/blob/main/RUNBOOK.md#review-by-risk-tier).
+
 Domain terms: [GLOSSARY.md](GLOSSARY.md). Decisions: [`docs/adr/`](docs/adr/).
 Adding, moving, or finding docs: [docs map](docs/README.md). Engineering skills read [docs/agents/](docs/agents/issue-tracker.md).
 
