@@ -17,6 +17,11 @@ it("redacts events and never attaches personal data or automatic screenshots", (
 		}),
 	);
 	expect(Sentry.addEventProcessor).toHaveBeenCalledWith(sanitizeFeedbackEvent);
+	// User interaction tracing names transactions after the tapped element's
+	// accessibility label, which carries workout values and the account name.
+	expect(jest.mocked(Sentry.init).mock.calls[0][0]).not.toHaveProperty(
+		"enableUserInteractionTracing",
+	);
 	expect(Sentry.feedbackIntegration).toHaveBeenCalledWith(
 		expect.objectContaining({
 			showEmail: false,
