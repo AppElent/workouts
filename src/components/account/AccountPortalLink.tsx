@@ -11,7 +11,7 @@ export function AccountPortalLink() {
 				href={ACCOUNT_PORTAL_URL}
 				target="_blank"
 				rel="noopener noreferrer"
-				className="text-sm font-semibold text-text outline-hidden after:absolute after:inset-0 after:rounded-xl group-hover:text-accent-ink"
+				className="text-sm font-semibold text-text focus-visible:outline-hidden after:absolute after:inset-0 after:rounded-xl group-hover:text-accent-ink"
 			>
 				{text.label}
 			</a>
