@@ -23,7 +23,7 @@ type HistorySet = {
 };
 type OneRepMax = { value: number; unit: LoadUnit; date: number };
 
-const dayOf = (time: number) => {
+export const dayOf = (time: number) => {
 	const date = new Date(time);
 	return new Date(
 		date.getFullYear(),

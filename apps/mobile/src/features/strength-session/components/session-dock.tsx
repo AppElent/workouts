@@ -31,7 +31,7 @@ import {
 	type SetGroup,
 } from "../session-plan";
 import { useSessionScreen } from "../session-screen-context";
-import { NowCard, nowTarget } from "./now-card";
+import { DockCard, NowCard, nowTarget } from "./now-card";
 
 /** The one action a group's clock offers right now. */
 export function useClockControls(group: SetGroup) {
@@ -265,12 +265,45 @@ function RestButton({
 		</Pressable>
 	);
 }
+/** The empty session's dock: one search field that opens the picker. */
+function SearchCard() {
+	const { openPicker, workspace } = useSessionScreen();
+	const copy = useI18n().t.strength.plan.now;
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
+	return (
+		<DockCard>
+			<Pressable
+				accessibilityRole="search"
+				accessibilityLabel={copy.quickSearch}
+				disabled={!workspace.online}
+				onPress={() => openPicker({ mode: "add" })}
+				style={[styles.search, !workspace.online && styles.dimmed]}
+				testID="session-add-exercise"
+			>
+				<SymbolView
+					name="magnifyingglass"
+					size={17}
+					weight="semibold"
+					tintColor={colors.textMuted}
+					fallback={null}
+				/>
+				<AppText variant="row" style={styles.searchText} numberOfLines={1}>
+					{copy.quickSearch}
+				</AppText>
+			</Pressable>
+		</DockCard>
+	);
+}
 export function SessionDock({
 	onHeight,
 	bottomGap = 0,
+	empty = false,
 }: {
 	onHeight: (height: number) => void;
 	bottomGap?: number;
+	/** Nothing in the session yet: the dock is the search field. */
+	empty?: boolean;
 }) {
 	const { plan } = useSessionScreen();
 	const state = useRestState();
@@ -292,12 +325,16 @@ export function SessionDock({
 			onLayout={(event) => onHeight(event.nativeEvent.layout.height)}
 			style={[
 				styles.dock,
-				{ paddingBottom: Math.max(insets.bottom, spacing.sm) + bottomGap },
+				{
+					paddingBottom: Math.max(insets.bottom - 4, spacing.sm) + bottomGap,
+				},
 			]}
 		>
 			<Notice />
 			{running ? <ClockPill group={running} /> : null}
-			{!running && nowTarget(plan) ? (
+			{empty ? (
+				<SearchCard />
+			) : !running && nowTarget(plan) ? (
 				<NowCard />
 			) : state.running ? (
 				<RestPill />
@@ -309,8 +346,8 @@ const createStyles = (colors: Tokens) =>
 	StyleSheet.create({
 		dock: {
 			position: "absolute",
-			left: spacing.md,
-			right: spacing.md,
+			left: spacing.sm,
+			right: spacing.sm,
 			bottom: 0,
 			gap: spacing.xs,
 		},
@@ -353,6 +390,22 @@ const createStyles = (colors: Tokens) =>
 			justifyContent: "center",
 			paddingHorizontal: spacing.xs,
 		},
+		search: {
+			minHeight: 52,
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 10,
+			paddingHorizontal: spacing.md,
+			borderRadius: 26,
+			backgroundColor: colors.surface2,
+		},
+		searchText: {
+			flex: 1,
+			minWidth: 0,
+			color: colors.textMuted,
+			fontWeight: "400",
+		},
+		dimmed: { opacity: 0.5 },
 		close: {
 			width: 44,
 			height: 44,

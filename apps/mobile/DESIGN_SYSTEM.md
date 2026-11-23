@@ -73,10 +73,16 @@ workaround, not a general popup restriction. See the [observed evidence](../../d
 
 The [session redesign](../../designs/app/session_redesign_final.md) scopes these to
 the [session](src/features/strength-session/strength-session-screen.tsx) and
-[set editor](src/features/strength-session/set-editor-screen.tsx):
+[set editor](src/features/strength-session/set-editor-screen.tsx), and the
+[exercise overview](src/features/training/exercises/exercise-detail-screen.tsx):
 
-- `type.quantityCompact` numerals with stepper pairs in the editor, because they are
-  read and tapped mid-set. The editor's Log is a bottom pill, not a toolbar item, to
+- `type.value*` numerals (hero to compact) and `type.overline` labels, the
+  `surface3` control fill and the `dock` card fill, all from the round-2 canvas.
+  Big numerals with stepper pairs are read and tapped mid-set.
+- `TrendLine` ([src/ui/trend-line.tsx](src/ui/trend-line.tsx)) for a frameless
+  trend scaled to its own range; `BackLink` ([src/ui/back-link.tsx](src/ui/back-link.tsx))
+  where a back control must name its destination ("‹ Sessie", "Terug naar sessie").
+- The editor's Log is a bottom pill, not a toolbar item, to
   stay in one-handed reach.
 - At `fontScale` 1.35 and up, rows go to two lines without column heads, the session
   title moves into the body, percent chips go to two columns, and dock pills become

@@ -65,6 +65,45 @@ export function totalsOf(
 	};
 }
 
+/**
+ * The same set last time: the set of the same kind (warm-up or not) with this
+ * number in the previous session, for "Last time" (APP-619). Past the last
+ * one, the last one.
+ */
+export function previousSetOf(
+	sets: readonly (SetLike & {
+		setNumber: number;
+		rpe?: number;
+		loggedAt?: number;
+	})[],
+	exerciseId: string,
+	number: number,
+	warmup = false,
+) {
+	const same = previousSetsOf(sets, exerciseId).filter(
+		(set) => (set.setType === "warmup") === warmup,
+	);
+	const set = same[number - 1] ?? same.at(-1);
+	return set
+		? {
+				kg: toKg(set.weight, set.unit),
+				reps: set.reps,
+				rpe: set.rpe ?? null,
+				date: set.loggedAt ?? null,
+			}
+		: null;
+}
+
+/** One exercise's sets in the previous session, in the order they were done. */
+export function previousSetsOf<T extends SetLike & { setNumber: number }>(
+	sets: readonly T[],
+	exerciseId: string,
+) {
+	return sets
+		.filter((set) => set.exerciseId === exerciseId)
+		.sort((a, b) => a.setNumber - b.setNumber);
+}
+
 /** Picks the comparison session: same routine first, else same name. */
 export function pickPrevious(
 	current: Pick<Doc<"workoutSessions">, "_id" | "routineId" | "name">,
@@ -105,5 +144,6 @@ export function usePreviousSession(
 	return {
 		date: previous.startTime,
 		totals: totalsOf(sets, duration),
+		sets,
 	};
 }

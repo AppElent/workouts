@@ -49,9 +49,17 @@ references. Studies: [training](../../designs/app/training_final.html),
   logging records performance; plans and drafts never count toward totals or
   references ([ADR 0012](../adr/0012-separate-planned-sets-from-performance.md)).
   Exercise membership and order persist without logged Sets.
-- The session is a table: per set the percentage of 1RM, weight × reps, the 1RM it
-  would produce, and a check that logs it. Tap opens the editor; swipe and long
-  press offer the same set actions. Sets can be added from an empty start.
+- The session follows the round-2 canvas
+  ([companion](../../designs/app/session_redesign_final.md)): done exercises
+  collapse, the current one shows its sets, upcoming ones wait below, and a Now
+  card names the next set and logs it in one tap (rest counts down there). Each
+  row logs by its check; tap opens the editor; swipe and long press offer the
+  same set actions. An empty session starts from quick-start tiles; an ad hoc
+  exercise offers steppers and last time's set.
+- Set counts and the progress strip count working sets. Planned sets are working
+  sets: a logged warm-up never uses one up when the plan is rebuilt.
+- A session finished elsewhere says it ended, even when the device's plan is
+  already gone.
 - Keep set edit/delete, repeat (prepares a draft), set types, previous performance,
   equipment increments, plates, rest timer, elapsed time, resume, and hosted score
   routes (hidden while Hosted Workouts are parked). Clearing a saved RPE leaves
@@ -105,8 +113,12 @@ the app; there is no separate data.
 
 ### Set editor
 
-- A focused sheet with weight and reps, percentage chips, and set details (set type,
-  optional RPE showing reps remaining, half values reachable) under Meer. There is no
+- A focused sheet with weight and reps value cards, four set-type segments, and
+  last time's matching set (same type and position, with RPE and date) as its
+  subtitle. Without advanced details it shows last time's sets, never an empty
+  middle. Advanced adds percentage chips and optional RPE showing reps remaining
+  (half values reachable). The 1RM source (measured, manual, estimated) is named
+  wherever it is used. There is no
   advanced mode: Meer only folds details, and it offers no other way to log.
 - Percentage chips use the session's 1RM: Measured unless a newer manual 1RM is
   saved. Choosing one changes the weight; the sheet shows the 1RM this set would

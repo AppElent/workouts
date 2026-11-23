@@ -19,6 +19,7 @@ import {
 	failedRows,
 	fillFromLast,
 	findRow,
+	focusExercise,
 	type GroupRound,
 	groupOfExercise,
 	groupWith,
@@ -27,6 +28,7 @@ import {
 	markFailed,
 	markLogged,
 	moveEntry,
+	nextOpenRow,
 	nextSetNumber,
 	type PlanSet,
 	payloadFor,
@@ -132,6 +134,41 @@ function log(plan: SessionPlan, row: PlanSet, serverId = `s-${row.id}`) {
 		lookup(row.exerciseId),
 	).plan;
 }
+
+describe("seed", () => {
+	it("keeps every planned working set when a warm-up was logged elsewhere", () => {
+		const server = (
+			setNumber: number,
+			setType: "warmup" | "working",
+			weight: number,
+		) => ({
+			_id: `s-${setNumber}`,
+			exerciseId: "press",
+			setNumber,
+			reps: 6,
+			weight,
+			unit: "kg" as const,
+			setType,
+		});
+		const plan = seedPlan(
+			[
+				{
+					exerciseId: "press",
+					plannedSets: [1, 2, 3].map(() => ({
+						reps: 6,
+						weight: 50,
+						unit: "kg" as const,
+					})),
+				},
+			],
+			[server(1, "warmup", 30), server(2, "working", 50)],
+			lookup,
+		);
+		const rows = rowsOf(plan, "press");
+		expect(rows).toHaveLength(4);
+		expect(rows.filter((row) => !row.done)).toHaveLength(2);
+	});
+});
 
 describe("1RM", () => {
 	it("uses Epley, and a single is its weight", () => {
@@ -880,6 +917,37 @@ describe("typo guards", () => {
 	it("leaves ordinary sets alone", () => {
 		expect(typoCheck(plan, row, SQUAT, row)).toBeNull();
 		expect(typoCheck(plan, { ...row, reps: 0 }, SQUAT, row)).toBeNull();
+	});
+});
+
+describe("focus", () => {
+	const three = () =>
+		plannedPlan({
+			squat: [{ reps: 5, weight: 95 }],
+			curl: [{ reps: 10, weight: 20 }],
+			plain: [{ reps: 8, weight: 40 }],
+		});
+	const ids = (plan: SessionPlan) =>
+		plan.order.map((entry) =>
+			entry.kind === "exercise" ? entry.exerciseId : entry.groupId,
+		);
+	it("moves an upcoming exercise before the current one", () => {
+		const plan = focusExercise(three(), "plain");
+		expect(ids(plan)).toEqual(["plain", "squat", "curl"]);
+		expect(nextOpenRow(plan)?.exerciseId).toBe("plain");
+	});
+	it("keeps done exercises where they are", () => {
+		let plan = three();
+		plan = log(plan, firstOpen(plan));
+		plan = focusExercise(plan, "plain");
+		expect(ids(plan)).toEqual(["squat", "plain", "curl"]);
+		expect(nextOpenRow(plan)?.exerciseId).toBe("plain");
+	});
+	it("leaves the plan alone for the current or a finished exercise", () => {
+		let plan = three();
+		expect(focusExercise(plan, "squat")).toBe(plan);
+		plan = log(plan, firstOpen(plan));
+		expect(focusExercise(plan, "squat")).toBe(plan);
 	});
 });
 

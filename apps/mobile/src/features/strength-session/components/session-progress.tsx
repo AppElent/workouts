@@ -1,7 +1,10 @@
-/** The strip over the exercises: one segment per working set, and volume. */
+/**
+ * The strip over the exercises: one segment per working set and volume; an
+ * ad-hoc session has no plan to measure against, so it shows running totals.
+ */
 import { workingVolume } from "@foundry/core";
 import { StyleSheet, View } from "react-native";
-import { fmt, useI18n } from "../../../i18n";
+import { fmt, plural, useI18n } from "../../../i18n";
 import { spacing, type Tokens, useThemedStyles } from "../../../theme";
 import { AppText } from "../../../ui/text";
 import { formatNumber } from "../session-format";
@@ -30,6 +33,30 @@ export function SessionProgress() {
 		})),
 	);
 	const values = { done: done.length, total: rows.length };
+	const volumeText =
+		volume > 0
+			? fmt(copy.volume, { volume: formatNumber(Math.round(volume), locale) })
+			: null;
+	if (!rows.some((row) => row.plan)) {
+		const exercises = new Set(done.map((row) => row.exerciseId)).size;
+		const totals = `${plural(locale, done.length, copy.sets)} · ${plural(locale, exercises, copy.exercises)}`;
+		return (
+			<View
+				style={[styles.wrap, styles.labels]}
+				accessible
+				accessibilityLabel={[totals, volumeText].filter(Boolean).join(", ")}
+			>
+				<AppText variant="label" style={styles.muted}>
+					{totals}
+				</AppText>
+				{volumeText ? (
+					<AppText variant="label" style={styles.muted}>
+						{volumeText}
+					</AppText>
+				) : null}
+			</View>
+		);
+	}
 	return (
 		<View
 			style={styles.wrap}
@@ -66,11 +93,9 @@ export function SessionProgress() {
 				<AppText variant="label" style={styles.muted}>
 					{fmt(copy.progress, values)}
 				</AppText>
-				{volume > 0 ? (
+				{volumeText ? (
 					<AppText variant="label" style={styles.muted}>
-						{fmt(copy.volume, {
-							volume: formatNumber(Math.round(volume), locale),
-						})}
+						{volumeText}
 					</AppText>
 				) : null}
 			</View>
@@ -80,7 +105,7 @@ export function SessionProgress() {
 
 const createStyles = (colors: Tokens) =>
 	StyleSheet.create({
-		wrap: { gap: spacing.sm, paddingHorizontal: spacing.xs },
+		wrap: { gap: spacing.sm, paddingTop: 6, paddingBottom: spacing.xs },
 		segments: { flexDirection: "row", gap: 3 },
 		segment: { flex: 1, height: 6, borderRadius: 3, overflow: "hidden" },
 		done: { backgroundColor: colors.accentFill },
