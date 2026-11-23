@@ -1,5 +1,5 @@
 import { clerkErrorMessageKey } from "@foundry/core";
-import { useMessages } from "#/lib/i18n";
+import { useI18n } from "#/lib/i18n";
 
 /**
  * Clerk Core 3 resource methods resolve to `{ error }` instead of throwing.
@@ -17,14 +17,19 @@ type ClerkErrorShape = {
 };
 
 /**
- * Translates a Clerk error by its code. An unmapped code keeps Clerk's own
- * (English) text, which says more than the generic message.
+ * Translates a Clerk error by its code. On an English page an unmapped code
+ * keeps Clerk's own text, which says more than the generic message; Clerk
+ * writes only English, so any other page shows the generic message (APP-538).
  */
 export function useClerkErrorMessage(): (error: unknown) => string {
-	const { auth } = useMessages();
+	const {
+		locale,
+		messages: { auth },
+	} = useI18n();
 	return (error) => {
 		const key = clerkErrorMessageKey(error);
 		if (key !== "generic") return auth.errors[key];
+		if (locale !== "en") return auth.errors.generic;
 		const first = (error as ClerkErrorShape | null)?.errors?.[0];
 		return first?.longMessage ?? first?.message ?? auth.errors.generic;
 	};
