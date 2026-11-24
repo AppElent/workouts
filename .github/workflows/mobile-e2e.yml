@@ -16,9 +16,10 @@ on:
 
 jobs:
   build:
+    # TEMPORARY (APP-712): reuse run 45401145758's app while diagnosing.
     if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.pull_request.head.repo.full_name == github.repository &&
+      false && github.event_name == 'workflow_dispatch' ||
+      false && (github.event.pull_request.head.repo.full_name == github.repository &&
       contains(github.event.pull_request.labels.*.name, 'e2e:ios') &&
       (github.event.action != 'labeled' || github.event.label.name == 'e2e:ios'))
     concurrency:
@@ -35,7 +36,7 @@ jobs:
     secrets: inherit
 
   maestro:
-    needs: build
+    if: contains(github.event.pull_request.labels.*.name, 'e2e:ios')
     runs-on: macos-26
     timeout-minutes: 45
     concurrency:
@@ -43,6 +44,7 @@ jobs:
       cancel-in-progress: true
     permissions:
       contents: read
+      actions: read
     env:
       EXPO_TOKEN: ${{ secrets.PREVIEW_EXPO_TOKEN }}
       METRO_PORT: "8090"
@@ -53,7 +55,9 @@ jobs:
 
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
-          name: ${{ needs.build.outputs.artifact }}
+          name: foundry-ios-development-simulator.tar.gz-pr332
+          run-id: 45401145758
+          github-token: ${{ github.token }}
           path: ${{ runner.temp }}/build
 
       # The newest iOS runtime's first iPhone. Runtime keys sort by number,
@@ -96,6 +100,8 @@ jobs:
       - name: Start Metro
         working-directory: apps/mobile
         run: |
+          # Metro and the commands it spawns inherit this priority.
+          sudo renice -n -20 -p $$
           EXPO_NO_DOTENV=1 nohup pnpm exec eas env:exec development \
             "pnpm exec expo start --dev-client --port $METRO_PORT" --non-interactive \
             > "$RUNNER_TEMP/metro.log" 2>&1 &
@@ -134,17 +140,18 @@ jobs:
           # hosted runner: PR #162's first run gave up 11s before it came up.
           MAESTRO_DRIVER_STARTUP_TIMEOUT: "300000"
         run: |
-          # TEMPORARY (APP-712): what each step costs while the flows run.
-          ( while sleep 45; do
-              date; uptime
-              curl -s -I -o /dev/null --max-time 120 -w "HEAD manifest: HTTP %{http_code} in %{time_total}s\n" \
-                -H "expo-platform: ios" "http://127.0.0.1:$METRO_PORT/"
-              TIMEFORMAT="fingerprint: %R s real, %U user, %S sys"
-              time node node_modules/expo-updates/bin/cli.js fingerprint:generate --platform ios > /dev/null
-              TIMEFORMAT="string runtime version: %R s real"
-              time node node_modules/expo-updates/bin/cli.js runtimeversion:resolve --platform ios > /dev/null
-              top -l 2 -n 8 -o cpu -stats command,cpu,mem | tail -9
-            done ) > "$RUNNER_TEMP/probe.log" 2>&1 &
+          # TEMPORARY (APP-712)
+          probe() {
+            date; uptime; sysctl -n vm.swapusage hw.memsize hw.ncpu kern.memorystatus_vm_pressure_level
+            vm_stat | grep -E "free|occupied|Pageouts|Swapins|Swapouts"
+            curl -s -I -o /dev/null --max-time 120 -w "HEAD manifest: HTTP %{http_code} in %{time_total}s\n" \
+              -H "expo-platform: ios" "http://127.0.0.1:$METRO_PORT/"
+            top -l 2 -n 14 -o cpu -stats pid,command,cpu,mem,state | tail -15
+            ps -axo rss,nice,comm -m | head -12
+          }
+          ( while sleep 40; do probe; done ) > "$RUNNER_TEMP/probe.log" 2>&1 &
+          # Does an idle simulator settle?
+          sleep 300; echo "=== flows start" >> "$RUNNER_TEMP/probe.log"
           maestro --device "$UDID" test --include-tags smoke \
             -e METRO_PORT="$METRO_PORT" \
             --format junit --output "$RUNNER_TEMP/maestro/report.xml" \
