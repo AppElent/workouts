@@ -58,7 +58,8 @@ jobs:
           path: ${{ runner.temp }}/build
 
       # Spotlight would index the simulator's files on the same three cores.
-      - run: sudo mdutil -a -i off
+      - name: Turn off Spotlight
+        run: sudo mdutil -a -i off || true
 
       # Metro compiles before the simulator boots, so the two don't compete.
       # EXPO_PUBLIC_* values (Clerk, Convex, test account) come from the EAS
@@ -75,25 +76,27 @@ jobs:
           done
           curl -sf "http://127.0.0.1:$METRO_PORT/status" | grep -q running ||
             { cat "$RUNNER_TEMP/metro.log"; exit 1; }
-          # The manifest the dev client fetches first: log its timing and the
-          # bundle URL it points at, to tell a slow manifest from an
-          # unreachable bundle host when the client's first load times out.
+          # The manifest the dev client fetches first, saved to serve below.
           curl -sf -o "$RUNNER_TEMP/manifest.json" --max-time 120 \
             -w "manifest: HTTP %{http_code} in %{time_total}s\n" \
             -H "expo-platform: ios" -H "Accept: application/expo+json,application/json" \
             "http://127.0.0.1:$METRO_PORT/"
           BUNDLE_URL=$(jq -er .launchAsset.url "$RUNNER_TEMP/manifest.json")
-          echo "bundle: $BUNDLE_URL"
+          case "$BUNDLE_URL" in
+            "http://127.0.0.1:$METRO_PORT/"*) echo "bundle: $BUNDLE_URL" ;;
+            *) echo "::error::Manifest bundle is not on Metro: $BUNDLE_URL"; exit 1 ;;
+          esac
           # Compile the bundle the client will ask for now, so the app's launch
           # wait doesn't. Other transform options would compile another bundle.
           curl -sf -o /dev/null --max-time 600 \
             -w "bundle: HTTP %{http_code} in %{time_total}s\n" "$BUNDLE_URL"
 
-      # Expo answers every manifest request by spawning a command that hashes
-      # the native project (the `fingerprint` runtime version). On this 7 GB
-      # runner, swapping next to a booted simulator, that outlasts the dev
-      # client's fixed 10 s request limit. So the client gets the manifest
-      # Metro already gave; the bundle URL in it still points at Metro.
+      # Expo answers every manifest request by spawning a Node command that
+      # resolves the runtime version (`fingerprint` hashes the native project).
+      # On this 7 GB runner, swapping next to a booted simulator, that outlasts
+      # the dev client's fixed 10 s request limit. So the client gets the
+      # manifest Metro already gave; the bundle URL in it still points at Metro.
+      # The flows take this port as their METRO_PORT.
       - name: Serve the manifest
         run: |
           cat > "$RUNNER_TEMP/manifest-server.py" <<'PY'
@@ -115,7 +118,7 @@ jobs:
           http.server.ThreadingHTTPServer(("127.0.0.1", port), Handler).serve_forever()
           PY
           nohup python3 -I "$RUNNER_TEMP/manifest-server.py" > "$RUNNER_TEMP/manifest.log" 2>&1 &
-          curl -sf --retry 10 --retry-connrefused -o /dev/null "http://127.0.0.1:$MANIFEST_PORT/"
+          curl -sf --retry 10 --retry-delay 1 --retry-connrefused -o /dev/null "http://127.0.0.1:$MANIFEST_PORT/"
 
       # Pinned so a Maestro release cannot change a passing run.
       - name: Install Maestro
@@ -154,9 +157,10 @@ jobs:
           for _ in $(seq 1 40); do
             LOAD=$(sysctl -n vm.loadavg | cut -d" " -f2 | cut -d. -f1)
             echo "load: $LOAD"
-            [ "$LOAD" -lt 120 ] && break
+            [ "$LOAD" -lt 120 ] && exit 0
             sleep 10
           done
+          echo "::warning::Load is still $LOAD; running the flows anyway."
 
       - name: Run smoke flows
         working-directory: apps/mobile
@@ -176,7 +180,7 @@ jobs:
         run: |
           tail -200 "$RUNNER_TEMP/metro.log"
           mkdir -p "$RUNNER_TEMP/maestro"
-          cp "$RUNNER_TEMP/simulator.txt" "$RUNNER_TEMP/metro.log" "$RUNNER_TEMP/manifest.log" "$RUNNER_TEMP/maestro/" || true
+          cp "$RUNNER_TEMP/simulator.txt" "$RUNNER_TEMP/metro.log" "$RUNNER_TEMP/manifest.log" "$RUNNER_TEMP/manifest.json" "$RUNNER_TEMP/maestro/" || true
           xcrun simctl io "$UDID" screenshot "$RUNNER_TEMP/maestro/final-screen.png" || true
 
       - if: always()
