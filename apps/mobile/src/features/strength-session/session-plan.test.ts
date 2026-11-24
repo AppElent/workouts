@@ -1270,6 +1270,149 @@ describe("reconcile", () => {
 				notes: "belt",
 			});
 		});
+		it("never fills an unlogged row without plan or baseline after reps or RPE were typed (APP-783)", () => {
+			const unlog = (plan: SessionPlan, rowId: string) =>
+				updateRow(plan, rowId, {
+					...(findRow(plan, rowId) as PlanSet),
+					done: false,
+					setId: undefined,
+					setNumber: undefined,
+					loggedPercent: undefined,
+				});
+			// Warm-up with a second untouched warm-up: remote lands on the next eligible row.
+			const first = addWarmup(plannedPlan(), "squat", SQUAT);
+			const second = addWarmup(first.plan, "squat", SQUAT);
+			const editedRow = findRow(second.plan, second.rowId) as PlanSet;
+			const edited = updateRow(second.plan, editedRow.id, {
+				...editedRow,
+				reps: 8,
+				rpe: 7,
+			});
+			const logged = markLogged(edited, editedRow.id, "own", 1, SQUAT).plan;
+			const unlogged = unlog(logged, editedRow.id);
+			const next = reconcilePlan(
+				unlogged,
+				[],
+				[{ ...set("mcp-1", 1, 50), reps: 5, setType: "warmup" }],
+				lookup,
+			);
+			expect(findRow(next, editedRow.id)).toMatchObject({
+				done: false,
+				reps: 8,
+				rpe: 7,
+			});
+			expect(findRow(next, first.rowId)).toMatchObject({
+				done: true,
+				setId: "mcp-1",
+			});
+
+			// Blank ad-hoc row with no other open row: remote lands on a new row.
+			const blankAdded = addExerciseToPlan(emptyPlan(), "plain", PLAIN);
+			const blankRow = findRow(
+				blankAdded.plan,
+				blankAdded.rowId as string,
+			) as PlanSet;
+			const typed = updateRow(blankAdded.plan, blankRow.id, {
+				...blankRow,
+				kg: 60,
+				reps: 8,
+				rpe: 7,
+				blank: undefined,
+			});
+			const blankLogged = markLogged(
+				typed,
+				blankRow.id,
+				"own-2",
+				1,
+				PLAIN,
+			).plan;
+			const blankUnlogged = unlog(blankLogged, blankRow.id);
+			const blankNext = reconcilePlan(
+				blankUnlogged,
+				[],
+				[{ ...set("mcp-2", 1, 80), exerciseId: "plain", reps: 5 }],
+				lookup,
+			);
+			expect(findRow(blankNext, blankRow.id)).toMatchObject({
+				done: false,
+				kg: 60,
+				reps: 8,
+				rpe: 7,
+			});
+			expect(rowsOf(blankNext, "plain").map((r) => r.setId ?? null)).toEqual([
+				"mcp-2",
+				null,
+			]);
+		});
+		it("never fills an unlogged row edited while logged (APP-783)", () => {
+			const added = addWarmup(plannedPlan(), "squat", SQUAT);
+			const row = findRow(added.plan, added.rowId) as PlanSet;
+			const logged = markLogged(added.plan, row.id, "own", 1, SQUAT).plan;
+			const corrected = updateRow(logged, row.id, {
+				...(findRow(logged, row.id) as PlanSet),
+				reps: 8,
+				rpe: 7,
+			});
+			const unlogged = updateRow(corrected, row.id, {
+				...(findRow(corrected, row.id) as PlanSet),
+				done: false,
+				setId: undefined,
+				setNumber: undefined,
+				loggedPercent: undefined,
+			});
+			const next = reconcilePlan(
+				unlogged,
+				[],
+				[{ ...set("mcp-1", 1, 50), reps: 5, setType: "warmup" }],
+				lookup,
+			);
+			expect(findRow(next, row.id)).toMatchObject({
+				done: false,
+				reps: 8,
+				rpe: 7,
+			});
+			expect(
+				rowsOf(next, "squat").filter((r) => r.kind === "warmup"),
+			).toHaveLength(2);
+		});
+		it("still fills an untouched row after log and unlog (APP-783)", () => {
+			const unlog = (plan: SessionPlan, rowId: string) =>
+				updateRow(plan, rowId, {
+					...(findRow(plan, rowId) as PlanSet),
+					done: false,
+					setId: undefined,
+					setNumber: undefined,
+					loggedPercent: undefined,
+				});
+			const added = addWarmup(plannedPlan(), "squat", SQUAT);
+			const warm = findRow(added.plan, added.rowId) as PlanSet;
+			const warmUnlogged = unlog(
+				markLogged(added.plan, warm.id, "own-w", 1, SQUAT).plan,
+				warm.id,
+			);
+			const warmNext = reconcilePlan(
+				warmUnlogged,
+				[],
+				[{ ...set("mcp-w", 1, 50), setType: "warmup" }],
+				lookup,
+			);
+			expect(findRow(warmNext, warm.id)).toMatchObject({
+				done: true,
+				setId: "mcp-w",
+			});
+			expect(rowsOf(warmNext, "squat")).toHaveLength(4);
+
+			const plan = plannedPlan();
+			const planned = firstOpen(plan);
+			const plannedUnlogged = unlog(log(plan, planned, "own-p"), planned.id);
+			const plannedNext = reconcilePlan(
+				plannedUnlogged,
+				[],
+				[set("mcp-p", 1)],
+				lookup,
+			);
+			expect(links(plannedNext)).toEqual(["mcp-p", null, null]);
+		});
 		it("keeps no note on a repeated set", () => {
 			const plan = plannedPlan();
 			const first = rowsOf(plan, "squat")[0] as PlanSet;
