@@ -334,7 +334,7 @@ export function SessionSetRow({
 						onPress={() => {
 							if (!pending) openEditor(row.id);
 						}}
-						style={styles.body}
+						style={[styles.body, noteOf(row) !== "" && styles.bodyNote]}
 						testID={`session-set-${row.id}`}
 					>
 						<View style={[styles.line, large && styles.lineLarge]}>
@@ -501,13 +501,14 @@ const createStyles = (colors: Tokens) =>
 			minHeight: 44,
 			justifyContent: "center",
 		},
+		bodyNote: { paddingVertical: spacing.sm },
 		line: {
 			flexDirection: "row",
 			alignItems: "center",
 			gap: spacing.sm,
 		},
 		lineLarge: { flexWrap: "wrap" },
-		noteIndent: { paddingLeft: 30 + spacing.sm, paddingBottom: spacing.xs },
+		noteIndent: { paddingLeft: 30 + spacing.sm },
 		mark: { width: 30, fontWeight: "700", fontVariant: ["tabular-nums"] },
 		load: { flex: 1, minWidth: 0, fontVariant: ["tabular-nums"] },
 		meta: { textAlign: "right", fontVariant: ["tabular-nums"] },
