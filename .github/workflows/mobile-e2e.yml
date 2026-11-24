@@ -24,8 +24,10 @@ jobs:
     concurrency:
       group: mobile-e2e-build-${{ github.event.pull_request.number || github.ref }}
       cancel-in-progress: true
+    # deployments: read is for the production Convex check (eas-local-build.yml).
     permissions:
       contents: read
+      deployments: read
     uses: ./.github/workflows/eas-local-build.yml
     with:
       platform: ios
