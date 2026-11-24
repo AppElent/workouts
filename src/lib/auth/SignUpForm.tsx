@@ -1,38 +1,68 @@
-import { useSignUp } from "@clerk/react";
-import { useState } from "react";
+import { useAuth, useSignUp } from "@clerk/react";
+import { useEffect, useState } from "react";
 import { fmt, useI18n } from "#/lib/i18n";
 import { AuthButton } from "./AuthButton";
 import { AuthError } from "./AuthError";
 import { AuthField } from "./AuthField";
 import { orThrow, useClerkErrorMessage } from "./clerkError";
 import { AUTH_PATHS, withRedirect } from "./paths";
+import { SignUpContinueStep } from "./SignUpContinueStep";
 import { SocialButtons } from "./SocialButtons";
+import { isResumable, isSocialSignUp } from "./signUpContinue";
 
+/**
+ * Email + password with an emailed code. A social sign-up that `/sso-callback`
+ * sends here with its attempt still open gets the continue step instead.
+ */
 export function SignUpForm({
 	onSuccess,
+	onStartOver,
 	redirect,
+	resumeSocial = false,
 }: {
 	onSuccess: () => void;
+	/** The person left the continue step for the plain form. */
+	onStartOver?: () => void;
+	/** Arrived from `/sso-callback`: carry on with its open social sign-up. */
+	resumeSocial?: boolean;
 	/** Where to land after signing up, carried to social sign-up and sign-in. */
 	redirect?: string;
 }) {
 	const { signUp } = useSignUp();
+	const { isLoaded } = useAuth();
 	const { locale, messages } = useI18n();
 	const { auth } = messages;
 	const errorMessage = useClerkErrorMessage();
-	const [step, setStep] = useState<"details" | "verify">("details");
+	const [step, setStep] = useState<
+		"pending" | "continue" | "details" | "verify"
+	>(resumeSocial ? "pending" : "details");
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [code, setCode] = useState("");
 	const [error, setError] = useState<string | null>(null);
 	const [loading, setLoading] = useState(false);
 
+	// Only when sent from `/sso-callback`, and only a social attempt, so one
+	// someone else left in this browser is not picked up. Decided once, after
+	// Clerk loads: before that `signUp` is a placeholder.
+	useEffect(() => {
+		if (step !== "pending" || !isLoaded) return;
+		setStep(isResumable(signUp) ? "continue" : "details");
+	}, [step, isLoaded, signUp]);
+
 	async function submitDetails(e: React.FormEvent) {
 		e.preventDefault();
 		setError(null);
 		setLoading(true);
 		try {
-			await orThrow(signUp.password({ emailAddress: email, password }));
+			// `password()` adds to an open attempt. An abandoned social one may be
+			// someone else's, and its account must not end up on this sign-up, so
+			// `create()` replaces it.
+			await orThrow(
+				isSocialSignUp(signUp)
+					? signUp.create({ emailAddress: email, password })
+					: signUp.password({ emailAddress: email, password }),
+			);
 			await orThrow(signUp.verifications.sendEmailCode());
 			setStep("verify");
 		} catch (err) {
@@ -59,6 +89,27 @@ export function SignUpForm({
 		} finally {
 			setLoading(false);
 		}
+	}
+
+	if (step === "pending") {
+		return (
+			<p className="text-center text-sm text-text-muted" role="status">
+				{auth.wait}
+			</p>
+		);
+	}
+
+	if (step === "continue") {
+		return (
+			<SignUpContinueStep
+				redirect={redirect}
+				onSuccess={onSuccess}
+				onStartOver={() => {
+					setStep("details");
+					onStartOver?.();
+				}}
+			/>
+		);
 	}
 
 	if (step === "verify") {

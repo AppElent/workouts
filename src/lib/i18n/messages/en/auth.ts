@@ -103,6 +103,27 @@ export const auth = {
 		verify: "Verify",
 		invalidCode: "Invalid or incomplete verification.",
 	},
+	signUpContinue: {
+		title: "One more step",
+		intro: "Fill in what's missing to finish creating your account.",
+		fields: {
+			email_address: "Email",
+			username: "Username",
+			first_name: "First name",
+			last_name: "Last name",
+			phone_number: "Phone number (with country code)",
+			password: "Password",
+		},
+		submit: "Continue",
+		codePrompt: "We sent a code to {destination}. Enter it to continue.",
+		invalidDetails: "Check what you entered and try again.",
+		taken: "Another account already uses this. Choose something else.",
+		attemptEnded:
+			"This sign-up took too long and can't continue. Start over to try again.",
+		unsupported:
+			"This sign-up can't be finished here. Start over to sign up another way.",
+		startOver: "Start over",
+	},
 	forgotPassword: {
 		title: "Reset your password",
 		sendCode: "Send code",
