@@ -24,15 +24,15 @@ export async function resolveExercise(
 	return exercise?.userId === userId ? exercise : null;
 }
 
-/** `id` when the caller may use that exercise; throws `notFound`. */
+/** The resolved Exercise ID when the caller may use it; throws `notFound`. */
 export async function requireExercise(
 	ctx: QueryCtx | MutationCtx,
 	id: string,
 	userId: string,
 ) {
-	if (!(await resolveExercise(ctx, id, userId)))
-		throw appError("notFound", "exerciseId");
-	return id;
+	const exercise = await resolveExercise(ctx, id, userId);
+	if (!exercise) throw appError("notFound", "exerciseId");
+	return exercise._id;
 }
 
 export function exerciseSets(
