@@ -16,10 +16,9 @@ on:
 
 jobs:
   build:
-    # TEMPORARY (APP-712): reuse run 45401145758's app while diagnosing.
     if: >-
-      false && github.event_name == 'workflow_dispatch' ||
-      false && (github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.head.repo.full_name == github.repository &&
       contains(github.event.pull_request.labels.*.name, 'e2e:ios') &&
       (github.event.action != 'labeled' || github.event.label.name == 'e2e:ios'))
     concurrency:
@@ -36,7 +35,7 @@ jobs:
     secrets: inherit
 
   maestro:
-    if: contains(github.event.pull_request.labels.*.name, 'e2e:ios')
+    needs: build
     runs-on: macos-26
     timeout-minutes: 45
     concurrency:
@@ -44,7 +43,6 @@ jobs:
       cancel-in-progress: true
     permissions:
       contents: read
-      actions: read
     env:
       EXPO_TOKEN: ${{ secrets.PREVIEW_EXPO_TOKEN }}
       METRO_PORT: "8090"
@@ -56,9 +54,7 @@ jobs:
 
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
-          name: foundry-ios-development-simulator.tar.gz-pr332
-          run-id: 45401145758
-          github-token: ${{ github.token }}
+          name: ${{ needs.build.outputs.artifact }}
           path: ${{ runner.temp }}/build
 
       # Spotlight would index the simulator's files on the same three cores.
@@ -151,13 +147,14 @@ jobs:
 
       # A first boot keeps the simulator's background services busy for minutes
       # (load averages above 300 on 3 cores), long enough for Maestro's link
-      # opens to time out and its driver to die. Flows start once that drops.
+      # opens to time out and its driver to die. Flows start once that drops
+      # (it levels off near 110), or after about 7 minutes.
       - name: Wait for the simulator to settle
         run: |
           for _ in $(seq 1 40); do
             LOAD=$(sysctl -n vm.loadavg | cut -d" " -f2 | cut -d. -f1)
             echo "load: $LOAD"
-            [ "$LOAD" -lt 60 ] && break
+            [ "$LOAD" -lt 120 ] && break
             sleep 10
           done
 
@@ -168,19 +165,10 @@ jobs:
           # hosted runner: PR #162's first run gave up 11s before it came up.
           MAESTRO_DRIVER_STARTUP_TIMEOUT: "300000"
         run: |
-          # TEMPORARY (APP-712)
-          ( while sleep 40; do
-              date; uptime; sysctl -n vm.swapusage
-              curl -s -I -o /dev/null --max-time 120 -w "served manifest: HTTP %{http_code} in %{time_total}s\n" \
-                "http://127.0.0.1:$MANIFEST_PORT/"
-            done ) > "$RUNNER_TEMP/probe.log" 2>&1 &
           maestro --device "$UDID" test --include-tags smoke \
             -e METRO_PORT="$MANIFEST_PORT" \
             --format junit --output "$RUNNER_TEMP/maestro/report.xml" \
             --debug-output "$RUNNER_TEMP/maestro" --flatten-debug-output .maestro
-
-      - if: always()
-        run: cat "$RUNNER_TEMP/probe.log" "$RUNNER_TEMP/manifest.log"
 
       # A failed flow leaves its screenshot and view hierarchy in the
       # artifact, next to the simulator, Metro log and final screen.
