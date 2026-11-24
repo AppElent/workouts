@@ -30,17 +30,22 @@ export function SignInForm({
 	onStartOver,
 	redirect,
 	resumeSocial = false,
+	focusFirst = false,
 }: {
 	onSuccess?: () => void;
 	/** The person left the pending or second-factor step for the plain form. */
 	onStartOver?: () => void;
 	/** Arrived from `/sso-callback`: carry on with its open social sign-in. */
 	resumeSocial?: boolean;
+	/** Focus the first field, e.g. after the way back from `/sso-callback`. */
+	focusFirst?: boolean;
 	/** Where to land after signing in, carried to social sign-in, sign-up, and password reset. */
 	redirect?: string;
 }) {
 	const { signIn } = useSignIn();
 	const { isLoaded } = useAuth();
+	// Pending leaves for a form the person did not open: put them in it.
+	const [autoFocus] = useState(resumeSocial || focusFirst);
 	const { auth } = useMessages();
 	const errorMessage = useClerkErrorMessage();
 	const [step, setStep] = useState<
@@ -54,6 +59,8 @@ export function SignInForm({
 	const [loading, setLoading] = useState(false);
 
 	async function run(action: (signIn: SignIn) => Promise<void>) {
+		// Clerk queues calls made before it loads; nothing may go out then.
+		if (!isLoaded) return;
 		setError(null);
 		setNotice(null);
 		setLoading(true);
@@ -210,6 +217,7 @@ export function SignInForm({
 				label={auth.email}
 				type="email"
 				autoComplete="username"
+				autoFocus={autoFocus}
 				value={email}
 				onChange={setEmail}
 				required
@@ -222,12 +230,15 @@ export function SignInForm({
 				onChange={setPassword}
 				required
 			/>
-			<AuthButton loading={loading}>{auth.signIn.submit}</AuthButton>
+			<AuthButton loading={loading || !isLoaded}>
+				{auth.signIn.submit}
+			</AuthButton>
 			<AuthButton
 				type="button"
 				variant="ghost"
 				className="border-solid border-border"
 				loading={loading}
+				disabled={!isLoaded}
 				onClick={sendCode}
 			>
 				{auth.signIn.emailCode}

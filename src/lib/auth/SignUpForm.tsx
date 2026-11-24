@@ -31,6 +31,8 @@ export function SignUpForm({
 }) {
 	const { signUp } = useSignUp();
 	const { isLoaded } = useAuth();
+	// Pending leaves for a form the person did not open: put them in it.
+	const [resumed] = useState(resumeSocial);
 	const { locale, messages } = useI18n();
 	const { auth } = messages;
 	const errorMessage = useClerkErrorMessage();
@@ -53,6 +55,9 @@ export function SignUpForm({
 
 	async function submitDetails(e: React.FormEvent) {
 		e.preventDefault();
+		// Until Clerk loads, `signUp` is a placeholder that hides an open attempt
+		// and queues calls, so the check below would pass for any attempt.
+		if (!isLoaded) return;
 		setError(null);
 		setLoading(true);
 		try {
@@ -95,7 +100,7 @@ export function SignUpForm({
 	if (step === "pending") {
 		return (
 			<ResumePending
-				backLabel={auth.signUpContinue.startOver}
+				backLabel={auth.signUp.backToSignUp}
 				onBack={() => {
 					setStep("details");
 					onStartOver?.();
@@ -145,6 +150,7 @@ export function SignUpForm({
 				label={auth.email}
 				type="email"
 				autoComplete="username"
+				autoFocus={resumed}
 				value={email}
 				onChange={setEmail}
 				required
@@ -170,7 +176,9 @@ export function SignUpForm({
 				data-cl-size="flexible"
 				data-cl-language={locale}
 			/>
-			<AuthButton loading={loading}>{auth.signUp.submit}</AuthButton>
+			<AuthButton loading={loading || !isLoaded}>
+				{auth.signUp.submit}
+			</AuthButton>
 			<div className="mt-1 text-center text-xs text-text-muted">
 				<a
 					href={withRedirect(AUTH_PATHS.signIn, redirect)}

@@ -1,11 +1,12 @@
 import { useSignIn } from "@clerk/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { fmt, useMessages } from "#/lib/i18n";
 import { AuthButton } from "./AuthButton";
 import { AuthError } from "./AuthError";
 import { AuthField } from "./AuthField";
 import { useClerkErrorMessage } from "./clerkError";
 import {
+	codeExpiry,
 	endsAttempt,
 	locksMethod,
 	type SecondFactorOption,
@@ -14,6 +15,7 @@ import {
 	sendSecondFactorCode,
 	sendsCode,
 	startedCodeExpired,
+	startedLocked,
 	startedSecondFactor,
 	verifySecondFactor,
 } from "./secondFactor";
@@ -27,7 +29,8 @@ import {
  * The default method's first code is sent once, on mount. An attempt that
  * already has a method going (the page was reloaded) reopens on that method
  * and sends nothing: a new code is the person's to ask for, and the prompt
- * says so when the one sent has expired. Each other method the account has is
+ * says so when the one sent has expired, now or while the page stays open, or
+ * when too many wrong codes locked the method. Each other method the account has is
  * a link below; switching to a texted or emailed one sends its code first. Too
  * many wrong codes only lock the current method, so the form stays open for a
  * new code or another method. An attempt that expired leaves only the way
@@ -55,10 +58,16 @@ export function SecondFactorStep({
 	const [strategy, setStrategy] = useState<SecondFactorStrategy | null>(
 		() => started ?? options[0]?.strategy ?? null,
 	);
-	// Checked at mount, for the code an earlier load sent; a new one clears it.
+	// At mount for the code an earlier load sent, later when its time comes; a
+	// new one clears it.
 	const [codeExpired, setCodeExpired] = useState(
 		() => !!started && sendsCode(started) && startedCodeExpired(signIn),
 	);
+	// The method an earlier load left locked, until a new code unlocks it.
+	const [locked, setLocked] = useState(() =>
+		startedLocked(signIn) ? started : null,
+	);
+	const promptId = useId();
 	const [code, setCode] = useState("");
 	const [error, setError] = useState<string | null>(null);
 	const [notice, setNotice] = useState<string | null>(initialNotice);
@@ -99,8 +108,31 @@ export function SecondFactorStep({
 		const { error } = await sendSecondFactorCode(signIn, next);
 		if (error) throw error;
 		setCodeExpired(false);
+		if (sendsCode(next)) setLocked((held) => (held === next ? null : held));
 		return true;
 	}
+
+	// Switches the prompt when the code expires with the page open. Timers stand
+	// still while a phone or laptop sleeps, so a return to the page checks too.
+	const expiry = codeExpiry(signIn, strategy);
+	useEffect(() => {
+		if (expiry === null || expiry <= Date.now()) return;
+		let timer: ReturnType<typeof setTimeout>;
+		function check(at: number) {
+			clearTimeout(timer);
+			const left = at - Date.now();
+			if (left <= 0) setCodeExpired(true);
+			// Longer than `setTimeout` can wait: look again then.
+			else timer = setTimeout(check, Math.min(left, 2 ** 31 - 1), at);
+		}
+		const recheck = () => check(expiry);
+		recheck();
+		document.addEventListener("visibilitychange", recheck);
+		return () => {
+			clearTimeout(timer);
+			document.removeEventListener("visibilitychange", recheck);
+		};
+	}, [expiry]);
 
 	// The default method's first code, under any notice the step opened with.
 	// The ref covers an effect run twice.
@@ -213,6 +245,14 @@ export function SecondFactorStep({
 	const backup = current.strategy === "backup_code";
 	const others = options.filter((o) => o.strategy !== current.strategy);
 
+	function promptFor({ strategy }: SecondFactorOption) {
+		if (locked === strategy) {
+			if (!sendsCode(strategy)) return copy.methodLocked;
+			return others.length > 0 ? copy.codeLockedOther : copy.codeLocked;
+		}
+		return codeExpired ? copy.codeExpired : copy.prompt[strategy];
+	}
+
 	return (
 		<form onSubmit={submit} noValidate className="flex flex-col gap-3">
 			<h2 className="text-base font-semibold text-text">{copy.title}</h2>
@@ -221,8 +261,8 @@ export function SecondFactorStep({
 			<p className="text-sm text-text empty:hidden" role="status">
 				{notice}
 			</p>
-			<p className="text-sm text-text-muted">
-				{fmt(codeExpired ? copy.codeExpired : copy.prompt[current.strategy], {
+			<p id={promptId} className="text-sm text-text-muted" aria-live="polite">
+				{fmt(promptFor(current), {
 					destination: destination(current),
 					resend: copy.resend,
 				})}
@@ -234,6 +274,7 @@ export function SecondFactorStep({
 				inputMode={backup ? "text" : "numeric"}
 				autoComplete={backup ? "off" : "one-time-code"}
 				autoFocus
+				describedBy={promptId}
 				value={code}
 				onChange={setCode}
 				required

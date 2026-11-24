@@ -75,6 +75,9 @@ export const auth = {
 		},
 		codeExpired:
 			"De code die we naar {destination} hebben gestuurd, is verlopen. Kies hieronder ‘{resend}’.",
+		codeLocked: "Te veel foute codes. Kies hieronder ‘{resend}’.",
+		codeLockedOther:
+			"Te veel foute codes. Kies hieronder ‘{resend}’ of een andere methode.",
 		yourPhone: "je telefoon",
 		yourEmail: "je e-mailadres",
 		code: "Code",
@@ -108,6 +111,7 @@ export const auth = {
 		codeSent: "We hebben een code gestuurd naar {email}.",
 		code: "Verificatiecode",
 		verify: "Verifiëren",
+		backToSignUp: "Terug naar aanmelden",
 		invalidCode: "Ongeldige of onvolledige verificatie.",
 	},
 	signUpContinue: {

@@ -71,6 +71,10 @@ export const auth = {
 		/** Replaces the prompt; `resend` is the button that sends another. */
 		codeExpired:
 			"The code we sent to {destination} has expired. Choose “{resend}” below.",
+		/** Also replaces the prompt; the second when there is another method. */
+		codeLocked: "Too many wrong codes. Choose “{resend}” below.",
+		codeLockedOther:
+			"Too many wrong codes. Choose “{resend}” or another method below.",
 		/** Shown when Clerk gives no masked number or address. */
 		yourPhone: "your phone",
 		yourEmail: "your email",
@@ -104,6 +108,7 @@ export const auth = {
 		codeSent: "We sent a code to {email}.",
 		code: "Verification code",
 		verify: "Verify",
+		backToSignUp: "Back to sign up",
 		invalidCode: "Invalid or incomplete verification.",
 	},
 	signUpContinue: {

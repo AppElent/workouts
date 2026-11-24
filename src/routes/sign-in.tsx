@@ -1,10 +1,21 @@
 import { useAuth } from "@clerk/react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import {
+	createFileRoute,
+	useLocation,
+	useNavigate,
+} from "@tanstack/react-router";
 import { useEffect } from "react";
 import { AuthCard } from "#/lib/auth/AuthCard";
 import { AUTH_PATHS, safeRedirect } from "#/lib/auth/paths";
 import { SignInForm } from "#/lib/auth/SignInForm";
 import { useMessages } from "#/lib/i18n";
+
+declare module "@tanstack/react-router" {
+	interface HistoryState {
+		/** Set by the way back from `/sso-callback`. */
+		focusSignIn?: boolean;
+	}
+}
 
 export const Route = createFileRoute("/sign-in")({
 	ssr: false,
@@ -23,6 +34,9 @@ export const Route = createFileRoute("/sign-in")({
 function SignInPage() {
 	const navigate = useNavigate();
 	const { redirect, resume } = Route.useSearch();
+	const focusFirst = useLocation({
+		select: ({ state }) => state.focusSignIn === true,
+	});
 	const { isSignedIn } = useAuth();
 	const { auth } = useMessages();
 
@@ -37,6 +51,7 @@ function SignInPage() {
 			<SignInForm
 				redirect={redirect}
 				resumeSocial={resume === "social"}
+				focusFirst={focusFirst}
 				// Drops the marker, so a reload does not resume the attempt.
 				onStartOver={() => {
 					if (!resume) return;
