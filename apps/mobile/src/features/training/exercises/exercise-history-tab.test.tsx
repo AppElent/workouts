@@ -15,7 +15,7 @@ const NOW = new Date(2026, 10, 18, 12).getTime();
 const set = (
 	id: string,
 	setNumber: number,
-	extra: { weight?: number; reps?: number; notes?: string } = {},
+	extra: { weight?: number; reps?: number; notes?: string; rpe?: number } = {},
 ) => ({
 	_id: id,
 	sessionId: "s1",
@@ -26,6 +26,7 @@ const set = (
 	reps: extra.reps ?? 8,
 	setType: "working",
 	...(extra.notes === undefined ? {} : { notes: extra.notes }),
+	...(extra.rpe === undefined ? {} : { rpe: extra.rpe }),
 });
 
 const render = (...sets: ReturnType<typeof set>[]) =>
@@ -54,6 +55,7 @@ describe.each([
 		bodyweight: "set 1, 5 reps",
 		bodyweightNote: "set 1, 5 reps, note: narrow grip",
 		single: "set 1, 20 kilograms, 1 rep",
+		withRpe: /^set 1, 20 kilograms, 5 reps, RPE 8\.5, 1RM about \d+ kilograms$/,
 	},
 	{
 		locale: "nl",
@@ -63,6 +65,7 @@ describe.each([
 		bodyweight: "set 1, 5 herhalingen",
 		bodyweightNote: "set 1, 5 herhalingen, notitie: narrow grip",
 		single: "set 1, 20 kilo, 1 herhaling",
+		withRpe: /^set 1, 20 kilo, 5 herhalingen, RPE 8,5, 1RM ongeveer \d+ kilo$/,
 	},
 ])("a history row spoken in $locale", (expected) => {
 	beforeEach(() => writeLocal(PREFERENCE_KEYS.locale, expected.locale));
@@ -85,6 +88,11 @@ describe.each([
 		expect(screen.getByLabelText(expected.bodyweightNote)).toBeTruthy();
 		expect(screen.getAllByLabelText(/^set \d/)).toHaveLength(1);
 		expect(screen.queryByLabelText(/—/)).toBeNull();
+	});
+
+	it("speaks the RPE from the message catalog", async () => {
+		await render(set("a", 1, { weight: 20, reps: 5, rpe: 8.5 }));
+		expect(screen.getByLabelText(expected.withRpe)).toBeTruthy();
 	});
 
 	it("speaks one rep in the singular", async () => {
