@@ -208,7 +208,8 @@ function ExerciseDetailPage() {
 
 					{!exercise.notes &&
 						(signedIn ? (
-							!currentOrm && (
+							!currentOrm &&
+							!isTimedExercise(id) && (
 								<p className="text-sm text-text-muted text-center py-8">
 									No data yet. Log sets for this exercise to see your 1RM.
 								</p>
@@ -408,10 +409,16 @@ function ExerciseDetailPage() {
 													{set.setType}
 												</td>
 												<td className="py-2 pr-4 text-text font-medium">
-													{set.weight}
-													<span className="text-text-muted text-xs ml-0.5">
-														{set.unit}
-													</span>
+													{set.weight > 0 ? (
+														<>
+															{set.weight}
+															<span className="text-text-muted text-xs ml-0.5">
+																{set.unit}
+															</span>
+														</>
+													) : (
+														<span className="text-text-muted">BW</span>
+													)}
 												</td>
 												<td className="py-2 pr-4 text-text">{setCount(set)}</td>
 												<td className="py-2 pr-4 text-text-muted">

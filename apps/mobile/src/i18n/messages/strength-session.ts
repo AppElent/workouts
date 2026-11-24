@@ -146,6 +146,7 @@ export const strengthSessionEn = {
 	},
 	checks: {
 		repsHigh: "{reps} reps? Check this before it counts.",
+		holdLong: "{reps} seconds? Check this before it counts.",
 		repsAbovePlan: "{reps} reps, planned {base}. Check this before it counts.",
 		repsAbovePrevious:
 			"{reps} reps, previous set {base}. Check this before it counts.",
@@ -200,6 +201,7 @@ export const strengthSessionEn = {
 		saveLoad: "Save · {load}",
 		noChanges: "No changes",
 		confirmReps: "Yes, {reps} reps is right",
+		confirmSeconds: "Yes, {reps} seconds is right",
 		confirmLoad: "Yes, {load} is right",
 		enterReps: "Enter reps",
 		enterSeconds: "Enter seconds",
@@ -679,6 +681,7 @@ export const strengthSessionNl: typeof strengthSessionEn = {
 	},
 	checks: {
 		repsHigh: "{reps} reps? Controleer dit voordat het telt.",
+		holdLong: "{reps} seconden? Controleer dit voordat het telt.",
 		repsAbovePlan:
 			"{reps} reps, gepland {base}. Controleer dit voordat het telt.",
 		repsAbovePrevious:
@@ -734,6 +737,7 @@ export const strengthSessionNl: typeof strengthSessionEn = {
 		saveLoad: "Opslaan · {load}",
 		noChanges: "Geen wijzigingen",
 		confirmReps: "Ja, {reps} reps klopt",
+		confirmSeconds: "Ja, {reps} seconden klopt",
 		confirmLoad: "Ja, {load} klopt",
 		enterReps: "Vul reps in",
 		enterSeconds: "Vul seconden in",

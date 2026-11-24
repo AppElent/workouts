@@ -1,6 +1,11 @@
 import type { api } from "@convex/_generated/api";
 import type { Doc } from "@convex/_generated/dataModel";
-import { isTimedExercise, SET_LIMITS } from "@foundry/core";
+import {
+	countStep,
+	isTimedExercise,
+	SET_LIMITS,
+	TIMED_DEFAULT_SECONDS,
+} from "@foundry/core";
 import type { FunctionReturnType } from "convex/server";
 import { Plus, X } from "lucide-react";
 import { useState } from "react";
@@ -109,6 +114,7 @@ export function RoutineEditor({
 						onChange={(value) => updateEntry(index, { defaultReps: value })}
 						min={SET_LIMITS.plannedReps.min}
 						max={SET_LIMITS.plannedReps.max}
+						step={countStep(entry.exerciseId)}
 					/>
 					<Stepper
 						label="Weight"
@@ -140,7 +146,9 @@ export function RoutineEditor({
 												exerciseId: exercise._id,
 												name: exercise.name,
 												defaultSets: 3,
-												defaultReps: isTimedExercise(exercise._id) ? 30 : 8,
+												defaultReps: isTimedExercise(exercise._id)
+													? TIMED_DEFAULT_SECONDS
+													: 8,
 											},
 										],
 							);

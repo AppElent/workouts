@@ -5,6 +5,7 @@
 import {
 	calcPlates,
 	convertLoad,
+	countStep as countStepFor,
 	DEFAULT_BAR,
 	estimatedMaxReps,
 	formatClock,
@@ -362,7 +363,7 @@ export function SetEditorScreen() {
 	const bodyweight = facts.bodyweight;
 	const timed = facts.timed;
 	/** Seconds move in fives on a hold; reps move one at a time. */
-	const countStep = timed ? 5 : 1;
+	const countStep = countStepFor(row.exerciseId);
 	const group = groupOfRow(plan, row.id);
 	const roundIndex = group
 		? group.rounds.findIndex((round) =>
@@ -661,7 +662,9 @@ export function SetEditorScreen() {
 	} else if (check)
 		primary =
 			check.kind === "reps"
-				? fmt(text.confirmReps, { reps: row.reps })
+				? fmt(timed ? text.confirmSeconds : text.confirmReps, {
+						reps: row.reps,
+					})
 				: fmt(text.confirmLoad, { load: loadOnly });
 	else if (logged) {
 		primary = changed ? fmt(text.saveLoad, { load: fullLoad }) : text.noChanges;
