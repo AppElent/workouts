@@ -20,3 +20,27 @@ export function setReference(set: Doc<"sets">) {
 		kind: set.referenceKind,
 	};
 }
+
+/**
+ * The Overview hint for an exercise with no notes, or null when the Overview
+ * already has content. A hold has no 1RM, so it asks for a best time instead.
+ */
+export function overviewHint(
+	exerciseId: string,
+	state: { signedIn: boolean; hasSets: boolean; hasOneRepMax: boolean },
+): string | null {
+	const timed = isTimedExercise(exerciseId);
+	if (!state.signedIn) {
+		return timed
+			? "Sign in to track your best time for this exercise."
+			: "Sign in to track your 1RM for this exercise.";
+	}
+	if (timed) {
+		return state.hasSets
+			? null
+			: "No holds yet. Log a hold to see your best time.";
+	}
+	return state.hasOneRepMax
+		? null
+		: "No data yet. Log sets for this exercise to see your 1RM.";
+}

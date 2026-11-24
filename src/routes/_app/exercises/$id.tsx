@@ -24,7 +24,7 @@ import {
 import { MuscleMap } from "#/components/exercises/MuscleMap";
 import { PersonalRecords } from "#/components/exercises/PersonalRecords";
 import { useExercise } from "#/lib/exercises";
-import { displayLoad, setCount, setReference } from "#/lib/load";
+import { displayLoad, overviewHint, setCount, setReference } from "#/lib/load";
 import { cn } from "#/lib/utils";
 
 type Tab = "overview" | "progress" | "history";
@@ -100,6 +100,12 @@ function ExerciseDetailPage() {
 	// biome-ignore lint/suspicious/noExplicitAny: Recharts formatter type mismatch
 	const strengthCurveFormatter: any = (value: number | null, name: string) =>
 		value !== null ? [`${value} ${unit}`, name] : [null, name];
+
+	const hint = overviewHint(id, {
+		signedIn,
+		hasSets: history.length > 0,
+		hasOneRepMax: Boolean(currentOrm),
+	});
 
 	const tabs: { id: Tab; label: string }[] = [
 		{ id: "overview", label: "Overview" },
@@ -207,15 +213,11 @@ function ExerciseDetailPage() {
 					)}
 
 					{!exercise.notes &&
+						hint !== null &&
 						(signedIn ? (
-							!currentOrm &&
-							!isTimedExercise(id) && (
-								<p className="text-sm text-text-muted text-center py-8">
-									No data yet. Log sets for this exercise to see your 1RM.
-								</p>
-							)
+							<p className="text-sm text-text-muted text-center py-8">{hint}</p>
 						) : (
-							<SignInPrompt message="Sign in to track your 1RM for this exercise." />
+							<SignInPrompt message={hint} />
 						))}
 				</div>
 			)}
