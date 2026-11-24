@@ -58,6 +58,7 @@ import {
 	levelOf,
 	strengthLevels,
 } from "../../strength-session/strength-levels";
+import { spokenSet } from "../set-speech";
 import { dailyBest, dayOf, exerciseInsight } from "./exercise-insight";
 import { MuscleIcon } from "./muscle-icon";
 
@@ -863,12 +864,22 @@ export function HistoryTab({
 							return (
 								<View
 									key={row.id}
-									accessible={row.notes !== "" || undefined}
-									accessibilityLabel={
-										row.notes
-											? `${[index + 1, load, kind, estimate].filter(Boolean).join(", ")}${fmt(t.strength.plan.rowNoteSpoken, { note: row.notes })}`
-											: undefined
-									}
+									accessible
+									accessibilityLabel={spokenSet(
+										{
+											number: index + 1,
+											timed,
+											weight: row.weight,
+											unit: row.unit,
+											reps: row.reps,
+											setType: row.setType,
+											effort: kind,
+											estimateKg: row.estimate,
+											note: row.notes,
+										},
+										t.strength,
+										locale,
+									)}
 									style={index > 0 && styles.historyLine}
 								>
 									<View style={styles.historyRow}>

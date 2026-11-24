@@ -1,4 +1,5 @@
 import { screen } from "@testing-library/react-native";
+import { PREFERENCE_KEYS, writeLocal } from "../../../local-store/local-store";
 import { renderScreen } from "../../../test-support/render-screen";
 import { SessionSummaryScreen } from "./session-summary-screen";
 
@@ -41,16 +42,53 @@ const set = (id: string, setNumber: number, notes?: string) => ({
 	...(notes === undefined ? {} : { notes }),
 });
 
-it("shows a set's note under its chip and speaks it with the set", async () => {
+afterEach(() => writeLocal(PREFERENCE_KEYS.locale, "en"));
+
+it("shows a set's note under its chip", async () => {
 	mockSets.mockReturnValue([set("a", 1, "narrow grip"), set("b", 2)]);
 	await renderScreen(<SessionSummaryScreen />);
 	expect(screen.getByText("narrow grip")).toBeTruthy();
-	expect(screen.getByLabelText("80 × 8, note: narrow grip")).toBeTruthy();
+	expect(screen.getAllByText("80 × 8")).toHaveLength(2);
 });
 
-it("leaves sets without a note as they were", async () => {
-	mockSets.mockReturnValue([set("a", 1), set("b", 2)]);
-	await renderScreen(<SessionSummaryScreen />);
-	expect(screen.getAllByText("80 × 8")).toHaveLength(2);
-	expect(screen.queryByLabelText(/note:/)).toBeNull();
+describe.each([
+	{
+		locale: "en",
+		plain: "set 1, 80 kilograms, 8 reps",
+		noted: "set 2, 80 kilograms, 8 reps, note: narrow grip",
+		warmup: "set 3, 20 kilograms, 1 rep, Warm-up",
+		pounds: "set 4, 135 pounds, 5 reps",
+		bodyweight: "set 1, 8 reps",
+	},
+	{
+		locale: "nl",
+		plain: "set 1, 80 kilo, 8 herhalingen",
+		noted: "set 2, 80 kilo, 8 herhalingen, notitie: narrow grip",
+		warmup: "set 3, 20 kilo, 1 herhaling, Warming-up",
+		pounds: "set 4, 135 pond, 5 herhalingen",
+		bodyweight: "set 1, 8 herhalingen",
+	},
+])("a summary set spoken in $locale", (expected) => {
+	beforeEach(() => writeLocal(PREFERENCE_KEYS.locale, expected.locale));
+
+	it("is one accessible element per set, with and without a note", async () => {
+		mockSets.mockReturnValue([
+			set("a", 1),
+			set("b", 2, "narrow grip"),
+			{ ...set("c", 3), weight: 20, reps: 1, setType: "warmup" },
+			{ ...set("d", 4), weight: 135, reps: 5, unit: "lbs" },
+		]);
+		await renderScreen(<SessionSummaryScreen />);
+		expect(screen.getByLabelText(expected.plain)).toBeTruthy();
+		expect(screen.getByLabelText(expected.noted)).toBeTruthy();
+		expect(screen.getByLabelText(expected.warmup)).toBeTruthy();
+		expect(screen.getByLabelText(expected.pounds)).toBeTruthy();
+		expect(screen.getAllByLabelText(/^set \d/)).toHaveLength(4);
+	});
+
+	it("says a bodyweight set without a load", async () => {
+		mockSets.mockReturnValue([{ ...set("a", 1), weight: 0 }]);
+		await renderScreen(<SessionSummaryScreen />);
+		expect(screen.getByLabelText(expected.bodyweight)).toBeTruthy();
+	});
 });

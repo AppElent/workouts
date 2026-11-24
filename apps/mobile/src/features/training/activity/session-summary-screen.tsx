@@ -36,6 +36,7 @@ import { RowNote } from "../../../ui/row-note";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
 import { useWriteFailureMessage } from "../../../ui/use-screen-write";
+import { spokenSet } from "../set-speech";
 
 export function SessionSummaryScreen() {
 	const errorMessage = useWriteFailureMessage();
@@ -241,7 +242,7 @@ function ExerciseRecap({
 	timed: boolean;
 }) {
 	const styles = useThemedStyles(createStyles);
-	const { t } = useI18n();
+	const { t, locale } = useI18n();
 	const copy = t.workoutSummary;
 	const strength = t.strength;
 	// "Best" is the heaviest set, matching the web. Not the same as the highest
@@ -255,7 +256,7 @@ function ExerciseRecap({
 		<View style={styles.card}>
 			<AppText style={styles.rowTitle}>{name}</AppText>
 			<View style={styles.chipWrap}>
-				{sets.map((s) => {
+				{sets.map((s, index) => {
 					const warmup = s.setType === "warmup";
 					const note = s.notes?.trim() ?? "";
 					const text = timed
@@ -268,12 +269,20 @@ function ExerciseRecap({
 					return (
 						<View
 							key={s._id}
-							accessible={note !== "" || undefined}
-							accessibilityLabel={
-								note
-									? `${text}${fmt(strength.plan.rowNoteSpoken, { note })}`
-									: undefined
-							}
+							accessible
+							accessibilityLabel={spokenSet(
+								{
+									number: index + 1,
+									timed,
+									weight: s.weight,
+									unit: s.unit,
+									reps: s.reps,
+									setType: s.setType,
+									note,
+								},
+								strength,
+								locale,
+							)}
 							style={note ? styles.noteSet : undefined}
 						>
 							<View style={[styles.setChip, warmup && styles.warmupChip]}>
