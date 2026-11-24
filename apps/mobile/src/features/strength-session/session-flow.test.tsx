@@ -2,6 +2,7 @@
 import {
 	useConvexConnectionState,
 	useMutation,
+	usePaginatedQuery,
 	useQueries,
 	useQuery,
 } from "convex/react";
@@ -25,6 +26,7 @@ import { workspaceKey, workspaceStore } from "./data/session-workspace";
 import {
 	addToGroup,
 	allRows,
+	beginAttempt,
 	findRow,
 	groupWith,
 	markFailed,
@@ -89,7 +91,8 @@ const empty: never[] = [];
 
 let currentSession: Record<string, unknown> = session;
 let loggedSets: Record<string, unknown>[] = [];
-let receipt: { setId: string; status: "saved" } | null | undefined = null;
+let receipt: { setId: string; status: "saved" | "removed" } | null | undefined =
+	null;
 let online = true;
 const add = jest.fn();
 const update = jest.fn();
@@ -563,6 +566,170 @@ it("won't close a group while one of its sets failed", async () => {
 	);
 	expect(await screen.findByText(/Retry or remove it first/)).toBeTruthy();
 	expect(workspaceStore.plan(planKey())?.groups[id]?.state).toBe("timeup");
+});
+
+describe("a set logged elsewhere while a grouped send is unresolved (APP-699)", () => {
+	const facts = {
+		exercise: { equipment: "barbell" as const },
+		bodyweight: false,
+		timed: false,
+		stepKg: 2.5,
+		measured: 100,
+		estimated: null,
+		savedManual: null,
+		measuredDate: 1,
+		last: null,
+	};
+	const second = "shipped:exercise:barbell-bench-press";
+	const plannedSets = [
+		{ weight: 60, reps: 8, unit: "kg" as const },
+		{ weight: 60, reps: 8, unit: "kg" as const },
+	];
+	const exercises = [
+		{ exerciseId, plannedSets },
+		{ exerciseId: second, plannedSets },
+	];
+	/** One cell per exercise and round: the linked set's id, or "open". */
+	const shape = (groupId: string) =>
+		(workspaceStore.plan(planKey())?.groups[groupId]?.rounds ?? []).map(
+			(round) =>
+				round.items.map(
+					(row) =>
+						`${row.exerciseId === exerciseId ? "squat" : "bench"}:${row.setId ?? "open"}`,
+				),
+		);
+	// The live query pushes a new value: a new plan object makes the screens render again.
+	const queryAnswers = () =>
+		act(async () => workspaceStore.update(planKey(), (plan) => ({ ...plan })));
+
+	// Like the query cache, answer with the same object until a value changes. The
+	// shared mocks build a new one per render (queries, exercise catalog), which
+	// would re-run every reconcile and hide whether the settled receipt triggers it.
+	const exercisePage = {
+		results: [],
+		status: "Exhausted",
+		loadMore: jest.fn(),
+	};
+	beforeEach(() => {
+		jest
+			.mocked(usePaginatedQuery)
+			.mockImplementation(() => exercisePage as never);
+		const answer = jest.mocked(useQueries).getMockImplementation();
+		const previous = new Map<string, Record<string, unknown>>();
+		jest.mocked(useQueries).mockImplementation((queries) => {
+			const next = (answer as NonNullable<typeof answer>)(queries);
+			const id = Object.keys(queries).join("|");
+			const before = previous.get(id);
+			const same =
+				before &&
+				Object.keys(next).every((key) => Object.is(before[key], next[key]));
+			if (before && same) return before;
+			previous.set(id, next);
+			return next;
+		});
+	});
+
+	afterEach(() => {
+		jest
+			.mocked(usePaginatedQuery)
+			.mockImplementation(
+				() =>
+					({ results: [], status: "Exhausted", loadMore: jest.fn() }) as never,
+			);
+	});
+
+	async function mountWithUnresolvedSend() {
+		currentSession = { ...currentSession, exercises };
+		const grouped = groupWith(
+			seedPlan(exercises, [], () => facts),
+			exerciseId,
+			second,
+		);
+		const groupId = grouped.groupId as string;
+		const first = grouped.plan.groups[groupId]?.rounds[0]?.items[0] as PlanSet;
+		// A send left unresolved by a restart: its receipt has not arrived.
+		receipt = undefined;
+		workspaceStore.setPlan(
+			planKey(),
+			updateRow(
+				grouped.plan,
+				first.id,
+				beginAttempt(grouped.plan, first.id, "op-1") as PlanSet,
+			),
+		);
+		await mount();
+		return { groupId, first };
+	}
+
+	it("fills the first open planned row once the attempt's receipt says it was removed", async () => {
+		const { groupId, first } = await mountWithUnresolvedSend();
+		expect(
+			findRow(workspaceStore.plan(planKey()) as SessionPlan, first.id)?.attempt,
+		).toMatchObject({
+			setNumber: 1,
+		});
+		// Another device or the MCP logs a set with the attempt's number.
+		loggedSets = [serverSet("mcp-1", 5, 1)];
+		await queryAnswers();
+		// It waits: only the receipt can say whether it is the attempt's own set.
+		expect(shape(groupId)).toEqual([
+			["squat:open", "bench:open"],
+			["squat:open", "bench:open"],
+		]);
+		expect(
+			findRow(workspaceStore.plan(planKey()) as SessionPlan, first.id)?.attempt,
+		).toBeTruthy();
+
+		receipt = { setId: "gone", status: "removed" };
+		await queryAnswers();
+		await waitFor(() =>
+			expect(shape(groupId)).toEqual([
+				["squat:mcp-1", "bench:open"],
+				["squat:open", "bench:open"],
+			]),
+		);
+		// It took the freed planned row, keeping its place and target, and added no round.
+		const filled = findRow(
+			workspaceStore.plan(planKey()) as SessionPlan,
+			first.id,
+		);
+		expect(filled).toMatchObject({
+			setId: "mcp-1",
+			done: true,
+			reps: 5,
+			plan: { kg: 60, reps: 8 },
+		});
+		expect(filled?.attempt).toBeUndefined();
+		expect(
+			workspaceStore.plan(planKey())?.groups[groupId]?.rounds,
+		).toHaveLength(2);
+	});
+
+	it("skips the row when input was entered here while the set waited", async () => {
+		const { groupId, first } = await mountWithUnresolvedSend();
+		loggedSets = [serverSet("mcp-1", 5, 1)];
+		await queryAnswers();
+		receipt = { setId: "gone", status: "removed" };
+		// The person changes the load before the receipt is read.
+		await act(async () =>
+			workspaceStore.update(planKey(), (plan) => {
+				const row = findRow(plan, first.id) as PlanSet;
+				return updateRow(plan, first.id, { ...row, kg: 100 });
+			}),
+		);
+		await waitFor(() =>
+			expect(shape(groupId)).toEqual([
+				["squat:open", "bench:open"],
+				["squat:mcp-1", "bench:open"],
+			]),
+		);
+		expect(
+			findRow(workspaceStore.plan(planKey()) as SessionPlan, first.id),
+		).toMatchObject({
+			kg: 100,
+			done: false,
+		});
+	});
 });
 
 it("won't drop a failed set by shrinking its group or switching it to a clock", async () => {
