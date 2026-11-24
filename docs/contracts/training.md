@@ -143,8 +143,10 @@ the app; there is no separate data.
   swapped-in sets start without one; swapping back restores the original's.
 - **Spoken set:** each set row in the phone's exercise history and the session
   summary is one accessible element with one spoken label: set number, load and
-  reps in words ("20 kilograms, 5 reps"), set type, estimated 1RM, then the note,
-  each only when the row has it. Placeholders such as "—" are never read.
+  reps in words ("20 kilograms, 5 reps"), set type or, for a working set, its
+  RPE ("RPE 8"), estimated 1RM, then the note, each only when the row has it.
+  Every spoken phrase, the RPE included, comes from the en/nl message catalog.
+  Placeholders such as "—" are never read.
   The session summary's visible chip and its "Best" line name the set's unit
   (`80 kg × 8`, `135 lbs × 5`); a bodyweight set shows none.
 - Percentage chips use the session's 1RM: Measured unless a newer manual 1RM is

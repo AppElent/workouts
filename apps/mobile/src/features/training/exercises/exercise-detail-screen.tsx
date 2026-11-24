@@ -873,7 +873,7 @@ export function HistoryTab({
 											unit: row.unit,
 											reps: row.reps,
 											setType: row.setType,
-											effort: kind,
+											rpe: row.setType === "working" ? row.rpe : null,
 											estimateKg: row.estimate,
 											note: row.notes,
 										},

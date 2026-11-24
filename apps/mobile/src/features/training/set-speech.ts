@@ -16,8 +16,8 @@ export type SpokenSet = {
 	unit: "kg" | "lbs";
 	reps: number;
 	setType: string;
-	/** Spoken in place of the set type, e.g. "RPE 8"; empty for none. */
-	effort?: string;
+	/** Spoken in place of the set type of a working set, e.g. "RPE 8". */
+	rpe?: number | null;
 	/** Estimated 1RM in kg, when the row shows one. */
 	estimateKg?: number | null;
 	note: string;
@@ -51,7 +51,9 @@ export function spokenSet(
 			: "";
 	const kind = SPOKEN_TYPES.includes(set.setType as SpokenType)
 		? strength[set.setType as SpokenType]
-		: (set.effort ?? "");
+		: set.rpe == null
+			? ""
+			: fmt(copy.rowRpeSpoken, { value: decimal(set.rpe) });
 	const head = [fmt(copy.rowSet, { number: set.number }), weight, amount, kind]
 		.filter(Boolean)
 		.join(", ");
