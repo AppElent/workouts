@@ -21,7 +21,7 @@ export const workoutSummaryEn = {
 	deleteError: "Could not delete the session.",
 	repsOnly: "{reps} reps",
 	secondsOnly: "{seconds} s",
-	best: "Best: {weight} kg × {reps}",
+	best: "Best: {weight} {unit} × {reps}",
 };
 
 export const workoutSummaryNl: typeof workoutSummaryEn = {
@@ -48,5 +48,5 @@ export const workoutSummaryNl: typeof workoutSummaryEn = {
 	deleteError: "Kon de sessie niet verwijderen.",
 	repsOnly: "{reps} herh.",
 	secondsOnly: "{seconds} s",
-	best: "Beste: {weight} kg × {reps}",
+	best: "Beste: {weight} {unit} × {reps}",
 };

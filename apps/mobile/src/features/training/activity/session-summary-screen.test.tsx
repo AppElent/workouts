@@ -48,7 +48,41 @@ it("shows a set's note under its chip", async () => {
 	mockSets.mockReturnValue([set("a", 1, "narrow grip"), set("b", 2)]);
 	await renderScreen(<SessionSummaryScreen />);
 	expect(screen.getByText("narrow grip")).toBeTruthy();
-	expect(screen.getAllByText("80 × 8")).toHaveLength(2);
+	expect(screen.getAllByText("80 kg × 8")).toHaveLength(2);
+});
+
+describe.each([
+	{ locale: "en", reps: "8 reps", best: "Best: 135 lbs × 5" },
+	{ locale: "nl", reps: "8 herh.", best: "Beste: 135 lbs × 5" },
+])("the visible chip in $locale", ({ locale, reps, best }) => {
+	beforeEach(() => writeLocal(PREFERENCE_KEYS.locale, locale));
+
+	it("names the unit of a weighted set; bodyweight has none", async () => {
+		mockSets.mockReturnValue([
+			set("a", 1),
+			{ ...set("b", 2), weight: 135, reps: 5, unit: "lbs" },
+			{ ...set("c", 3), weight: 0 },
+		]);
+		await renderScreen(<SessionSummaryScreen />);
+		expect(screen.getByText("80 kg × 8")).toBeTruthy();
+		expect(screen.getByText("135 lbs × 5")).toBeTruthy();
+		expect(screen.getByText(reps)).toBeTruthy();
+		expect(screen.getByText(best)).toBeTruthy();
+	});
+
+	it("puts the unit on a timed hold's added load", async () => {
+		mockSets.mockReturnValue([
+			{
+				...set("a", 1),
+				exerciseId: "shipped:exercise:plank",
+				weight: 10,
+				reps: 30,
+				unit: "lbs",
+			},
+		]);
+		await renderScreen(<SessionSummaryScreen />);
+		expect(screen.getByText("+10 lbs × 30 s")).toBeTruthy();
+	});
 });
 
 describe.each([
