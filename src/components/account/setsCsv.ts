@@ -4,7 +4,8 @@ import { format } from "date-fns";
 /**
  * One CSV cell. Numbers are written as-is, so negative values stay numeric.
  * Text that a spreadsheet could read as a formula (`=`, `+`, `-`, `@`, tab, CR)
- * gets a leading `'` (OWASP CSV injection). Values with `,`, `"`, `\n` or `\r`
+ * gets a leading `'` (OWASP CSV injection), so a name like "-Push" is written
+ * as "'-Push" on purpose. Values with `,`, `"`, `\n` or `\r`
  * are quoted.
  */
 export function csvCell(value: unknown): string {
