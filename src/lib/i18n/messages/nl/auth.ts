@@ -108,6 +108,28 @@ export const auth = {
 		verify: "Verifiëren",
 		invalidCode: "Ongeldige of onvolledige verificatie.",
 	},
+	signUpContinue: {
+		title: "Nog één stap",
+		intro: "Vul aan wat nog ontbreekt om je account af te ronden.",
+		fields: {
+			email_address: "E-mail",
+			username: "Gebruikersnaam",
+			first_name: "Voornaam",
+			last_name: "Achternaam",
+			phone_number: "Telefoonnummer (met landcode)",
+			password: "Wachtwoord",
+		},
+		submit: "Doorgaan",
+		codePrompt:
+			"We hebben een code gestuurd naar {destination}. Vul die in om door te gaan.",
+		invalidDetails: "Controleer wat je hebt ingevuld en probeer het opnieuw.",
+		taken: "Dit is al in gebruik bij een ander account. Kies iets anders.",
+		attemptEnded:
+			"Deze aanmelding duurde te lang en kan niet verder. Begin opnieuw.",
+		unsupported:
+			"Deze aanmelding kan hier niet worden afgerond. Begin opnieuw om je op een andere manier aan te melden.",
+		startOver: "Opnieuw beginnen",
+	},
 	forgotPassword: {
 		title: "Wachtwoord opnieuw instellen",
 		sendCode: "Code versturen",

@@ -19,9 +19,12 @@ function SsoCallbackPage() {
 	// A social sign-in Clerk transfers to a sign-up (or back) ends on these
 	// fallbacks, so they carry the return path from `SocialButtons`.
 	const afterAuth = redirect ?? AUTH_PATHS.afterAuth;
-	// Marked so `SignInForm` carries on with the attempt only when it comes
-	// from here, not for whoever opens `/sign-in` later in the same browser.
+	// Marked so `SignInForm` and `SignUpForm` carry on with the attempt only when
+	// it comes from here, not for whoever opens the page later in this browser.
 	const signInUrl = withResume(withRedirect(AUTH_PATHS.signIn, redirect));
+	const continueSignUpUrl = withResume(
+		withRedirect(AUTH_PATHS.signUp, redirect),
+	);
 	return (
 		<AuthCard title={auth.ssoCallback.title}>
 			<AuthenticateWithRedirectCallback
@@ -33,6 +36,11 @@ function SsoCallbackPage() {
 				// `SignInForm` does not read; it picks up the open attempt instead.
 				// `needs_client_trust` has no URL of its own and lands on `signInUrl`.
 				secondFactorUrl={signInUrl}
+				// Likewise for a sign-up with missing or unverified fields, instead of
+				// `#/continue`, `#/verify-email-address` and `#/verify-phone-number`.
+				continueSignUpUrl={continueSignUpUrl}
+				verifyEmailAddressUrl={continueSignUpUrl}
+				verifyPhoneNumberUrl={continueSignUpUrl}
 			/>
 			{/* A sign-in transferred to a sign-up may need Clerk's bot check. */}
 			<div id="clerk-captcha" data-cl-language={locale} />
