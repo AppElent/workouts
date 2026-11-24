@@ -50,6 +50,19 @@ export function secondFactorOptions(
 	});
 }
 
+/**
+ * The method this attempt last sent a code for or tried, if it is on offer.
+ * Clerk keeps it on the attempt, so it survives a reload; before that the
+ * verification is empty (`strategy: null`).
+ */
+export function startedSecondFactor(
+	signIn: SignIn,
+	options: SecondFactorOption[],
+): SecondFactorStrategy | null {
+	const started = signIn.secondFactorVerification?.strategy;
+	return options.find((o) => o.strategy === started)?.strategy ?? null;
+}
+
 /** Texted and emailed codes are sent first; the other methods need nothing. */
 export function sendsCode(strategy: SecondFactorStrategy) {
 	return strategy === "phone_code" || strategy === "email_code";

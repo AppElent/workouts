@@ -27,6 +27,8 @@ const auth = { isLoaded: true, isSignedIn: false };
 const verifyTOTP = vi.fn();
 const finalize = vi.fn();
 const reset = vi.fn();
+const sendPhoneCode = vi.fn();
+const sendEmailCode = vi.fn();
 
 // Clerk loads after the router has rewritten the URL, so `useAuth` re-renders.
 const listeners = new Set<() => void>();
@@ -64,7 +66,8 @@ function socialAttempt(change: Record<string, unknown> = {}) {
 			supportedFirstFactors: [],
 			supportedSecondFactors: [{ strategy: "totp" }],
 			firstFactorVerification: { strategy: "oauth_google" },
-			mfa: { verifyTOTP },
+			secondFactorVerification: { strategy: null },
+			mfa: { verifyTOTP, sendPhoneCode, sendEmailCode },
 			finalize,
 			reset,
 		},
@@ -113,7 +116,24 @@ async function click(name: string) {
 	});
 }
 
+function expectPending() {
+	expect(screen.getByRole("status").textContent).toBe("Please wait…");
+	expect(screen.queryByLabelText("Email")).toBeNull();
+	expect(screen.queryByText("Verify it's you")).toBeNull();
+}
+
+/** A reload starts the page again; Clerk's server still has the attempt. */
+async function reload(
+	router: Awaited<ReturnType<typeof visit>>,
+	change: Record<string, unknown> = {},
+) {
+	cleanup();
+	socialAttempt(change);
+	return visit(router.history.location.href);
+}
+
 function expectPlainForm() {
+	expect(screen.queryByRole("status")).toBeNull();
 	expect(screen.getByLabelText("Email")).toBeDefined();
 	expect(screen.getByLabelText("Password")).toBeDefined();
 	expect(screen.queryByText("Verify it's you")).toBeNull();
@@ -127,6 +147,15 @@ describe("/sign-in resuming a social sign-in", () => {
 			return { error: null };
 		});
 		finalize.mockReset().mockResolvedValue({ error: null });
+		for (const [send, strategy] of [
+			[sendPhoneCode, "phone_code"],
+			[sendEmailCode, "email_code"],
+		] as const) {
+			send.mockReset().mockImplementation(async () => {
+				signIn.secondFactorVerification = { strategy, status: "unverified" };
+				return { error: null };
+			});
+		}
 		reset.mockReset().mockImplementation(async () => {
 			signIn.status = "needs_identifier";
 			return { error: null };
@@ -153,7 +182,7 @@ describe("/sign-in resuming a social sign-in", () => {
 			socialAttempt({ status: "needs_identifier" });
 			auth.isLoaded = false;
 			const router = await visit(`${RESUME}&redirect=%2Fjoin%2Ftok-1`);
-			expectPlainForm();
+			expectPending();
 			socialAttempt({ status });
 			await act(async () => setLoaded(true));
 			expect(screen.getByText("Verify it's you")).toBeDefined();
@@ -186,6 +215,22 @@ describe("/sign-in resuming a social sign-in", () => {
 		expectPlainForm();
 	});
 
+	it("falls back from pending to the plain form without an open attempt", async () => {
+		socialAttempt({ status: "needs_identifier" });
+		auth.isLoaded = false;
+		await visit(RESUME);
+		expectPending();
+		await act(async () => setLoaded(true));
+		expectPlainForm();
+	});
+
+	it("shows the plain form at once without a marker", async () => {
+		socialAttempt();
+		auth.isLoaded = false;
+		await visit("/sign-in");
+		expectPlainForm();
+	});
+
 	it("leaves the plain URL alone", async () => {
 		socialAttempt();
 		const router = await visit("/sign-in?redirect=%2Fjoin%2Ftok-1");
@@ -205,5 +250,108 @@ describe("/sign-in resuming a social sign-in", () => {
 			),
 		);
 		expectPlainForm();
+	});
+
+	it.each([
+		["returns an error", async () => ({ error: new Error("offline") })],
+		[
+			"throws",
+			async () => {
+				throw new Error("no client");
+			},
+		],
+	])(
+		"goes back when reset() %s, and a reload does not resume",
+		async (_, fail) => {
+			socialAttempt();
+			reset.mockImplementation(fail);
+			const router = await visit(`${RESUME}&redirect=%2Fjoin%2Ftok-1`);
+			await click("Back to sign in");
+			await vi.waitFor(() =>
+				expect(router.history.location.href).toBe(
+					"/sign-in?redirect=%2Fjoin%2Ftok-1",
+				),
+			);
+			expectPlainForm();
+			await reload(router);
+			expectPlainForm();
+		},
+	);
+
+	it("does not resume after going back and reloading", async () => {
+		socialAttempt();
+		const router = await visit(RESUME);
+		await click("Back to sign in");
+		await vi.waitFor(() =>
+			expect(router.history.location.href).toBe("/sign-in"),
+		);
+		await reload(router);
+		expectPlainForm();
+	});
+
+	it("leaves the URL alone when going back without a marker", async () => {
+		socialAttempt({
+			status: "needs_identifier",
+			password: async () => {
+				signIn.status = "needs_second_factor";
+				return { error: null };
+			},
+		});
+		const router = await visit("/sign-in");
+		const navigate = vi.spyOn(router, "navigate");
+		await click("Sign in");
+		expect(screen.getByText("Verify it's you")).toBeDefined();
+		await click("Back to sign in");
+		expectPlainForm();
+		expect(navigate).not.toHaveBeenCalled();
+	});
+
+	it.each([
+		["phone_code", sendPhoneCode],
+		["email_code", sendEmailCode],
+	])(
+		"sends a %s once across a reload, then only on request",
+		async (strategy, send) => {
+			const supportedSecondFactors = [{ strategy }];
+			socialAttempt({ supportedSecondFactors });
+			const router = await visit(RESUME);
+			expect(send).toHaveBeenCalledTimes(1);
+			const { secondFactorVerification } = signIn;
+			await reload(router, {
+				supportedSecondFactors,
+				secondFactorVerification,
+			});
+			expect(screen.getByText("Verify it's you")).toBeDefined();
+			expect(send).toHaveBeenCalledTimes(1);
+			await click("Send a new code");
+			expect(send).toHaveBeenCalledTimes(2);
+		},
+	);
+
+	it("sends on reload when the first send failed", async () => {
+		const supportedSecondFactors = [{ strategy: "phone_code" }];
+		socialAttempt({ supportedSecondFactors });
+		sendPhoneCode.mockResolvedValueOnce({ error: new Error("offline") });
+		const router = await visit(RESUME);
+		const { secondFactorVerification } = signIn;
+		await reload(router, { supportedSecondFactors, secondFactorVerification });
+		expect(sendPhoneCode).toHaveBeenCalledTimes(2);
+	});
+
+	it("reopens on the method the code was sent for, not the default", async () => {
+		const supportedSecondFactors = [
+			{ strategy: "phone_code" },
+			{ strategy: "email_code", safeIdentifier: "a***@b.com" },
+		];
+		socialAttempt({ supportedSecondFactors });
+		const router = await visit(RESUME);
+		await click("Email a code to a***@b.com");
+		const { secondFactorVerification } = signIn;
+		await reload(router, { supportedSecondFactors, secondFactorVerification });
+		expect(
+			screen.getByText("We sent a 6-digit code to a***@b.com."),
+		).toBeDefined();
+		expect(sendPhoneCode).toHaveBeenCalledTimes(1);
+		expect(sendEmailCode).toHaveBeenCalledTimes(1);
 	});
 });

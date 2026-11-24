@@ -38,9 +38,10 @@ function SignInPage() {
 				redirect={redirect}
 				resumeSocial={resume === "social"}
 				// Drops the marker, so a reload does not resume the attempt.
-				onStartOver={() =>
-					navigate({ to: "/sign-in", search: { redirect }, replace: true })
-				}
+				onStartOver={() => {
+					if (!resume) return;
+					navigate({ to: "/sign-in", search: { redirect }, replace: true });
+				}}
 				onSuccess={() => navigate({ href: redirect ?? AUTH_PATHS.afterAuth })}
 			/>
 		</AuthCard>
