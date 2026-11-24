@@ -32,6 +32,7 @@ import {
 } from "../../../theme";
 import { Eyebrow, StatBox } from "../../../ui/coach";
 import { useConfirm } from "../../../ui/confirm-dialog";
+import { RowNote } from "../../../ui/row-note";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
 import { useWriteFailureMessage } from "../../../ui/use-screen-write";
@@ -240,7 +241,9 @@ function ExerciseRecap({
 	timed: boolean;
 }) {
 	const styles = useThemedStyles(createStyles);
-	const copy = useI18n().t.workoutSummary;
+	const { t } = useI18n();
+	const copy = t.workoutSummary;
+	const strength = t.strength;
 	// "Best" is the heaviest set, matching the web. Not the same as the highest
 	// estimated 1RM — a heavy double can out-rank a heavier single there.
 	const best = sets.reduce(
@@ -252,30 +255,38 @@ function ExerciseRecap({
 		<View style={styles.card}>
 			<AppText style={styles.rowTitle}>{name}</AppText>
 			<View style={styles.chipWrap}>
-				{sets.map((s) => (
-					<View
-						key={s._id}
-						style={[
-							styles.setChip,
-							s.setType === "warmup" && styles.warmupChip,
-						]}
-					>
-						<AppText
-							style={[
-								styles.setChipText,
-								s.setType === "warmup" && styles.warmupChipText,
-							]}
+				{sets.map((s) => {
+					const warmup = s.setType === "warmup";
+					const note = s.notes?.trim() ?? "";
+					const text = timed
+						? s.weight > 0
+							? `+${s.weight} × ${fmt(copy.secondsOnly, { seconds: s.reps })}`
+							: fmt(copy.secondsOnly, { seconds: s.reps })
+						: s.weight > 0
+							? `${s.weight} × ${s.reps}`
+							: fmt(copy.repsOnly, { reps: s.reps });
+					return (
+						<View
+							key={s._id}
+							accessible={note !== "" || undefined}
+							accessibilityLabel={
+								note
+									? `${text}${fmt(strength.plan.rowNoteSpoken, { note })}`
+									: undefined
+							}
+							style={note ? styles.noteSet : undefined}
 						>
-							{timed
-								? s.weight > 0
-									? `+${s.weight} × ${fmt(copy.secondsOnly, { seconds: s.reps })}`
-									: fmt(copy.secondsOnly, { seconds: s.reps })
-								: s.weight > 0
-									? `${s.weight} × ${s.reps}`
-									: fmt(copy.repsOnly, { reps: s.reps })}
-						</AppText>
-					</View>
-				))}
+							<View style={[styles.setChip, warmup && styles.warmupChip]}>
+								<AppText
+									style={[styles.setChipText, warmup && styles.warmupChipText]}
+								>
+									{text}
+								</AppText>
+							</View>
+							<RowNote note={note} style={styles.chipNote} />
+						</View>
+					);
+				})}
 			</View>
 			{best && best.weight > 0 && !timed ? (
 				<AppText style={styles.rowSub}>
@@ -335,7 +346,10 @@ const createStyles = (colors: Tokens) =>
 		},
 		rowSub: { fontSize: type.caption.fontSize, color: colors.textMuted },
 		chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+		noteSet: { width: "100%", gap: 4 },
+		chipNote: { paddingHorizontal: 9 },
 		setChip: {
+			alignSelf: "flex-start",
 			paddingVertical: 4,
 			paddingHorizontal: 9,
 			borderRadius: 9999,

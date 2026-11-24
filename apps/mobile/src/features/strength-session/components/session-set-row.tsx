@@ -2,13 +2,7 @@
 import { convertLoad } from "@foundry/core";
 import { SymbolView } from "expo-symbols";
 import { type ReactNode, useMemo } from "react";
-import {
-	Pressable,
-	StyleSheet,
-	type TextStyle,
-	useWindowDimensions,
-	View,
-} from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { fmt, useI18n } from "../../../i18n";
 import {
 	radius,
@@ -17,8 +11,10 @@ import {
 	useThemedStyles,
 	useTokens,
 } from "../../../theme";
+import { RowNote } from "../../../ui/row-note";
 import { type RowAction, SwipeableRow } from "../../../ui/swipeable-row";
 import { AppText } from "../../../ui/text";
+import { useLargeText } from "../../../ui/use-large-text";
 import { workspaceStore } from "../data/session-workspace";
 import { formatNumber, formatSetShort } from "../session-format";
 import {
@@ -34,9 +30,6 @@ import {
 	shownPercent,
 } from "../session-plan";
 import { useSessionScreen } from "../session-screen-context";
-
-/** At accessibility text sizes a row takes two lines instead of dropping content. */
-export const useLargeText = () => useWindowDimensions().fontScale >= 1.35;
 
 function oneRmText(
 	row: PlanSet,
@@ -243,20 +236,6 @@ function rowSpeech(
 			: ""
 	}${note ? fmt(copy.rowNoteSpoken, { note }) : ""}`;
 }
-function RowNote({ row, style }: { row: PlanSet; style?: TextStyle }) {
-	const colors = useTokens();
-	const large = useLargeText();
-	const note = noteOf(row);
-	return note ? (
-		<AppText
-			variant="footnote"
-			numberOfLines={large ? undefined : 2}
-			style={[{ color: colors.textMuted }, style]}
-		>
-			{note}
-		</AppText>
-	) : null;
-}
 /**
  * A set in the current exercise's card (APP-619 canvas): label, load, RPE or
  * percentage, and its state on the right. The row opens the editor; the
@@ -371,7 +350,7 @@ export function SessionSetRow({
 								</AppText>
 							) : null}
 						</View>
-						<RowNote row={row} style={styles.noteIndent} />
+						<RowNote note={noteOf(row)} style={styles.noteIndent} />
 					</Pressable>
 					<Pressable
 						accessibilityRole="checkbox"
@@ -469,7 +448,7 @@ export function SessionGroupItemRow({
 							{status ?? `1RM ${oneRm}`}
 						</AppText>
 					) : null}
-					<RowNote row={row} />
+					<RowNote note={noteOf(row)} />
 				</View>
 				<AppText
 					variant="heading"

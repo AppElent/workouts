@@ -96,3 +96,20 @@ describe("exerciseInsight", () => {
 		expect(insight.points.map((point) => point.kg)).toEqual([95, 101]);
 	});
 });
+
+describe("exerciseInsight set notes", () => {
+	it("carries each set's trimmed note, empty without one", () => {
+		const { sessions } = exerciseInsight(
+			[
+				{ ...set("a", "s1", 0, 1, 80, 8), notes: "  narrow grip " },
+				set("b", "s1", 0, 2, 80, 8),
+			],
+			[],
+			NOW,
+		);
+		expect(sessions[0]?.rows.map((row) => row.notes)).toEqual([
+			"narrow grip",
+			"",
+		]);
+	});
+});
