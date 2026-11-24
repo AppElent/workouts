@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when connecting to, operating, or changing the Foundry MCP server.
-version: 3.4.0
+version: 3.5.0
 ---
 
 # Foundry MCP
@@ -63,14 +63,15 @@ Read (`foundry:read`): `get_current_user`, `list_activities`, `get_run_or_ride`,
 `review_food_log`, and `show_exercise_progress` (see [Views](#views)).
 
 Write (`foundry:write`): `log_run_or_ride`, `update_run_or_ride`,
-`log_body_metrics`, `log_wod_result`, `create_exercise`,
+`log_body_metrics`, `log_wod_result`, `create_exercise`, `create_routine`,
 `start_strength_session`, `add_exercise_to_session`, `log_set`, `update_set`,
 `finish_strength_session`, `record_one_rep_max`, `log_food`,
 `log_custom_food`, `update_diary_entry`.
 
 Training setup and logging afterwards follow the
 [Training contract](../contracts/training.md#connected-app-setup):
-`create_exercise` dedupes by name, `add_exercise_to_session` takes
+`create_exercise` dedupes by name, `create_routine` saves a reusable Routine
+with default loads in kg, `add_exercise_to_session` takes
 `plannedSets` (kg or a percentage of the 1RM), and `start_strength_session`,
 `log_set`, and `finish_strength_session` take `startedAt`, `loggedAt`, and
 `endedAt`.

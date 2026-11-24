@@ -92,6 +92,11 @@ the app; there is no separate data.
 - **Personal Exercises:** `create_exercise` reuses the in-app create path and
   returns the caller's existing Personal Exercise with the same name (ignoring
   case) instead of a duplicate.
+- **Routines:** `create_routine` uses the in-app create path, with its set, rep,
+  and load limits and exercise ownership checks. Like the editors, it requires a
+  name and at least one exercise and takes each exercise once. A retry with the
+  same key and input returns the first result, even after the Routine was edited
+  or deleted in the app, and never makes a second one.
 - **Planned Sets:** `add_exercise_to_session` with `plannedSets` replaces that
   exercise's Planned Sets in an active session. A target is a load or a
   percentage of the session's 1RM (Measured unless a newer Manual), rounded to

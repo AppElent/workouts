@@ -3,6 +3,7 @@ import type { MutationCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
 import { requireOwned, requireUserId } from "./lib/auth";
 import { requireExercise, resolveExercise } from "./lib/exerciseCatalog";
+import { withCreateReceipt } from "./lib/operationReceipt";
 import {
 	type Prescription,
 	startSession as startStrengthSession,
@@ -69,14 +70,24 @@ export const list = query({
 });
 
 export const create = mutation({
-	args: { name: v.string(), exercises: v.array(routineExercise) },
-	handler: async (ctx, { name, exercises }) => {
+	args: {
+		operationId: v.optional(v.string()),
+		name: v.string(),
+		exercises: v.array(routineExercise),
+	},
+	handler: async (ctx, { operationId, name, exercises }) => {
 		const userId = await requireUserId(ctx);
-		return ctx.db.insert("routines", {
+		return withCreateReceipt(
+			ctx,
 			userId,
-			name,
-			exercises: await checkedExercises(ctx, userId, exercises),
-		});
+			{ operationId, kind: "routine", payload: { name, exercises } },
+			async () =>
+				ctx.db.insert("routines", {
+					userId,
+					name,
+					exercises: await checkedExercises(ctx, userId, exercises),
+				}),
+		);
 	},
 });
 
