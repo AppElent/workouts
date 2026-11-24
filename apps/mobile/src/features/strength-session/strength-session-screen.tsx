@@ -1,6 +1,6 @@
 import { formatClock } from "@foundry/core";
 import { HOSTED_WORKOUTS_ENABLED } from "@foundry/core/features";
-/** The live strength session: one table per exercise, one tap to log. */
+/** The live strength session (APP-619 canvas): exercise cards and the Now card. */
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -16,7 +16,8 @@ import { api, type Id } from "../../convex/api";
 import { useQuery } from "../../convex/query-cache";
 import { haptics } from "../../feedback/haptics";
 import { fmt, plural, useI18n } from "../../i18n";
-import { opacity, radius, spacing, useTokens } from "../../theme";
+import { spacing, useTokens } from "../../theme";
+import { BackLink } from "../../ui/back-link";
 import { SelectionMenu } from "../../ui/selection-menu";
 import { AppText } from "../../ui/text";
 import { useToast } from "../../ui/toast";
@@ -29,6 +30,7 @@ import { SessionGroupBlock } from "./components/session-group-block";
 import { SessionProgress } from "./components/session-progress";
 import { SessionQuickStart } from "./components/session-quick-start";
 import { SessionRecap } from "./components/session-recap";
+import { usePreviousSession } from "./data/previous-session";
 import { useSessionActions } from "./data/session-actions";
 import { useSessionWorkspace } from "./data/session-workspace";
 import { useStrengthSessions } from "./data/strength-session-context";
@@ -41,6 +43,7 @@ import {
 	recapOf,
 	sessionExercises,
 	unsavedEdits,
+	workedCount,
 } from "./session-plan";
 import {
 	type PickerRequest,
@@ -51,31 +54,48 @@ import {
 const REST_OPTIONS = [60, 90, 120, 150, 180, 240, 300];
 const LOG_GUARD_MS = 500;
 
+/** Room the header's own buttons take: minimise, the menu and "Finish". */
+const HEADER_BUTTONS = 260;
+
 function SessionTitle({
 	name,
 	startTime,
+	endTime,
 	logged,
 	online,
 	wrap = false,
 }: {
 	name: string;
 	startTime: number;
+	/** An ended session shows how long it ran; its clock stops (APP-624). */
+	endTime?: number;
 	logged: number;
 	online: boolean;
 	/** In the body at large text there is room to wrap; the header has none. */
 	wrap?: boolean;
 }) {
-	const copy = useI18n().t.strength.plan;
+	const { locale, t } = useI18n();
+	const copy = t.strength.plan;
 	const colors = useTokens();
 	const [now, setNow] = useState(Date.now);
+	const ended = endTime !== undefined;
 	useEffect(() => {
+		if (ended) return;
 		const timer = setInterval(() => setNow(Date.now()), 1000);
 		return () => clearInterval(timer);
-	}, []);
-	const elapsed = Math.max(0, Math.floor((now - startTime) / 1000));
+	}, [ended]);
+	const elapsed = Math.max(
+		0,
+		Math.floor(((endTime ?? now) - startTime) / 1000),
+	);
+	const { width } = useWindowDimensions();
 	return (
 		<View
-			style={wrap ? undefined : styles.title}
+			style={
+				wrap
+					? undefined
+					: [styles.title, { maxWidth: Math.max(120, width - HEADER_BUTTONS) }]
+			}
 			accessibilityRole="header"
 			accessible
 		>
@@ -87,12 +107,13 @@ function SessionTitle({
 				numberOfLines={wrap ? undefined : 1}
 				style={{ color: online ? colors.textMuted : colors.warn }}
 			>
-				{online
-					? fmt(copy.headerProgress, {
-							time: formatClock(elapsed),
-							count: logged,
-						})
-					: copy.noConnection}
+				{!online
+					? copy.noConnection
+					: logged === 0
+						? fmt(copy.headerNothing, { time: formatClock(elapsed) })
+						: fmt(plural(locale, logged, copy.headerProgress), {
+								time: formatClock(elapsed),
+							})}
 			</AppText>
 		</View>
 	);
@@ -130,6 +151,8 @@ export function StrengthSessionScreen() {
 	const [finishing, setFinishing] = useState(false);
 	const [dockHeight, setDockHeight] = useState(0);
 	const lastLog = useRef(0);
+	const previous = usePreviousSession(session && own ? session : null);
+	const previousSets = previous?.sets ?? null;
 	const push = router.push;
 	const openEditor = useCallback(
 		(rowId: string) => {
@@ -207,6 +230,7 @@ export function StrengthSessionScreen() {
 						openPicker: setPicker,
 						confirmDelete,
 						toggleRow,
+						previousSets,
 					}
 				: null,
 		[
@@ -217,6 +241,7 @@ export function StrengthSessionScreen() {
 			openManual,
 			openProfile,
 			plan,
+			previousSets,
 			toggleRow,
 			workspace,
 		],
@@ -231,8 +256,10 @@ export function StrengthSessionScreen() {
 	}, [router]);
 	const wods = workspace.wods?.length ?? 0;
 	const logged = plan ? loggedCount(plan) : 0;
+	// The header, the Finish prompt and the recap count what the progress strip
+	// counts: working sets (APP-619, APP-624).
+	const worked = plan ? workedCount(plan) : 0;
 	const open = plan ? openCount(plan) : 0;
-	const allDone = logged > 0 && open === 0;
 	const name = session?.name ?? strength.freeSession;
 	async function finish() {
 		if (!plan || actions.blocked()) return;
@@ -254,11 +281,11 @@ export function StrengthSessionScreen() {
 				message: [
 					open > 0 && plural(locale, open, copy.finish.open),
 					edits > 0 && plural(locale, edits, copy.finish.unsavedEdits),
-					plural(locale, logged, copy.finish.loggedCounts),
+					plural(locale, worked, copy.finish.loggedCounts),
 				]
 					.filter(Boolean)
 					.join(" "),
-				confirm: { label: plural(locale, logged, copy.finish.confirmOpen) },
+				confirm: { label: plural(locale, worked, copy.finish.confirmOpen) },
 				cancel: copy.keepTraining,
 			});
 			if (!yes) return;
@@ -292,6 +319,7 @@ export function StrengthSessionScreen() {
 	}
 	const restDefault = plan?.restDefault ?? 0;
 	const startTime = session?.startTime;
+	const endTime = session?.endTime;
 	const headerTitle = useCallback(
 		() =>
 			// A null title falls back to the plain name; these two carry their own.
@@ -301,11 +329,12 @@ export function StrengthSessionScreen() {
 				<SessionTitle
 					name={name}
 					startTime={startTime}
-					logged={logged}
+					endTime={endTime}
+					logged={worked}
 					online={online}
 				/>
 			),
-		[large, logged, name, online, recapOpen, startTime],
+		[large, worked, name, online, recapOpen, startTime, endTime],
 	);
 	const menuGroups = [
 		{
@@ -362,6 +391,24 @@ export function StrengthSessionScreen() {
 				: {}),
 			headerBackVisible: false,
 			headerShadowVisible: false,
+			...(Platform.OS === "android" && recapOpen
+				? {
+						headerLeft: () => (
+							<Pressable
+								accessibilityRole="button"
+								accessibilityLabel={copy.finish.back}
+								accessibilityState={{ disabled: finishing }}
+								disabled={finishing}
+								onPress={() => setRecapOpen(false)}
+								style={styles.androidHeaderButton}
+							>
+								<AppText variant="control" style={{ color: colors.accent }}>
+									{`‹ ${copy.finish.back}`}
+								</AppText>
+							</Pressable>
+						),
+					}
+				: {}),
 			...(Platform.OS === "android" && showChrome
 				? {
 						headerLeft: () => (
@@ -397,18 +444,38 @@ export function StrengthSessionScreen() {
 					}
 				: {}),
 		}),
-		[colors.accent, copy, headerTitle, minimise, name, recapOpen, showChrome],
+		[
+			colors.accent,
+			copy,
+			finishing,
+			headerTitle,
+			minimise,
+			name,
+			recapOpen,
+			showChrome,
+		],
 	);
 	return (
 		<>
 			<Stack.Screen options={screenOptions} />
-			{Platform.OS === "ios" && !recapOpen ? (
+			{Platform.OS === "ios" ? (
 				<Stack.Toolbar placement="left">
-					<Stack.Toolbar.Button
-						icon="chevron.down"
-						accessibilityLabel={copy.minimise}
-						onPress={minimise}
-					/>
+					{recapOpen ? (
+						<Stack.Toolbar.View hidesSharedBackground>
+							<BackLink
+								label={copy.finish.back}
+								disabled={finishing}
+								onPress={() => setRecapOpen(false)}
+								testID="session-recap-back"
+							/>
+						</Stack.Toolbar.View>
+					) : (
+						<Stack.Toolbar.Button
+							icon="chevron.down"
+							accessibilityLabel={copy.minimise}
+							onPress={minimise}
+						/>
+					)}
 				</Stack.Toolbar>
 			) : null}
 			{Platform.OS === "ios" && showChrome ? (
@@ -448,8 +515,8 @@ export function StrengthSessionScreen() {
 					</Stack.Toolbar.Menu>
 					<Stack.Toolbar.Spacer width={8} />
 					<Stack.Toolbar.Button
-						variant={allDone ? "prominent" : "plain"}
-						tintColor={allDone ? colors.accentFill : undefined}
+						variant="prominent"
+						tintColor={colors.accentFill}
 						onPress={() => void finish()}
 					>
 						{copy.done}
@@ -457,7 +524,13 @@ export function StrengthSessionScreen() {
 				</Stack.Toolbar>
 			) : null}
 			<View style={[styles.screen, { backgroundColor: colors.bg }]}>
-				{!sessionId || !session || !own || !plan ? (
+				{session && own && !workspace.active ? (
+					// Before the plan check: finishing elsewhere also clears the
+					// device's plan, which would otherwise read as "checking" forever.
+					<View style={[styles.message, { paddingTop: insets.top + 64 }]}>
+						<AppText>{strength.ended}</AppText>
+					</View>
+				) : !sessionId || !session || !own || !plan ? (
 					<View style={[styles.message, { paddingTop: insets.top + 64 }]}>
 						<AppText>
 							{!sessionId
@@ -468,10 +541,6 @@ export function StrengthSessionScreen() {
 									? strength.checking
 									: strength.unavailable}
 						</AppText>
-					</View>
-				) : !workspace.active ? (
-					<View style={[styles.message, { paddingTop: insets.top + 64 }]}>
-						<AppText>{strength.ended}</AppText>
 					</View>
 				) : recapOpen ? (
 					<SessionRecap
@@ -487,7 +556,6 @@ export function StrengthSessionScreen() {
 						}
 						busy={finishing}
 						onConfirm={() => void confirmRecap()}
-						onBack={() => setRecapOpen(false)}
 					/>
 				) : context ? (
 					<SessionScreenContext.Provider value={context}>
@@ -503,7 +571,8 @@ export function StrengthSessionScreen() {
 								<SessionTitle
 									name={name}
 									startTime={session.startTime}
-									logged={logged}
+									endTime={session.endTime}
+									logged={worked}
 									online={online}
 									wrap
 								/>
@@ -520,8 +589,9 @@ export function StrengthSessionScreen() {
 							) : null}
 							{plan.order.length === 0 && workspace.sets && wods === 0 ? (
 								<SessionQuickStart fallback={copy.emptyBody} />
-							) : null}
-							<SessionProgress />
+							) : (
+								<SessionProgress />
+							)}
 							{plan.order.map((entry) => {
 								if (entry.kind === "exercise")
 									return (
@@ -535,19 +605,6 @@ export function StrengthSessionScreen() {
 									<SessionGroupBlock key={group.id} group={group} />
 								) : null;
 							})}
-							{plan.order.length > 0 ? (
-								<Pressable
-									accessibilityRole="button"
-									disabled={!online}
-									onPress={() => setPicker({ mode: "add" })}
-									style={[styles.addExercise, !online && styles.dimmed]}
-									testID="session-add-exercise"
-								>
-									<AppText variant="control" style={{ color: colors.accent }}>
-										{copy.addExercise}
-									</AppText>
-								</Pressable>
-							) : null}
 							{HOSTED_WORKOUTS_ENABLED ? (
 								<HostedSessionPanel
 									sessionId={sessionId}
@@ -557,35 +614,10 @@ export function StrengthSessionScreen() {
 								/>
 							) : null}
 						</ScrollView>
-						{plan.order.length === 0 && wods === 0 ? (
-							<View
-								style={[
-									styles.emptyFooter,
-									{ paddingBottom: insets.bottom + spacing.sm },
-								]}
-							>
-								<Pressable
-									accessibilityRole="button"
-									disabled={!online}
-									onPress={() => setPicker({ mode: "add" })}
-									style={[
-										styles.emptyButton,
-										{ backgroundColor: colors.accentFill },
-										!online && styles.dimmed,
-									]}
-									testID="session-add-exercise"
-								>
-									<AppText
-										variant="control"
-										style={{ color: colors.onAccent, fontWeight: "700" }}
-									>
-										{copy.addExercise}
-									</AppText>
-								</Pressable>
-							</View>
-						) : (
-							<SessionDock onHeight={setDockHeight} />
-						)}
+						<SessionDock
+							onHeight={setDockHeight}
+							empty={plan.order.length === 0 && wods === 0}
+						/>
 						{picker ? (
 							<SessionExercisePicker
 								title={
@@ -641,22 +673,9 @@ export function StrengthSessionScreen() {
 }
 const styles = StyleSheet.create({
 	screen: { flex: 1 },
-	title: { minWidth: 0, maxWidth: 200 },
+	title: { minWidth: 0 },
 	message: { padding: spacing.md },
-	content: { padding: spacing.md, gap: spacing.lg },
-	emptyFooter: { paddingHorizontal: spacing.md, paddingTop: spacing.sm },
-	emptyButton: {
-		minHeight: 56,
-		alignItems: "center",
-		justifyContent: "center",
-		borderRadius: radius.pill,
-	},
-	addExercise: {
-		minHeight: 48,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	dimmed: { opacity: opacity.disabled },
+	content: { paddingHorizontal: spacing.md, gap: 10 },
 	androidHeaderButton: {
 		minWidth: 44,
 		minHeight: 44,

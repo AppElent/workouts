@@ -64,6 +64,12 @@ const CLERK_ERROR_CODE_MAP: Readonly<
 	form_password_length_too_short: "passwordTooShort",
 	form_password_pwned: "passwordPwned",
 	form_password_validation_failed: "passwordDoesNotMeetRequirements",
+	form_password_not_strong_enough: "passwordDoesNotMeetRequirements",
+	form_password_no_uppercase: "passwordDoesNotMeetRequirements",
+	form_password_no_lowercase: "passwordDoesNotMeetRequirements",
+	form_password_no_number: "passwordDoesNotMeetRequirements",
+	form_password_no_special_char: "passwordDoesNotMeetRequirements",
+	form_conditional_param_missing: "required",
 	form_code_incorrect: "codeIncorrect",
 	// Too many wrong codes: this code is spent, a new one works (APP-507).
 	verification_failed: "codeAttemptsExceeded",

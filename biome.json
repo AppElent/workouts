@@ -16,6 +16,7 @@
 			"!scripts/check-project.mjs",
 			"!scripts/env.mjs",
 			"!scripts/run-mobile.mjs",
+			"!scripts/store-screenshots.mjs",
 			"!scripts/sync-devtools.mjs",
 			"!scripts/workspace.mjs",
 			"!scripts/lib/baseline.mjs",

@@ -14,6 +14,9 @@ Apply the shared [mobile coding](../../docs/standards/mobile-coding.md) and
   nutrition hooks live at the nutrition root.
 - Charts use Swift Charts through Expo UI on iOS and react-native-gifted-charts
   on Android behind `src/ui/chart`, preserving the tested platform bindings.
+  Exception: `src/ui/trend-line.tsx` draws the exercise overview's 1RM trend
+  with react-native-svg on both platforms, because both chart libraries start
+  the y-axis at zero and flatten a 92 → 101 kg climb (APP-619).
 - Sentry's dependency-validation exception is documented in [Sentry operations](../../docs/runbooks/sentry.md#mobile-compatibility).
 
 ## Review and enforcement

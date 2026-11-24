@@ -12,7 +12,7 @@ import {
 } from "#/components/wods/WodScoreFields";
 import { useConvexErrorMessage } from "#/lib/convexError";
 import { useMessages } from "#/lib/i18n";
-import { wodScoreFromForm } from "#/lib/wodScore";
+import { type WodScoreError, wodScoreFromForm } from "#/lib/wodScore";
 
 export type HostedScorePayload = {
 	wodBlockId: string;
@@ -27,7 +27,8 @@ type Props = {
 };
 
 export function HostedScoreForm({ wodBlocks, submitLabel, onSubmit }: Props) {
-	const t = useMessages().hosted.scoreForm;
+	const messages = useMessages();
+	const t = messages.hosted.scoreForm;
 	const [wodBlockId, setWodBlockId] = useState(wodBlocks[0]?.blockId ?? "");
 	const selectedWod =
 		wodBlocks.find((block) => block.blockId === wodBlockId) ?? wodBlocks[0];
@@ -40,6 +41,7 @@ export function HostedScoreForm({ wodBlocks, submitLabel, onSubmit }: Props) {
 	const [saving, setSaving] = useState(false);
 	const [message, setMessage] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
+	const [scoreError, setScoreError] = useState<WodScoreError | null>(null);
 
 	async function handleSubmit(event: React.FormEvent) {
 		event.preventDefault();
@@ -47,12 +49,15 @@ export function HostedScoreForm({ wodBlocks, submitLabel, onSubmit }: Props) {
 
 		const built = wodScoreFromForm(selectedWod.type, score.fields);
 		if (!built.ok) {
-			setError(built.message);
+			setScoreError(built.error);
+			setError(null);
+			setMessage(null);
 			return;
 		}
 
 		setSaving(true);
 		setError(null);
+		setScoreError(null);
 		setMessage(null);
 		try {
 			await onSubmit({
@@ -152,7 +157,11 @@ export function HostedScoreForm({ wodBlocks, submitLabel, onSubmit }: Props) {
 				{saving ? t.submitting : (submitLabel ?? t.submit)}
 			</button>
 			{message && <p className="text-sm text-accent-ink">{message}</p>}
-			{error && <p className="text-sm text-danger">{error}</p>}
+			{(scoreError || error) && (
+				<p className="text-sm text-danger">
+					{scoreError ? messages.wods.scoreErrors[scoreError] : error}
+				</p>
+			)}
 		</form>
 	);
 }

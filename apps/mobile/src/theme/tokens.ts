@@ -175,6 +175,23 @@ export const type = {
 		letterSpacing: 1,
 		textTransform: "uppercase",
 	},
+	/**
+	 * The strength session's big numbers (APP-619 canvas, round 2): the set
+	 * editor's value cards, the Now card's next set, the 1RM in the exercise
+	 * overview. Scoped to the session; see DESIGN_SYSTEM.md.
+	 */
+	valueHero: { fontSize: 64, fontWeight: "800", letterSpacing: -1.5 },
+	valueLarge: { fontSize: 52, fontWeight: "800", letterSpacing: -1.2 },
+	valueMedium: { fontSize: 48, fontWeight: "800", letterSpacing: -1 },
+	valueSmall: { fontSize: 40, fontWeight: "800", letterSpacing: -1 },
+	valueCompact: { fontSize: 34, fontWeight: "800", letterSpacing: -0.8 },
+	/** A 12pt uppercase label in the session: "VOLGENDE SET · 3 VAN 3". */
+	overline: {
+		fontSize: 12,
+		fontWeight: "700",
+		letterSpacing: 0.5,
+		textTransform: "uppercase",
+	},
 	/** Chart axis ticks. */
 	axis: { fontSize: 9, fontWeight: "400" },
 

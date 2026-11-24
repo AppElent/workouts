@@ -1,4 +1,6 @@
+import { execFile } from "node:child_process";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { createConnection } from "node:net";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { readEnvValues, readProjectText, removeEnvNames, setEnvName, writeProjectText, } from "./dotenv.mjs";
@@ -14,6 +16,11 @@ export const DEPLOYMENT_ENV_NAMES = new Set([
     "CONVEX_SITE_URL",
     "NEXT_PUBLIC_CONVEX_URL",
     "EXPO_PUBLIC_CONVEX_URL",
+    // `convex dev` also writes the framework-prefixed site URL (for a local
+    // backend the port after the API port); it follows the selected deployment.
+    "VITE_CONVEX_SITE_URL",
+    "NEXT_PUBLIC_CONVEX_SITE_URL",
+    "EXPO_PUBLIC_CONVEX_SITE_URL",
 ]);
 export const PROVIDER_ENV_REMOVALS = [...DEPLOYMENT_ENV_NAMES];
 /**
@@ -139,6 +146,21 @@ export async function prepareBackend(request) {
                 });
             }
             catch (error) {
+                // A quota refusal happens before anything is created, so the intent
+                // recorded above owns nothing. Mark it absent, so clean and gc can
+                // finish instead of waiting days for an expiry that never comes.
+                if (/quota/iu.test(error.message))
+                    await request.checkpoint({
+                        kind: "convex-deployment",
+                        id: reference,
+                        owned: true,
+                        status: "absent",
+                        cleanup: policy.backend.mode === "cloud" ? "expiry" : "release",
+                        metadata: {
+                            mode: policy.backend.mode,
+                            expiration: policy.backend.expiration,
+                        },
+                    });
                 throw new Error(quotaHint(error.message));
             }
             created = true;
@@ -331,6 +353,11 @@ export async function cleanupProviderResource(packageRoot, isolationRoot, resour
         return { ...resource, status: "inaccessible" };
     }
     if (resource.kind === "convex-deployment") {
+        // A local deployment is shared (project-wide) state on this machine, not a
+        // lease this workspace created: release the ledger entry and leave the
+        // deployment and any backend another worktree runs untouched.
+        if (resource.cleanup === "release")
+            return { ...resource, status: "removed" };
         if (resource.cleanup !== "expiry")
             return { ...resource, status: "retained" };
         const expired = Boolean(resource.expiresAt) &&
@@ -448,4 +475,74 @@ export async function deleteOwnedCloudDeployment({ name, reference, fetch: fetch
     catch {
         return "unavailable";
     }
+}
+
+function isListening(host, port, timeoutMs) {
+    return new Promise((done) => {
+        const socket = createConnection({ host, port });
+        const finish = (value) => {
+            socket.destroy();
+            done(value);
+        };
+        socket.setTimeout(timeoutMs, () => finish(false));
+        socket.once("connect", () => finish(true));
+        socket.once("error", () => finish(false));
+    });
+}
+function listeningProcess(port, timeoutMs) {
+    return new Promise((done) => {
+        if (process.platform === "win32")
+            return done(null);
+        execFile("lsof", ["-nP", `-iTCP:${port}`, "-sTCP:LISTEN", "-Fpc"], { timeout: timeoutMs }, (error, stdout) => {
+            if (error && !stdout)
+                return done(null);
+            const pid = /^p(\d+)$/mu.exec(stdout)?.[1];
+            const command = /^c(.+)$/mu.exec(stdout)?.[1];
+            done(pid ? { pid: Number(pid), command: command ?? "unknown" } : null);
+        });
+    });
+}
+/**
+ * Reports whether anything listens on the selected local backend URL. Local-mode
+ * prepare applies backend values only when it does: the Convex CLI never starts a
+ * local backend for `env set`, and prepare does not start one either.
+ */
+export async function localBackendListening(publicUrl, { probe = isListening, timeoutMs = 2_000 } = {}) {
+    let url;
+    try {
+        url = new URL(publicUrl ?? "");
+    }
+    catch {
+        return false;
+    }
+    const host = url.hostname || "127.0.0.1";
+    const port = Number(url.port || (url.protocol === "https:" ? 443 : 80));
+    return probe(host, port, timeoutMs);
+}
+/**
+ * Explains why routing values into a local Convex deployment failed. The Convex
+ * CLI never starts a local backend for `env set`, and picks the first free port
+ * from 3210, so the usual causes are a backend that is not running or a port
+ * that another worktree's backend holds. Names the port and what holds it.
+ */
+export async function diagnoseLocalBackend(publicUrl, { probe = isListening, holder = listeningProcess, timeoutMs = 2_000, } = {}) {
+    let url;
+    try {
+        url = new URL(publicUrl ?? "");
+    }
+    catch {
+        return "the selected local backend URL is missing or invalid";
+    }
+    const host = url.hostname || "127.0.0.1";
+    const port = Number(url.port || (url.protocol === "https:" ? 443 : 80));
+    if (!(await probe(host, port, timeoutMs)))
+        return (`no local Convex backend is listening on ${host}:${port}; start this worktree's backend ` +
+            "(for example `pnpm exec convex dev`; it takes the next free port when another one holds it) and run prepare again");
+    const owner = await holder(port, timeoutMs);
+    const who = owner
+        ? `${owner.command} (pid ${owner.pid})`
+        : "another process";
+    return (`${host}:${port} is held by ${who}; if that is another worktree's backend this ` +
+        "worktree cannot use the port: stop it, or start this worktree's backend with " +
+        "`pnpm exec convex dev` (it takes the next free port) and run prepare again");
 }

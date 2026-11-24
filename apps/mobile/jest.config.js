@@ -33,6 +33,7 @@ module.exports = {
 		require.resolve("react-native-gesture-handler/jestSetup"),
 		"<rootDir>/jest.setup.ts",
 	],
+	setupFilesAfterEnv: ["<rootDir>/jest.screen-timeout.ts"],
 	// Reanimated 4.7 / Worklets 0.13 (SDK 58) load JSI-only `.native` builds
 	// unless Jest resolves their test entry points through Reanimated's resolver.
 	resolver: require.resolve("react-native-reanimated/jest/resolver"),

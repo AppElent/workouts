@@ -66,9 +66,8 @@ describe("strength sessions", () => {
 		);
 	});
 	it("rejects invalid prescriptions before creating targets and merges repeated exercises in order", async () => {
-		const athlete = convexTest(schema, modules).withIdentity({
-			subject: "alice",
-		});
+		const t = convexTest(schema, modules);
+		const athlete = t.withIdentity({ subject: "alice" });
 		await expect(
 			athlete.mutation(api.routines.create, {
 				name: "Invalid",
@@ -81,13 +80,17 @@ describe("strength sessions", () => {
 				exercises: [{ exerciseId, defaultSets: 2.5, defaultReps: 8 }],
 			}),
 		).rejects.toThrow();
-		const routineId = await athlete.mutation(api.routines.create, {
-			name: "Repeat",
-			exercises: [
-				{ exerciseId, defaultSets: 2, defaultReps: 8 },
-				{ exerciseId, defaultSets: 1, defaultReps: 5 },
-			],
-		});
+		// Routines saved before duplicate validation can still be started.
+		const routineId = await t.run((ctx) =>
+			ctx.db.insert("routines", {
+				userId: "alice",
+				name: "Repeat",
+				exercises: [
+					{ exerciseId, defaultSets: 2, defaultReps: 8 },
+					{ exerciseId, defaultSets: 1, defaultReps: 5 },
+				],
+			}),
+		);
 		const id = await athlete.mutation(api.routines.startSession, { routineId });
 		const session = await athlete.query(api.workoutSessions.getById, { id });
 		expect(session?.exercises).toHaveLength(1);

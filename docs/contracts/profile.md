@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing Profile, settings, account actions, or sign-out.
-version: 2.1.0
+version: 2.3.0
 status: current
 ---
 
@@ -32,9 +32,20 @@ tap. Study: [profile](../../designs/app/profile_final.html).
     the shape iOS AutoFill needs. Clerk changes it and signs out the account's
     other sessions; its error shows on the field it concerns. Accounts that sign
     in only with a social provider or an emailed code see no row.
+  - *Manage your AppElent account.* A row (web: a link in a new tab;
+    phone: the in-app browser) opens the AppElent account
+    portal at `ACCOUNT_PORTAL_URL` (`packages/core`) for sign-in methods,
+    devices, two-step verification, and each app's data. Every account screen
+    here stays ([APP-666](https://linear.app/appelent/issue/APP-666)).
   - *Export.* An online JSON file of every personal table, shared through the
     system share sheet. Receipts and counters are omitted; Food photo files are
     not included.
+  - *Account portal.* `convex/accountPortal.ts` serves the AppElent account
+    portal (developer-home `standards/account-portal.md`, contract 1):
+    `summary` counts each exported table (capped at 1,000), `deletionBlocker`
+    wraps the one above, and `exportPage` pages the same export. Foundry
+    tracks no latest write, so `lastActiveAt` is `null`. `deleteAppData`
+    follows [APP-392](https://linear.app/appelent/issue/APP-392).
   - *Shared login.* Gather, Foundry, Fairway and Arcade Club share one
     AppElent (Clerk) login, so deletion offers two choices, Foundry data only
     first ([APP-392](https://linear.app/appelent/issue/APP-392)).
@@ -71,6 +82,23 @@ tap. Study: [profile](../../designs/app/profile_final.html).
     to come back and delete again. If Clerk still refuses after the data is
     gone, the person is told to sign in again and repeat
     ([APP-243](https://linear.app/appelent/issue/APP-243)).
+  - *Second factor and the sign-in check.* The phone and the web ask Clerk's
+    own check (`checkAuthorization`, level `second_factor`, 5 minutes) about
+    the live session's factor ages (minutes since the first and the second
+    factor; -1 when the session verified none). A session that verified no
+    second factor is judged by its first factor, also when the account has a
+    second factor; a Google or Apple sign-in that Clerk lets through without
+    one would look like that (expected, not tested: no throwaway Google or
+    Apple identity). On dev Clerk (21 Nov 2026, Frontend API calls as
+    clerk-js 6.42.1 sends them, API 2026-08-20, two-step by authenticator
+    app), `user.delete()` succeeded at `[0, -1]` and also at `[11, 11]`,
+    past Clerk's 10-minute window: dev refused nothing. So on dev the check
+    before the data goes is the stricter side. Production and the native
+    client were not tested, so the "sign in again to finish" handling stays.
+    Data first, account last still leaves the data gone and the account in
+    place when `user.delete()` fails for another reason (offline, a Clerk
+    error); whether to change that order is open
+    ([APP-528](https://linear.app/appelent/issue/APP-528)).
   - *Apple after deletion.* The confirmation after Delete account (phone
     sign-in screen, web start) says whether Foundry still uses Sign in with
     Apple: stopped, or, when revoking failed or was impossible (Android, an

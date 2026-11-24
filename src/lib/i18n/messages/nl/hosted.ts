@@ -34,12 +34,6 @@ export const hosted: typeof hostedEn = {
 	},
 	blocks: {
 		strength: "Kracht",
-		type: {
-			forTime: "Op tijd",
-			amrap: "AMRAP",
-			emom: "EMOM",
-			load: "Gewicht",
-		},
 		timeCap: "Tijdslimiet {time}",
 		minutes: "{count} min",
 		noMovements: "Geen oefeningen",
@@ -53,6 +47,7 @@ export const hosted: typeof hostedEn = {
 	scoreForm: {
 		title: "Score insturen",
 		submit: "Score insturen",
+		submitHosted: "Groepsscore insturen",
 		submitting: "Bezig met insturen...",
 		submitted: "Score ingestuurd.",
 		failed: "Score insturen is niet gelukt.",

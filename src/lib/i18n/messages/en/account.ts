@@ -1,5 +1,10 @@
 // Copy follows the mobile Account screen (apps/mobile/src/i18n/messages/account.ts).
 export const account = {
+	portal: {
+		label: "Manage your AppElent account",
+		footer:
+			"Sign-in methods, devices, two-step verification and your data in every AppElent app.",
+	},
 	export: {
 		title: "Export your data",
 		footer:

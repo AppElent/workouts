@@ -2,6 +2,7 @@
 import {
 	useConvexConnectionState,
 	useMutation,
+	usePaginatedQuery,
 	useQueries,
 	useQuery,
 } from "convex/react";
@@ -25,6 +26,7 @@ import { workspaceKey, workspaceStore } from "./data/session-workspace";
 import {
 	addToGroup,
 	allRows,
+	beginAttempt,
 	findRow,
 	groupWith,
 	markFailed,
@@ -89,7 +91,8 @@ const empty: never[] = [];
 
 let currentSession: Record<string, unknown> = session;
 let loggedSets: Record<string, unknown>[] = [];
-let receipt: { setId: string; status: "saved" } | null | undefined = null;
+let receipt: { setId: string; status: "saved" | "removed" } | null | undefined =
+	null;
 let online = true;
 const add = jest.fn();
 const update = jest.fn();
@@ -229,6 +232,18 @@ it("shows the plan against the measured 1RM, with what each set would be worth",
 	).toHaveLength(1);
 });
 
+it("says the session ended when it was finished elsewhere and the plan is gone", async () => {
+	await mount();
+	await screen.findByText(/Measured 1RM 100 kg/);
+	await act(async () => {
+		currentSession = { ...currentSession, status: "completed" };
+		workspaceStore.clear(planKey());
+	});
+	await mount();
+	expect(await screen.findByText(/This session has ended/)).toBeTruthy();
+	expect(screen.queryByText(/Checking/)).toBeNull();
+});
+
 it("logs a planned set from its check, says what it was worth, and starts rest", async () => {
 	await mount();
 	await fireEvent.press(await firstCheck());
@@ -241,7 +256,7 @@ it("logs a planned set from its check, says what it was worth, and starts rest",
 	});
 	expect(add.mock.calls[0][0].operationId).toBeTruthy();
 	expect(await screen.findByText(/60 × 8 logged · ≈76 kg/)).toBeTruthy();
-	expect(await screen.findByTestId("session-rest-stop")).toBeTruthy();
+	expect(await screen.findByTestId("session-rest-timer")).toBeTruthy();
 	// The answer links to the planned row rather than adding one beside it.
 	expect(screen.getAllByLabelText(/, Logged/)).toHaveLength(1);
 	expect(
@@ -277,7 +292,7 @@ it("recovers a committed log after losing its response, without a second write",
 	await fireEvent.press(await firstCheck());
 	await app.unmount();
 	await mount();
-	expect(await screen.findByText(/1 logged/)).toBeTruthy();
+	expect(await screen.findByText(/· 1 set$/)).toBeTruthy();
 	expect(add).toHaveBeenCalledTimes(1);
 });
 
@@ -322,10 +337,17 @@ it("starts rest when a send fails, but not again when it is retried", async () =
 	add.mockRejectedValueOnce(new Error("Connection lost"));
 	await mount();
 	await fireEvent.press(await firstCheck());
-	await fireEvent.press(await screen.findByTestId("session-rest-stop"));
+	// The Now card has no close button; VoiceOver's "stop" action ends rest.
+	await fireEvent(
+		await screen.findByTestId("session-rest-timer"),
+		"accessibilityAction",
+		{
+			nativeEvent: { actionName: "stop" },
+		},
+	);
 	await fireEvent.press(await screen.findByTestId("session-toast-action"));
 	expect(add).toHaveBeenCalledTimes(2);
-	expect(screen.queryByTestId("session-rest-stop")).toBeNull();
+	expect(screen.queryByTestId("session-rest-timer")).toBeNull();
 });
 
 it("starts the next rest offline once the last one has run out", async () => {
@@ -399,7 +421,7 @@ it("won't finish while a set failed, and offers the retry instead", async () => 
 	add.mockRejectedValueOnce(new Error("Connection lost"));
 	await mount();
 	await fireEvent.press(await firstCheck());
-	await fireEvent.press(await screen.findByRole("button", { name: "Done" }));
+	await fireEvent.press(await screen.findByRole("button", { name: "Finish" }));
 	expect(await screen.findByText(/Retry or remove it/)).toBeTruthy();
 	expect(screen.queryByText("Lower A done")).toBeNull();
 	expect(finish).not.toHaveBeenCalled();
@@ -420,7 +442,7 @@ it("won't finish on a send left unresolved by a restart, and retries it", async 
 	);
 	await app.unmount();
 	app = await mount();
-	await fireEvent.press(await screen.findByRole("button", { name: "Done" }));
+	await fireEvent.press(await screen.findByRole("button", { name: "Finish" }));
 	expect(await screen.findByText(/Retry or remove it/)).toBeTruthy();
 	expect(finish).not.toHaveBeenCalled();
 	const sent = add.mock.calls[0][0];
@@ -544,6 +566,170 @@ it("won't close a group while one of its sets failed", async () => {
 	);
 	expect(await screen.findByText(/Retry or remove it first/)).toBeTruthy();
 	expect(workspaceStore.plan(planKey())?.groups[id]?.state).toBe("timeup");
+});
+
+describe("a set logged elsewhere while a grouped send is unresolved (APP-699)", () => {
+	const facts = {
+		exercise: { equipment: "barbell" as const },
+		bodyweight: false,
+		timed: false,
+		stepKg: 2.5,
+		measured: 100,
+		estimated: null,
+		savedManual: null,
+		measuredDate: 1,
+		last: null,
+	};
+	const second = "shipped:exercise:barbell-bench-press";
+	const plannedSets = [
+		{ weight: 60, reps: 8, unit: "kg" as const },
+		{ weight: 60, reps: 8, unit: "kg" as const },
+	];
+	const exercises = [
+		{ exerciseId, plannedSets },
+		{ exerciseId: second, plannedSets },
+	];
+	/** One cell per exercise and round: the linked set's id, or "open". */
+	const shape = (groupId: string) =>
+		(workspaceStore.plan(planKey())?.groups[groupId]?.rounds ?? []).map(
+			(round) =>
+				round.items.map(
+					(row) =>
+						`${row.exerciseId === exerciseId ? "squat" : "bench"}:${row.setId ?? "open"}`,
+				),
+		);
+	// The live query pushes a new value: a new plan object makes the screens render again.
+	const queryAnswers = () =>
+		act(async () => workspaceStore.update(planKey(), (plan) => ({ ...plan })));
+
+	// Like the query cache, answer with the same object until a value changes. The
+	// shared mocks build a new one per render (queries, exercise catalog), which
+	// would re-run every reconcile and hide whether the settled receipt triggers it.
+	const exercisePage = {
+		results: [],
+		status: "Exhausted",
+		loadMore: jest.fn(),
+	};
+	beforeEach(() => {
+		jest
+			.mocked(usePaginatedQuery)
+			.mockImplementation(() => exercisePage as never);
+		const answer = jest.mocked(useQueries).getMockImplementation();
+		const previous = new Map<string, Record<string, unknown>>();
+		jest.mocked(useQueries).mockImplementation((queries) => {
+			const next = (answer as NonNullable<typeof answer>)(queries);
+			const id = Object.keys(queries).join("|");
+			const before = previous.get(id);
+			const same =
+				before &&
+				Object.keys(next).every((key) => Object.is(before[key], next[key]));
+			if (before && same) return before;
+			previous.set(id, next);
+			return next;
+		});
+	});
+
+	afterEach(() => {
+		jest
+			.mocked(usePaginatedQuery)
+			.mockImplementation(
+				() =>
+					({ results: [], status: "Exhausted", loadMore: jest.fn() }) as never,
+			);
+	});
+
+	async function mountWithUnresolvedSend() {
+		currentSession = { ...currentSession, exercises };
+		const grouped = groupWith(
+			seedPlan(exercises, [], () => facts),
+			exerciseId,
+			second,
+		);
+		const groupId = grouped.groupId as string;
+		const first = grouped.plan.groups[groupId]?.rounds[0]?.items[0] as PlanSet;
+		// A send left unresolved by a restart: its receipt has not arrived.
+		receipt = undefined;
+		workspaceStore.setPlan(
+			planKey(),
+			updateRow(
+				grouped.plan,
+				first.id,
+				beginAttempt(grouped.plan, first.id, "op-1") as PlanSet,
+			),
+		);
+		await mount();
+		return { groupId, first };
+	}
+
+	it("fills the first open planned row once the attempt's receipt says it was removed", async () => {
+		const { groupId, first } = await mountWithUnresolvedSend();
+		expect(
+			findRow(workspaceStore.plan(planKey()) as SessionPlan, first.id)?.attempt,
+		).toMatchObject({
+			setNumber: 1,
+		});
+		// Another device or the MCP logs a set with the attempt's number.
+		loggedSets = [serverSet("mcp-1", 5, 1)];
+		await queryAnswers();
+		// It waits: only the receipt can say whether it is the attempt's own set.
+		expect(shape(groupId)).toEqual([
+			["squat:open", "bench:open"],
+			["squat:open", "bench:open"],
+		]);
+		expect(
+			findRow(workspaceStore.plan(planKey()) as SessionPlan, first.id)?.attempt,
+		).toBeTruthy();
+
+		receipt = { setId: "gone", status: "removed" };
+		await queryAnswers();
+		await waitFor(() =>
+			expect(shape(groupId)).toEqual([
+				["squat:mcp-1", "bench:open"],
+				["squat:open", "bench:open"],
+			]),
+		);
+		// It took the freed planned row, keeping its place and target, and added no round.
+		const filled = findRow(
+			workspaceStore.plan(planKey()) as SessionPlan,
+			first.id,
+		);
+		expect(filled).toMatchObject({
+			setId: "mcp-1",
+			done: true,
+			reps: 5,
+			plan: { kg: 60, reps: 8 },
+		});
+		expect(filled?.attempt).toBeUndefined();
+		expect(
+			workspaceStore.plan(planKey())?.groups[groupId]?.rounds,
+		).toHaveLength(2);
+	});
+
+	it("skips the row when input was entered here while the set waited", async () => {
+		const { groupId, first } = await mountWithUnresolvedSend();
+		loggedSets = [serverSet("mcp-1", 5, 1)];
+		await queryAnswers();
+		receipt = { setId: "gone", status: "removed" };
+		// The person changes the load before the receipt is read.
+		await act(async () =>
+			workspaceStore.update(planKey(), (plan) => {
+				const row = findRow(plan, first.id) as PlanSet;
+				return updateRow(plan, first.id, { ...row, kg: 100 });
+			}),
+		);
+		await waitFor(() =>
+			expect(shape(groupId)).toEqual([
+				["squat:open", "bench:open"],
+				["squat:mcp-1", "bench:open"],
+			]),
+		);
+		expect(
+			findRow(workspaceStore.plan(planKey()) as SessionPlan, first.id),
+		).toMatchObject({
+			kg: 100,
+			done: false,
+		});
+	});
 });
 
 it("won't drop a failed set by shrinking its group or switching it to a clock", async () => {
@@ -816,7 +1002,7 @@ it("says so at Finish when a correction to a logged set isn't saved", async () =
 	);
 	await app.unmount();
 	await mount();
-	await fireEvent.press(await screen.findByRole("button", { name: "Done" }));
+	await fireEvent.press(await screen.findByRole("button", { name: "Finish" }));
 	expect(
 		await screen.findByText(/1 change to a logged set is not saved/),
 	).toBeTruthy();
@@ -840,12 +1026,13 @@ it("applies a Krachtprofiel row only at Apply, and logs nothing", async () => {
 	expect(add).not.toHaveBeenCalled();
 });
 
-it("opens Krachtprofiel from the current exercise card and applies to its next set (APP-393)", async () => {
+it("opens Krachtprofiel from the current exercise's menu and applies to its next set (APP-393)", async () => {
 	await mount();
 	await fireEvent.press(
-		await screen.findByRole("button", {
-			name: "Strength profile, Barbell Back Squat",
-		}),
+		await screen.findByLabelText(/^Options for Barbell Back Squat/),
+	);
+	await fireEvent.press(
+		await screen.findByRole("button", { name: "Strength profile" }),
 	);
 	await fireEvent.press(await screen.findByText("80%"));
 	await fireEvent.press(
@@ -873,10 +1060,10 @@ it("asks before dropping a change to a logged set", async () => {
 	expect(await screen.findAllByLabelText(/set 1, Logged/)).toBeTruthy();
 });
 
-it("finishes through the recap, saving only at Done", async () => {
+it("finishes through the recap, saving only at Save", async () => {
 	loggedSets = [serverSet("set-1", 8, 1)];
 	await mount();
-	await fireEvent.press(await screen.findByRole("button", { name: "Done" }));
+	await fireEvent.press(await screen.findByRole("button", { name: "Finish" }));
 	await fireEvent.press(
 		await screen.findByRole("button", { name: /Finish · 1 set/ }),
 	);
@@ -885,11 +1072,73 @@ it("finishes through the recap, saving only at Done", async () => {
 	expect(finish).toHaveBeenCalled();
 });
 
+describe("session leftovers (APP-624)", () => {
+	const benchId = "shipped:exercise:barbell-bench-press";
+	const warmup = (id: string, number: number) => ({
+		...serverSet(id, 5, number),
+		weight: 20,
+		setType: "warmup",
+	});
+
+	it("counts working sets at Finish, not the logged warm-up", async () => {
+		loggedSets = [warmup("w-1", 1), serverSet("set-2", 8, 2)];
+		await mount();
+		await fireEvent.press(
+			await screen.findByRole("button", { name: "Finish" }),
+		);
+		// One work set is logged, one is open; the warm-up counts for neither.
+		expect(await screen.findByText(/1 set is still open/)).toBeTruthy();
+		expect(screen.getByText(/Only the logged set counts/)).toBeTruthy();
+		expect(
+			screen.getByRole("button", { name: /Finish · 1 set$/ }),
+		).toBeTruthy();
+	});
+
+	it("keeps an exercise with only logged warm-ups open, never '0 sets'", async () => {
+		currentSession = {
+			...currentSession,
+			exercises: [
+				{
+					exerciseId: benchId,
+					plannedSets: [{ weight: 60, reps: 8, unit: "kg" }],
+					references: { measured: null, estimated: null, manual: null },
+				},
+				{
+					exerciseId,
+					plannedSets: [],
+					references: { measured: null, estimated: null, manual: null },
+				},
+			],
+		};
+		loggedSets = [warmup("w-1", 1)];
+		await mount();
+		await screen.findAllByLabelText(/Barbell Back Squat/);
+		expect(screen.queryByLabelText(/Barbell Back Squat, 0 sets/)).toBeNull();
+		expect(screen.queryByText(/^0 sets$/)).toBeNull();
+	});
+
+	it("shows no totals before the first set of a free exercise is logged", async () => {
+		currentSession = {
+			...currentSession,
+			exercises: [
+				{
+					exerciseId,
+					plannedSets: [],
+					references: { measured: null, estimated: null, manual: null },
+				},
+			],
+		};
+		await mount();
+		await screen.findAllByLabelText(/Barbell Back Squat/);
+		expect(screen.queryByText(/0 sets · 0 exercises/)).toBeNull();
+	});
+});
+
 it("starts empty and offers to delete a session with nothing in it", async () => {
 	currentSession = { ...emptySession, userId: mockSubject };
 	await mount();
 	expect(await screen.findByTestId("session-add-exercise")).toBeTruthy();
-	await fireEvent.press(await screen.findByRole("button", { name: "Done" }));
+	await fireEvent.press(await screen.findByRole("button", { name: "Finish" }));
 	await fireEvent.press(
 		await screen.findByRole("button", { name: "Delete session" }),
 	);
@@ -927,7 +1176,9 @@ describe("Live Activity", () => {
 		);
 		expect(running()).toHaveLength(1);
 
-		await fireEvent.press(await screen.findByRole("button", { name: "Done" }));
+		await fireEvent.press(
+			await screen.findByRole("button", { name: "Finish" }),
+		);
 		await fireEvent.press(
 			await screen.findByRole("button", { name: /Finish · 1 set/ }),
 		);

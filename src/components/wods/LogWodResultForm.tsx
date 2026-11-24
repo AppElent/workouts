@@ -8,7 +8,8 @@ import {
 	WodScoreFields,
 } from "#/components/wods/WodScoreFields";
 import { useConvexErrorMessage } from "#/lib/convexError";
-import { wodScoreFromForm } from "#/lib/wodScore";
+import { useMessages } from "#/lib/i18n";
+import { type WodScoreError, wodScoreFromForm } from "#/lib/wodScore";
 
 interface Props {
 	wodId: Id<"wods">;
@@ -19,6 +20,7 @@ interface Props {
 
 export function LogWodResultForm({ wodId, type, sessionId, onLogged }: Props) {
 	const log = useMutation(api.wodResults.log);
+	const t = useMessages().wods;
 
 	const [rxScaled, setRxScaled] = useState<RxScaled>("rx");
 	const score = useWodScoreDraft();
@@ -26,16 +28,19 @@ export function LogWodResultForm({ wodId, type, sessionId, onLogged }: Props) {
 	const [notes, setNotes] = useState("");
 	const [saving, setSaving] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [scoreError, setScoreError] = useState<WodScoreError | null>(null);
 
 	async function handleSubmit(e: React.FormEvent) {
 		e.preventDefault();
 		const built = wodScoreFromForm(type, score.fields);
 		if (!built.ok) {
-			setError(built.message);
+			setScoreError(built.error);
+			setError(null);
 			return;
 		}
 		setSaving(true);
 		setError(null);
+		setScoreError(null);
 		try {
 			await log({
 				wodId,
@@ -47,7 +52,7 @@ export function LogWodResultForm({ wodId, type, sessionId, onLogged }: Props) {
 			setNotes("");
 			onLogged?.();
 		} catch (err) {
-			setError(errorMessage(err, "Failed to log result."));
+			setError(errorMessage(err, t.logResult.failed));
 		} finally {
 			setSaving(false);
 		}
@@ -58,7 +63,7 @@ export function LogWodResultForm({ wodId, type, sessionId, onLogged }: Props) {
 			onSubmit={(e) => void handleSubmit(e)}
 			className="rounded-xl bg-surface border border-border p-5 flex flex-col gap-3"
 		>
-			<h2 className="text-sm font-semibold text-text">Log Result</h2>
+			<h2 className="text-sm font-semibold text-text">{t.logResult.title}</h2>
 
 			<WodScoreFields type={type} draft={score.draft} onChange={score.update} />
 
@@ -81,7 +86,7 @@ export function LogWodResultForm({ wodId, type, sessionId, onLogged }: Props) {
 			</div>
 
 			<textarea
-				placeholder="Notes (optional)"
+				placeholder={t.logResult.notes}
 				value={notes}
 				onChange={(e) => setNotes(e.target.value)}
 				rows={2}
@@ -93,9 +98,13 @@ export function LogWodResultForm({ wodId, type, sessionId, onLogged }: Props) {
 				disabled={saving}
 				className="w-full h-11 rounded-full bg-accent-fill text-on-accent text-sm font-bold disabled:opacity-40 hover:bg-accent-pressed transition-colors"
 			>
-				Log Result
+				{t.logResult.submit}
 			</button>
-			{error && <p className="text-sm text-danger">{error}</p>}
+			{(scoreError || error) && (
+				<p className="text-sm text-danger">
+					{scoreError ? t.scoreErrors[scoreError] : error}
+				</p>
+			)}
 		</form>
 	);
 }

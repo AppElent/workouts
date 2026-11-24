@@ -34,6 +34,12 @@ Before the task, read the matching project doc:
 | Taking a pull request through review and CI | The `babysit-pr` skill |
 | Reviewing the app, or capturing a review the user leads | The `review-app` skill |
 
+`upgrade-dependencies` and `review-app` are toolkit skills from developer-home
+[`skills/`](https://github.com/AppElent/developer-home/tree/main/skills), installed
+globally with `npx skills add`. `babysit-pr` is not in the toolkit and is installed
+only on Eric's Mac; without it, follow the runbook's
+[Review by risk tier](https://github.com/AppElent/developer-home/blob/main/RUNBOOK.md#review-by-risk-tier).
+
 Domain terms: [GLOSSARY.md](GLOSSARY.md). Decisions: [`docs/adr/`](docs/adr/).
 Adding, moving, or finding docs: [docs map](docs/README.md). Engineering skills read [docs/agents/](docs/agents/issue-tracker.md).
 
@@ -52,7 +58,9 @@ Work in a worktree from `origin/main` on a branch `<type>/app-123-short-slug` (t
 Blast radius, which is also the review tier (`Risk: low|med|high` with one line why in the PR body, and `blast-radius:low|med|high` on the PR; when in doubt, pick the higher tier):
 - low: copy, styling, small fixes, tests, refactors within one module, docs.
 - med: new features (for example a game), UI flows, new dependencies, shared behaviour across several screens.
-- high: Convex schema, data migrations, deleting data, auth, permissions, payments, production config, secrets, CI or deploy config, and anything that can break the installed mobile apps or affect other users without a way back.
+- high: Convex schema, data migrations, deleting data, auth, permissions, payments, production config, secrets, CI or deploy config, large dependency upgrades (an Expo SDK or a major framework version), and anything that can break the installed mobile apps or affect other users without a way back.
+
+The Linear `Blast radius` label leads; the PR label and `Risk:` line mirror it, so a re-tier changes Linear first. `high` is the one risk reason for Eric's card; there is no `council` or `follow-up` label.
 
 Review the PR in this same thread as the runbook's [Review by risk tier](https://github.com/AppElent/developer-home/blob/main/RUNBOOK.md#review-by-risk-tier) says: `low` is green CI plus your self-check against the acceptance criteria; `med` and `high` get read-only reviewer subthreads, never separate review or council threads. The Codex GitHub review is advisory: address its comments, do not wait for it. Post the review on the PR, fix blockers, and end your final message with `Review verdict (<tier>): PROCEED` or `REVISE` with the open blockers, then a **Leftover work** heading listing everything found but left out of scope, without fixing it.
 

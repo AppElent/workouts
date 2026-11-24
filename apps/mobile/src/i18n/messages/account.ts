@@ -14,6 +14,9 @@ export const accountEn = {
 	passwordChanged: "Password changed.",
 	passwordError: "Your password could not be changed. Try again.",
 	passwordFooter: "Changing your password signs you out on your other devices.",
+	portal: "Manage your AppElent account",
+	portalFooter:
+		"Sign-in methods, devices, two-step verification and your data in every AppElent app.",
 	changePhoto: "Change photo",
 	removePhoto: "Remove photo",
 	photoSaved: "Photo updated.",
@@ -99,6 +102,9 @@ export const accountNl: typeof accountEn = {
 		"Je wachtwoord kon niet worden gewijzigd. Probeer het opnieuw.",
 	passwordFooter:
 		"Als je je wachtwoord wijzigt, log je uit op je andere apparaten.",
+	portal: "Beheer je AppElent-account",
+	portalFooter:
+		"Inlogmethoden, apparaten, tweestapsverificatie en je gegevens in elke AppElent-app.",
 	changePhoto: "Foto wijzigen",
 	removePhoto: "Foto verwijderen",
 	photoSaved: "Foto bijgewerkt.",

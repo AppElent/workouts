@@ -1,5 +1,10 @@
 import { Button, Host, Image, Menu } from "@expo/ui/swift-ui";
-import { accessibilityLabel } from "@expo/ui/swift-ui/modifiers";
+import {
+	accessibilityLabel,
+	contentShape,
+	frame,
+	shapes,
+} from "@expo/ui/swift-ui/modifiers";
 import { useAppearance, useTokens } from "../../../../theme";
 import type { WeekMenuProps } from "./week-menu-props";
 
@@ -14,7 +19,13 @@ export function WeekMenu(props: WeekMenuProps) {
 		>
 			<Menu
 				label={<Image systemName="ellipsis" size={22} color={colors.text} />}
-				modifiers={[accessibilityLabel(props.label)]}
+				// Fill the 44pt host so the glyph sits centred in its glass capsule
+				// instead of drawing at the top with an empty circle below it.
+				modifiers={[
+					accessibilityLabel(props.label),
+					frame({ width: 44, height: 44 }),
+					contentShape(shapes.rectangle()),
+				]}
 			>
 				<Button
 					label={props.openTodayLabel}

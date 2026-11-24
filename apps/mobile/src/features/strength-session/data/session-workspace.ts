@@ -223,7 +223,8 @@ export function saveRestDefault(subject: string, seconds: number) {
 type SessionExercise = NonNullable<Doc<"workoutSessions">["exercises"]>[number];
 export type RawReferences = SessionExercise["references"];
 type RawReference = NonNullable<RawReferences>["measured"];
-export type LastSet = Pick<Doc<"sets">, "weight" | "unit" | "reps">;
+export type LastSet = Pick<Doc<"sets">, "weight" | "unit" | "reps"> &
+	Partial<Pick<Doc<"sets">, "rpe" | "loggedAt">>;
 const toKg = (reference: RawReference | undefined) =>
 	reference ? convertLoad(reference.value, reference.unit, "kg") : null;
 export function factsFrom(
@@ -249,7 +250,12 @@ export function factsFrom(
 				? { value: manual, date: references.manual.date }
 				: null,
 		last: last
-			? { kg: convertLoad(last.weight, last.unit, "kg"), reps: last.reps }
+			? {
+					kg: convertLoad(last.weight, last.unit, "kg"),
+					reps: last.reps,
+					rpe: last.rpe ?? null,
+					date: last.loggedAt ?? null,
+				}
 			: null,
 	};
 }

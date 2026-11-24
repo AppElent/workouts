@@ -7,6 +7,10 @@ export const darkColors = {
 	bg: "#0a0b09",
 	surface: "#141613",
 	surface2: "#1d201b",
+	/** Controls that sit on surface2: stepper buttons, the set editor's menu. */
+	surface3: "#262a23",
+	/** The floating Now card in the session: surface2, nearly opaque. */
+	dock: "rgba(29, 32, 27, 0.96)",
 	accent: "#c8f73c",
 	accentPressed: "#d6ff5c",
 	accentDim: "rgba(200, 247, 60, 0.13)",
@@ -45,6 +49,8 @@ export const lightColors: Tokens = {
 	bg: "#f4f5f0",
 	surface: "#ffffff",
 	surface2: "#e9ece3",
+	surface3: "#dfe3d7",
+	dock: "rgba(255, 255, 255, 0.96)",
 	accent: "#466400",
 	accentPressed: "#b5e329",
 	accentDim: "rgba(70, 100, 0, 0.10)",

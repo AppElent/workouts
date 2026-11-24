@@ -1,11 +1,14 @@
-/** An exercise on its own: name, references, its menu, and the set table. */
+/**
+ * An exercise on its own, as the canvas draws it (APP-619, round 2): a done
+ * card, the current card with its sets, or an upcoming card.
+ */
+import { primaryMuscleGroup } from "@foundry/core";
 import { useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useMemo, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { fmt, plural, useI18n } from "../../../i18n";
 import {
-	radius,
 	spacing,
 	type Tokens,
 	useThemedStyles,
@@ -14,15 +17,15 @@ import {
 import { SelectionMenu } from "../../../ui/selection-menu";
 import { AppText } from "../../../ui/text";
 import { useChoice } from "../../../ui/use-choice";
-import { formatNumber, formatSetFull, formatSetShort } from "../session-format";
+import { MuscleIcon } from "../../training/exercises/muscle-icon";
+import { formatNumber, formatSetFull } from "../session-format";
 import {
 	addSet,
-	addSetTemplate,
 	addToGroup,
 	addWarmup,
 	bestToday,
 	clearManual,
-	type ExerciseFacts,
+	focusExercise,
 	groupWith,
 	moveEntry,
 	nextOpenRow,
@@ -30,10 +33,11 @@ import {
 	rowsOf,
 } from "../session-plan";
 import { useSessionScreen } from "../session-screen-context";
+import { nowTarget } from "./now-card";
 import { SessionSetRow, useLargeText } from "./session-set-row";
 
 /** The line under an exercise: what its percentages come from. */
-function useReferenceLine(exerciseId: string) {
+export function useReferenceLine(exerciseId: string) {
 	const { plan, workspace } = useSessionScreen();
 	const { locale, t } = useI18n();
 	const copy = t.strength.plan;
@@ -254,65 +258,47 @@ function useExerciseMenu(exerciseId: string) {
 		rowsOf(plan, id).find((row) => !row.done)?.id;
 	return { groups, onSelect };
 }
-/** Done, in progress, or its place in the order: never a letter tile. */
-function StatusTile({
-	state,
-	number,
+/** The exercise's muscle picture on a surface2 tile; a check when done. */
+function ExerciseIcon({
+	exerciseId,
+	done = false,
+	dim = false,
 }: {
-	state: "done" | "current" | "open";
-	number: number;
+	exerciseId: string;
+	done?: boolean;
+	dim?: boolean;
 }) {
+	const { workspace } = useSessionScreen();
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
-	if (state === "done")
-		return (
-			<View style={[styles.tile, { backgroundColor: colors.accentDim }]}>
-				<SymbolView
-					name="checkmark"
-					size={17}
-					weight="bold"
-					tintColor={colors.accentInk}
-					fallback={
-						<AppText variant="label" style={{ color: colors.accentInk }}>
-							✓
-						</AppText>
-					}
-				/>
-			</View>
-		);
-	if (state === "current")
-		return (
-			<View style={[styles.tile, { backgroundColor: colors.accentFill }]}>
-				<SymbolView
-					name="dumbbell.fill"
-					size={18}
-					weight="semibold"
-					tintColor={colors.onAccent}
-					fallback={
-						<AppText variant="label" style={{ color: colors.onAccent }}>
-							{String(number)}
-						</AppText>
-					}
-				/>
-			</View>
-		);
+	const exercise = workspace.catalog.find((item) => item._id === exerciseId);
 	return (
-		<View style={[styles.tile, styles.tileOpen]}>
-			<AppText variant="label" style={{ color: colors.textMuted }}>
-				{String(number)}
-			</AppText>
+		<View style={[styles.icon, dim && styles.iconDim]}>
+			<MuscleIcon
+				group={exercise ? primaryMuscleGroup(exercise) : "other"}
+				size={40}
+			/>
+			{done ? (
+				<View style={styles.iconCheck}>
+					<SymbolView
+						name="checkmark"
+						size={10}
+						weight="heavy"
+						tintColor={colors.onAccent}
+						fallback={null}
+					/>
+				</View>
+			) : null}
 		</View>
 	);
 }
 
-/** A finished exercise folds to one line until it is tapped open. */
-function DoneSummary({
+/** The finished exercise: one line with its top set and a record badge. */
+function DoneCard({
 	exerciseId,
-	number,
 	onOpen,
 }: {
 	exerciseId: string;
-	number: number;
 	onOpen: () => void;
 }) {
 	const { plan, workspace } = useSessionScreen();
@@ -346,22 +332,23 @@ function DoneSummary({
 				.filter(Boolean)
 				.join(", ")}
 			onPress={onOpen}
-			style={styles.summary}
+			style={[styles.cardRow, styles.doneRow]}
 		>
-			<StatusTile state="done" number={number} />
+			<ExerciseIcon exerciseId={exerciseId} done />
 			<View style={styles.headText}>
 				<AppText variant="row" numberOfLines={1}>
 					{name}
 				</AppText>
-				<AppText variant="footnote" style={{ color: colors.textMuted }}>
+				<AppText variant="footnote" style={styles.caption}>
 					{line}
 				</AppText>
 			</View>
 			{record ? (
 				<View style={styles.badge}>
 					<SymbolView
-						name="trophy.fill"
+						name="trophy"
 						size={12}
+						weight="semibold"
 						tintColor={colors.accentInk}
 						fallback={null}
 					/>
@@ -374,9 +361,72 @@ function DoneSummary({
 	);
 }
 
+/** Not started yet: its sets and first load; a tap makes it current. */
+function UpcomingCard({
+	exerciseId,
+	onOpen,
+}: {
+	exerciseId: string;
+	onOpen: () => void;
+}) {
+	const { actions, plan, workspace } = useSessionScreen();
+	const { locale, t } = useI18n();
+	const copy = t.strength.plan;
+	const colors = useTokens();
+	const styles = useThemedStyles(createStyles);
+	const facts = workspace.getFacts(exerciseId);
+	const rows = (plan.sets[exerciseId] ?? []).filter(
+		(row) => row.kind !== "warmup",
+	);
+	const first = rows.find((row) => !row.done) ?? rows[0];
+	const sets = plural(locale, rows.length, copy.now.sets);
+	const done = rows.filter((row) => row.done).length;
+	const line =
+		first && !first.blank
+			? fmt(copy.now.upcomingLine, {
+					sets:
+						done > 0
+							? fmt(copy.now.setsOf, { done, total: rows.length })
+							: sets,
+					load: formatSetFull(first, facts, locale),
+				})
+			: sets;
+	const name = workspace.nameOf(exerciseId);
+	return (
+		<Pressable
+			accessibilityRole="button"
+			accessibilityLabel={`${name}, ${line}`}
+			accessibilityHint={copy.now.focusHint}
+			onPress={() => {
+				const next = focusExercise(actions.plan(), exerciseId);
+				if (next !== actions.plan()) actions.set(next);
+				else onOpen();
+			}}
+			style={[styles.cardRow, styles.upcomingRow]}
+			testID={`session-upcoming-${exerciseId}`}
+		>
+			<ExerciseIcon exerciseId={exerciseId} dim />
+			<View style={styles.headText}>
+				<AppText variant="row" numberOfLines={1}>
+					{name}
+				</AppText>
+				<AppText variant="footnote" style={styles.caption}>
+					{line}
+				</AppText>
+			</View>
+			<SymbolView
+				name="chevron.right"
+				size={14}
+				weight="semibold"
+				tintColor={colors.textFaint}
+				fallback={null}
+			/>
+		</Pressable>
+	);
+}
+
 export function SessionExerciseBlock({ exerciseId }: { exerciseId: string }) {
-	const { actions, openEditor, openProfile, plan, workspace } =
-		useSessionScreen();
+	const { actions, openEditor, plan, workspace } = useSessionScreen();
 	const { locale, t } = useI18n();
 	const copy = t.strength.plan;
 	const colors = useTokens();
@@ -385,64 +435,88 @@ export function SessionExerciseBlock({ exerciseId }: { exerciseId: string }) {
 	const rows = plan.sets[exerciseId] ?? [];
 	const facts = workspace.getFacts(exerciseId);
 	const next = nextOpenRow(plan);
-	const info = useReferenceLine(exerciseId);
 	const menu = useExerciseMenu(exerciseId);
 	const name = workspace.nameOf(exerciseId);
 	const router = useRouter();
-	// Rows carry their own labels at large text; narrow column heads would break.
 	const large = useLargeText();
-	const last = addSetTemplate(rows);
-	const number =
-		plan.order.findIndex(
-			(entry) => entry.kind === "exercise" && entry.exerciseId === exerciseId,
-		) + 1;
 	const allDone =
 		rows.some((row) => row.kind !== "warmup") && rows.every((row) => row.done);
-	const current = next?.exerciseId === exerciseId;
-	// The % column only earns its width when a reference prices the sets.
+	const current = nowTarget(plan)?.row.exerciseId === exerciseId;
 	const showPercent =
 		!facts.bodyweight && referenceFor(plan, facts, exerciseId) !== null;
+	// An exercise without working sets stays open: its card is where a first set
+	// is added, also after only warm-ups were logged (APP-624).
+	if (!current && !open && rows.some((row) => row.kind !== "warmup"))
+		return allDone ? (
+			<DoneCard exerciseId={exerciseId} onOpen={() => setOpen(true)} />
+		) : (
+			<UpcomingCard exerciseId={exerciseId} onOpen={() => setOpen(true)} />
+		);
 	const working = rows.filter((row) => row.kind !== "warmup");
 	const doneCount = working.filter((row) => row.done).length;
-	const addLabel =
-		last && !last.blank && (facts.bodyweight || last.kg > 0)
-			? fmt(copy.addSetLoad, {
-					load: formatSetShort(last, facts, locale),
-				})
-			: copy.addSet;
-	if (allDone && !open)
-		return (
-			<DoneSummary
-				exerciseId={exerciseId}
-				number={number}
-				onOpen={() => setOpen(true)}
-			/>
-		);
+	const today = bestToday(plan, exerciseId, facts);
+	const estimate = [facts.estimated, today.estimated].filter(
+		(value): value is number => value !== null,
+	);
+	const planned = rows.some((row) => row.plan);
+	const reference = facts.bodyweight
+		? null
+		: referenceFor(plan, facts, exerciseId);
+	const number = (value: number) =>
+		formatNumber(Math.round(value * 10) / 10, locale);
+	const caption = [
+		planned
+			? fmt(copy.now.setsOf, { done: doneCount, total: working.length })
+			: plural(locale, working.length, copy.now.sets),
+		reference?.source === "measured"
+			? fmt(copy.refMeasured, { measured: number(reference.value) })
+			: reference?.source === "manual"
+				? fmt(copy.refManual, { manual: number(reference.value) })
+				: !facts.bodyweight && estimate.length > 0
+					? fmt(copy.now.estimated, {
+							value: formatNumber(Math.round(Math.max(...estimate)), locale),
+						})
+					: null,
+	]
+		.filter(Boolean)
+		.join(" · ");
 	return (
-		<View style={styles.block}>
-			<View style={styles.head}>
-				<StatusTile
-					state={allDone ? "done" : current ? "current" : "open"}
-					number={number}
-				/>
+		<View style={[styles.current, !current && styles.currentOpen]}>
+			<View style={styles.currentHead}>
 				<Pressable
 					accessibilityRole="button"
 					accessibilityLabel={fmt(copy.now.openOverview, { name })}
 					onPress={() =>
 						router.push({
 							pathname: "/exercise-sheet/[id]",
-							params: { id: exerciseId },
+							params: { id: exerciseId, from: "session" },
 						})
 					}
-					style={styles.headText}
+					style={styles.currentTitle}
 					testID="session-exercise-overview"
 				>
-					<AppText variant="title">{name} ›</AppText>
-					<AppText variant="secondary" style={{ color: colors.textMuted }}>
-						{working.length > 0
-							? `${fmt(copy.now.progress, { done: doneCount, total: working.length })} · ${info.line}`
-							: info.line}
-					</AppText>
+					<ExerciseIcon exerciseId={exerciseId} done={allDone && !current} />
+					<View style={styles.headText}>
+						<View style={styles.nameRow}>
+							<AppText
+								variant="row"
+								numberOfLines={large ? undefined : 1}
+								style={styles.currentName}
+							>
+								{name}
+							</AppText>
+							<SymbolView
+								name="chevron.right"
+								size={13}
+								weight="bold"
+								tintColor={colors.textFaint}
+								fallback={null}
+							/>
+						</View>
+						<AppText variant="footnote" style={styles.caption}>
+							{caption}
+						</AppText>
+					</View>
 				</Pressable>
 				<SelectionMenu
 					trigger="ellipsis"
@@ -452,197 +526,141 @@ export function SessionExerciseBlock({ exerciseId }: { exerciseId: string }) {
 					onSelect={(id) => void menu.onSelect(id)}
 				/>
 			</View>
-			<View style={[styles.card, current && styles.cardCurrent]}>
-				{large ? null : <ColumnHeads facts={facts} showPercent={showPercent} />}
-				{rows.map((row) => (
-					<SessionSetRow
-						key={row.id}
-						row={row}
-						isNext={next?.id === row.id}
-						showPercent={showPercent}
-					/>
-				))}
-				<View style={[styles.footer, large && styles.footerLarge]}>
+			{rows.map((row) => (
+				<SessionSetRow
+					key={row.id}
+					row={row}
+					isNext={current && next?.id === row.id}
+					showPercent={showPercent}
+				/>
+			))}
+			{!current ? (
+				<View style={styles.footer}>
 					<Pressable
 						accessibilityRole="button"
-						accessibilityLabel={`${addLabel}, ${name}`}
+						accessibilityLabel={`${copy.addSet}, ${name}`}
+						disabled={!workspace.writable}
 						onPress={() => {
 							const result = addSet(actions.plan(), exerciseId, facts);
 							actions.set(result.plan);
+							const last = rows.at(-1);
 							if (!last || last.blank) openEditor(result.rowId);
 						}}
-						style={styles.addRow}
+						style={styles.footerAction}
 					>
-						{/* Beside the Krachtprofiel action on a small phone, shrink rather than wrap. */}
-						<AppText
-							variant="control"
-							style={styles.link}
-							numberOfLines={large ? undefined : 1}
-							adjustsFontSizeToFit={!large}
-							minimumFontScale={0.8}
-						>
-							{addLabel}
+						<AppText variant="control" style={styles.link}>
+							{copy.addSet}
 						</AppText>
 					</Pressable>
-					{/* The current exercise offers its Krachtprofiel directly (APP-393). */}
-					{current && !facts.bodyweight ? (
+					{rows.length > 0 ? (
 						<Pressable
 							accessibilityRole="button"
-							accessibilityLabel={`${copy.strengthProfile}, ${name}`}
-							onPress={() => openProfile(exerciseId, next?.id)}
-							style={[styles.profileAction, large && styles.profileActionLarge]}
-							testID="session-exercise-profile"
+							onPress={() => setOpen(false)}
+							style={[styles.footerAction, styles.footerDivider]}
 						>
-							<SymbolView
-								name="percent"
-								size={14}
-								weight="semibold"
-								tintColor={colors.accent}
-								fallback={null}
-							/>
 							<AppText variant="control" style={styles.link}>
-								{copy.strengthProfile}
+								{copy.now.collapse}
 							</AppText>
 						</Pressable>
 					) : null}
 				</View>
-			</View>
-		</View>
-	);
-}
-function ColumnHeads({
-	facts: { bodyweight, timed },
-	showPercent,
-}: {
-	facts: Pick<ExerciseFacts, "bodyweight" | "timed">;
-	showPercent: boolean;
-}) {
-	const { t } = useI18n();
-	const copy = t.strength.plan;
-	const styles = useThemedStyles(createStyles);
-	return (
-		<View
-			style={styles.columnHeads}
-			importantForAccessibility="no-hide-descendants"
-			accessibilityElementsHidden
-		>
-			<AppText variant="caption" style={styles.headSet}>
-				{copy.columnSet}
-			</AppText>
-			{showPercent ? (
-				<AppText variant="caption" style={styles.headPercent}>
-					%
-				</AppText>
 			) : null}
-			<AppText variant="caption" style={styles.headLoad}>
-				{timed
-					? copy.columnLoadTimed
-					: bodyweight
-						? copy.columnLoadBodyweight
-						: copy.columnLoad}
-			</AppText>
-			<AppText variant="caption" style={styles.headOneRm}>
-				{bodyweight ? "" : copy.columnOneRm}
-			</AppText>
 		</View>
 	);
 }
+
 const createStyles = (colors: Tokens) =>
 	StyleSheet.create({
-		block: { gap: spacing.sm },
-		head: {
-			flexDirection: "row",
-			alignItems: "center",
-			gap: spacing.sm,
-			paddingHorizontal: spacing.xs,
-		},
 		headText: { flex: 1, minWidth: 0, gap: 2 },
-		tile: {
-			width: 36,
-			height: 36,
-			borderRadius: 10,
+		caption: { color: colors.textMuted, fontVariant: ["tabular-nums"] },
+		icon: {
+			width: 44,
+			height: 44,
+			borderRadius: 12,
 			borderCurve: "continuous",
 			alignItems: "center",
 			justifyContent: "center",
+			backgroundColor: colors.surface2,
 		},
-		tileOpen: {
-			borderWidth: 1.5,
-			borderColor: colors.borderStrong,
+		iconDim: { opacity: 0.85 },
+		iconCheck: {
+			position: "absolute",
+			right: -4,
+			bottom: -4,
+			width: 20,
+			height: 20,
+			borderRadius: 10,
+			borderWidth: 2,
+			borderColor: colors.surface,
+			alignItems: "center",
+			justifyContent: "center",
+			backgroundColor: colors.accentFill,
 		},
-		summary: {
+		cardRow: {
 			flexDirection: "row",
 			alignItems: "center",
-			gap: spacing.md - 4,
-			minHeight: 64,
-			paddingHorizontal: spacing.md - 2,
-			paddingVertical: spacing.sm,
-			borderRadius: radius.contentCard,
+			gap: 12,
+			paddingLeft: 10,
+			paddingRight: 14,
+			borderRadius: 20,
 			borderCurve: "continuous",
+			borderWidth: 1,
+			borderColor: colors.border,
 			backgroundColor: colors.surface,
 		},
+		doneRow: { minHeight: 64, paddingVertical: 10 },
+		upcomingRow: { minHeight: 60, paddingVertical: spacing.sm },
 		badge: {
 			flexDirection: "row",
 			alignItems: "center",
 			gap: 4,
-			minHeight: 26,
+			height: 26,
 			paddingHorizontal: 10,
-			borderRadius: radius.pill,
+			borderRadius: 13,
 			backgroundColor: colors.accentDim,
 		},
 		badgeText: { color: colors.accentInk, fontWeight: "700" },
-		cardCurrent: {
-			borderWidth: StyleSheet.hairlineWidth * 2,
-			borderColor: colors.borderStrong,
-		},
-		link: { color: colors.accent, fontWeight: "600" },
-		card: {
-			backgroundColor: colors.surface,
-			borderRadius: radius.contentCard,
+		current: {
+			borderRadius: 20,
 			borderCurve: "continuous",
+			borderWidth: 1.5,
+			borderColor: colors.accentFill,
+			backgroundColor: colors.surface,
 			overflow: "hidden",
 		},
-		columnHeads: {
+		currentOpen: { borderWidth: 1, borderColor: colors.border },
+		currentHead: {
 			flexDirection: "row",
-			gap: 6,
-			paddingLeft: spacing.md,
-			paddingRight: spacing.xs + 52,
-			paddingVertical: spacing.xs,
+			alignItems: "center",
+			gap: spacing.xs,
+			paddingTop: 10,
+			paddingBottom: spacing.sm,
+			paddingLeft: 10,
+			paddingRight: 6,
 		},
-		headSet: { width: 22, color: colors.textMuted },
-		headPercent: { width: 44, color: colors.textMuted },
-		headLoad: { flex: 1, color: colors.textMuted },
-		headOneRm: {
-			minWidth: 48,
-			textAlign: "right",
-			color: colors.textMuted,
+		currentTitle: {
+			flex: 1,
+			minWidth: 0,
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 12,
 		},
+		nameRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+		currentName: { flexShrink: 1, fontWeight: "700" },
 		footer: {
 			flexDirection: "row",
 			borderTopWidth: StyleSheet.hairlineWidth,
 			borderTopColor: colors.separator,
 		},
-		addRow: {
+		footerAction: {
 			flex: 1,
-			minHeight: 52,
+			minHeight: 48,
 			alignItems: "center",
 			justifyContent: "center",
-			paddingHorizontal: spacing.md,
 		},
-		// Large text stacks the two actions so neither label truncates.
-		footerLarge: { flexDirection: "column" },
-		profileActionLarge: {
-			justifyContent: "center",
-			borderLeftWidth: 0,
-			borderTopWidth: StyleSheet.hairlineWidth,
-			borderTopColor: colors.separator,
-		},
-		profileAction: {
-			flexDirection: "row",
-			alignItems: "center",
-			gap: 4,
-			minHeight: 52,
-			paddingHorizontal: spacing.sm + spacing.xs,
+		footerDivider: {
 			borderLeftWidth: StyleSheet.hairlineWidth,
 			borderLeftColor: colors.separator,
 		},
+		link: { color: colors.accent },
 	});

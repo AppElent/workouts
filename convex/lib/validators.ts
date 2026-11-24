@@ -122,6 +122,7 @@ export const operationReceiptKind = v.union(
 	v.literal("oneRepMax"),
 	v.literal("bodyMetric"),
 	v.literal("wodResult"),
+	v.literal("routine"),
 );
 
 const strengthReferenceSnapshot = v.object({
