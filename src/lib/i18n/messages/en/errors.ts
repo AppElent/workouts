@@ -7,6 +7,10 @@ export const errors = {
 		"Your signed-in account changed. Reopen this screen and try again.",
 	readOnly: "This is built in and can't be changed.",
 	duplicate: "This already exists.",
+	routineNameTooLong: "Shorten the routine name to 200 characters or fewer.",
+	routineDuplicateExercise: "Remove repeated exercises from the routine.",
+	routineTooLarge:
+		"This routine is too large. Remove exercises or reduce the number of sets.",
 	operationConflict:
 		"This conflicts with a change that was already saved. Refresh and try again.",
 	recordDeleted: "This was deleted on another device.",

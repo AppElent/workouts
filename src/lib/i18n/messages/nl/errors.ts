@@ -4,6 +4,10 @@ export const errors = {
 		"Je bent met een ander account ingelogd. Open dit scherm opnieuw en probeer het nogmaals.",
 	readOnly: "Dit is ingebouwd en kan niet worden gewijzigd.",
 	duplicate: "Dit bestaat al.",
+	routineNameTooLong: "Kort de naam van het schema in tot maximaal 200 tekens.",
+	routineDuplicateExercise: "Verwijder dubbele oefeningen uit het schema.",
+	routineTooLarge:
+		"Dit schema is te groot. Verwijder oefeningen of verminder het aantal sets.",
 	operationConflict:
 		"Dit botst met een wijziging die al is opgeslagen. Ververs en probeer het opnieuw.",
 	recordDeleted: "Dit is op een ander toestel verwijderd.",

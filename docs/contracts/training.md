@@ -23,6 +23,10 @@ references. Studies: [training](../../designs/app/training_final.html),
   holds the history shortcuts (all, strength, running, cycling); no header +.
 - Tap a routine name to edit; a separate play button starts it. Row menu and long
   press expose Start, Edit, Delete. Swipe reveals Edit/Delete and never commits.
+- A Routine requires a non-empty name (stored trimmed, up to 200 characters) and
+  at least one Exercise. Each Exercise may appear at most once (by resolved
+  exercise id), up to 50 Exercises and 500 total Planned Sets, keeping session
+  start well under Convex document limits.
 - Deletion confirms and explains that past sessions remain; a failed deletion keeps
   the row.
 - The ActiveSessionBar stays in the shell accessory and shows only while the
@@ -92,6 +96,11 @@ the app; there is no separate data.
 - **Personal Exercises:** `create_exercise` reuses the in-app create path and
   returns the caller's existing Personal Exercise with the same name (ignoring
   case) instead of a duplicate.
+- **Routines:** `create_routine` uses the in-app create path, with its set, rep,
+  and load limits and exercise ownership checks. Like the editors, it requires a
+  name and at least one exercise and takes each exercise once. A retry with the
+  same key and input returns the first result, even after the Routine was edited
+  or deleted in the app, and never makes a second one.
 - **Planned Sets:** `add_exercise_to_session` with `plannedSets` replaces that
   exercise's Planned Sets in an active session. A target is a load or a
   percentage of the session's 1RM (Measured unless a newer Manual), rounded to
