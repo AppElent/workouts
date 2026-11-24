@@ -73,6 +73,8 @@ export const auth = {
 				"We hebben een code van 6 cijfers gestuurd naar {destination}.",
 			backup_code: "Vul een van de back-upcodes in die je hebt bewaard.",
 		},
+		codeExpired:
+			"De code die we naar {destination} hebben gestuurd, is verlopen. Kies hieronder ‘{resend}’.",
 		yourPhone: "je telefoon",
 		yourEmail: "je e-mailadres",
 		code: "Code",

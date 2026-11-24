@@ -354,4 +354,50 @@ describe("/sign-in resuming a social sign-in", () => {
 		expect(sendPhoneCode).toHaveBeenCalledTimes(1);
 		expect(sendEmailCode).toHaveBeenCalledTimes(1);
 	});
+
+	it("says the code expired on a reload, until a new one is sent", async () => {
+		const supportedSecondFactors = [{ strategy: "phone_code" }];
+		socialAttempt({ supportedSecondFactors });
+		const router = await visit(RESUME);
+		await reload(router, {
+			supportedSecondFactors,
+			secondFactorVerification: { strategy: "phone_code", status: "expired" },
+		});
+		expect(
+			screen.getByText(
+				"The code we sent to your phone has expired. Choose “Send a new code” below.",
+			),
+		).toBeDefined();
+		expect(sendPhoneCode).toHaveBeenCalledTimes(1);
+		await click("Send a new code");
+		expect(
+			screen.getByText("We texted a 6-digit code to your phone."),
+		).toBeDefined();
+		expect(sendPhoneCode).toHaveBeenCalledTimes(2);
+	});
+
+	it("sends a code when a new password() replaces an old, expired verification", async () => {
+		const password = vi.fn(async () => {
+			// Clerk answers with a new attempt: nothing is prepared on it yet.
+			socialAttempt({
+				firstFactorVerification: { strategy: "password" },
+				supportedSecondFactors: [{ strategy: "phone_code" }],
+			});
+			return { error: null };
+		});
+		socialAttempt({
+			supportedSecondFactors: [{ strategy: "phone_code" }],
+			secondFactorVerification: { strategy: "phone_code", status: "expired" },
+			password,
+		});
+		await visit("/sign-in");
+		expectPlainForm();
+		expect(sendPhoneCode).not.toHaveBeenCalled();
+		await click("Sign in");
+		expect(password).toHaveBeenCalledTimes(1);
+		expect(
+			screen.getByText("We texted a 6-digit code to your phone."),
+		).toBeDefined();
+		expect(sendPhoneCode).toHaveBeenCalledTimes(1);
+	});
 });
