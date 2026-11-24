@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when connecting to, operating, or changing the Foundry MCP server.
-version: 3.5.0
+version: 3.6.0
 ---
 
 # Foundry MCP
@@ -75,6 +75,11 @@ with default loads in kg, `add_exercise_to_session` takes
 `plannedSets` (kg or a percentage of the 1RM), and `start_strength_session`,
 `log_set`, and `finish_strength_session` take `startedAt`, `loggedAt`, and
 `endedAt`.
+
+`log_set` and `update_set` take an optional `notes` (at most 500 characters).
+On `update_set`, leaving it out keeps the Set's note and an empty string clears
+it. `get_strength_session`, `get_active_strength_session`, and
+`get_exercise_history` return it.
 
 Rules for every tool:
 

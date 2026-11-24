@@ -5,6 +5,7 @@ import {
 	EXERCISE_CATEGORIES,
 	isTimedExercise,
 	SET_LIMITS,
+	SET_NOTE_LENGTH,
 	validateRecordedTime,
 } from "@foundry/core";
 import type { Exercise } from "@foundry/core/exercises";
@@ -190,6 +191,7 @@ async function sessionWithSets(backend: FoundryBackend, id: string) {
 			weight: set.weight,
 			unit: set.unit,
 			rpe: set.rpe,
+			notes: set.notes,
 			setType: set.setType,
 			loggedAt: isoDate(set.loggedAt),
 		})),
@@ -592,6 +594,12 @@ export const strengthTools = [
 			weight: z.number().min(0).max(2000).describe("Load; 0 for bodyweight"),
 			unit,
 			rpe: z.number().min(1).max(10).optional(),
+			notes: z
+				.string()
+				.trim()
+				.max(SET_NOTE_LENGTH)
+				.optional()
+				.describe("The user's note on this Set, such as narrow grip"),
 			setType: setType.default("working"),
 			loggedAt: pastTime(
 				"When the Set was done, for a session logged afterwards.",
@@ -612,7 +620,8 @@ export const strengthTools = [
 	defineTool({
 		name: "update_set",
 		title: "Update set",
-		description: "Correct the reps, load, RPE, or classification of a Set.",
+		description:
+			"Correct the reps, load, RPE, note, or classification of a Set.",
 		access: "write",
 		annotations: { idempotentHint: true },
 		input: {
@@ -627,6 +636,14 @@ export const strengthTools = [
 			weight: z.number().min(0).max(2000).optional(),
 			unit: unit.optional(),
 			rpe: z.number().min(1).max(10).nullable().optional(),
+			notes: z
+				.string()
+				.trim()
+				.max(SET_NOTE_LENGTH)
+				.optional()
+				.describe(
+					"Replaces the Set's note; an empty string clears it, omitting it keeps it",
+				),
 			setType: setType.optional(),
 		},
 		async run({ setId, ...changes }, { backend }) {

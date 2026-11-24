@@ -273,6 +273,69 @@ describe("Foundry MCP endpoint", () => {
 		});
 	});
 
+	it("round-trips a set's note", async () => {
+		const set: Record<string, unknown> = {
+			_id: "set_1",
+			exerciseId: "back-squat",
+			setNumber: 1,
+			reps: 5,
+			weight: 100,
+			unit: "kg",
+			setType: "working",
+			loggedAt: Date.parse("2026-11-10T11:40:00Z"),
+		};
+		const backend = fakeBackend({
+			"workoutSessions:getById": () => ({
+				_id: "session_1",
+				status: "active",
+				startTime: Date.parse("2026-11-10T11:30:00Z"),
+				exercises: [],
+			}),
+			"sets:listForSession": () => [set],
+			"exercises:getHistory": () => [set],
+			"sets:add": ({ notes }: { notes?: string }) => {
+				set.notes = notes;
+				return "set_1";
+			},
+			"sets:update": ({ notes }: { notes?: string }) => {
+				set.notes = notes;
+				return null;
+			},
+		});
+		const log = (notes: string) =>
+			callTool(backend, "log_set", {
+				idempotencyKey: "key-12345",
+				sessionId: "session_1",
+				exerciseId: "back-squat",
+				setNumber: 1,
+				reps: 5,
+				weight: 100,
+				unit: "kg",
+				notes,
+			});
+		expect((await log("a".repeat(501))).isError).toBe(true);
+		await log(" narrow grip ");
+		const session = await callTool(backend, "get_strength_session", {
+			sessionId: "session_1",
+		});
+		expect(JSON.stringify(session.structuredContent)).toContain(
+			'"notes":"narrow grip"',
+		);
+		const history = await callTool(backend, "get_exercise_history", {
+			exerciseId: "back-squat",
+		});
+		expect(JSON.stringify(history.structuredContent)).toContain(
+			'"notes":"narrow grip"',
+		);
+		await callTool(backend, "update_set", { setId: "set_1", notes: "" });
+		expect(backend.calls.at(-1)).toMatchObject({
+			name: "sets:update",
+			args: { notes: "" },
+		});
+		await callTool(backend, "update_set", { setId: "set_1", reps: 6 });
+		expect(backend.calls.at(-1)?.args).not.toHaveProperty("notes");
+	});
+
 	it("returns the active session instead of starting a second one", async () => {
 		const session = {
 			_id: "session_1",

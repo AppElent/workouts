@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing Training, Start activity, Strength Sessions, the set editor, Set Drafts, or strength references.
-version: 2.0.0
+version: 2.1.0
 status: current
 ---
 
@@ -130,10 +130,15 @@ the app; there is no separate data.
   last time's matching set (same type and position, with RPE and date) as its
   subtitle. Without advanced details it shows last time's sets, never an empty
   middle. Advanced adds percentage chips and optional RPE showing reps remaining
-  (half values reachable). The 1RM source (measured, manual, estimated) is named
+  (half values reachable), and the set's note. The 1RM source (measured, manual, estimated) is named
   wherever it is used. Simple or advanced is a choice in the editor menu,
   remembered on the device; advanced only shows more and offers no other way to
-  log.
+  log. Simple shows the note field only when the set has a note.
+- **Note:** a logged Set can hold one note (`sets.notes`), stored trimmed, at most
+  500 characters; an empty note is removed. A correction that leaves the note out
+  keeps it, so an older app never wipes one, and an empty string clears it. The
+  session's set rows show it, and the web and the MCP return it. New, repeated, and
+  swapped-in sets start without one; swapping back restores the original's.
 - Percentage chips use the session's 1RM: Measured unless a newer manual 1RM is
   saved. Choosing one changes the weight; the sheet shows the 1RM this set would
   produce. Missing references are unknown and do not block logging. Never replace
@@ -163,7 +168,9 @@ the app; there is no separate data.
 - The session plan and each set's draft live on the device per account and session.
   They survive dismissal, restart, and sign-out while the session is active. Logging,
   discard, or session end clears a draft. Another account never sees them, and they
-  do not sync between devices. Drafts from builds before account scoping are not
+  do not sync between devices. A draft carries the note like reps and weight, and a
+  note typed here counts as a change made here; a draft whose note was not touched
+  never overwrites the stored one. Drafts from builds before account scoping are not
   carried over.
 - Recording a Set needs a connection. Offline, the set is marked failed without being
   sent, rest still runs, and finishing is blocked until it is retried or removed. A

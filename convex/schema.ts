@@ -291,6 +291,7 @@ export default defineSchema({
 		weight: v.number(),
 		unit: loadUnit,
 		rpe: v.optional(v.number()),
+		notes: v.optional(v.string()),
 		setType,
 		loggedAt: v.number(),
 		// Left by an earlier development schema; no new writes.

@@ -120,3 +120,67 @@ it("orders historical performance by logged time and excludes only the requested
 		)?._id,
 	).toBe(seeded.previousSet);
 });
+
+async function noteSetup() {
+	const t = convexTest(schema, modules);
+	const alice = t.withIdentity({ subject: "alice" });
+	const sessionId = await t.run((ctx) =>
+		ctx.db.insert("workoutSessions", {
+			userId: "alice",
+			status: "active",
+			startTime: 1,
+			date: 1,
+		}),
+	);
+	const add = (notes?: string, operationId: string = crypto.randomUUID()) =>
+		alice.mutation(api.sets.add, {
+			sessionId,
+			exerciseId: SHIPPED_EXERCISES[0]._id,
+			setNumber: 1,
+			reps: 5,
+			weight: 60,
+			unit: "kg",
+			setType: "working",
+			operationId,
+			...(notes === undefined ? {} : { notes }),
+		});
+	const read = (id: Awaited<ReturnType<typeof add>>) =>
+		t.run((ctx) => ctx.db.get(id));
+	return { alice, add, read };
+}
+
+it("saves a set's note trimmed, and none when it is empty", async () => {
+	const { add, read } = await noteSetup();
+	expect((await read(await add("  narrow grip\n")))?.notes).toBe("narrow grip");
+	expect(await read(await add("  "))).not.toHaveProperty("notes");
+	expect(await read(await add())).not.toHaveProperty("notes");
+});
+
+it("matches a retried log whether an empty note is sent or left out", async () => {
+	const { add } = await noteSetup();
+	const id = await add(undefined, "note-retry");
+	expect(await add(" ", "note-retry")).toBe(id);
+});
+
+it("keeps a set's note when an update leaves it out, replaces it, and clears it", async () => {
+	const { alice, add, read } = await noteSetup();
+	const id = await add("narrow grip");
+	await alice.mutation(api.sets.update, { id, reps: 6, rpe: null });
+	expect(await read(id)).toMatchObject({ reps: 6, notes: "narrow grip" });
+	await alice.mutation(api.sets.update, { id, notes: " paused " });
+	expect(await read(id)).toMatchObject({ reps: 6, notes: "paused" });
+	await alice.mutation(api.sets.update, { id, notes: "" });
+	expect(await read(id)).not.toHaveProperty("notes");
+});
+
+it("refuses a note over 500 characters on log and update", async () => {
+	const { alice, add, read } = await noteSetup();
+	const full = "a".repeat(500);
+	const id = await add(` ${full} `);
+	expect((await read(id))?.notes).toBe(full);
+	await expect(add(`${full}a`)).rejects.toThrow("tooLong");
+	await expect(
+		alice.mutation(api.sets.update, { id, notes: `${full}a` }),
+	).rejects.toThrow("tooLong");
+	expect((await read(id))?.notes).toBe(full);
+});

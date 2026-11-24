@@ -9,6 +9,7 @@ import {
 	estimatedMaxReps,
 	formatClock,
 	SET_LIMITS,
+	SET_NOTE_LENGTH,
 	SET_TYPES,
 	toKg,
 } from "@foundry/core";
@@ -89,6 +90,7 @@ import {
 	groupOfRow,
 	isValidRow,
 	loadStep,
+	noteOf,
 	type PlanSet,
 	referenceFor,
 	repeatRow,
@@ -103,6 +105,7 @@ import {
 	targetPercent,
 	typoCheck,
 	updateRow,
+	withStoredNote,
 	withTypedLoad,
 } from "./session-plan";
 import {
@@ -263,7 +266,8 @@ export function SetEditorScreen() {
 	const restState = useRestState();
 	const stored = plan ? findRow(plan, params.rowId) : undefined;
 	// An edit only ever applies to a set that is still logged.
-	const draft = stored?.done ? drafts[params.rowId] : undefined;
+	const saved = stored?.done ? drafts[params.rowId] : undefined;
+	const draft = saved && stored ? withStoredNote(saved, stored) : undefined;
 	const row = draft ?? stored;
 	const facts = row ? getFacts(row.exerciseId) : null;
 	const previous = usePreviousSession(workspace.own ? workspace.session : null);
@@ -288,7 +292,9 @@ export function SetEditorScreen() {
 			: null;
 	const history =
 		previousSets && row ? previousSetsOf(previousSets, row.exerciseId) : [];
-	const [focus, setFocus] = useState<"kg" | "reps" | "percent" | null>(null);
+	const [focus, setFocus] = useState<"kg" | "reps" | "percent" | "note" | null>(
+		null,
+	);
 	const [loadText, setLoadText] = useState("");
 	const [repsText, setRepsText] = useState("");
 	const [percentText, setPercentText] = useState("");
@@ -313,6 +319,15 @@ export function SetEditorScreen() {
 	const loadRef = useRef<ComponentRef<typeof TextInput>>(null);
 	const repsRef = useRef<ComponentRef<typeof TextInput>>(null);
 	const percentRef = useRef<ComponentRef<typeof TextInput>>(null);
+	const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
+	useEffect(() => {
+		// The note sits at the end, so the keyboard would cover it.
+		if (focus !== "note" || keyboard === 0) return;
+		const frame = requestAnimationFrame(() =>
+			scrollRef.current?.scrollToEnd({ animated: true }),
+		);
+		return () => cancelAnimationFrame(frame);
+	}, [focus, keyboard]);
 	const logged = Boolean(stored?.done);
 	const changed = Boolean(logged && stored && draft && !sameSet(draft, stored));
 	const [saving, setSaving] = useState(false);
@@ -402,6 +417,12 @@ export function SetEditorScreen() {
 				? ""
 				: String(row.reps);
 	const valid = isValidRow(row, facts);
+	// The simple view has no note field, but never hides a note there is.
+	const showNote =
+		advanced ||
+		focus === "note" ||
+		noteOf(row) !== "" ||
+		Boolean(stored && noteOf(stored));
 	const midType = focus === "kg" || focus === "reps";
 	// A cleared or unreadable field isn't the old value: nothing logs until it's filled.
 	const typedEmpty =
@@ -901,6 +922,7 @@ export function SetEditorScreen() {
 			<View style={[styles.screen, { paddingBottom: keyboard }]}>
 				<View collapsable={false} style={styles.scrollHost}>
 					<ScrollView
+						ref={scrollRef}
 						style={styles.scroll}
 						contentContainerStyle={[
 							styles.content,
@@ -1437,6 +1459,37 @@ export function SetEditorScreen() {
 								if (!locked) change({ ...row, kind });
 							}}
 						/>
+						{showNote ? (
+							<View style={styles.note}>
+								<SymbolView
+									name="pencil"
+									size={16}
+									tintColor={colors.textFaint}
+								/>
+								<TextInput
+									accessibilityLabel={text.setNote}
+									value={row.notes ?? ""}
+									onChangeText={(notes) =>
+										change({
+											...row,
+											notes,
+											...(logged ? { notesEdited: true } : {}),
+										})
+									}
+									onFocus={() => setFocus("note")}
+									onBlur={() => setFocus(null)}
+									editable={!locked}
+									multiline
+									submitBehavior="blurAndSubmit"
+									returnKeyType="done"
+									maxLength={SET_NOTE_LENGTH}
+									placeholder={text.setNotePlaceholder}
+									placeholderTextColor={colors.textFaint}
+									style={[type.secondary, styles.noteInput]}
+									testID="session-editor-note"
+								/>
+							</View>
+						) : null}
 						{advanced && plateLine ? (
 							<AppText variant="secondary" style={{ color: colors.textMuted }}>
 								{plateLine}
@@ -1721,6 +1774,24 @@ const createStyles = (colors: Tokens) =>
 			borderWidth: 2,
 			borderColor: colors.accentFill,
 			backgroundColor: colors.accentDim,
+		},
+		note: {
+			minHeight: 44,
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 10,
+			paddingHorizontal: 14,
+			borderRadius: radius.lg,
+			borderCurve: "continuous",
+			borderWidth: 1,
+			borderColor: colors.borderStrong,
+		},
+		noteInput: {
+			flex: 1,
+			minWidth: 0,
+			maxHeight: 132,
+			paddingVertical: spacing.sm,
+			color: colors.text,
 		},
 		footer: {
 			paddingHorizontal: spacing.md,

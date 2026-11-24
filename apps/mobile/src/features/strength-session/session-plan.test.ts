@@ -1209,6 +1209,76 @@ describe("reconcile", () => {
 			});
 			expect(row.kg).toBeCloseTo(99.79, 2);
 		});
+		it("brings its note, and never fills a row with a note typed here", () => {
+			const plan = plannedPlan();
+			const first = rowsOf(plan, "squat")[0] as PlanSet;
+			const noted = updateRow(plan, first.id, { ...first, notes: "belt" });
+			const server = { ...set("mcp-1", 1), notes: "narrow grip" };
+			const next = reconcilePlan(noted, [], [server], lookup);
+			expect(findRow(next, first.id)).toMatchObject({
+				done: false,
+				notes: "belt",
+			});
+			const filled = rowsOf(next, "squat").find((r) => r.setId === "mcp-1");
+			expect(filled?.notes).toBe("narrow grip");
+			// A note changed elsewhere follows, and so does its removal.
+			const cleared = reconcilePlan(next, [], [set("mcp-1", 1)], lookup);
+			expect(
+				rowsOf(cleared, "squat").find((r) => r.setId === "mcp-1")?.notes,
+			).toBeUndefined();
+			// Rows changed before `edited` was stored count too.
+			const legacy = { ...findRow(noted, first.id), edited: undefined };
+			expect(
+				findRow(
+					reconcilePlan(
+						{
+							...noted,
+							sets: {
+								...noted.sets,
+								squat: rowsOf(noted, "squat").map((r) =>
+									r.id === first.id ? (legacy as PlanSet) : r,
+								),
+							},
+						},
+						[],
+						[server],
+						lookup,
+					),
+					first.id,
+				)?.done,
+			).toBe(false);
+		});
+		it("never fills an unlogged warm-up that holds a note", () => {
+			const added = addWarmup(plannedPlan(), "squat", SQUAT);
+			const row = findRow(added.plan, added.rowId) as PlanSet;
+			const noted = updateRow(added.plan, row.id, { ...row, notes: "belt" });
+			const logged = markLogged(noted, row.id, "own", 1, SQUAT).plan;
+			const unlogged = updateRow(logged, row.id, {
+				...(findRow(logged, row.id) as PlanSet),
+				done: false,
+				setId: undefined,
+				setNumber: undefined,
+			});
+			const next = reconcilePlan(
+				unlogged,
+				[],
+				[{ ...set("mcp-1", 1), setType: "warmup" }],
+				lookup,
+			);
+			expect(findRow(next, row.id)).toMatchObject({
+				done: false,
+				notes: "belt",
+			});
+		});
+		it("keeps no note on a repeated set", () => {
+			const plan = plannedPlan();
+			const first = rowsOf(plan, "squat")[0] as PlanSet;
+			const noted = updateRow(plan, first.id, { ...first, notes: "belt" });
+			const repeated = repeatRow(noted, first.id).plan;
+			expect(
+				rowsOf(repeated, "squat").filter((r) => r.notes === "belt"),
+			).toHaveLength(1);
+		});
 		it("fills one row per set, whatever the set numbers are", () => {
 			const plan = plannedPlan();
 			const own = log(plan, firstOpen(plan), "own");
