@@ -76,6 +76,21 @@ jobs:
           tar -xzf "$RUNNER_TEMP"/build/*.tar.gz -C "$RUNNER_TEMP/app"
           xcrun simctl install "$UDID" "$(find "$RUNNER_TEMP/app" -maxdepth 2 -name '*.app' | head -1)"
 
+      # Expo answers every manifest request by resolving the runtime version,
+      # and the `fingerprint` policy hashes the native project each time. Next
+      # to a booted simulator that outlasts the dev client's fixed 10 s request
+      # limit, so resolve it once and serve the same value as a string. Only
+      # this job's checkout changes; the app is already built.
+      - name: Resolve the runtime version once
+        working-directory: apps/mobile
+        run: |
+          node node_modules/expo-updates/bin/cli.js runtimeversion:resolve --platform ios \
+            > "$RUNNER_TEMP/runtime.json"
+          RUNTIME_VERSION=$(jq -er .runtimeVersion "$RUNNER_TEMP/runtime.json")
+          jq --arg v "$RUNTIME_VERSION" '.expo.runtimeVersion = $v' app.json > "$RUNNER_TEMP/app.json"
+          mv "$RUNNER_TEMP/app.json" app.json
+          echo "Runtime version: $RUNTIME_VERSION"
+
       # EXPO_PUBLIC_* values (Clerk, Convex, test account) come from the EAS
       # development environment, as in a local dev build.
       - name: Start Metro
@@ -93,14 +108,16 @@ jobs:
           # The manifest the dev client fetches first: log its timing and the
           # bundle URL it points at, to tell a slow manifest from an
           # unreachable bundle host when the client's first load times out.
-          curl -s -o "$RUNNER_TEMP/manifest.json" --max-time 120 \
+          curl -sf -o "$RUNNER_TEMP/manifest.json" --max-time 120 \
             -w "manifest: HTTP %{http_code} in %{time_total}s\n" \
             -H "expo-platform: ios" -H "Accept: application/expo+json,application/json" \
-            "http://127.0.0.1:$METRO_PORT/" || true
-          grep -o '"url":"[^"]*"' "$RUNNER_TEMP/manifest.json" | head -1 || true
-          # Compile the first bundle now, so the app's launch wait doesn't.
+            "http://127.0.0.1:$METRO_PORT/"
+          BUNDLE_URL=$(jq -er .launchAsset.url "$RUNNER_TEMP/manifest.json")
+          echo "bundle: $BUNDLE_URL"
+          # Compile the bundle the client will ask for now, so the app's launch
+          # wait doesn't. Other transform options would compile another bundle.
           curl -sf -o /dev/null --max-time 600 \
-            "http://127.0.0.1:$METRO_PORT/.expo/.virtual-metro-entry.bundle?platform=ios&dev=true" || true
+            -w "bundle: HTTP %{http_code} in %{time_total}s\n" "$BUNDLE_URL"
 
       # Pinned so a Maestro release cannot change a passing run.
       - name: Install Maestro
@@ -117,10 +134,24 @@ jobs:
           # hosted runner: PR #162's first run gave up 11s before it came up.
           MAESTRO_DRIVER_STARTUP_TIMEOUT: "300000"
         run: |
+          # TEMPORARY (APP-712): what each step costs while the flows run.
+          ( while sleep 45; do
+              date; uptime
+              curl -s -I -o /dev/null --max-time 120 -w "HEAD manifest: HTTP %{http_code} in %{time_total}s\n" \
+                -H "expo-platform: ios" "http://127.0.0.1:$METRO_PORT/"
+              TIMEFORMAT="fingerprint: %R s real, %U user, %S sys"
+              time node node_modules/expo-updates/bin/cli.js fingerprint:generate --platform ios > /dev/null
+              TIMEFORMAT="string runtime version: %R s real"
+              time node node_modules/expo-updates/bin/cli.js runtimeversion:resolve --platform ios > /dev/null
+              top -l 2 -n 8 -o cpu -stats command,cpu,mem | tail -9
+            done ) > "$RUNNER_TEMP/probe.log" 2>&1 &
           maestro --device "$UDID" test --include-tags smoke \
             -e METRO_PORT="$METRO_PORT" \
             --format junit --output "$RUNNER_TEMP/maestro/report.xml" \
             --debug-output "$RUNNER_TEMP/maestro" --flatten-debug-output .maestro
+
+      - if: always()
+        run: cat "$RUNNER_TEMP/probe.log"
 
       # A failed flow leaves its screenshot and view hierarchy in the
       # artifact, next to the simulator, Metro log and final screen.
