@@ -1,3 +1,4 @@
+import { getShippedExercise } from "@foundry/core/exercises";
 import { getFunctionName } from "convex/server";
 import { ConvexError } from "convex/values";
 import { describe, expect, it } from "vitest";
@@ -335,34 +336,34 @@ describe("Foundry MCP endpoint", () => {
 				},
 			],
 		};
+		const backendWith = (stored: () => object[]) =>
+			fakeBackend({
+				"routines:create": () => "routine_1",
+				"routines:list": stored,
+				"exercises:listPersonal": () => ({
+					page: [],
+					isDone: true,
+					continueCursor: "",
+				}),
+			});
 		const saved = {
 			_id: "routine_1",
 			_creationTime: 1,
 			userId: "user_1",
 			name: "Push day",
-			exercises: [{ ...input.exercises[0], exerciseName: "Back Squat" }],
+			exercises: [
+				{
+					...input.exercises[0],
+					exerciseName: getShippedExercise(SQUAT)?.name,
+				},
+			],
 		};
-		const other = { ...saved, _id: "routine_2", name: "Other" };
 
-		it("saves a Routine and returns it as list_routines does, also on retry", async () => {
-			const backend = fakeBackend({
-				"routines:create": () => "routine_1",
-				"routines:list": () => [other, saved],
-			});
+		it("saves a Routine and returns it as list_routines does", async () => {
+			const backend = backendWith(() => [saved]);
 			const call = await callTool(backend, "create_routine", input);
 			expect(call.isError).toBeUndefined();
-			expect(call.structuredContent).toEqual({
-				routine: {
-					id: "routine_1",
-					name: "Push day",
-					exercises: saved.exercises,
-				},
-			});
-			const listed = await callTool(backend, "list_routines", {});
-			expect(listed.structuredContent?.routines).toContainEqual(
-				call.structuredContent?.routine,
-			);
-			const write = {
+			expect(backend.calls[0]).toEqual({
 				kind: "mutation",
 				name: "routines:create",
 				args: {
@@ -370,29 +371,64 @@ describe("Foundry MCP endpoint", () => {
 					name: "Push day",
 					exercises: input.exercises,
 				},
-			};
-			const retry = await callTool(backend, "create_routine", input);
-			expect(retry.structuredContent).toEqual(call.structuredContent);
-			expect(backend.calls.filter((c) => c.kind === "mutation")).toEqual([
-				write,
-				write,
+			});
+			const listed = await callTool(backend, "list_routines", {});
+			expect(listed.structuredContent?.routines).toEqual([
+				call.structuredContent?.routine,
 			]);
 		});
 
-		it("says so when a retry names a Routine deleted since", async () => {
-			const backend = fakeBackend({
-				"routines:create": () => "routine_1",
-				"routines:list": () => [other],
+		it.each([
+			[
+				"edited",
+				[
+					{
+						...saved,
+						name: "Renamed",
+						exercises: [{ ...saved.exercises[0], defaultSets: 4 }],
+					},
+				],
+			],
+			["deleted", []],
+		])(
+			"replays the first result when the Routine was %s since",
+			async (_, after) => {
+				let stored: object[] = [saved];
+				const backend = backendWith(() => stored);
+				const first = await callTool(backend, "create_routine", input);
+				stored = after;
+				const retry = await callTool(backend, "create_routine", input);
+				expect(retry.isError).toBeUndefined();
+				expect(retry.structuredContent).toEqual(first.structuredContent);
+				const writes = backend.calls.filter((c) => c.kind === "mutation");
+				expect(writes).toHaveLength(2);
+				expect(writes[1]).toEqual(writes[0]);
+			},
+		);
+
+		it("refuses a repeated Exercise without calling Convex", async () => {
+			const backend = fakeBackend();
+			const call = await callTool(backend, "create_routine", {
+				...input,
+				exercises: [
+					input.exercises[0],
+					{ ...input.exercises[0], defaultReps: 5 },
+				],
 			});
-			const call = await callTool(backend, "create_routine", input);
 			expect(call.isError).toBe(true);
-			expect(call.content[0]?.text).toContain("deleted");
+			expect(call.content[0]?.text).toContain("more than once");
+			expect(backend.calls).toHaveLength(0);
 		});
 
 		it.each([
 			["no key", { idempotencyKey: undefined }],
 			["blank name", { name: "  " }],
+			["too long a name", { name: "a".repeat(101) }],
 			["no exercises", { exercises: [] }],
+			[
+				"too many exercises",
+				{ exercises: Array(101).fill(input.exercises[0]) },
+			],
 			...(
 				[
 					["zero sets", { defaultSets: 0 }],
@@ -400,6 +436,7 @@ describe("Foundry MCP endpoint", () => {
 					["too many sets", { defaultSets: 101 }],
 					["zero reps", { defaultReps: 0 }],
 					["too many reps", { defaultReps: 1001 }],
+					["too much weight", { defaultWeight: 2001 }],
 					["negative weight", { defaultWeight: -1 }],
 					["empty exercise ID", { exerciseId: "" }],
 				] as const

@@ -360,7 +360,7 @@ export const strengthTools = [
 		name: "create_routine",
 		title: "Create routine",
 		description:
-			"Save a reusable Routine: a named list of Exercises in order, each with suggested sets, reps, and an optional load in kg. It appears in the user's Routines in the app; start_strength_session can start from it. Check list_routines first to avoid a near-duplicate. Returns the saved Routine as list_routines shows it.",
+			"Save a reusable Routine: a named list of Exercises in order, each with suggested sets, reps, and an optional load in kg. It appears in the user's Routines in the app; start_strength_session can start from it. Check list_routines first to avoid a near-duplicate. Name each Exercise once, as in the app. Returns the Routine as saved, in the shape list_routines uses; a retry returns the same result even if the user has changed or deleted the Routine since.",
 		access: "write",
 		input: {
 			idempotencyKey,
@@ -399,6 +399,13 @@ export const strengthTools = [
 				.describe("Exercises in training order"),
 		},
 		async run({ idempotencyKey, name, exercises }, { backend }) {
+			// Both apps' Routine editors key rows by Exercise, so a repeat breaks them.
+			const ids = exercises.map((exercise) => exercise.exerciseId);
+			const repeated = ids.find((id, index) => ids.indexOf(id) !== index);
+			if (repeated !== undefined)
+				throw new ToolInputError(
+					`Exercise ${repeated} is listed more than once. List each Exercise once per Routine.`,
+				);
 			let id: Id<"routines">;
 			try {
 				id = await backend.mutation(api.routines.create, {
@@ -413,14 +420,24 @@ export const strengthTools = [
 					);
 				throw error;
 			}
-			const routines = await backend.query(api.routines.list, {});
-			const routine = routines.find((candidate) => candidate._id === id);
-			// A retry names the first Routine, which the user may have deleted since.
-			if (!routine)
-				throw new ToolInputError(
-					"This Routine was already created with this idempotencyKey and has since been deleted in the app. To create it again, use a new key.",
-				);
-			return { routine: publicDoc(routine) };
+			// The receipt accepts only this input for this key, so a retry replays the
+			// first result even when the Routine changed since.
+			const names = new Map<string, string>(
+				(await allExercises(backend)).map((exercise) => [
+					exercise._id,
+					exercise.name,
+				]),
+			);
+			return {
+				routine: {
+					id,
+					name,
+					exercises: exercises.map((exercise) => ({
+						...exercise,
+						exerciseName: names.get(exercise.exerciseId) ?? "Unknown",
+					})),
+				},
+			};
 		},
 	}),
 	defineTool({
