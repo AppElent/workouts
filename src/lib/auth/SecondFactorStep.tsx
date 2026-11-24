@@ -13,6 +13,7 @@ import {
 	secondFactorOptions,
 	sendSecondFactorCode,
 	sendsCode,
+	startedSecondFactor,
 	verifySecondFactor,
 } from "./secondFactor";
 
@@ -22,7 +23,9 @@ import {
  * code. Shared by every way into a sign-in; built like the emailed-code step
  * of `SignInForm` so it reads as the same flow.
  *
- * The default method's first code is sent once, on mount. Each other method
+ * The default method's first code is sent once, on mount. An attempt that
+ * already has a method going (the page was reloaded) reopens on that method
+ * and sends nothing: a new code is the person's to ask for. Each other method
  * the account has is a link below; switching to a texted or emailed one sends
  * its code first. Too many wrong codes only lock the current method, so the
  * form stays open for a new code or another method. An attempt that expired
@@ -47,8 +50,9 @@ export function SecondFactorStep({
 	const [options] = useState(() =>
 		secondFactorOptions(signIn.supportedSecondFactors),
 	);
+	const [started] = useState(() => startedSecondFactor(signIn, options));
 	const [strategy, setStrategy] = useState<SecondFactorStrategy | null>(
-		() => options[0]?.strategy ?? null,
+		() => started ?? options[0]?.strategy ?? null,
 	);
 	const [code, setCode] = useState("");
 	const [error, setError] = useState<string | null>(null);
@@ -97,7 +101,9 @@ export function SecondFactorStep({
 	const firstSend = useRef(false);
 	// biome-ignore lint/correctness/useExhaustiveDependencies: once, on mount; later sends go through resend and switchTo.
 	useEffect(() => {
-		if (firstSend.current || !strategy || !sendsCode(strategy)) return;
+		if (firstSend.current || started || !strategy || !sendsCode(strategy)) {
+			return;
+		}
 		firstSend.current = true;
 		void run(strategy, () => send(strategy), { keepNotice: true });
 	}, []);
