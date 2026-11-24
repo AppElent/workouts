@@ -45,9 +45,11 @@ export function RoutineEditor({
 		);
 	}
 
+	const canSave = name.trim().length > 0 && entries.length > 0 && !saving;
+
 	async function handleSubmit(event: React.FormEvent) {
 		event.preventDefault();
-		if (saving) return;
+		if (!canSave) return;
 		setSaving(true);
 		setError(null);
 		try {
@@ -61,8 +63,6 @@ export function RoutineEditor({
 			setSaving(false);
 		}
 	}
-
-	const canSave = name.trim().length > 0 && entries.length > 0 && !saving;
 
 	return (
 		<form
@@ -131,15 +131,19 @@ export function RoutineEditor({
 					<ExercisePicker
 						autoFocus
 						onSelect={(exercise) => {
-							setEntries((prev) => [
-								...prev,
-								{
-									exerciseId: exercise._id,
-									name: exercise.name,
-									defaultSets: 3,
-									defaultReps: isTimedExercise(exercise._id) ? 30 : 8,
-								},
-							]);
+							setEntries((prev) =>
+								prev.some((entry) => entry.exerciseId === exercise._id)
+									? prev
+									: [
+											...prev,
+											{
+												exerciseId: exercise._id,
+												name: exercise.name,
+												defaultSets: 3,
+												defaultReps: isTimedExercise(exercise._id) ? 30 : 8,
+											},
+										],
+							);
 							setPicking(false);
 						}}
 					/>

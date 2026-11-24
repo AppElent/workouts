@@ -23,6 +23,10 @@ references. Studies: [training](../../designs/app/training_final.html),
   holds the history shortcuts (all, strength, running, cycling); no header +.
 - Tap a routine name to edit; a separate play button starts it. Row menu and long
   press expose Start, Edit, Delete. Swipe reveals Edit/Delete and never commits.
+- A Routine requires a non-empty name (stored trimmed, up to 200 characters) and
+  at least one Exercise. Each Exercise may appear at most once (by resolved
+  exercise id), up to 50 Exercises and 500 total Planned Sets, keeping session
+  start well under Convex document limits.
 - Deletion confirms and explains that past sessions remain; a failed deletion keeps
   the row.
 - The ActiveSessionBar stays in the shell accessory and shows only while the
