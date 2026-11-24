@@ -72,6 +72,8 @@ export interface PlanSet {
 	confirmedKey?: string;
 	failed?: boolean;
 	attempt?: LogAttempt;
+	/** An open set whose values someone changed here; see `updateRow`. */
+	edited?: boolean;
 }
 export interface GroupRound {
 	id: string;
@@ -528,40 +530,78 @@ export function seedPlan(
 	);
 }
 /**
+ * Whether a set logged elsewhere may fill this row: an open one without input
+ * from this device, and a warm-up only for a warm-up, since a logged warm-up
+ * never uses up a planned working set.
+ */
+const fills = (row: PlanSet, set: ServerSet) =>
+	row.exerciseId === set.exerciseId &&
+	!row.done &&
+	!row.edited &&
+	!isUnsaved(row) &&
+	(row.kind === "warmup") === (set.setType === "warmup");
+/** The logged set takes over the row but keeps its place and its target. */
+function filledRow(row: PlanSet, set: ServerSet): PlanSet {
+	return {
+		...rowFromServer(set),
+		id: row.id,
+		...(row.plan ? { plan: row.plan } : {}),
+	};
+}
+/**
  * A set logged elsewhere for a grouped exercise takes the place logging it here
- * would have: that exercise's first open set in the group. With none open, it
- * joins the first round that lacks the exercise, and only then a new round.
+ * would have: the first open set it may fill. With none, it joins the first
+ * round that lacks the exercise, and only then a round of its own.
  */
 function slotIntoGroup(group: SetGroup, set: ServerSet): SetGroup {
-	const logged = rowFromServer(set);
-	// A row with an attempt is being logged on this device; leave it to land.
-	const open = (row: PlanSet) =>
-		row.exerciseId === set.exerciseId && !row.done && !row.attempt;
-	const slot = group.rounds.findIndex((round) => round.items.some(open));
-	if (slot >= 0) {
-		const rounds = group.rounds.map((round, index) => {
-			if (index !== slot) return round;
-			const at = round.items.findIndex(open);
-			const row = round.items[at] as PlanSet;
-			return {
+	const target = groupRows(group).find((row) => fills(row, set));
+	if (target)
+		return normalizeGroup({
+			...group,
+			rounds: group.rounds.map((round) => ({
 				...round,
-				items: round.items.map((item, i) =>
-					i === at ? { ...logged, id: row.id, plan: row.plan } : item,
+				items: round.items.map((row) =>
+					row.id === target.id ? filledRow(row, set) : row,
 				),
-			};
+			})),
 		});
-		return normalizeGroup({ ...group, rounds });
-	}
-	const gap = group.rounds.findIndex(
-		(round) => !round.items.some((row) => row.exerciseId === set.exerciseId),
+	const logged = rowFromServer(set);
+	const own = (row: PlanSet) => row.exerciseId === set.exerciseId;
+	const gap = group.rounds.findIndex((round) => !round.items.some(own));
+	if (gap >= 0)
+		return normalizeGroup({
+			...group,
+			rounds: group.rounds.map((round, index) =>
+				index === gap ? { ...round, items: [...round.items, logged] } : round,
+			),
+		});
+	// Before a round still open here. An AMRAP copies its last round and counts
+	// full ones, so there the extra round must be neither.
+	const open = group.rounds.findIndex((round) =>
+		round.items.some((row) => own(row) && !row.done),
 	);
-	const rounds =
-		gap >= 0
-			? group.rounds.map((round, index) =>
-					index === gap ? { ...round, items: [...round.items, logged] } : round,
-				)
-			: [...group.rounds, { id: newRowId(), items: [logged] }];
-	return normalizeGroup({ ...group, rounds });
+	const at = open < 0 ? group.rounds.length : open;
+	const extra: GroupRound = {
+		id: newRowId(),
+		...(open >= 0 && group.mode === "amrap" ? { partial: true } : {}),
+		items: [logged],
+	};
+	return normalizeGroup({
+		...group,
+		rounds: [...group.rounds.slice(0, at), extra, ...group.rounds.slice(at)],
+	});
+}
+/** Whether a server set is this attempt: the same number with the same values. */
+function isAttempted(set: ServerSet, attempt: LogAttempt) {
+	const sent = attempt.payload;
+	return (
+		set.setNumber === attempt.setNumber &&
+		set.reps === sent.reps &&
+		near(set.weight, sent.weight) &&
+		set.unit === sent.unit &&
+		(set.rpe ?? null) === (sent.rpe ?? null) &&
+		set.setType === sent.setType
+	);
 }
 /** Server state wins for logged sets. Open sets and the session's shape stay local. */
 export function reconcilePlan(
@@ -585,7 +625,7 @@ export function reconcilePlan(
 				serverSets.find(
 					(set) =>
 						set.exerciseId === row.exerciseId &&
-						set.setNumber === attempt.setNumber &&
+						isAttempted(set, attempt) &&
 						!linked.has(set._id),
 				);
 			if (!landed) return row;
@@ -598,6 +638,7 @@ export function reconcilePlan(
 				setNumber: landed.setNumber,
 				attempt: undefined,
 				failed: undefined,
+				edited: undefined,
 			};
 		}
 		const set = byId.get(row.setId);
@@ -676,6 +717,14 @@ export function reconcilePlan(
 	}
 	for (const set of serverSets) {
 		if (linked.has(set._id)) continue;
+		// The number of a set still being logged here but other values: another
+		// device's set, or ours corrected there. The attempt's receipt tells.
+		if (
+			rowsOf(next, set.exerciseId).some(
+				(row) => row.attempt?.setNumber === set.setNumber,
+			)
+		)
+			continue;
 		changed = true;
 		linked.add(set._id);
 		const home = groupOfExercise(next, set.exerciseId);
@@ -701,17 +750,18 @@ export function reconcilePlan(
 				removed: next.removed.filter((id) => id !== set.exerciseId),
 			};
 		const rows = next.sets[set.exerciseId] ?? [];
+		// The first row it may fill, not the one at its set number: MCP callers
+		// count sets their own way, and two devices can use the same number.
+		const target = rows.find((row) => fills(row, set));
 		const firstOpen = rows.findIndex((row) => !row.done);
 		const at = firstOpen < 0 ? rows.length : firstOpen;
 		next = {
 			...next,
 			sets: {
 				...next.sets,
-				[set.exerciseId]: [
-					...rows.slice(0, at),
-					rowFromServer(set),
-					...rows.slice(at),
-				],
+				[set.exerciseId]: target
+					? rows.map((row) => (row === target ? filledRow(row, set) : row))
+					: [...rows.slice(0, at), rowFromServer(set), ...rows.slice(at)],
 			},
 		};
 	}
@@ -793,12 +843,22 @@ function freshCopy(row: PlanSet): PlanSet {
 		...(unknownReps ? { blank: true } : {}),
 	};
 }
+/** Stores a row, noting when that changes an open set's values. */
 export function updateRow(
 	plan: SessionPlan,
 	id: string,
 	next: PlanSet,
 ): SessionPlan {
-	return replaceRow(plan, id, next);
+	const stored = findRow(plan, id);
+	if (!stored || stored.done || next.done || sameSet(stored, next))
+		return replaceRow(plan, id, next);
+	const onPlan =
+		next.plan &&
+		near(next.kg, next.plan.kg) &&
+		next.reps === next.plan.reps &&
+		next.rpe === null &&
+		next.kind === "working";
+	return replaceRow(plan, id, { ...next, edited: onPlan ? undefined : true });
 }
 /** A percentage chip prices the set; it does not touch reps. */
 export function applyPercent(
@@ -2100,7 +2160,7 @@ export function closeGroup(plan: SessionPlan, groupId: string): SessionPlan {
 	const rounds = group.rounds
 		.map((round) => ({
 			...round,
-			partial: !isRoundComplete(round),
+			partial: round.partial || !isRoundComplete(round),
 			items: round.items.filter((row) => row.done),
 		}))
 		.filter((round) => round.items.length > 0);
@@ -2215,6 +2275,7 @@ export function markLogged(
 		blank: undefined,
 		failed: undefined,
 		attempt: undefined,
+		edited: undefined,
 		orig: undefined,
 		setId,
 		setNumber,

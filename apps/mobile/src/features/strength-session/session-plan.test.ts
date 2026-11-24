@@ -47,6 +47,7 @@ import {
 	rowOneRepMax,
 	rowsOf,
 	type SessionPlan,
+	type SetGroup,
 	seedPlan,
 	sessionExercises,
 	setGroupMode,
@@ -1170,6 +1171,136 @@ describe("reconcile", () => {
 		const plan = plannedPlan();
 		expect(reconcilePlan(plan, [], [], lookup)).toBe(plan);
 	});
+	describe("a set logged elsewhere (APP-688)", () => {
+		const begin = (plan: SessionPlan, row: PlanSet) =>
+			updateRow(plan, row.id, beginAttempt(plan, row.id, "op-1") as PlanSet);
+		const ids = (plan: SessionPlan) => rowsOf(plan, "squat").map((r) => r.id);
+		const links = (plan: SessionPlan) =>
+			rowsOf(plan, "squat").map((r) => r.setId ?? null);
+
+		it("fills the first open planned row and keeps its target", () => {
+			const plan = plannedPlan();
+			const next = reconcilePlan(
+				plan,
+				[],
+				[
+					{
+						...set("mcp-1", 1),
+						weight: 220,
+						unit: "lbs",
+						reps: 4,
+						rpe: 8,
+						setType: "failure",
+					},
+				],
+				lookup,
+			);
+			expect(ids(next)).toEqual(ids(plan));
+			const row = rowsOf(next, "squat")[0] as PlanSet;
+			expect(row).toMatchObject({
+				done: true,
+				setId: "mcp-1",
+				setNumber: 1,
+				reps: 4,
+				unit: "lbs",
+				typedLbs: 220,
+				rpe: 8,
+				kind: "failure",
+				plan: { kg: 95, reps: 5 },
+			});
+			expect(row.kg).toBeCloseTo(99.79, 2);
+		});
+		it("fills one row per set, whatever the set numbers are", () => {
+			const plan = plannedPlan();
+			const own = log(plan, firstOpen(plan), "own");
+			const server = [set("own", 1), set("b", 1), set("c", 7)];
+			const next = reconcilePlan(own, [], server, lookup);
+			expect(ids(next)).toEqual(ids(plan));
+			expect(links(next)).toEqual(["own", "b", "c"]);
+			expect(reconcilePlan(next, [], server, lookup)).toBe(next);
+		});
+		it("appends a row once none is open", () => {
+			const plan = plannedPlan({ squat: [{ reps: 5, weight: 95 }] });
+			const own = log(plan, firstOpen(plan), "own");
+			const next = reconcilePlan(own, [], [set("own", 1), set("b", 2)], lookup);
+			expect(links(next)).toEqual(["own", "b"]);
+		});
+		it.each([
+			["a load", { kg: 100 }],
+			["reps", { reps: 8 }],
+			["an RPE", { rpe: 8 }],
+			["a set type", { kind: "failure" }],
+			["a failed log", { failed: true }],
+		] as [string, Partial<PlanSet>][])(
+			"passes over %s entered here",
+			(_, change) => {
+				const plan = plannedPlan();
+				const row = firstOpen(plan);
+				const edited = updateRow(plan, row.id, { ...row, ...change });
+				const next = reconcilePlan(edited, [], [set("b", 1)], lookup);
+				expect(findRow(next, row.id)).toEqual(findRow(edited, row.id));
+				expect(links(next)).toEqual([null, "b", null]);
+			},
+		);
+		it("fills a row whose change was put back", () => {
+			const plan = plannedPlan();
+			const row = firstOpen(plan);
+			let next = updateRow(plan, row.id, { ...row, kg: 100 });
+			next = updateRow(next, row.id, {
+				...(findRow(next, row.id) as PlanSet),
+				kg: 95,
+			});
+			next = reconcilePlan(next, [], [set("b", 1)], lookup);
+			expect(links(next)).toEqual(["b", null, null]);
+		});
+		it("adds a row when every open one holds input", () => {
+			const plan = plannedPlan({ squat: [{ reps: 5, weight: 95 }] });
+			const row = firstOpen(plan);
+			const edited = updateRow(plan, row.id, { ...row, kg: 100 });
+			const next = reconcilePlan(edited, [], [set("b", 1)], lookup);
+			expect(links(next)).toEqual(["b", null]);
+			expect(findRow(next, row.id)).toMatchObject({ kg: 100, done: false });
+		});
+		it("passes over an in-flight attempt", () => {
+			const plan = plannedPlan();
+			const row = firstOpen(plan);
+			const sending = begin(plan, row);
+			const next = reconcilePlan(sending, [], [set("b", 2)], lookup);
+			expect(findRow(next, row.id)).toEqual(findRow(sending, row.id));
+			expect(links(next)).toEqual([null, "b", null]);
+		});
+		it("never takes another device's set for an attempt with its number", () => {
+			const plan = plannedPlan();
+			const row = firstOpen(plan);
+			const sending = begin(plan, row);
+			const other = set("b", 1, 60);
+			expect(reconcilePlan(sending, [], [other], lookup)).toBe(sending);
+			const landed = reconcilePlan(sending, [], [other, set("own", 1)], lookup);
+			expect(links(landed)).toEqual(["own", "b", null]);
+			const rejected = markFailed(sending, row.id, false);
+			expect(links(reconcilePlan(rejected, [], [other], lookup))).toEqual([
+				null,
+				"b",
+				null,
+			]);
+		});
+		it("keeps warm-ups and planned working sets apart", () => {
+			const plan = plannedPlan();
+			const warm = { ...set("w", 1), setType: "warmup" as const };
+			const added = reconcilePlan(plan, [], [warm], lookup);
+			expect(links(added)).toEqual(["w", null, null, null]);
+			const withWarmup = addWarmup(plan, "squat", SQUAT).plan;
+			expect(links(reconcilePlan(withWarmup, [], [warm], lookup))).toEqual([
+				"w",
+				null,
+				null,
+				null,
+			]);
+			expect(
+				links(reconcilePlan(withWarmup, [], [set("b", 1)], lookup)),
+			).toEqual([null, "b", null, null]);
+		});
+	});
 	describe("a grouped set logged on another device (APP-233)", () => {
 		// What the server holds for the sets this device logged.
 		const known = (plan: SessionPlan) =>
@@ -1240,6 +1371,42 @@ describe("reconcile", () => {
 			expect(findRow(next, row.id)).toMatchObject({ done: false });
 			expect(shape(next, start.id)?.[1]).toEqual(["squat:web-2", "curl:open"]);
 			expect(next.groups[start.id]?.rounds).toHaveLength(3);
+		});
+		it("passes over a change made here (APP-688)", () => {
+			const start = grouped({ squat: planned(2), curl: planned(2, 40) });
+			const row = firstOpen(start.plan);
+			const plan = updateRow(start.plan, row.id, { ...row, kg: 100 });
+			const next = reconcilePlan(
+				plan,
+				[],
+				[remote("squat", "web-5", 1)],
+				lookup,
+			);
+			expect(shape(next, start.id)).toEqual([
+				["squat:open", "curl:open"],
+				["squat:web-5", "curl:open"],
+			]);
+			expect(findRow(next, row.id)).toMatchObject({ kg: 100, done: false });
+		});
+		it("keeps an AMRAP's open round and score when that set holds a change (APP-688)", () => {
+			const start = grouped({ squat: planned(1), curl: planned(1, 40) });
+			let plan = setGroupMode(start.plan, start.id, "amrap").plan;
+			const row = firstOpen(plan);
+			plan = updateRow(plan, row.id, { ...row, kg: 100 });
+			const next = reconcilePlan(
+				plan,
+				[],
+				[remote("squat", "web-6", 1)],
+				lookup,
+			);
+			expect(shape(next, start.id)).toEqual([
+				["squat:web-6"],
+				["squat:open", "curl:open"],
+			]);
+			for (const scored of [next, closeGroup(next, start.id)])
+				expect(
+					amrapScore(groupOfExercise(scored, "squat") as SetGroup),
+				).toEqual({ rounds: 0, sets: 1 });
 		});
 		it("joins a round that lacks the exercise when none is open", () => {
 			let plan = plannedPlan({ squat: planned(2), curl: planned(1, 40) });

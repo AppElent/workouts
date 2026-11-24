@@ -58,6 +58,10 @@ references. Studies: [training](../../designs/app/training_final.html),
   exercise offers steppers and last time's set.
 - Set counts and the progress strip count working sets. Planned sets are working
   sets: a logged warm-up never uses one up when the plan is rebuilt.
+- A set logged elsewhere (MCP or another device) fills the exercise's first open
+  set, alone or in a group; with none left it is added. It never fills a set that
+  holds changes made here, a failed log, or a log still being sent, and a warm-up
+  and a working set never fill each other.
 - A session finished elsewhere says it ended, even when the device's plan is
   already gone.
 - Keep set edit/delete, repeat (prepares a draft), set types, previous performance,

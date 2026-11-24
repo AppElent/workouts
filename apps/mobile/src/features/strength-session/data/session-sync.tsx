@@ -32,6 +32,11 @@ export function SessionSync({
 	const { key, plan, data, session, sets, getFacts, active, held, factsById } =
 		workspace;
 	const rest = useRestTimer();
+	// A set can wait on an attempt's outcome, so a settled attempt reconciles too.
+	const attempting = plan
+		? allRows(plan).filter((row) => row.attempt).length
+		: 0;
+	// biome-ignore lint/correctness/useExhaustiveDependencies: attempting is a trigger
 	useEffect(() => {
 		if (!key || !session || !sets || !active || !data.verified || held) return;
 		const exercises = (session.exercises ?? []).map((item) => ({
@@ -53,7 +58,17 @@ export function SessionSync({
 			sets.map((set) => set._id),
 		);
 		workspaceStore.setPlan(key, next);
-	}, [key, subject, session, sets, active, data.verified, held, getFacts]);
+	}, [
+		key,
+		subject,
+		session,
+		sets,
+		active,
+		data.verified,
+		held,
+		getFacts,
+		attempting,
+	]);
 	// Rows a routine left empty take last time's load once that query answers.
 	useEffect(() => {
 		if (!key || !plan || held) return;
