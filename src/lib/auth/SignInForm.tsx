@@ -6,6 +6,7 @@ import { AuthError } from "./AuthError";
 import { AuthField } from "./AuthField";
 import { orThrow, useClerkErrorMessage } from "./clerkError";
 import { AUTH_PATHS, withRedirect } from "./paths";
+import { ResumePending } from "./ResumePending";
 import { SecondFactorStep } from "./SecondFactorStep";
 import { SocialButtons } from "./SocialButtons";
 import { needsSecondFactor } from "./secondFactor";
@@ -31,7 +32,7 @@ export function SignInForm({
 	resumeSocial = false,
 }: {
 	onSuccess?: () => void;
-	/** The person left the second-factor step for the plain form. */
+	/** The person left the pending or second-factor step for the plain form. */
 	onStartOver?: () => void;
 	/** Arrived from `/sso-callback`: carry on with its open social sign-in. */
 	resumeSocial?: boolean;
@@ -131,9 +132,13 @@ export function SignInForm({
 
 	if (step === "pending") {
 		return (
-			<p className="text-center text-sm text-text-muted" role="status">
-				{auth.wait}
-			</p>
+			<ResumePending
+				backLabel={auth.secondFactor.backToSignIn}
+				onBack={() => {
+					setStep("password");
+					onStartOver?.();
+				}}
+			/>
 		);
 	}
 

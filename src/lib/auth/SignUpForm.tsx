@@ -6,6 +6,7 @@ import { AuthError } from "./AuthError";
 import { AuthField } from "./AuthField";
 import { orThrow, useClerkErrorMessage } from "./clerkError";
 import { AUTH_PATHS, withRedirect } from "./paths";
+import { ResumePending } from "./ResumePending";
 import { SignUpContinueStep } from "./SignUpContinueStep";
 import { SocialButtons } from "./SocialButtons";
 import { isResumable, isSocialSignUp } from "./signUpContinue";
@@ -21,7 +22,7 @@ export function SignUpForm({
 	resumeSocial = false,
 }: {
 	onSuccess: () => void;
-	/** The person left the continue step for the plain form. */
+	/** The person left the pending or continue step for the plain form. */
 	onStartOver?: () => void;
 	/** Arrived from `/sso-callback`: carry on with its open social sign-up. */
 	resumeSocial?: boolean;
@@ -93,9 +94,13 @@ export function SignUpForm({
 
 	if (step === "pending") {
 		return (
-			<p className="text-center text-sm text-text-muted" role="status">
-				{auth.wait}
-			</p>
+			<ResumePending
+				backLabel={auth.signUpContinue.startOver}
+				onBack={() => {
+					setStep("details");
+					onStartOver?.();
+				}}
+			/>
 		);
 	}
 
