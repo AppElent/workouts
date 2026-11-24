@@ -10,10 +10,12 @@ export const Route = createFileRoute("/sign-in")({
 	ssr: false,
 	validateSearch: (
 		search: Record<string, unknown>,
-	): { redirect?: string; resume?: true } => ({
+	): { redirect?: string; resume?: "social" } => ({
 		redirect: safeRedirect(search.redirect),
 		// Set by `/sso-callback` for a social sign-in that still needs a step.
-		resume: search.resume === "social" || undefined,
+		// Kept as the URL spells it: the router writes the validated search back
+		// to the URL and validates it again, which would drop any other value.
+		resume: search.resume === "social" ? "social" : undefined,
 	}),
 	component: SignInPage,
 });
@@ -34,7 +36,11 @@ function SignInPage() {
 		<AuthCard title={auth.signIn.title} subtitle={auth.signIn.subtitle}>
 			<SignInForm
 				redirect={redirect}
-				resumeSocial={resume}
+				resumeSocial={resume === "social"}
+				// Drops the marker, so a reload does not resume the attempt.
+				onStartOver={() =>
+					navigate({ to: "/sign-in", search: { redirect }, replace: true })
+				}
 				onSuccess={() => navigate({ href: redirect ?? AUTH_PATHS.afterAuth })}
 			/>
 		</AuthCard>

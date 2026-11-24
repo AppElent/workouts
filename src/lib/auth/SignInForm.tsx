@@ -26,10 +26,13 @@ function hasEmailCodeFactor(signIn: SignIn) {
  */
 export function SignInForm({
 	onSuccess,
+	onStartOver,
 	redirect,
 	resumeSocial = false,
 }: {
 	onSuccess?: () => void;
+	/** The person left the second-factor step for the plain form. */
+	onStartOver?: () => void;
 	/** Arrived from `/sso-callback`: carry on with its open social sign-in. */
 	resumeSocial?: boolean;
 	/** Where to land after signing in, carried to social sign-in, sign-up, and password reset. */
@@ -138,6 +141,7 @@ export function SignInForm({
 					setNotice(null);
 					setCode("");
 					setStep("password");
+					onStartOver?.();
 				}}
 			/>
 		);
