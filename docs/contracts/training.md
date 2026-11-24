@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing Training, Start activity, Strength Sessions, the set editor, Set Drafts, or strength references.
-version: 2.1.2
+version: 2.1.3
 status: current
 ---
 
@@ -147,6 +147,8 @@ the app; there is no separate data.
   RPE ("RPE 8"), estimated 1RM, then the note, each only when the row has it.
   Every spoken phrase, the RPE included, comes from the en/nl message catalog.
   Placeholders such as "—" are never read.
+  The session summary's visible chip and its "Best" line name the set's unit
+  (`80 kg × 8`, `135 lbs × 5`); a bodyweight set shows none.
 - Percentage chips use the session's 1RM: Measured unless a newer manual 1RM is
   saved. Choosing one changes the weight; the sheet shows the 1RM this set would
   produce. Missing references are unknown and do not block logging. Never replace

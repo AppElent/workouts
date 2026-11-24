@@ -245,6 +245,10 @@ function ExerciseRecap({
 	const { t, locale } = useI18n();
 	const copy = t.workoutSummary;
 	const strength = t.strength;
+	const unitLabel = {
+		kg: strength.plan.editor.unitKg,
+		lbs: strength.plan.editor.unitLbs,
+	};
 	// "Best" is the heaviest set, matching the web. Not the same as the highest
 	// estimated 1RM — a heavy double can out-rank a heavier single there.
 	const best = sets.reduce(
@@ -259,12 +263,13 @@ function ExerciseRecap({
 				{sets.map((s, index) => {
 					const warmup = s.setType === "warmup";
 					const note = s.notes?.trim() ?? "";
+					const load = `${s.weight} ${unitLabel[s.unit]}`;
 					const text = timed
 						? s.weight > 0
-							? `+${s.weight} × ${fmt(copy.secondsOnly, { seconds: s.reps })}`
+							? `+${load} × ${fmt(copy.secondsOnly, { seconds: s.reps })}`
 							: fmt(copy.secondsOnly, { seconds: s.reps })
 						: s.weight > 0
-							? `${s.weight} × ${s.reps}`
+							? `${load} × ${s.reps}`
 							: fmt(copy.repsOnly, { reps: s.reps });
 					return (
 						<View
@@ -299,7 +304,11 @@ function ExerciseRecap({
 			</View>
 			{best && best.weight > 0 && !timed ? (
 				<AppText style={styles.rowSub}>
-					{fmt(copy.best, { weight: best.weight, reps: best.reps })}
+					{fmt(copy.best, {
+						weight: best.weight,
+						unit: unitLabel[best.unit],
+						reps: best.reps,
+					})}
 				</AppText>
 			) : null}
 		</View>
