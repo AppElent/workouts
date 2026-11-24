@@ -1,5 +1,4 @@
 import { api } from "@convex/_generated/api";
-import type { Doc } from "@convex/_generated/dataModel";
 import { accountExportJson, collectExportTables } from "@foundry/core";
 import { useConvex } from "convex/react";
 import { format } from "date-fns";
@@ -9,6 +8,7 @@ import { Button } from "#/components/ui/button";
 import { useConvexErrorMessage } from "#/lib/convexError";
 import { useExercises } from "#/lib/exercises";
 import { useI18n } from "#/lib/i18n";
+import { setsToCsv } from "./setsCsv";
 
 function download(filename: string, content: string, type: string) {
 	const blob = new Blob([content], { type });
@@ -20,55 +20,6 @@ function download(filename: string, content: string, type: string) {
 	a.click();
 	a.remove();
 	URL.revokeObjectURL(url);
-}
-
-function csvCell(value: unknown): string {
-	const s = value === undefined || value === null ? "" : String(value);
-	return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-}
-
-function setsToCsv(
-	tables: Record<string, unknown[]>,
-	exerciseName: Map<string, string>,
-): string {
-	// personalPage rows are untyped (`v.any()`); these tables hold these documents.
-	const sets = (tables.sets ?? []) as Doc<"sets">[];
-	const sessions = (tables.workoutSessions ?? []) as Doc<"workoutSessions">[];
-	const sessionName = new Map(
-		sessions.map((s) => [
-			s._id as string,
-			s.name ?? format(new Date(s.date), "yyyy-MM-dd"),
-		]),
-	);
-	const header = [
-		"date",
-		"session",
-		"exercise",
-		"setNumber",
-		"setType",
-		"weight",
-		"unit",
-		"reps",
-		"rpe",
-	];
-	const rows = [...sets]
-		.sort((a, b) => a.loggedAt - b.loggedAt)
-		.map((s) =>
-			[
-				format(new Date(s.loggedAt), "yyyy-MM-dd HH:mm"),
-				sessionName.get(s.sessionId) ?? "",
-				exerciseName.get(s.exerciseId) ?? "",
-				s.setNumber,
-				s.setType,
-				s.weight,
-				s.unit,
-				s.reps,
-				s.rpe ?? "",
-			]
-				.map(csvCell)
-				.join(","),
-		);
-	return [header.join(","), ...rows].join("\n");
 }
 
 type Kind = "json" | "csv";
