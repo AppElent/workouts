@@ -76,7 +76,7 @@ export interface PlanSet {
 	confirmedKey?: string;
 	failed?: boolean;
 	attempt?: LogAttempt;
-	/** An open set whose values someone changed here; see `updateRow`. */
+	/** Set whose values someone changed here; kept across log/unlog; see `updateRow`. */
 	edited?: boolean;
 }
 export interface GroupRound {
@@ -849,14 +849,14 @@ function freshCopy(row: PlanSet): PlanSet {
 		...(unknownReps ? { blank: true } : {}),
 	};
 }
-/** Stores a row, noting when that changes an open set's values. */
+/** Stores a row, noting when that changes a set's values. */
 export function updateRow(
 	plan: SessionPlan,
 	id: string,
 	next: PlanSet,
 ): SessionPlan {
 	const stored = findRow(plan, id);
-	if (!stored || stored.done || next.done || sameSet(stored, next))
+	if (!stored || stored.done !== next.done || sameSet(stored, next))
 		return replaceRow(plan, id, next);
 	const onPlan = next.plan && !next.carried && !offStart(next);
 	return replaceRow(plan, id, { ...next, edited: onPlan ? undefined : true });
@@ -2280,7 +2280,6 @@ export function markLogged(
 		blank: undefined,
 		failed: undefined,
 		attempt: undefined,
-		edited: undefined,
 		orig: undefined,
 		setId,
 		setNumber,
