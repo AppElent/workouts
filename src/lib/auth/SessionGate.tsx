@@ -7,9 +7,7 @@ import { Button } from "#/components/ui/button";
 import { EmptyState } from "#/components/ui/empty-state";
 import { useMessages } from "#/lib/i18n";
 import { AUTH_PATHS, safeRedirect, withRedirect } from "./paths";
-
-/** How long a session check may run before recovery controls appear. */
-export const SESSION_STALL_MS = 10_000;
+import { useStalled } from "./stall";
 
 export type SessionState = "pending" | "signedOut" | "ready";
 
@@ -88,11 +86,7 @@ function SessionPending({ onRetry }: { onRetry: () => void }) {
 	const { auth } = useMessages();
 	const clerk = useClerk();
 	const { href } = useLocation();
-	const [stalled, setStalled] = useState(false);
-	useEffect(() => {
-		const timer = setTimeout(() => setStalled(true), SESSION_STALL_MS);
-		return () => clearTimeout(timer);
-	}, []);
+	const stalled = useStalled();
 
 	if (!stalled) {
 		return (
