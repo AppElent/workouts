@@ -63,12 +63,35 @@ export function startedSecondFactor(
 	return options.find((o) => o.strategy === started)?.strategy ?? null;
 }
 
-/** The code this attempt last sent can no longer be used. */
+/**
+ * The code this attempt last sent can no longer be used. clerk-js reads a
+ * missing `expire_at` as the moment it parses the response, so a time since
+ * this page loaded may only be that: it counts when Clerk's status says so, or
+ * when the step saw it coming (`codeExpiry`).
+ */
 export function startedCodeExpired(signIn: SignIn) {
 	const { status, expireAt } = signIn.secondFactorVerification ?? {};
 	return (
-		status === "expired" || (!!expireAt && expireAt.getTime() <= Date.now())
+		status === "expired" ||
+		(!!expireAt && expireAt.getTime() < performance.timeOrigin)
 	);
+}
+
+/** When the code last sent for this method expires, in ms, if Clerk says. */
+export function codeExpiry(
+	signIn: SignIn,
+	strategy: SecondFactorStrategy | null,
+): number | null {
+	const verification = signIn.secondFactorVerification;
+	if (!strategy || !sendsCode(strategy)) return null;
+	if (verification?.strategy !== strategy || verification.status === "verified")
+		return null;
+	return verification.expireAt?.getTime() ?? null;
+}
+
+/** Too many wrong codes were tried for the method this attempt last used. */
+export function startedLocked(signIn: SignIn) {
+	return signIn.secondFactorVerification?.status === "failed";
 }
 
 /** Texted and emailed codes are sent first; the other methods need nothing. */

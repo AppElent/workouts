@@ -8,7 +8,11 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const sso = vi.fn();
-vi.mock("@clerk/react", () => ({ useSignIn: () => ({ signIn: { sso } }) }));
+const clerk = { isLoaded: true };
+vi.mock("@clerk/react", () => ({
+	useSignIn: () => ({ signIn: { sso } }),
+	useAuth: () => clerk,
+}));
 
 import { LocaleProvider } from "#/lib/i18n";
 import { SocialButtons } from "../SocialButtons";
@@ -34,6 +38,16 @@ describe("SocialButtons", () => {
 		cleanup();
 		vi.unstubAllEnvs();
 		sso.mockReset();
+		clerk.isLoaded = true;
+	});
+
+	it("starts nothing until Clerk has loaded", () => {
+		clerk.isLoaded = false;
+		renderButtons();
+		const google = screen.getByRole("button", { name: "Continue with Google" });
+		expect((google as HTMLButtonElement).disabled).toBe(true);
+		fireEvent.click(google);
+		expect(sso).not.toHaveBeenCalled();
 	});
 
 	it("offers Google only on the development Clerk instance", () => {

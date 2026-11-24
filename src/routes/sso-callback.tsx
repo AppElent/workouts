@@ -1,7 +1,8 @@
-import { AuthenticateWithRedirectCallback } from "@clerk/react";
-import { createFileRoute } from "@tanstack/react-router";
+import { AuthenticateWithRedirectCallback, useAuth } from "@clerk/react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { AuthCard } from "#/lib/auth/AuthCard";
 import { AUTH_PATHS, safeRedirect, withRedirect } from "#/lib/auth/paths";
+import { ResumePending } from "#/lib/auth/ResumePending";
 import { useI18n } from "#/lib/i18n";
 
 export const Route = createFileRoute("/sso-callback")({
@@ -15,6 +16,8 @@ export const Route = createFileRoute("/sso-callback")({
 function SsoCallbackPage() {
 	const { locale, messages } = useI18n();
 	const { redirect } = Route.useSearch();
+	const { isLoaded } = useAuth();
+	const navigate = useNavigate();
 	const { auth } = messages;
 	// A social sign-in Clerk transfers to a sign-up (or back) ends on these
 	// fallbacks, so they carry the return path from `SocialButtons`.
@@ -27,6 +30,21 @@ function SsoCallbackPage() {
 	);
 	return (
 		<AuthCard title={auth.ssoCallback.title}>
+			{isLoaded ? null : (
+				<ResumePending
+					backLabel={auth.secondFactor.backToSignIn}
+					// Safe without a page load: Clerk's callback below only mounts, and
+					// so only runs, once Clerk has loaded.
+					onBack={() =>
+						navigate({
+							to: "/sign-in",
+							search: { redirect },
+							state: { focusSignIn: true },
+							replace: true,
+						})
+					}
+				/>
+			)}
 			<AuthenticateWithRedirectCallback
 				signInUrl={signInUrl}
 				signUpUrl={withRedirect(AUTH_PATHS.signUp, redirect)}

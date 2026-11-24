@@ -197,11 +197,12 @@ export function SignUpContinueStep({
 					signUp.emailAddress ? (
 						<UsernameHint username={signUp.emailAddress} />
 					) : null}
-					{phase.fields.map((field) => (
+					{phase.fields.map((field, index) => (
 						<AuthField
 							key={field}
 							label={copy.fields[field]}
 							{...FIELD_PROPS[field]}
+							autoFocus={index === 0}
 							value={values[field] ?? ""}
 							onChange={(value) =>
 								setValues((current) => ({ ...current, [field]: value }))

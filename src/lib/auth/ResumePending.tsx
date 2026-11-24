@@ -4,9 +4,9 @@ import { AuthError } from "./AuthError";
 import { useStalled } from "./stall";
 
 /**
- * Shown while a social sign-in or sign-up waits for Clerk to load. If Clerk
- * takes too long, offers a reload, which keeps the resume marker, and the plain
- * form. Clerk loading after all still carries on.
+ * Shown while a social sign-in or sign-up, or its callback, waits for Clerk to
+ * load. If Clerk takes too long, offers a reload, which keeps the URL, and the
+ * plain form. Clerk loading after all still carries on.
  */
 export function ResumePending({
 	backLabel,
@@ -27,15 +27,17 @@ export function ResumePending({
 	}
 	return (
 		<div className="flex flex-col gap-3">
-			<AuthError message={auth.errors.network} />
+			<AuthError message={auth.session.stalled} />
 			<AuthButton type="button" onClick={() => window.location.reload()}>
 				{auth.session.retry}
 			</AuthButton>
-			<div className="mt-1 text-center text-xs text-text-muted">
-				<button type="button" className="hover:underline" onClick={onBack}>
-					{backLabel}
-				</button>
-			</div>
+			<button
+				type="button"
+				className="min-h-11 text-center text-xs text-text-muted hover:underline"
+				onClick={onBack}
+			>
+				{backLabel}
+			</button>
 		</div>
 	);
 }

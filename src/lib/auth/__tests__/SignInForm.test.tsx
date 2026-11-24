@@ -102,6 +102,24 @@ describe("SignInForm", () => {
 		expect(onSuccess).toHaveBeenCalled();
 	});
 
+	it("sends nothing until Clerk has loaded", () => {
+		auth.isLoaded = false;
+		renderForm();
+		fireEvent.change(screen.getByLabelText("Email"), {
+			target: { value: "a@b.com" },
+		});
+		const submit = screen.getByRole("button", { name: "Please wait…" });
+		expect((submit as HTMLButtonElement).disabled).toBe(true);
+		fireEvent.submit(submit);
+		const code = screen.getByRole("button", {
+			name: "Email me a sign-in code",
+		});
+		expect((code as HTMLButtonElement).disabled).toBe(true);
+		fireEvent.click(code);
+		expect(password).not.toHaveBeenCalled();
+		expect(create).not.toHaveBeenCalled();
+	});
+
 	it("marks the credential fields for password managers", () => {
 		renderForm();
 		expect(screen.getByLabelText("Email").getAttribute("autocomplete")).toBe(
