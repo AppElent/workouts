@@ -530,6 +530,23 @@ export function seedPlan(
 	);
 }
 /**
+ * Whether an open row moved from its plan, or a free row from the set it
+ * copied. Also covers rows changed before `edited` was stored. A carried load
+ * came from another set, not from input on this one.
+ */
+function offStart(row: PlanSet) {
+	const start =
+		row.plan ??
+		(row.baseline && { ...row.baseline, kg: row.pricedKg ?? row.baseline.kg });
+	if (!start) return false;
+	return (
+		(!row.carried && !near(row.kg, start.kg)) ||
+		row.reps !== start.reps ||
+		row.rpe !== null ||
+		Boolean(row.plan && (row.kind !== "working" || row.unit !== "kg"))
+	);
+}
+/**
  * Whether a set logged elsewhere may fill this row: an open one without input
  * from this device, and a warm-up only for a warm-up, since a logged warm-up
  * never uses up a planned working set.
@@ -538,6 +555,7 @@ const fills = (row: PlanSet, set: ServerSet) =>
 	row.exerciseId === set.exerciseId &&
 	!row.done &&
 	!row.edited &&
+	!offStart(row) &&
 	!isUnsaved(row) &&
 	(row.kind === "warmup") === (set.setType === "warmup");
 /** The logged set takes over the row but keeps its place and its target. */
@@ -591,18 +609,6 @@ function slotIntoGroup(group: SetGroup, set: ServerSet): SetGroup {
 		rounds: [...group.rounds.slice(0, at), extra, ...group.rounds.slice(at)],
 	});
 }
-/** Whether a server set is this attempt: the same number with the same values. */
-function isAttempted(set: ServerSet, attempt: LogAttempt) {
-	const sent = attempt.payload;
-	return (
-		set.setNumber === attempt.setNumber &&
-		set.reps === sent.reps &&
-		near(set.weight, sent.weight) &&
-		set.unit === sent.unit &&
-		(set.rpe ?? null) === (sent.rpe ?? null) &&
-		set.setType === sent.setType
-	);
-}
 /** Server state wins for logged sets. Open sets and the session's shape stay local. */
 export function reconcilePlan(
 	plan: SessionPlan,
@@ -618,29 +624,7 @@ export function reconcilePlan(
 	);
 	let changed = false;
 	const syncRow = (row: PlanSet): PlanSet | null => {
-		if (!row.setId) {
-			const attempt = row.attempt;
-			const landed =
-				attempt &&
-				serverSets.find(
-					(set) =>
-						set.exerciseId === row.exerciseId &&
-						isAttempted(set, attempt) &&
-						!linked.has(set._id),
-				);
-			if (!landed) return row;
-			changed = true;
-			linked.add(landed._id);
-			return {
-				...row,
-				done: true,
-				setId: landed._id,
-				setNumber: landed.setNumber,
-				attempt: undefined,
-				failed: undefined,
-				edited: undefined,
-			};
-		}
+		if (!row.setId) return row;
 		const set = byId.get(row.setId);
 		if (!set) {
 			// A set this client just logged may be one render ahead of its query.
@@ -717,8 +701,8 @@ export function reconcilePlan(
 	}
 	for (const set of serverSets) {
 		if (linked.has(set._id)) continue;
-		// The number of a set still being logged here but other values: another
-		// device's set, or ours corrected there. The attempt's receipt tells.
+		// The number of a set still being logged here: that set, or another
+		// device's, even with equal values. Only its ack or receipt can tell.
 		if (
 			rowsOf(next, set.exerciseId).some(
 				(row) => row.attempt?.setNumber === set.setNumber,
@@ -852,12 +836,7 @@ export function updateRow(
 	const stored = findRow(plan, id);
 	if (!stored || stored.done || next.done || sameSet(stored, next))
 		return replaceRow(plan, id, next);
-	const onPlan =
-		next.plan &&
-		near(next.kg, next.plan.kg) &&
-		next.reps === next.plan.reps &&
-		next.rpe === null &&
-		next.kind === "working";
+	const onPlan = next.plan && !next.carried && !offStart(next);
 	return replaceRow(plan, id, { ...next, edited: onPlan ? undefined : true });
 }
 /** A percentage chip prices the set; it does not touch reps. */

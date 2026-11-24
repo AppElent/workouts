@@ -6,11 +6,13 @@ import { useQueries } from "../../../convex/query-cache";
 import {
 	allRows,
 	fillFromLast,
+	findRow,
 	markFailed,
 	markLogged,
 	reconcilePlan,
 	seedPlan,
 	tickClocks,
+	updateRow,
 } from "../session-plan";
 import { useRestTimer } from "./rest-timer";
 import {
@@ -34,8 +36,10 @@ export function SessionSync({
 	const rest = useRestTimer();
 	// A set can wait on an attempt's outcome, so a settled attempt reconciles too.
 	const attempting = plan
-		? allRows(plan).filter((row) => row.attempt).length
-		: 0;
+		? allRows(plan)
+				.flatMap((row) => row.attempt?.operationId ?? [])
+				.join()
+		: "";
 	// biome-ignore lint/correctness/useExhaustiveDependencies: attempting is a trigger
 	useEffect(() => {
 		if (!key || !session || !sets || !active || !data.verified || held) return;
@@ -150,19 +154,16 @@ function useAttemptReceipts(workspace: SessionWorkspace) {
 						).plan,
 				);
 			else
-				workspaceStore.update(key, (p) => ({
-					...p,
-					sets: Object.fromEntries(
-						Object.entries(p.sets).map(([id, rows]) => [
-							id,
-							rows.map((item) =>
-								item.id === row.id
-									? { ...item, attempt: undefined, failed: undefined }
-									: item,
-							),
-						]),
-					),
-				}));
+				workspaceStore.update(key, (p) => {
+					const item = findRow(p, row.id);
+					return item
+						? updateRow(p, row.id, {
+								...item,
+								attempt: undefined,
+								failed: undefined,
+							})
+						: p;
+				});
 		}
 	}, [key, attempts, results, online, getFacts]);
 }

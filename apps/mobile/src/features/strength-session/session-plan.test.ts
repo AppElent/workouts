@@ -1081,24 +1081,23 @@ describe("offline", () => {
 			row.id,
 			beginAttempt(plan, row.id, "op-1") as PlanSet,
 		);
-		const next = reconcilePlan(
-			plan,
-			[],
-			[
-				{
-					_id: "server-1",
-					exerciseId: "squat",
-					setNumber: 1,
-					reps: 5,
-					weight: 95,
-					unit: "kg",
-					setType: "working",
-				},
-			],
-			lookup,
-		);
-		expect(rowsOf(next, "squat")).toHaveLength(3);
-		expect(findRow(next, row.id)).toMatchObject({
+		const server = [
+			{
+				_id: "server-1",
+				exerciseId: "squat",
+				setNumber: 1,
+				reps: 5,
+				weight: 95,
+				unit: "kg" as const,
+				setType: "working" as const,
+			},
+		];
+		// The query can deliver it before the ack or receipt does.
+		expect(reconcilePlan(plan, [], server, lookup)).toBe(plan);
+		const logged = markLogged(plan, row.id, "server-1", 1, SQUAT).plan;
+		expect(reconcilePlan(logged, [], server, lookup)).toBe(logged);
+		expect(rowsOf(logged, "squat")).toHaveLength(3);
+		expect(findRow(logged, row.id)).toMatchObject({
 			done: true,
 			setId: "server-1",
 		});
@@ -1229,6 +1228,7 @@ describe("reconcile", () => {
 			["a load", { kg: 100 }],
 			["reps", { reps: 8 }],
 			["an RPE", { rpe: 8 }],
+			["a unit", { unit: "lbs" }],
 			["a set type", { kind: "failure" }],
 			["a failed log", { failed: true }],
 		] as [string, Partial<PlanSet>][])(
@@ -1269,21 +1269,57 @@ describe("reconcile", () => {
 			expect(findRow(next, row.id)).toEqual(findRow(sending, row.id));
 			expect(links(next)).toEqual([null, "b", null]);
 		});
-		it("never takes another device's set for an attempt with its number", () => {
-			const plan = plannedPlan();
-			const row = firstOpen(plan);
-			const sending = begin(plan, row);
-			const other = set("b", 1, 60);
-			expect(reconcilePlan(sending, [], [other], lookup)).toBe(sending);
-			const landed = reconcilePlan(sending, [], [other, set("own", 1)], lookup);
-			expect(links(landed)).toEqual(["own", "b", null]);
-			const rejected = markFailed(sending, row.id, false);
-			expect(links(reconcilePlan(rejected, [], [other], lookup))).toEqual([
-				null,
-				"b",
-				null,
-			]);
-		});
+		it.each([
+			["other", 60],
+			["equal", 95],
+		])(
+			"never takes another device's set with %s values for an attempt with its number",
+			(_, weight) => {
+				const plan = plannedPlan();
+				const row = firstOpen(plan);
+				const sending = begin(plan, row);
+				const other = set("b", 1, weight);
+				const both = [other, set("own", 1)];
+				expect(reconcilePlan(sending, [], [other], lookup)).toBe(sending);
+				expect(reconcilePlan(sending, [], both, lookup)).toBe(sending);
+				const landed = markLogged(sending, row.id, "own", 1, SQUAT).plan;
+				expect(links(reconcilePlan(landed, [], both, lookup))).toEqual([
+					"own",
+					"b",
+					null,
+				]);
+				const rejected = markFailed(sending, row.id, false);
+				expect(links(reconcilePlan(rejected, [], [other], lookup))).toEqual([
+					null,
+					"b",
+					null,
+				]);
+			},
+		);
+		it.each([
+			["load", { kg: 100 }],
+			["reps", { reps: 8 }],
+			["unit", { unit: "lbs" }],
+		] as [string, Partial<PlanSet>][])(
+			"passes over a %s changed before changes were marked",
+			(_, change) => {
+				const plan = plannedPlan();
+				const row = firstOpen(plan);
+				const old = {
+					...plan,
+					sets: {
+						squat: rowsOf(plan, "squat").map((item) =>
+							item.id === row.id ? { ...item, ...change } : item,
+						),
+					},
+				};
+				expect(links(reconcilePlan(old, [], [set("b", 1)], lookup))).toEqual([
+					null,
+					"b",
+					null,
+				]);
+			},
+		);
 		it("keeps warm-ups and planned working sets apart", () => {
 			const plan = plannedPlan();
 			const warm = { ...set("w", 1), setType: "warmup" as const };
