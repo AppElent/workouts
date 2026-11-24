@@ -18,7 +18,9 @@ export function SetRow({ set, onEdit }: Props) {
 					{set.setType}
 				</span>
 				{set.notes ? (
-					<p className="text-xs text-text-muted break-words">{set.notes}</p>
+					<p className="text-xs text-text-muted whitespace-pre-wrap break-words">
+						{set.notes}
+					</p>
 				) : null}
 			</td>
 			<td className="py-2 pr-3 w-24">

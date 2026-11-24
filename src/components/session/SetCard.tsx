@@ -23,7 +23,7 @@ export function SetCard({ set, onEdit }: Props) {
 			type="button"
 			onClick={() => onEdit(set)}
 			className="w-full rounded-lg border border-border bg-surface-2 flex items-center px-3 py-3 text-left hover:border-border-strong transition-colors"
-			aria-label={`Edit set ${set.setNumber}`}
+			aria-label={`Edit set ${set.setNumber}${set.notes ? `, note: ${set.notes}` : ""}`}
 		>
 			<div className="min-w-0 flex-1">
 				<div className="flex items-center gap-2 overflow-hidden">
@@ -61,7 +61,7 @@ export function SetCard({ set, onEdit }: Props) {
 					)}
 				</div>
 				{set.notes ? (
-					<p className="mt-1 text-xs text-text-muted break-words">
+					<p className="mt-1 text-xs text-text-muted whitespace-pre-wrap break-words">
 						{set.notes}
 					</p>
 				) : null}

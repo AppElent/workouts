@@ -550,6 +550,8 @@ export function seedPlan(
  * came from another set, not from input on this one.
  */
 function offStart(row: PlanSet) {
+	// A row with no start to compare, such as an unlogged warm-up, keeps its note too.
+	if (noteOf(row) !== "") return true;
 	const start =
 		row.plan ??
 		(row.baseline && { ...row.baseline, kg: row.pricedKg ?? row.baseline.kg });
@@ -558,7 +560,6 @@ function offStart(row: PlanSet) {
 		(!row.carried && !near(row.kg, start.kg)) ||
 		row.reps !== start.reps ||
 		row.rpe !== null ||
-		noteOf(row) !== "" ||
 		Boolean(
 			row.plan &&
 				(row.kind !== "working" || (!row.carried && row.unit !== "kg")),

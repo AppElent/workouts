@@ -1248,6 +1248,28 @@ describe("reconcile", () => {
 				)?.done,
 			).toBe(false);
 		});
+		it("never fills an unlogged warm-up that holds a note", () => {
+			const added = addWarmup(plannedPlan(), "squat", SQUAT);
+			const row = findRow(added.plan, added.rowId) as PlanSet;
+			const noted = updateRow(added.plan, row.id, { ...row, notes: "belt" });
+			const logged = markLogged(noted, row.id, "own", 1, SQUAT).plan;
+			const unlogged = updateRow(logged, row.id, {
+				...(findRow(logged, row.id) as PlanSet),
+				done: false,
+				setId: undefined,
+				setNumber: undefined,
+			});
+			const next = reconcilePlan(
+				unlogged,
+				[],
+				[{ ...set("mcp-1", 1), setType: "warmup" }],
+				lookup,
+			);
+			expect(findRow(next, row.id)).toMatchObject({
+				done: false,
+				notes: "belt",
+			});
+		});
 		it("keeps no note on a repeated set", () => {
 			const plan = plannedPlan();
 			const first = rowsOf(plan, "squat")[0] as PlanSet;

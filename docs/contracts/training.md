@@ -138,7 +138,7 @@ the app; there is no separate data.
   500 characters; an empty note is removed. A correction that leaves the note out
   keeps it, so an older app never wipes one, and an empty string clears it. The
   session's set rows show it, and the web and the MCP return it. New, repeated, and
-  swapped-in sets start without one.
+  swapped-in sets start without one; swapping back restores the original's.
 - Percentage chips use the session's 1RM: Measured unless a newer manual 1RM is
   saved. Choosing one changes the weight; the sheet shows the 1RM this set would
   produce. Missing references are unknown and do not block logging. Never replace
