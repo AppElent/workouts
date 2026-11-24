@@ -68,6 +68,9 @@ export const auth = {
 			email_code: "We sent a 6-digit code to {destination}.",
 			backup_code: "Enter one of the backup codes you saved.",
 		},
+		/** Replaces the prompt; `resend` is the button that sends another. */
+		codeExpired:
+			"The code we sent to {destination} has expired. Choose “{resend}” below.",
 		/** Shown when Clerk gives no masked number or address. */
 		yourPhone: "your phone",
 		yourEmail: "your email",

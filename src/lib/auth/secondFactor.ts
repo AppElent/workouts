@@ -63,6 +63,14 @@ export function startedSecondFactor(
 	return options.find((o) => o.strategy === started)?.strategy ?? null;
 }
 
+/** The code this attempt last sent can no longer be used. */
+export function startedCodeExpired(signIn: SignIn) {
+	const { status, expireAt } = signIn.secondFactorVerification ?? {};
+	return (
+		status === "expired" || (!!expireAt && expireAt.getTime() <= Date.now())
+	);
+}
+
 /** Texted and emailed codes are sent first; the other methods need nothing. */
 export function sendsCode(strategy: SecondFactorStrategy) {
 	return strategy === "phone_code" || strategy === "email_code";

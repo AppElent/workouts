@@ -13,6 +13,7 @@ import {
 	secondFactorOptions,
 	sendSecondFactorCode,
 	sendsCode,
+	startedCodeExpired,
 	startedSecondFactor,
 	verifySecondFactor,
 } from "./secondFactor";
@@ -25,12 +26,12 @@ import {
  *
  * The default method's first code is sent once, on mount. An attempt that
  * already has a method going (the page was reloaded) reopens on that method
- * and sends nothing: a new code is the person's to ask for. Each other method
- * the account has is a link below; switching to a texted or emailed one sends
- * its code first. Too many wrong codes only lock the current method, so the
- * form stays open for a new code or another method. An attempt that expired
- * leaves only the way back. Going back drops the Clerk attempt so the next
- * sign-in starts clean.
+ * and sends nothing: a new code is the person's to ask for, and the prompt
+ * says so when the one sent has expired. Each other method the account has is
+ * a link below; switching to a texted or emailed one sends its code first. Too
+ * many wrong codes only lock the current method, so the form stays open for a
+ * new code or another method. An attempt that expired leaves only the way
+ * back. Going back drops the Clerk attempt so the next sign-in starts clean.
  */
 export function SecondFactorStep({
 	onSuccess,
@@ -53,6 +54,10 @@ export function SecondFactorStep({
 	const [started] = useState(() => startedSecondFactor(signIn, options));
 	const [strategy, setStrategy] = useState<SecondFactorStrategy | null>(
 		() => started ?? options[0]?.strategy ?? null,
+	);
+	// Checked at mount, for the code an earlier load sent; a new one clears it.
+	const [codeExpired, setCodeExpired] = useState(
+		() => !!started && sendsCode(started) && startedCodeExpired(signIn),
 	);
 	const [code, setCode] = useState("");
 	const [error, setError] = useState<string | null>(null);
@@ -93,6 +98,7 @@ export function SecondFactorStep({
 	async function send(next: SecondFactorStrategy) {
 		const { error } = await sendSecondFactorCode(signIn, next);
 		if (error) throw error;
+		setCodeExpired(false);
 		return true;
 	}
 
@@ -216,8 +222,9 @@ export function SecondFactorStep({
 				{notice}
 			</p>
 			<p className="text-sm text-text-muted">
-				{fmt(copy.prompt[current.strategy], {
+				{fmt(codeExpired ? copy.codeExpired : copy.prompt[current.strategy], {
 					destination: destination(current),
+					resend: copy.resend,
 				})}
 			</p>
 			<AuthField

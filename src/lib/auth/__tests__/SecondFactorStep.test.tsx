@@ -19,10 +19,21 @@ const mfa = {
 };
 const finalize = vi.fn();
 const reset = vi.fn();
+interface Verification {
+	strategy: string | null;
+	status: string | null;
+	expireAt: Date | null;
+}
+const NOT_STARTED: Verification = {
+	strategy: null,
+	status: null,
+	expireAt: null,
+};
 // Core 3 methods resolve to `{ error }` and update the resource in place.
 const signIn = {
 	status: "needs_second_factor",
 	supportedSecondFactors: [] as { strategy: string; safeIdentifier?: string }[],
+	secondFactorVerification: NOT_STARTED,
 	mfa,
 	finalize,
 	reset,
@@ -45,6 +56,7 @@ import { SecondFactorStep } from "../SecondFactorStep";
 
 function renderStep(
 	props: Partial<React.ComponentProps<typeof SecondFactorStep>> = {},
+	locale: "en" | "nl" = "en",
 ) {
 	const onSuccess = vi.fn();
 	const onBack = vi.fn();
@@ -54,7 +66,7 @@ function renderStep(
 		</StrictMode>,
 		{
 			wrapper: ({ children }) => (
-				<LocaleProvider initialLocale="en">{children}</LocaleProvider>
+				<LocaleProvider initialLocale={locale}>{children}</LocaleProvider>
 			),
 		},
 	);
@@ -86,6 +98,134 @@ describe("SecondFactorStep", () => {
 		for (const m of [finalize, reset, ...Object.values(mfa)]) m.mockReset();
 		signIn.status = "needs_second_factor";
 		signIn.supportedSecondFactors = [];
+		signIn.secondFactorVerification = NOT_STARTED;
+	});
+
+	describe("on an attempt with a method already going", () => {
+		const EXPIRED =
+			"The code we sent to a***@b.com has expired. Choose “Send a new code” below.";
+		const SENT = "We sent a 6-digit code to a***@b.com.";
+		const past = () => new Date(Date.now() - 1000);
+		const future = () => new Date(Date.now() + 60_000);
+
+		function started(
+			strategy: string,
+			status = "unverified",
+			expireAt: Date | null = future(),
+		) {
+			signIn.supportedSecondFactors = ALL;
+			signIn.secondFactorVerification = { strategy, status, expireAt };
+		}
+
+		it.each([
+			["totp", "unverified", null],
+			["totp", "expired", past()],
+			["backup_code", "unverified", null],
+			["backup_code", "expired", past()],
+		] as const)(
+			"reopens on %s (%s) with its own prompt and sends nothing",
+			(strategy, status, expireAt) => {
+				started(strategy, status, expireAt);
+				signIn.supportedSecondFactors = [
+					{ strategy },
+					{ strategy: "email_code", safeIdentifier: "a***@b.com" },
+				];
+				renderStep();
+				expect(
+					screen.getByText(
+						strategy === "totp"
+							? "Enter the 6-digit code from your authenticator app."
+							: "Enter one of the backup codes you saved.",
+					),
+				).toBeDefined();
+				expect(mfa.sendEmailCode).not.toHaveBeenCalled();
+			},
+		);
+
+		it.each(["passkey", "phone_code"])(
+			"starts on the default when %s is not on offer, even if it expired",
+			async (strategy) => {
+				started(strategy, "expired", past());
+				signIn.supportedSecondFactors = [
+					{ strategy: "email_code", safeIdentifier: "a***@b.com" },
+					{ strategy: "passkey" },
+				];
+				renderStep();
+				expect(screen.getByText(SENT)).toBeDefined();
+				await vi.waitFor(() =>
+					expect(mfa.sendEmailCode).toHaveBeenCalledTimes(1),
+				);
+			},
+		);
+
+		it.each([
+			["a status of expired", "expired", null],
+			["an expireAt in the past", "unverified", past()],
+		] as const)(
+			"says the code expired at %s, until a new one is sent",
+			async (_, status, expireAt) => {
+				started("email_code", status, expireAt);
+				renderStep();
+				expect(screen.getByText(EXPIRED)).toBeDefined();
+				expect(screen.queryByText(SENT)).toBeNull();
+				expect(mfa.sendEmailCode).not.toHaveBeenCalled();
+				fireEvent.click(
+					screen.getByRole("button", { name: "Send a new code" }),
+				);
+				expect(await screen.findByText(SENT)).toBeDefined();
+				expect(screen.queryByText(EXPIRED)).toBeNull();
+				expect(mfa.sendEmailCode).toHaveBeenCalledTimes(1);
+			},
+		);
+
+		it("keeps saying the code expired when a new one can't be sent", async () => {
+			started("email_code", "expired", past());
+			mfa.sendEmailCode.mockImplementation(clerkError("too_many_requests"));
+			renderStep();
+			fireEvent.click(screen.getByRole("button", { name: "Send a new code" }));
+			await screen.findByText(
+				"Too many attempts. Wait a moment and try again.",
+			);
+			expect(screen.getByText(EXPIRED)).toBeDefined();
+		});
+
+		it("drops the expired prompt on switching to another method", async () => {
+			started("email_code", "expired", past());
+			renderStep();
+			fireEvent.click(
+				screen.getByRole("button", { name: "Use your authenticator app" }),
+			);
+			expect(
+				await screen.findByText(
+					"Enter the 6-digit code from your authenticator app.",
+				),
+			).toBeDefined();
+			fireEvent.click(
+				screen.getByRole("button", { name: "Email a code to a***@b.com" }),
+			);
+			expect(await screen.findByText(SENT)).toBeDefined();
+			expect(mfa.sendEmailCode).toHaveBeenCalledTimes(1);
+		});
+
+		it("keeps the usual prompt while the code still works", () => {
+			started("email_code");
+			renderStep();
+			expect(screen.getByText(SENT)).toBeDefined();
+			expect(mfa.sendEmailCode).not.toHaveBeenCalled();
+		});
+
+		it("says it in Dutch", () => {
+			started("email_code", "expired", past());
+			renderStep({}, "nl");
+			expect(
+				screen.getByText(
+					"De code die we naar a***@b.com hebben gestuurd, is verlopen. Kies hieronder ‘Stuur een nieuwe code’.",
+				),
+			).toBeDefined();
+			expect(
+				screen.getByRole("button", { name: "Stuur een nieuwe code" }),
+			).toBeDefined();
+		});
 	});
 
 	it("defaults to the authenticator app and signs in with its code", async () => {
