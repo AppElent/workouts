@@ -543,7 +543,10 @@ function offStart(row: PlanSet) {
 		(!row.carried && !near(row.kg, start.kg)) ||
 		row.reps !== start.reps ||
 		row.rpe !== null ||
-		Boolean(row.plan && (row.kind !== "working" || row.unit !== "kg"))
+		Boolean(
+			row.plan &&
+				(row.kind !== "working" || (!row.carried && row.unit !== "kg")),
+		)
 	);
 }
 /**

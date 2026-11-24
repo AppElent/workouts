@@ -1424,6 +1424,29 @@ describe("reconcile", () => {
 			]);
 			expect(findRow(next, row.id)).toMatchObject({ kg: 100, done: false });
 		});
+		it("fills a set that only inherited a load in pounds (APP-688)", () => {
+			const start = grouped({ squat: planned(2), curl: planned(2, 40) });
+			const row = firstOpen(start.plan);
+			let plan = updateRow(
+				start.plan,
+				row.id,
+				withTypedLoad({ ...row, unit: "lbs" }, 225),
+			);
+			plan = log(plan, findRow(plan, row.id) as PlanSet, "sq-1");
+			const open = firstOpen(plan);
+			expect(open).toMatchObject({ carried: true, unit: "lbs" });
+			const first = { ...remote("squat", "sq-1", 1), weight: 225 };
+			const next = reconcilePlan(
+				plan,
+				[],
+				[{ ...first, unit: "lbs" as const }, remote("squat", "web-7", 2)],
+				lookup,
+			);
+			expect(shape(next, start.id)).toEqual([
+				["squat:sq-1", "curl:open"],
+				["squat:web-7", "curl:open"],
+			]);
+		});
 		it("keeps an AMRAP's open round and score when that set holds a change (APP-688)", () => {
 			const start = grouped({ squat: planned(1), curl: planned(1, 40) });
 			let plan = setGroupMode(start.plan, start.id, "amrap").plan;
