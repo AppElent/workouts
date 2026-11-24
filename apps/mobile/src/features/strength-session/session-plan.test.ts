@@ -1320,6 +1320,33 @@ describe("reconcile", () => {
 				]);
 			},
 		);
+		it("passes over a change made before a swap", () => {
+			const input = addWarmup(plannedPlan(), "squat", SQUAT).plan;
+			const [warm, work] = rowsOf(input, "squat") as [PlanSet, PlanSet];
+			let plan = updateRow(input, warm.id, { ...warm, reps: 3 });
+			plan = updateRow(plan, work.id, { ...work, reps: 8 });
+			plan = swapExercise(plan, "squat", "press", lookup("press")).plan;
+			const remote = { ...set("b", 1), exerciseId: "press" };
+			const warmup = { ...remote, _id: "w", setType: "warmup" as const };
+			const next = reconcilePlan(plan, [], [remote, warmup], lookup);
+			expect(findRow(next, warm.id)).toEqual(findRow(plan, warm.id));
+			expect(findRow(next, work.id)).toEqual(findRow(plan, work.id));
+			expect(rowsOf(next, "press").map((r) => r.setId ?? null)).toEqual([
+				"w",
+				null,
+				null,
+				"b",
+				null,
+			]);
+			// Swapping back restores the input, and its protection.
+			const back = swapExercise(plan, "press", "squat", SQUAT).plan;
+			expect(links(reconcilePlan(back, [], [set("b", 1)], lookup))).toEqual([
+				null,
+				null,
+				"b",
+				null,
+			]);
+		});
 		it("keeps warm-ups and planned working sets apart", () => {
 			const plan = plannedPlan();
 			const warm = { ...set("w", 1), setType: "warmup" as const };

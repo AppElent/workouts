@@ -1445,8 +1445,10 @@ export function swapExercise(
 		if (row.orig?.exerciseId === to)
 			return { ...row.orig.row, id: row.id, rpe: null };
 		const orig = row.orig ?? { exerciseId: row.exerciseId, row };
+		// What someone entered stays theirs: no set logged elsewhere may fill it.
+		const edited = row.edited || offStart(row) ? { edited: true } : {};
 		if (row.kind !== "warmup" || facts.bodyweight)
-			return { ...swapWork(row, to, reference, facts), orig };
+			return { ...swapWork(row, to, reference, facts), orig, ...edited };
 		const kg =
 			workKg > 0
 				? Math.max(facts.stepKg, snapLoad(workKg / 2, facts.stepKg, row.unit))
@@ -1463,6 +1465,7 @@ export function swapExercise(
 			done: false,
 			free: true,
 			orig,
+			...edited,
 			...(kg > 0 ? {} : { blank: true }),
 		};
 	};
