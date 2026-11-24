@@ -53,6 +53,10 @@ export interface PlanSet {
 	percent: number | null;
 	kind: SetType;
 	rpe: number | null;
+	/** As typed; saved trimmed. */
+	notes?: string;
+	/** On a draft of a logged set: its note was typed here. */
+	notesEdited?: boolean;
 	done: boolean;
 	setId?: string;
 	setNumber?: number;
@@ -220,7 +224,16 @@ export function isValidRow(row: PlanSet, facts: ExerciseFacts) {
 		validateSetInput({ weight: shownLoad(row), reps: row.reps }).ok
 	);
 }
+export const noteOf = (row: Pick<PlanSet, "notes">) => row.notes?.trim() ?? "";
+/**
+ * A draft of a logged set with the note saving it would leave: one nobody typed
+ * here stays the stored note, which may have changed elsewhere since.
+ */
+export function withStoredNote(draft: PlanSet, stored: PlanSet): PlanSet {
+	return draft.notesEdited ? draft : { ...draft, notes: stored.notes };
+}
 export function payloadFor(row: PlanSet, setNumber: number): LogPayload {
+	const notes = noteOf(row);
 	return {
 		exerciseId: row.exerciseId,
 		setNumber,
@@ -232,6 +245,7 @@ export function payloadFor(row: PlanSet, setNumber: number): LogPayload {
 				: Math.round(row.kg * 1e6) / 1e6,
 		unit: row.unit,
 		...(row.rpe === null ? {} : { rpe: row.rpe }),
+		...(notes ? { notes } : {}),
 		setType: row.kind,
 	};
 }
@@ -418,7 +432,7 @@ function replaceRow(plan: SessionPlan, id: string, next: PlanSet): SessionPlan {
 
 export type ServerSet = Pick<
 	Doc<"sets">,
-	"setNumber" | "reps" | "weight" | "unit" | "rpe" | "setType"
+	"setNumber" | "reps" | "weight" | "unit" | "rpe" | "notes" | "setType"
 > & { _id: string; exerciseId: string };
 export type ServerExercise = {
 	exerciseId: string;
@@ -437,6 +451,7 @@ function rowFromServer(set: ServerSet): PlanSet {
 		percent: null,
 		kind: set.setType,
 		rpe: set.rpe ?? null,
+		...(set.notes === undefined ? {} : { notes: set.notes }),
 		done: true,
 		setId: set._id,
 		setNumber: set.setNumber,
@@ -543,6 +558,7 @@ function offStart(row: PlanSet) {
 		(!row.carried && !near(row.kg, start.kg)) ||
 		row.reps !== start.reps ||
 		row.rpe !== null ||
+		noteOf(row) !== "" ||
 		Boolean(
 			row.plan &&
 				(row.kind !== "working" || (!row.carried && row.unit !== "kg")),
@@ -641,6 +657,7 @@ export function reconcilePlan(
 			set.reps === row.reps &&
 			set.unit === row.unit &&
 			(set.rpe ?? null) === row.rpe &&
+			(set.notes ?? "") === noteOf(row) &&
 			set.setType === row.kind
 		)
 			return row;
@@ -652,6 +669,7 @@ export function reconcilePlan(
 			reps: set.reps,
 			unit: set.unit,
 			rpe: set.rpe ?? null,
+			notes: set.notes,
 			kind: set.setType,
 		};
 	};
@@ -2174,6 +2192,7 @@ export function sameSet(a: PlanSet, b: PlanSet) {
 		near(a.kg, b.kg) &&
 		a.reps === b.reps &&
 		a.rpe === b.rpe &&
+		noteOf(a) === noteOf(b) &&
 		a.kind === b.kind &&
 		a.unit === b.unit
 	);
@@ -2185,7 +2204,7 @@ export function unsavedEdits(
 ) {
 	return Object.values(drafts).filter((draft) => {
 		const stored = findRow(plan, draft.id);
-		return stored?.done && !sameSet(draft, stored);
+		return stored?.done && !sameSet(withStoredNote(draft, stored), stored);
 	}).length;
 }
 

@@ -2,7 +2,13 @@
 import { convertLoad } from "@foundry/core";
 import { SymbolView } from "expo-symbols";
 import { type ReactNode, useMemo } from "react";
-import { Pressable, StyleSheet, useWindowDimensions, View } from "react-native";
+import {
+	Pressable,
+	StyleSheet,
+	type TextStyle,
+	useWindowDimensions,
+	View,
+} from "react-native";
 import { fmt, useI18n } from "../../../i18n";
 import {
 	radius,
@@ -18,6 +24,7 @@ import { formatNumber, formatSetShort } from "../session-format";
 import {
 	type ExerciseFacts,
 	groupOfRow,
+	noteOf,
 	type PlanSet,
 	referenceFor,
 	repeatRow,
@@ -221,6 +228,7 @@ function rowSpeech(
 	copy: ReturnType<typeof useRowFacts>["copy"],
 	oneRm: string | null,
 ) {
+	const note = noteOf(row);
 	const state = row.failed
 		? `, ${copy.failed}`
 		: row.done
@@ -233,7 +241,21 @@ function rowSpeech(
 					unit: copy.unitSpoken[row.unit],
 				})
 			: ""
-	}`;
+	}${note ? fmt(copy.rowNoteSpoken, { note }) : ""}`;
+}
+function RowNote({ row, style }: { row: PlanSet; style?: TextStyle }) {
+	const colors = useTokens();
+	const large = useLargeText();
+	const note = noteOf(row);
+	return note ? (
+		<AppText
+			variant="footnote"
+			numberOfLines={large ? undefined : 2}
+			style={[{ color: colors.textMuted }, style]}
+		>
+			{note}
+		</AppText>
+	) : null;
 }
 /**
  * A set in the current exercise's card (APP-619 canvas): label, load, RPE or
@@ -312,41 +334,44 @@ export function SessionSetRow({
 						onPress={() => {
 							if (!pending) openEditor(row.id);
 						}}
-						style={[styles.body, large && styles.bodyLarge]}
+						style={styles.body}
 						testID={`session-set-${row.id}`}
 					>
-						<AppText
-							variant="secondary"
-							style={[styles.mark, { color: markInk }]}
-						>
-							{mark}
-						</AppText>
-						<AppText
-							variant="row"
-							numberOfLines={large ? undefined : 1}
-							adjustsFontSizeToFit={!large}
-							style={[
-								styles.load,
-								{
-									color: row.done ? colors.textMuted : colors.text,
-									fontWeight: isNext ? "800" : "600",
-								},
-							]}
-						>
-							{loadText}
-						</AppText>
-						{meta ? (
+						<View style={[styles.line, large && styles.lineLarge]}>
 							<AppText
-								variant="footnote"
-								numberOfLines={1}
+								variant="secondary"
+								style={[styles.mark, { color: markInk }]}
+							>
+								{mark}
+							</AppText>
+							<AppText
+								variant="row"
+								numberOfLines={large ? undefined : 1}
+								adjustsFontSizeToFit={!large}
 								style={[
-									styles.meta,
-									{ color: row.failed ? colors.warn : colors.textMuted },
+									styles.load,
+									{
+										color: row.done ? colors.textMuted : colors.text,
+										fontWeight: isNext ? "800" : "600",
+									},
 								]}
 							>
-								{meta}
+								{loadText}
 							</AppText>
-						) : null}
+							{meta ? (
+								<AppText
+									variant="footnote"
+									numberOfLines={1}
+									style={[
+										styles.meta,
+										{ color: row.failed ? colors.warn : colors.textMuted },
+									]}
+								>
+									{meta}
+								</AppText>
+							) : null}
+						</View>
+						<RowNote row={row} style={styles.noteIndent} />
 					</Pressable>
 					<Pressable
 						accessibilityRole="checkbox"
@@ -444,6 +469,7 @@ export function SessionGroupItemRow({
 							{status ?? `1RM ${oneRm}`}
 						</AppText>
 					) : null}
+					<RowNote row={row} />
 				</View>
 				<AppText
 					variant="heading"
@@ -473,11 +499,15 @@ const createStyles = (colors: Tokens) =>
 			flex: 1,
 			minWidth: 0,
 			minHeight: 44,
+			justifyContent: "center",
+		},
+		line: {
 			flexDirection: "row",
 			alignItems: "center",
 			gap: spacing.sm,
 		},
-		bodyLarge: { flexWrap: "wrap" },
+		lineLarge: { flexWrap: "wrap" },
+		noteIndent: { paddingLeft: 30 + spacing.sm, paddingBottom: spacing.xs },
 		mark: { width: 30, fontWeight: "700", fontVariant: ["tabular-nums"] },
 		load: { flex: 1, minWidth: 0, fontVariant: ["tabular-nums"] },
 		meta: { textAlign: "right", fontVariant: ["tabular-nums"] },

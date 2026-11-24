@@ -25,39 +25,46 @@ export function SetCard({ set, onEdit }: Props) {
 			className="w-full rounded-lg border border-border bg-surface-2 flex items-center px-3 py-3 text-left hover:border-border-strong transition-colors"
 			aria-label={`Edit set ${set.setNumber}`}
 		>
-			<div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
-				<span
-					className="w-1.5 h-1.5 rounded-full shrink-0"
-					style={{ background: dotColor }}
-				/>
-				<span className="text-xs text-text-muted shrink-0 font-semibold">
-					#{set.setNumber}
-				</span>
-				<span className="text-xs text-text-muted capitalize shrink-0">
-					{set.setType}
-				</span>
-				{set.weight > 0 ? (
-					<span className="text-sm text-text font-medium shrink-0 tabular-nums">
-						{set.weight}
-						<span className="text-xs text-text-muted ml-0.5">{set.unit}</span>
+			<div className="min-w-0 flex-1">
+				<div className="flex items-center gap-2 overflow-hidden">
+					<span
+						className="w-1.5 h-1.5 rounded-full shrink-0"
+						style={{ background: dotColor }}
+					/>
+					<span className="text-xs text-text-muted shrink-0 font-semibold">
+						#{set.setNumber}
 					</span>
-				) : (
-					<span className="text-sm text-text-muted shrink-0">BW</span>
-				)}
-				<span className="text-sm text-text shrink-0 tabular-nums">
-					×{setCount(set)}
-				</span>
-				{set.rpe !== undefined && (
-					<span className="text-xs text-text-muted shrink-0">
-						RPE {set.rpe}
+					<span className="text-xs text-text-muted capitalize shrink-0">
+						{set.setType}
 					</span>
-				)}
-				{orm && (
-					<span className="text-xs text-text-muted shrink-0 ml-auto tabular-nums">
-						{orm.value}
-						{orm.kind === "calculated" ? " est." : ""} 1RM
+					{set.weight > 0 ? (
+						<span className="text-sm text-text font-medium shrink-0 tabular-nums">
+							{set.weight}
+							<span className="text-xs text-text-muted ml-0.5">{set.unit}</span>
+						</span>
+					) : (
+						<span className="text-sm text-text-muted shrink-0">BW</span>
+					)}
+					<span className="text-sm text-text shrink-0 tabular-nums">
+						×{setCount(set)}
 					</span>
-				)}
+					{set.rpe !== undefined && (
+						<span className="text-xs text-text-muted shrink-0">
+							RPE {set.rpe}
+						</span>
+					)}
+					{orm && (
+						<span className="text-xs text-text-muted shrink-0 ml-auto tabular-nums">
+							{orm.value}
+							{orm.kind === "calculated" ? " est." : ""} 1RM
+						</span>
+					)}
+				</div>
+				{set.notes ? (
+					<p className="mt-1 text-xs text-text-muted break-words">
+						{set.notes}
+					</p>
+				) : null}
 			</div>
 			<ChevronRight size={14} className="text-text-faint ml-2 shrink-0" />
 		</button>

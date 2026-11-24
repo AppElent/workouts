@@ -8,12 +8,14 @@ import {
 	RECORDED_TIME_TOLERANCE_MS,
 	repMaxCurve,
 	resolveStrengthReferences,
+	SET_NOTE_LENGTH,
 	type StrengthReferenceRecord,
 	sessionOneRepMax,
 	validateManualOneRepMax,
 	validatePlannedExercise,
 	validateRecordedTime,
 	validateSetInput,
+	validateSetNote,
 	workingVolume,
 } from "./strength";
 
@@ -267,5 +269,26 @@ describe("percentage of a One-rep Max as a target load", () => {
 		expect(
 			percentOfOneRepMaxLoad({ value: 300, unit: "lbs" }, 80, "kg", 2.5),
 		).toBe(110);
+	});
+});
+
+describe("validateSetNote", () => {
+	it("trims, and treats an empty note as none", () => {
+		expect(validateSetNote("  narrow grip ")).toEqual({
+			ok: true,
+			value: "narrow grip",
+		});
+		for (const none of [undefined, "", " \n "])
+			expect(validateSetNote(none)).toMatchObject({
+				ok: true,
+				value: undefined,
+			});
+	});
+	it("limits the length after trimming", () => {
+		expect(validateSetNote(` ${"a".repeat(SET_NOTE_LENGTH)} `).ok).toBe(true);
+		expect(validateSetNote("a".repeat(SET_NOTE_LENGTH + 1))).toMatchObject({
+			ok: false,
+			errors: [{ field: "notes", code: "tooLong" }],
+		});
 	});
 });
