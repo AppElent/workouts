@@ -21,8 +21,12 @@ export const secondFactorEn = {
 		backup_code: "Use a backup code",
 	},
 	passwordChanged: "Your password is changed. One more step to sign in.",
+	codeLocked: "Too many wrong codes. Send a new one.",
+	methodLocked:
+		"Too many wrong codes for this method. Use another one below, or go back and sign in again.",
+	onlyMethodLocked: "Too many wrong codes. Go back and sign in again.",
 	attemptEnded:
-		"This sign-in can't continue: too many wrong codes, or it took too long. Go back and sign in again.",
+		"This sign-in took too long and can't continue. Go back and sign in again.",
 	noMethod:
 		"Your account's second step isn't available in this app. Sign in on the web app instead.",
 	backToSignIn: "Back to sign in",
@@ -50,8 +54,12 @@ export const secondFactorNl: typeof secondFactorEn = {
 		backup_code: "Back-upcode gebruiken",
 	},
 	passwordChanged: "Je wachtwoord is gewijzigd. Nog één stap om in te loggen.",
+	codeLocked: "Te veel foute codes. Vraag een nieuwe aan.",
+	methodLocked:
+		"Te veel foute codes voor deze methode. Kies hieronder een andere, of ga terug en log opnieuw in.",
+	onlyMethodLocked: "Te veel foute codes. Ga terug en log opnieuw in.",
 	attemptEnded:
-		"Deze inlogpoging kan niet verder: te veel foute codes, of het duurde te lang. Ga terug en log opnieuw in.",
+		"Deze inlogpoging duurde te lang en kan niet verder. Ga terug en log opnieuw in.",
 	noMethod:
 		"De tweede stap van je account is niet beschikbaar in deze app. Log in via de webapp.",
 	backToSignIn: "Terug naar inloggen",
