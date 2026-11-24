@@ -357,6 +357,73 @@ export const strengthTools = [
 		},
 	}),
 	defineTool({
+		name: "create_routine",
+		title: "Create routine",
+		description:
+			"Save a reusable Routine: a named list of Exercises in order, each with suggested sets, reps, and an optional load in kg. It appears in the user's Routines in the app; start_strength_session can start from it. Check list_routines first to avoid a near-duplicate. Returns the saved Routine as list_routines shows it.",
+		access: "write",
+		input: {
+			idempotencyKey,
+			name: z.string().trim().min(1).max(100).describe("Routine name"),
+			exercises: z
+				.array(
+					z.object({
+						exerciseId: z
+							.string()
+							.min(1)
+							.describe("Exercise ID from list_exercises or create_exercise"),
+						defaultSets: z
+							.number()
+							.int()
+							.min(1)
+							.max(SET_LIMITS.plannedSets.max)
+							.describe("Suggested number of sets"),
+						defaultReps: z
+							.number()
+							.int()
+							.min(1)
+							.max(SET_LIMITS.plannedReps.max)
+							.describe(
+								"Suggested reps per set, or seconds held when list_exercises gives the Exercise measure seconds",
+							),
+						defaultWeight: z
+							.number()
+							.min(0)
+							.max(SET_LIMITS.plannedWeight.max)
+							.optional()
+							.describe("Suggested load in kg; omit for bodyweight"),
+					}),
+				)
+				.min(1)
+				.max(SET_LIMITS.exercisesPerPrescription.max)
+				.describe("Exercises in training order"),
+		},
+		async run({ idempotencyKey, name, exercises }, { backend }) {
+			let id: Id<"routines">;
+			try {
+				id = await backend.mutation(api.routines.create, {
+					operationId: `mcp:${idempotencyKey}`,
+					name,
+					exercises,
+				});
+			} catch (error) {
+				if (isConvexCode(error, "notFound", "exerciseId"))
+					throw new ToolInputError(
+						"An exerciseId is not one of the user's Exercises. Use IDs from list_exercises, or add the movement with create_exercise.",
+					);
+				throw error;
+			}
+			const routines = await backend.query(api.routines.list, {});
+			const routine = routines.find((candidate) => candidate._id === id);
+			// A retry names the first Routine, which the user may have deleted since.
+			if (!routine)
+				throw new ToolInputError(
+					"This Routine was already created with this idempotencyKey and has since been deleted in the app. To create it again, use a new key.",
+				);
+			return { routine: publicDoc(routine) };
+		},
+	}),
+	defineTool({
 		name: "get_active_strength_session",
 		title: "Get active strength session",
 		description:
