@@ -9,17 +9,7 @@ tags:
   - onboarding
 ---
 - runFlow: subflows/launch.yaml
-- openLink: "foundry-dev://first-run"
-# iOS asks before an app opens its own link the first time.
-- runFlow:
-    when:
-      visible: "Open"
-    commands:
-      - tapOn: "Open"
-- extendedWaitUntil:
-    visible:
-      id: "first-run-screen"
-    timeout: 15000
+- runFlow: subflows/open-first-run.yaml
 - assertVisible: "Welcome to Foundry"
 - assertVisible: ".*Choose your daily goals.*"
 - tapOn: "Set nutrition goals"
@@ -37,17 +27,7 @@ tags:
     visible:
       id: "train-start-activity"
     timeout: 10000
-- openLink: "foundry-dev://first-run"
-# iOS asks before an app opens its own link the first time.
-- runFlow:
-    when:
-      visible: "Open"
-    commands:
-      - tapOn: "Open"
-- extendedWaitUntil:
-    visible:
-      id: "first-run-screen"
-    timeout: 15000
+- runFlow: subflows/open-first-run.yaml
 - tapOn: "Skip"
 - extendedWaitUntil:
     notVisible:
