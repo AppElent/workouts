@@ -6,6 +6,7 @@ import {
 	formatDurationMinutes,
 	formatScore,
 	isTimedExercise,
+	toKg,
 	workingVolume,
 } from "@foundry/core";
 import type { ExerciseId } from "@foundry/core/exercises";
@@ -249,10 +250,10 @@ function ExerciseRecap({
 		kg: strength.plan.editor.unitKg,
 		lbs: strength.plan.editor.unitLbs,
 	};
-	// "Best" is the heaviest set, matching the web. Not the same as the highest
+	// "Best" is the heaviest set in kg, matching the web. Not the same as the highest
 	// estimated 1RM — a heavy double can out-rank a heavier single there.
 	const best = sets.reduce(
-		(top, s) => (s.weight > top.weight ? s : top),
+		(top, s) => (toKg(s.weight, s.unit) > toKg(top.weight, top.unit) ? s : top),
 		sets[0],
 	);
 
