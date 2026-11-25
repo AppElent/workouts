@@ -1,12 +1,16 @@
 import { useMutation } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { useRouter } from "expo-router";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { api } from "../../convex/api";
+import { useOnline } from "../../convex/online";
+import { useQueries } from "../../convex/query-cache";
 import { useI18n } from "../../i18n";
 import { useConfirm } from "../../ui/confirm-dialog";
 import { useToast } from "../../ui/toast";
 import { useWriteFailureMessage } from "../../ui/use-screen-write";
-import { useTrainingData } from "./use-training-data";
+
+type Active = FunctionReturnType<typeof api.workoutSessions.getActive>;
 
 /**
  * Train now: starts a Strength Session with one exercise, named after it and
@@ -14,7 +18,13 @@ import { useTrainingData } from "./use-training-data";
  * offers to add the exercise there instead (APP-871).
  */
 export function useTrainExercise() {
-	const data = useTrainingData();
+	// Only the active session: an error reads as unknown, like the start hook.
+	const queries = useMemo(
+		() => ({ active: { query: api.workoutSessions.getActive, args: {} } }),
+		[],
+	);
+	const active = useQueries(queries).active as Active | Error | undefined;
+	const online = useOnline();
 	const router = useRouter();
 	const errorMessage = useWriteFailureMessage();
 	const create = useMutation(api.workoutSessions.create);
@@ -32,7 +42,6 @@ export function useTrainExercise() {
 		locked.current = true;
 		setPending(true);
 		try {
-			const active = data.active;
 			if (active instanceof Error || active === undefined) {
 				toast.error(copy.unknownActive);
 				return;
@@ -42,7 +51,7 @@ export function useTrainExercise() {
 					(entry) => entry.exerciseId === exercise._id,
 				);
 				if (!already) {
-					if (!data.online) {
+					if (!online) {
 						toast.error(copy.onlineRequired);
 						return;
 					}
@@ -66,7 +75,7 @@ export function useTrainExercise() {
 				router.push({ pathname: "/session", params: { id: active._id } });
 				return;
 			}
-			if (!data.online) {
+			if (!online) {
 				toast.error(copy.onlineRequired);
 				return;
 			}
