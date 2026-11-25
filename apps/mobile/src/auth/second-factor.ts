@@ -82,19 +82,19 @@ export function verifySecondFactor(
 }
 
 /**
- * Codes that end the attempt here: too many wrong codes
- * (`verification_failed`), or a sign-in that expired or was dropped while
- * the screen waited. Clerk itself only locks the method after too many wrong
- * codes (a new code or a backup code still finishes the same sign-in), so
- * treating it as the end is this screen's simpler choice (APP-507).
+ * Codes after which this attempt cannot finish: it expired or was dropped
+ * while the screen waited. Too many wrong codes (`verification_failed`) is
+ * not one: Clerk only locks the method that failed, so a new texted or
+ * emailed code, or another method, still finishes the same sign-in (APP-526).
  */
-const ATTEMPT_ENDED_CODES = new Set([
-	"verification_failed",
-	"resource_not_found",
-	"sign_in_expired",
-]);
+const ATTEMPT_ENDED_CODES = new Set(["resource_not_found", "sign_in_expired"]);
 
 export function endsAttempt(error: unknown) {
 	const code = clerkErrorCode(error);
 	return !!code && ATTEMPT_ENDED_CODES.has(code);
+}
+
+/** Too many wrong codes: this method is locked until it sends a new code. */
+export function locksMethod(error: unknown) {
+	return clerkErrorCode(error) === "verification_failed";
 }

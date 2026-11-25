@@ -46,6 +46,7 @@ jobs:
     env:
       EXPO_TOKEN: ${{ secrets.PREVIEW_EXPO_TOKEN }}
       METRO_PORT: "8090"
+      MANIFEST_PORT: "8091"
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
 
@@ -55,6 +56,77 @@ jobs:
         with:
           name: ${{ needs.build.outputs.artifact }}
           path: ${{ runner.temp }}/build
+
+      # Spotlight would index the simulator's files on the same three cores.
+      - name: Turn off Spotlight
+        run: sudo mdutil -a -i off || true
+
+      # Metro compiles before the simulator boots, so the two don't compete.
+      # EXPO_PUBLIC_* values (Clerk, Convex, test account) come from the EAS
+      # development environment, as in a local dev build.
+      - name: Start Metro
+        working-directory: apps/mobile
+        run: |
+          EXPO_NO_DOTENV=1 nohup pnpm exec eas env:exec development \
+            "pnpm exec expo start --dev-client --port $METRO_PORT" --non-interactive \
+            > "$RUNNER_TEMP/metro.log" 2>&1 &
+          for _ in $(seq 1 60); do
+            curl -sf "http://127.0.0.1:$METRO_PORT/status" | grep -q running && break
+            sleep 5
+          done
+          curl -sf "http://127.0.0.1:$METRO_PORT/status" | grep -q running ||
+            { cat "$RUNNER_TEMP/metro.log"; exit 1; }
+          # The manifest the dev client fetches first, saved to serve below.
+          curl -sf -o "$RUNNER_TEMP/manifest.json" --max-time 120 \
+            -w "manifest: HTTP %{http_code} in %{time_total}s\n" \
+            -H "expo-platform: ios" -H "Accept: application/expo+json,application/json" \
+            "http://127.0.0.1:$METRO_PORT/"
+          BUNDLE_URL=$(jq -er .launchAsset.url "$RUNNER_TEMP/manifest.json")
+          case "$BUNDLE_URL" in
+            "http://127.0.0.1:$METRO_PORT/"*) echo "bundle: $BUNDLE_URL" ;;
+            *) echo "::error::Manifest bundle is not on Metro: $BUNDLE_URL"; exit 1 ;;
+          esac
+          # Compile the bundle the client will ask for now, so the app's launch
+          # wait doesn't. Other transform options would compile another bundle.
+          curl -sf -o /dev/null --max-time 600 \
+            -w "bundle: HTTP %{http_code} in %{time_total}s\n" "$BUNDLE_URL"
+
+      # Expo answers every manifest request by spawning a Node command that
+      # resolves the runtime version (`fingerprint` hashes the native project).
+      # On this 7 GB runner, swapping next to a booted simulator, that outlasts
+      # the dev client's fixed 10 s request limit. So the client gets the
+      # manifest Metro already gave; the bundle URL in it still points at Metro.
+      # The flows take this port as their METRO_PORT.
+      - name: Serve the manifest
+        run: |
+          cat > "$RUNNER_TEMP/manifest-server.py" <<'PY'
+          import http.server, os
+          body = open(os.environ["RUNNER_TEMP"] + "/manifest.json", "rb").read()
+          class Handler(http.server.BaseHTTPRequestHandler):
+              def do_HEAD(self):
+                  self.send_response(200)
+                  # Without the version, expo-updates refuses it as a legacy manifest.
+                  self.send_header("expo-protocol-version", "0")
+                  self.send_header("expo-sfv-version", "0")
+                  self.send_header("Content-Type", "application/json")
+                  self.send_header("Content-Length", str(len(body)))
+                  self.end_headers()
+              def do_GET(self):
+                  self.do_HEAD()
+                  self.wfile.write(body)
+          port = int(os.environ["MANIFEST_PORT"])
+          http.server.ThreadingHTTPServer(("127.0.0.1", port), Handler).serve_forever()
+          PY
+          nohup python3 -I "$RUNNER_TEMP/manifest-server.py" > "$RUNNER_TEMP/manifest.log" 2>&1 &
+          curl -sf --retry 10 --retry-delay 1 --retry-connrefused -o /dev/null "http://127.0.0.1:$MANIFEST_PORT/"
+
+      # Pinned so a Maestro release cannot change a passing run.
+      - name: Install Maestro
+        env:
+          MAESTRO_VERSION: "2.12.0"
+        run: |
+          curl -fsSL "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
 
       # The newest iOS runtime's first iPhone. Runtime keys sort by number,
       # not text (iOS-26-10 after iOS-26-9).
@@ -76,39 +148,19 @@ jobs:
           tar -xzf "$RUNNER_TEMP"/build/*.tar.gz -C "$RUNNER_TEMP/app"
           xcrun simctl install "$UDID" "$(find "$RUNNER_TEMP/app" -maxdepth 2 -name '*.app' | head -1)"
 
-      # EXPO_PUBLIC_* values (Clerk, Convex, test account) come from the EAS
-      # development environment, as in a local dev build.
-      - name: Start Metro
-        working-directory: apps/mobile
+      # A first boot keeps the simulator's background services busy for minutes
+      # (load averages above 300 on 3 cores), long enough for Maestro's link
+      # opens to time out and its driver to die. Flows start once that drops
+      # (it levels off near 110), or after about 7 minutes.
+      - name: Wait for the simulator to settle
         run: |
-          EXPO_NO_DOTENV=1 nohup pnpm exec eas env:exec development \
-            "pnpm exec expo start --dev-client --port $METRO_PORT" --non-interactive \
-            > "$RUNNER_TEMP/metro.log" 2>&1 &
-          for _ in $(seq 1 60); do
-            curl -sf "http://127.0.0.1:$METRO_PORT/status" | grep -q running && break
-            sleep 5
+          for _ in $(seq 1 40); do
+            LOAD=$(sysctl -n vm.loadavg | cut -d" " -f2 | cut -d. -f1)
+            echo "load: $LOAD"
+            [ "$LOAD" -lt 120 ] && exit 0
+            sleep 10
           done
-          curl -sf "http://127.0.0.1:$METRO_PORT/status" | grep -q running ||
-            { cat "$RUNNER_TEMP/metro.log"; exit 1; }
-          # The manifest the dev client fetches first: log its timing and the
-          # bundle URL it points at, to tell a slow manifest from an
-          # unreachable bundle host when the client's first load times out.
-          curl -s -o "$RUNNER_TEMP/manifest.json" --max-time 120 \
-            -w "manifest: HTTP %{http_code} in %{time_total}s\n" \
-            -H "expo-platform: ios" -H "Accept: application/expo+json,application/json" \
-            "http://127.0.0.1:$METRO_PORT/" || true
-          grep -o '"url":"[^"]*"' "$RUNNER_TEMP/manifest.json" | head -1 || true
-          # Compile the first bundle now, so the app's launch wait doesn't.
-          curl -sf -o /dev/null --max-time 600 \
-            "http://127.0.0.1:$METRO_PORT/.expo/.virtual-metro-entry.bundle?platform=ios&dev=true" || true
-
-      # Pinned so a Maestro release cannot change a passing run.
-      - name: Install Maestro
-        env:
-          MAESTRO_VERSION: "2.12.0"
-        run: |
-          curl -fsSL "https://get.maestro.mobile.dev" | bash
-          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+          echo "::warning::Load is still $LOAD; running the flows anyway."
 
       - name: Run smoke flows
         working-directory: apps/mobile
@@ -118,7 +170,7 @@ jobs:
           MAESTRO_DRIVER_STARTUP_TIMEOUT: "300000"
         run: |
           maestro --device "$UDID" test --include-tags smoke \
-            -e METRO_PORT="$METRO_PORT" \
+            -e METRO_PORT="$MANIFEST_PORT" \
             --format junit --output "$RUNNER_TEMP/maestro/report.xml" \
             --debug-output "$RUNNER_TEMP/maestro" --flatten-debug-output .maestro
 
@@ -128,7 +180,7 @@ jobs:
         run: |
           tail -200 "$RUNNER_TEMP/metro.log"
           mkdir -p "$RUNNER_TEMP/maestro"
-          cp "$RUNNER_TEMP/simulator.txt" "$RUNNER_TEMP/metro.log" "$RUNNER_TEMP/maestro/" || true
+          cp "$RUNNER_TEMP/simulator.txt" "$RUNNER_TEMP/metro.log" "$RUNNER_TEMP/manifest.log" "$RUNNER_TEMP/manifest.json" "$RUNNER_TEMP/maestro/" || true
           xcrun simctl io "$UDID" screenshot "$RUNNER_TEMP/maestro/final-screen.png" || true
 
       - if: always()

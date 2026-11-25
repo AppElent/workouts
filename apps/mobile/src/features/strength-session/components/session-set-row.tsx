@@ -2,7 +2,7 @@
 import { convertLoad } from "@foundry/core";
 import { SymbolView } from "expo-symbols";
 import { type ReactNode, useMemo } from "react";
-import { Pressable, StyleSheet, useWindowDimensions, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { fmt, useI18n } from "../../../i18n";
 import {
 	radius,
@@ -11,13 +11,16 @@ import {
 	useThemedStyles,
 	useTokens,
 } from "../../../theme";
+import { RowNote } from "../../../ui/row-note";
 import { type RowAction, SwipeableRow } from "../../../ui/swipeable-row";
 import { AppText } from "../../../ui/text";
+import { useLargeText } from "../../../ui/use-large-text";
 import { workspaceStore } from "../data/session-workspace";
 import { formatNumber, formatSetShort } from "../session-format";
 import {
 	type ExerciseFacts,
 	groupOfRow,
+	noteOf,
 	type PlanSet,
 	referenceFor,
 	repeatRow,
@@ -27,9 +30,6 @@ import {
 	shownPercent,
 } from "../session-plan";
 import { useSessionScreen } from "../session-screen-context";
-
-/** At accessibility text sizes a row takes two lines instead of dropping content. */
-export const useLargeText = () => useWindowDimensions().fontScale >= 1.35;
 
 function oneRmText(
 	row: PlanSet,
@@ -221,6 +221,7 @@ function rowSpeech(
 	copy: ReturnType<typeof useRowFacts>["copy"],
 	oneRm: string | null,
 ) {
+	const note = noteOf(row);
 	const state = row.failed
 		? `, ${copy.failed}`
 		: row.done
@@ -233,7 +234,7 @@ function rowSpeech(
 					unit: copy.unitSpoken[row.unit],
 				})
 			: ""
-	}`;
+	}${note ? fmt(copy.rowNoteSpoken, { note }) : ""}`;
 }
 /**
  * A set in the current exercise's card (APP-619 canvas): label, load, RPE or
@@ -312,41 +313,44 @@ export function SessionSetRow({
 						onPress={() => {
 							if (!pending) openEditor(row.id);
 						}}
-						style={[styles.body, large && styles.bodyLarge]}
+						style={[styles.body, noteOf(row) !== "" && styles.bodyNote]}
 						testID={`session-set-${row.id}`}
 					>
-						<AppText
-							variant="secondary"
-							style={[styles.mark, { color: markInk }]}
-						>
-							{mark}
-						</AppText>
-						<AppText
-							variant="row"
-							numberOfLines={large ? undefined : 1}
-							adjustsFontSizeToFit={!large}
-							style={[
-								styles.load,
-								{
-									color: row.done ? colors.textMuted : colors.text,
-									fontWeight: isNext ? "800" : "600",
-								},
-							]}
-						>
-							{loadText}
-						</AppText>
-						{meta ? (
+						<View style={[styles.line, large && styles.lineLarge]}>
 							<AppText
-								variant="footnote"
-								numberOfLines={1}
+								variant="secondary"
+								style={[styles.mark, { color: markInk }]}
+							>
+								{mark}
+							</AppText>
+							<AppText
+								variant="row"
+								numberOfLines={large ? undefined : 1}
+								adjustsFontSizeToFit={!large}
 								style={[
-									styles.meta,
-									{ color: row.failed ? colors.warn : colors.textMuted },
+									styles.load,
+									{
+										color: row.done ? colors.textMuted : colors.text,
+										fontWeight: isNext ? "800" : "600",
+									},
 								]}
 							>
-								{meta}
+								{loadText}
 							</AppText>
-						) : null}
+							{meta ? (
+								<AppText
+									variant="footnote"
+									numberOfLines={1}
+									style={[
+										styles.meta,
+										{ color: row.failed ? colors.warn : colors.textMuted },
+									]}
+								>
+									{meta}
+								</AppText>
+							) : null}
+						</View>
+						<RowNote note={noteOf(row)} style={styles.noteIndent} />
 					</Pressable>
 					<Pressable
 						accessibilityRole="checkbox"
@@ -444,6 +448,7 @@ export function SessionGroupItemRow({
 							{status ?? `1RM ${oneRm}`}
 						</AppText>
 					) : null}
+					<RowNote note={noteOf(row)} />
 				</View>
 				<AppText
 					variant="heading"
@@ -473,11 +478,16 @@ const createStyles = (colors: Tokens) =>
 			flex: 1,
 			minWidth: 0,
 			minHeight: 44,
+			justifyContent: "center",
+		},
+		bodyNote: { paddingVertical: spacing.sm },
+		line: {
 			flexDirection: "row",
 			alignItems: "center",
 			gap: spacing.sm,
 		},
-		bodyLarge: { flexWrap: "wrap" },
+		lineLarge: { flexWrap: "wrap" },
+		noteIndent: { paddingLeft: 30 + spacing.sm },
 		mark: { width: 30, fontWeight: "700", fontVariant: ["tabular-nums"] },
 		load: { flex: 1, minWidth: 0, fontVariant: ["tabular-nums"] },
 		meta: { textAlign: "right", fontVariant: ["tabular-nums"] },

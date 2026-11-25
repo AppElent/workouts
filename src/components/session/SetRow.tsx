@@ -17,6 +17,11 @@ export function SetRow({ set, onEdit }: Props) {
 				<span className="text-xs capitalize text-text-muted">
 					{set.setType}
 				</span>
+				{set.notes ? (
+					<p className="text-xs text-text-muted whitespace-pre-wrap break-words">
+						{set.notes}
+					</p>
+				) : null}
 			</td>
 			<td className="py-2 pr-3 w-24">
 				{set.weight > 0 ? (

@@ -64,6 +64,20 @@ export function validateSetInput<T extends SetInput>(input: T) {
 	return checkLimits(input);
 }
 
+/** Longest note on a logged set, after trimming. */
+export const SET_NOTE_LENGTH = 500;
+
+/** A set's note as it is stored: trimmed, and undefined when there is none. */
+export function validateSetNote(
+	input: string | undefined,
+): RuleResult<string | undefined, "notes", "tooLong"> {
+	const note = input?.trim() || undefined;
+	const found = ruleIssues<"notes", "tooLong">();
+	if (note !== undefined && note.length > SET_NOTE_LENGTH)
+		found.add("notes", "tooLong");
+	return found.result(note);
+}
+
 type PlannedExerciseInput = {
 	plannedSets?: number;
 	plannedReps?: number;

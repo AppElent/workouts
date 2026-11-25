@@ -1,4 +1,4 @@
-import { useSignIn } from "@clerk/react";
+import { useAuth, useSignIn } from "@clerk/react";
 import {
 	type SocialSignInProvider,
 	socialSignInProviders,
@@ -30,6 +30,7 @@ const SOCIAL_PROVIDERS = [
  */
 export function SocialButtons({ redirect }: { redirect?: string } = {}) {
 	const { signIn } = useSignIn();
+	const { isLoaded } = useAuth();
 	const { auth } = useMessages();
 	const errorMessage = useClerkErrorMessage();
 	const [pending, setPending] = useState<string | null>(null);
@@ -68,7 +69,7 @@ export function SocialButtons({ redirect }: { redirect?: string } = {}) {
 						variant="ghost"
 						className="border-solid border-border"
 						loading={pending === provider.strategy}
-						disabled={pending !== null}
+						disabled={!isLoaded || pending !== null}
 						onClick={() => start(provider.strategy)}
 					>
 						{fmt(auth.continueWith, { provider: provider.label })}

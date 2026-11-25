@@ -19,6 +19,7 @@ type HistorySet = {
 	unit: LoadUnit;
 	reps: number;
 	rpe?: number;
+	notes?: string;
 	setType: string;
 };
 type OneRepMax = { value: number; unit: LoadUnit; date: number };
@@ -150,6 +151,7 @@ export function exerciseInsight(
 					unit: set.unit,
 					reps: set.reps,
 					rpe: set.rpe ?? null,
+					notes: set.notes?.trim() ?? "",
 					setType: set.setType,
 					estimate,
 					record:

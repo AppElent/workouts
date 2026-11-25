@@ -44,6 +44,7 @@ import { TrendChart } from "../../../ui/chart";
 import { Card, Eyebrow, StatBox } from "../../../ui/coach";
 import { useConfirm } from "../../../ui/confirm-dialog";
 import { DisclosureRow } from "../../../ui/form";
+import { RowNote } from "../../../ui/row-note";
 import { ScreenHeader } from "../../../ui/screen-header";
 import { Segmented } from "../../../ui/segmented";
 import { SkeletonBlock, SkeletonList } from "../../../ui/skeleton";
@@ -57,6 +58,7 @@ import {
 	levelOf,
 	strengthLevels,
 } from "../../strength-session/strength-levels";
+import { spokenSet } from "../set-speech";
 import { dailyBest, dayOf, exerciseInsight } from "./exercise-insight";
 import { MuscleIcon } from "./muscle-icon";
 
@@ -789,7 +791,7 @@ function LevelCard({
 	);
 }
 
-function HistoryTab({
+export function HistoryTab({
 	sessions,
 	timed,
 }: {
@@ -847,43 +849,73 @@ function HistoryTab({
 						) : null}
 					</View>
 					<View style={styles.sessionCard}>
-						{session.rows.map((row, index) => (
-							<View
-								key={row.id}
-								style={[styles.historyRow, index > 0 && styles.historyLine]}
-							>
-								<AppText
-									variant="label"
-									style={[styles.setNumber, { color: colors.textMuted }]}
+						{session.rows.map((row, index) => {
+							const load = timed
+								? `${row.reps} s`
+								: `${formatKg(row.weight, locale, 2)}${row.unit === "lbs" ? " lbs" : ""} × ${row.reps}`;
+							const kind =
+								row.setType === "working"
+									? row.rpe !== null
+										? `RPE ${formatKg(row.rpe, locale)}`
+										: ""
+									: t.strength[row.setType as "warmup" | "drop" | "failure"];
+							const estimate =
+								row.estimate !== null ? `≈ ${Math.round(row.estimate)}` : "—";
+							return (
+								<View
+									key={row.id}
+									accessible
+									accessibilityLabel={spokenSet(
+										{
+											number: index + 1,
+											timed,
+											weight: row.weight,
+											unit: row.unit,
+											reps: row.reps,
+											setType: row.setType,
+											rpe: row.setType === "working" ? row.rpe : null,
+											estimateKg: row.estimate,
+											note: row.notes,
+										},
+										t.strength,
+										locale,
+									)}
+									style={index > 0 && styles.historyLine}
 								>
-									{index + 1}
-								</AppText>
-								<AppText variant="row" style={[styles.flex, styles.tabular]}>
-									{timed
-										? `${row.reps} s`
-										: `${formatKg(row.weight, locale, 2)}${row.unit === "lbs" ? " lbs" : ""} × ${row.reps}`}
-								</AppText>
-								<AppText variant="footnote" style={{ color: colors.textMuted }}>
-									{row.setType === "working"
-										? row.rpe !== null
-											? `RPE ${formatKg(row.rpe, locale)}`
-											: ""
-										: t.strength[row.setType as "warmup" | "drop" | "failure"]}
-								</AppText>
-								<AppText
-									variant="row"
-									style={[
-										styles.estimate,
-										styles.tabular,
-										{ color: row.record ? colors.accentInk : colors.text },
-									]}
-								>
-									{row.estimate !== null
-										? `≈ ${Math.round(row.estimate)}`
-										: "—"}
-								</AppText>
-							</View>
-						))}
+									<View style={styles.historyRow}>
+										<AppText
+											variant="label"
+											style={[styles.setNumber, { color: colors.textMuted }]}
+										>
+											{index + 1}
+										</AppText>
+										<AppText
+											variant="row"
+											style={[styles.flex, styles.tabular]}
+										>
+											{load}
+										</AppText>
+										<AppText
+											variant="footnote"
+											style={{ color: colors.textMuted }}
+										>
+											{kind}
+										</AppText>
+										<AppText
+											variant="row"
+											style={[
+												styles.estimate,
+												styles.tabular,
+												{ color: row.record ? colors.accentInk : colors.text },
+											]}
+										>
+											{estimate}
+										</AppText>
+									</View>
+									<RowNote note={row.notes} style={styles.historyNote} />
+								</View>
+							);
+						})}
 					</View>
 				</View>
 			))}
@@ -1010,6 +1042,11 @@ const createStyles = (colors: Tokens) =>
 			borderTopColor: colors.separator,
 		},
 		setNumber: { width: 20 },
+		historyNote: {
+			paddingLeft: spacing.md - 2 + 20 + spacing.sm,
+			paddingRight: spacing.md - 2,
+			paddingBottom: spacing.sm,
+		},
 		estimate: { minWidth: 56, textAlign: "right", fontWeight: "700" },
 		instructions: { gap: spacing.sm },
 		step: { color: colors.textMuted },

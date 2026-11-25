@@ -17,6 +17,7 @@ import {
 import { SelectionMenu } from "../../../ui/selection-menu";
 import { AppText } from "../../../ui/text";
 import { useChoice } from "../../../ui/use-choice";
+import { useLargeText } from "../../../ui/use-large-text";
 import { MuscleIcon } from "../../training/exercises/muscle-icon";
 import { formatNumber, formatSetFull } from "../session-format";
 import {
@@ -34,7 +35,7 @@ import {
 } from "../session-plan";
 import { useSessionScreen } from "../session-screen-context";
 import { nowTarget } from "./now-card";
-import { SessionSetRow, useLargeText } from "./session-set-row";
+import { SessionSetRow } from "./session-set-row";
 
 /** The line under an exercise: what its percentages come from. */
 export function useReferenceLine(exerciseId: string) {

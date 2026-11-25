@@ -2,9 +2,17 @@ import type { Doc } from "@convex/_generated/dataModel";
 import { isTimedExercise } from "@foundry/core";
 import { format } from "date-fns";
 
-function csvCell(value: unknown): string {
-	const s = value === undefined || value === null ? "" : String(value);
-	return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+/**
+ * One CSV cell. Numbers are written as-is, so negative values stay numeric.
+ * Text that a spreadsheet could read as a formula (`=`, `+`, `-`, `@`, tab, CR)
+ * gets a leading `'` (OWASP CSV injection), so a name like "-Push" is written
+ * as "'-Push" on purpose. Values with `,`, `"`, `\n` or `\r`
+ * are quoted.
+ */
+export function csvCell(value: unknown): string {
+	let s = value === undefined || value === null ? "" : String(value);
+	if (typeof value === "string" && /^[=+\-@\t\r]/.test(s)) s = `'${s}`;
+	return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
 export function setsToCsv(
@@ -31,6 +39,7 @@ export function setsToCsv(
 		"reps",
 		"seconds",
 		"rpe",
+		"notes",
 	];
 	const rows = [...sets]
 		.sort((a, b) => a.loggedAt - b.loggedAt)
@@ -48,6 +57,7 @@ export function setsToCsv(
 				timed ? "" : s.reps,
 				timed ? s.reps : "",
 				s.rpe ?? "",
+				s.notes ?? "",
 			]
 				.map(csvCell)
 				.join(",");
