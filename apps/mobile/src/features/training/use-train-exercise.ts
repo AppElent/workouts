@@ -37,15 +37,15 @@ export function useTrainExercise() {
 				toast.error(copy.unknownActive);
 				return;
 			}
-			if (!data.online) {
-				toast.error(copy.onlineRequired);
-				return;
-			}
 			if (active) {
 				const already = active.exercises?.some(
 					(entry) => entry.exerciseId === exercise._id,
 				);
 				if (!already) {
+					if (!data.online) {
+						toast.error(copy.onlineRequired);
+						return;
+					}
 					const add = await confirm({
 						title: library.trainNowActiveTitle,
 						message: library.trainNowActiveMessage,
@@ -64,6 +64,10 @@ export function useTrainExercise() {
 					}
 				}
 				router.push({ pathname: "/session", params: { id: active._id } });
+				return;
+			}
+			if (!data.online) {
+				toast.error(copy.onlineRequired);
 				return;
 			}
 			const id = await create({

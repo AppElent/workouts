@@ -1,4 +1,8 @@
-import { useMutation, useQueries } from "convex/react";
+import {
+	useConvexConnectionState,
+	useMutation,
+	useQueries,
+} from "convex/react";
 import { getFunctionName } from "convex/server";
 import { fireEvent, screen, waitFor } from "expo-router/testing-library";
 import { Pressable, Text } from "react-native";
@@ -27,7 +31,13 @@ function Session() {
 	return <Text>Session screen</Text>;
 }
 
+const connected = (isWebSocketConnected: boolean) =>
+	jest.mocked(useConvexConnectionState).mockReturnValue({
+		isWebSocketConnected,
+	} as ReturnType<typeof useConvexConnectionState>);
+
 beforeEach(() => {
+	connected(true);
 	mutations.clear();
 	active = null;
 	jest
@@ -112,4 +122,57 @@ it("writes nothing when the active session is cancelled at the prompt", async ()
 	expect(screen).toHavePathname("/probe");
 	expect(mutations.get("workoutSessions:addExercise")).not.toHaveBeenCalled();
 	expect(mutations.get("workoutSessions:create")).not.toHaveBeenCalled();
+});
+
+it("opens an active session holding the exercise even offline, and refuses to add or start", async () => {
+	connected(false);
+	active = { _id: "active-1", exercises: [{ exerciseId: squat._id }] };
+	await mount();
+	await fireEvent.press(
+		await screen.findByRole("button", { name: "Train now" }),
+	);
+	expect(await screen.findByText("Session screen")).toBeTruthy();
+});
+
+it("refuses offline without writing when it would add or start", async () => {
+	connected(false);
+	await mount();
+	await fireEvent.press(
+		await screen.findByRole("button", { name: "Train now" }),
+	);
+	expect(
+		await screen.findByText("Connect to start or save changes."),
+	).toBeTruthy();
+	expect(mutation("workoutSessions:create")).not.toHaveBeenCalled();
+	expect(screen).toHavePathname("/probe");
+});
+
+it("waits for an unresolved active session instead of starting", async () => {
+	active = undefined;
+	await mount();
+	await fireEvent.press(
+		await screen.findByRole("button", { name: "Train now" }),
+	);
+	expect(
+		await screen.findByText(
+			"Checking your active session. Please try again shortly.",
+		),
+	).toBeTruthy();
+	expect(mutation("workoutSessions:create")).not.toHaveBeenCalled();
+});
+
+it("stays put with a message when adding to the active session fails", async () => {
+	active = { _id: "active-1", exercises: [] };
+	await mount();
+	mutation("workoutSessions:addExercise").mockRejectedValue(new Error("nope"));
+	await fireEvent.press(
+		await screen.findByRole("button", { name: "Train now" }),
+	);
+	await fireEvent.press(
+		await screen.findByRole("button", { name: "Add to session" }),
+	);
+	expect(
+		await screen.findByText("Could not add the exercise to your session."),
+	).toBeTruthy();
+	expect(screen).toHavePathname("/probe");
 });

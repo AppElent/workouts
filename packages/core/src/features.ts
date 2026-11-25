@@ -216,7 +216,8 @@ export const FEATURES = defineFeatures([
 		},
 	},
 	{
-		// Editing an exercise is mobile-only; the web creates and removes.
+		// Editing an exercise and Train now (APP-871) are mobile-only; the web
+		// creates and removes.
 		id: "exercises",
 		kind: "product",
 		status: "parity",

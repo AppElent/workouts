@@ -610,6 +610,7 @@ describe("Train now: a session for one exercise", () => {
 			[1, 10, 40, "warmup"],
 			[3, 3, 90, "working"],
 			[2, 5, 80, "working"],
+			[4, 8, 60, "drop"],
 		] as const)
 			await logSet(athlete, {
 				sessionId: earlier,
@@ -631,8 +632,40 @@ describe("Train now: a session for one exercise", () => {
 		expect(session?.exercises?.[0]?.plannedSets).toEqual([
 			{ reps: 5, weight: 80, unit: "kg" },
 			{ reps: 3, weight: 90, unit: "kg" },
+			{ reps: 8, weight: 60, unit: "kg" },
 		]);
 		expect(session?.exercises?.[0]?.references).toBeDefined();
+	});
+
+	it("plans a personal exercise from its latest session, in its own unit", async () => {
+		const athlete = athleteOf();
+		const personal = await athlete.mutation(api.exercises.create, {
+			name: "Safety bar squat",
+			muscleGroups: [],
+			category: "compound",
+			equipment: "barbell",
+		});
+		for (const weight of [135, 185]) {
+			const sessionId = await athlete.mutation(api.workoutSessions.create, {});
+			await logSet(athlete, {
+				sessionId,
+				exerciseId: personal,
+				setNumber: 1,
+				reps: 5,
+				weight,
+				unit: "lbs",
+				setType: "working",
+			});
+			await athlete.mutation(api.workoutSessions.finish, { id: sessionId });
+		}
+		const id = await athlete.mutation(api.workoutSessions.create, {
+			exerciseId: personal,
+		});
+		const session = await athlete.query(api.workoutSessions.getById, { id });
+		expect(session?.name).toBe("Safety bar squat");
+		expect(session?.exercises?.[0]?.plannedSets).toEqual([
+			{ reps: 5, weight: 185, unit: "lbs" },
+		]);
 	});
 
 	it("refuses while another session is active, and an unknown exercise", async () => {

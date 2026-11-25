@@ -289,7 +289,8 @@ export async function planSessionExercise(
 }
 
 /**
- * The working Sets of the most recent session that logged this exercise, as
+ * The working Sets (anything but warm-ups) of the most recent session that
+ * logged one for this exercise, as
  * Planned Sets, in set order. Empty when the exercise has none yet.
  */
 export async function lastWorkingSetsAsPlan(
@@ -304,14 +305,15 @@ export async function lastWorkingSetsAsPlan(
 		)
 		.order("desc")
 		.take(100);
-	const latest = recent.find((set) => set.setType === "working");
+	// Every non-warm-up set is a working set, as the phone counts them.
+	const latest = recent.find((set) => set.setType !== "warmup");
 	if (!latest) return [];
 	const sessionSets = await ctx.db
 		.query("sets")
 		.withIndex("by_session", (q) => q.eq("sessionId", latest.sessionId))
 		.collect();
 	return sessionSets
-		.filter((set) => set.exerciseId === exerciseId && set.setType === "working")
+		.filter((set) => set.exerciseId === exerciseId && set.setType !== "warmup")
 		.sort((a, b) => a.setNumber - b.setNumber || a.loggedAt - b.loggedAt)
 		.slice(0, SET_LIMITS.plannedSets.max)
 		.map(({ reps, weight, unit }) => ({ reps, weight, unit }));
