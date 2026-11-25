@@ -284,6 +284,7 @@ function ExerciseRecap({
 									unit: s.unit,
 									reps: s.reps,
 									setType: s.setType,
+									rpe: s.rpe,
 									note,
 								},
 								strength,

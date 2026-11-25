@@ -220,6 +220,8 @@ function rowSpeech(
 	load: string,
 	copy: ReturnType<typeof useRowFacts>["copy"],
 	oneRm: string | null,
+	/** The RPE the row shows, formatted. */
+	rpe: string | null = null,
 ) {
 	const note = noteOf(row);
 	const state = row.failed
@@ -228,6 +230,8 @@ function rowSpeech(
 			? `, ${copy.logged}`
 			: "";
 	return `${setLabel}${state}, ${percent === null ? "" : fmt(copy.rowPercentSpoken, { percent })}${load}${
+		rpe === null ? "" : `, ${fmt(copy.rowRpeSpoken, { value: rpe })}`
+	}${
 		oneRm
 			? fmt(copy.rowOneRmSpoken, {
 					value: oneRm.replace("≈", ""),
@@ -271,10 +275,14 @@ export function SessionSetRow({
 					? copy.markFailure
 					: String(number);
 	const status = pending ? copy.saving : row.failed ? copy.failed : null;
+	const rpe =
+		status === null && row.done && row.rpe !== null
+			? formatNumber(row.rpe, locale, 1)
+			: null;
 	const meta =
 		status ??
-		(row.rpe !== null && row.done
-			? fmt(copy.now.rpe, { value: formatNumber(row.rpe, locale, 1) })
+		(rpe !== null
+			? fmt(copy.now.rpe, { value: rpe })
 			: showPercent && percent !== null
 				? percentText
 				: "");
@@ -283,7 +291,7 @@ export function SessionSetRow({
 		row.kind === "warmup"
 			? `${name}, ${copy.rowSetWarmup}`
 			: `${name}, ${fmt(copy.rowSet, { number })}`;
-	const label = rowSpeech(row, setLabel, percent, loadText, copy, oneRm);
+	const label = rowSpeech(row, setLabel, percent, loadText, copy, oneRm, rpe);
 	const markInk =
 		row.kind === "warmup"
 			? colors.warn

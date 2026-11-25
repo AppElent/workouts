@@ -232,6 +232,33 @@ it("shows the plan against the measured 1RM, with what each set would be worth",
 	).toHaveLength(1);
 });
 
+it.each([
+	[
+		"en",
+		"RPE 8.5",
+		/set 1, Logged, 60 percent, 60 × 8, RPE 8\.5, 1RM about 76 kilograms$/,
+	],
+	[
+		"nl",
+		"RPE 8,5",
+		/set 1, Gelogd, 60 procent, 60 × 8, RPE 8,5, 1RM ongeveer 76 kilo$/,
+	],
+])(
+	"speaks the RPE a logged row shows in %s (APP-836)",
+	async (locale, shown, spoken) => {
+		writeLocal(PREFERENCE_KEYS.locale, locale);
+		try {
+			loggedSets = [{ ...serverSet("set-1", 8, 1), rpe: 8.5 }];
+			await mount();
+			expect(await screen.findByText(shown)).toBeTruthy();
+			expect(screen.getAllByLabelText(spoken)).toHaveLength(1);
+			expect(screen.getAllByLabelText(/RPE/)).toHaveLength(1);
+		} finally {
+			writeLocal(PREFERENCE_KEYS.locale, "en");
+		}
+	},
+);
+
 it("says the session ended when it was finished elsewhere and the plan is gone", async () => {
 	await mount();
 	await screen.findByText(/Measured 1RM 100 kg/);
