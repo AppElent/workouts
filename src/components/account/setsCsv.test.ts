@@ -94,8 +94,12 @@ it("labels a hold's count as seconds and leaves reps empty", () => {
 });
 
 it("labels a Personal Exercise measured in seconds the same way", () => {
-	const csv = setsToCsv(tables([set({ weight: 0, reps: 40 })]), [
-		{ _id: "e1", name: "Side plank", measure: "seconds" },
-	]);
+	const csv = setsToCsv(
+		{
+			...tables([set({ weight: 0, reps: 40 })]),
+			exercises: [{ _id: "e1", measure: "seconds" }],
+		},
+		[],
+	);
 	expect(csv.split("\n")[1]?.split(",").slice(7, 10)).toEqual(["", "40", ""]);
 });

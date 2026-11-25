@@ -1077,7 +1077,7 @@ export function SetEditorScreen() {
 						) : null}
 						{!advanced ? null : bodyweight ? (
 							<AppText variant="secondary" style={{ color: colors.textMuted }}>
-								{text.bodyweightNote}
+								{timed ? text.holdNote : text.bodyweightNote}
 							</AppText>
 						) : (
 							<View style={[styles.insight, highlight && styles.insightOn]}>

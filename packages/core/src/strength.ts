@@ -155,7 +155,8 @@ type LoggedExercise = MeasuredExercise & { readonly equipment: Equipment };
 
 /**
  * Whether a logged set may feed One-rep Max references: an explicitly logged
- * positive load with at least one rep, on an exercise that is not bodyweight.
+ * positive load with at least one rep, on a loaded
+ * exercise (not bodyweight, not a hold).
  */
 export function isReferenceEligible(
 	set: Pick<PerformedSet, "weight" | "reps" | "performanceVerified">,
