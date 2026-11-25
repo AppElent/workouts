@@ -34,7 +34,10 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { publishableKey } from "../src/auth/config";
 import { AppConvexProvider } from "../src/convex/provider";
-import { useEndActivityWhenSignedOut } from "../src/features/strength-session/data/session-live-activity";
+import {
+	useEndActivityWhenSignedOut,
+	useRetryFailedActivityEnd,
+} from "../src/features/strength-session/data/session-live-activity";
 import { LocaleProvider, useI18n } from "../src/i18n";
 import { configureFeedbackLanguage } from "../src/observability/sentry";
 import { AppearanceProvider, useAppearance, useTokens } from "../src/theme";
@@ -127,6 +130,7 @@ function RootNavigator({ windowReady }: { windowReady: boolean }) {
 	}, [isLoaded, userId]);
 
 	useEndActivityWhenSignedOut(isLoaded, userId);
+	useRetryFailedActivityEnd();
 
 	useEffect(() => {
 		if (isLoaded && windowReady) {

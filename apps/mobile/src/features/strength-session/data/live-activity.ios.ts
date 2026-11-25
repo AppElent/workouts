@@ -96,12 +96,16 @@ const isGone = (error: unknown) =>
 const staleDateOf = (props: LiveActivityProps) =>
 	props.restEndsAt === null ? undefined : new Date(props.restEndsAt);
 
-async function end(activity: Activity) {
+/** Whether the activity is gone. */
+async function end(activity: Activity): Promise<boolean> {
 	try {
 		await activity.end("immediate");
 	} catch (error) {
-		if (!isGone(error)) reportError(error, "live-activity.end");
+		if (isGone(error)) return true;
+		reportError(error, "live-activity.end");
+		return false;
 	}
+	return true;
 }
 
 function forget() {
@@ -123,9 +127,13 @@ function markDismissed() {
 	keepOwner();
 }
 
+/** The last change was an end that failed: the next foreground retries it. */
+let endFailed = false;
+
 /** Brings the system's activities in line with `props`; null ends them all. */
 async function sync(props: LiveActivityProps | null) {
 	if (factoryFailed) return;
+	endFailed = false;
 	try {
 		restore();
 		const instances = getFactory().getInstances();
@@ -136,8 +144,9 @@ async function sync(props: LiveActivityProps | null) {
 				: undefined;
 		// Never this session's: ended right away, also from the background.
 		const extras = instances.filter((item) => item !== owned);
-		if (extras.length) await Promise.all(extras.map(end));
+		const ended = await Promise.all(extras.map(end));
 		if (!props) {
+			endFailed = ended.includes(false);
 			forget();
 			return;
 		}
@@ -173,6 +182,7 @@ async function sync(props: LiveActivityProps | null) {
 		sentKey = key;
 	} catch (error) {
 		forget();
+		endFailed = props === null;
 		// Without a factory every later change would fail the same way.
 		if (!factory) factoryFailed = true;
 		if (!isUnsupported(error) && !isGone(error))
@@ -211,4 +221,8 @@ export function showSessionActivity(props: LiveActivityProps): void {
 
 export function endSessionActivity(): void {
 	request(null);
+}
+
+export function retryFailedEnd(): void {
+	if (endFailed) request(null);
 }

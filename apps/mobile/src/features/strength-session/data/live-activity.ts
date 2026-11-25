@@ -8,3 +8,5 @@ import type { LiveActivityProps } from "./live-activity-props";
 export function showSessionActivity(_props: LiveActivityProps): void {}
 /** Ends every session activity. */
 export function endSessionActivity(): void {}
+/** Ends every session activity again when the last end failed. */
+export function retryFailedEnd(): void {}
