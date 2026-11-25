@@ -1,4 +1,4 @@
-import type { Equipment, ExerciseCategory } from "../exercise";
+import type { Equipment, ExerciseCategory, ExerciseMeasure } from "../exercise";
 
 export type DefaultExercise = {
 	_id: string;
@@ -7,6 +7,8 @@ export type DefaultExercise = {
 	category: ExerciseCategory;
 	equipment: Equipment;
 	weightIncrement?: number;
+	/** Personal Exercises only; shipped holds are named by id. Absent counts reps. */
+	measure?: ExerciseMeasure;
 	notes?: string;
 	instructions: string[];
 };

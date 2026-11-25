@@ -5,26 +5,24 @@ const empty = { signedIn: true, hasSets: false, hasOneRepMax: false };
 
 describe("overviewHint", () => {
 	it("asks a signed-in hold for a hold, not a 1RM", () => {
-		expect(overviewHint("shipped:exercise:plank", empty)).toBe(
+		expect(overviewHint(true, empty)).toBe(
 			"No holds yet. Log a hold to see your best time.",
 		);
 	});
 
 	it("hides the hold hint once the hold has sets", () => {
-		expect(
-			overviewHint("shipped:exercise:plank", { ...empty, hasSets: true }),
-		).toBeNull();
+		expect(overviewHint(true, { ...empty, hasSets: true })).toBeNull();
 	});
 
 	it("keeps the 1RM hint for rep exercises with no 1RM", () => {
-		expect(overviewHint("shipped:exercise:bench-press", empty)).toBe(
+		expect(overviewHint(false, empty)).toBe(
 			"No data yet. Log sets for this exercise to see your 1RM.",
 		);
 	});
 
 	it("hides the 1RM hint once a rep exercise has a 1RM", () => {
 		expect(
-			overviewHint("shipped:exercise:bench-press", {
+			overviewHint(false, {
 				...empty,
 				hasOneRepMax: true,
 			}),
@@ -32,7 +30,7 @@ describe("overviewHint", () => {
 	});
 
 	it("does not mention 1RM in a signed-out hold prompt", () => {
-		const hint = overviewHint("shipped:exercise:plank", {
+		const hint = overviewHint(true, {
 			...empty,
 			signedIn: false,
 		});
@@ -42,7 +40,7 @@ describe("overviewHint", () => {
 
 	it("keeps the 1RM prompt for signed-out rep exercises", () => {
 		expect(
-			overviewHint("shipped:exercise:bench-press", {
+			overviewHint(false, {
 				...empty,
 				signedIn: false,
 			}),

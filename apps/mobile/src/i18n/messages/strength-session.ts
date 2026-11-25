@@ -240,6 +240,7 @@ export const strengthSessionEn = {
 		noRefPlan: "Plan: {percent}%. Without a 1RM this stays {load}.",
 		noRefPlanEmpty: "Plan: {percent}%. Enter your 1RM to calculate the weight.",
 		bodyweightNote: "Bodyweight: no percentages or 1RM.",
+		holdNote: "Measured in seconds: no percentages or 1RM.",
 		modeSimple: "Simple view",
 		modeAdvanced: "Advanced view",
 		kindTitle: "Set type",
@@ -343,6 +344,7 @@ export const strengthSessionEn = {
 		enterOneRm: "Enter 1RM",
 		empty: "—",
 		bodyweight: "Bodyweight exercises have no 1RM.",
+		hold: "Exercises measured in seconds have no 1RM.",
 	},
 	group: {
 		title: "Repeat group",
@@ -785,6 +787,7 @@ export const strengthSessionNl: typeof strengthSessionEn = {
 		noRefPlanEmpty:
 			"Plan: {percent}%. Vul je 1RM in om het gewicht te berekenen.",
 		bodyweightNote: "Lichaamsgewicht: geen percentages of 1RM.",
+		holdNote: "Gemeten in seconden: geen percentages of 1RM.",
 		modeSimple: "Eenvoudige weergave",
 		modeAdvanced: "Geavanceerde weergave",
 		kindTitle: "Soort set",
@@ -891,6 +894,7 @@ export const strengthSessionNl: typeof strengthSessionEn = {
 		enterOneRm: "1RM invoeren",
 		empty: "—",
 		bodyweight: "Oefeningen op lichaamsgewicht hebben geen 1RM.",
+		hold: "Oefeningen gemeten in seconden hebben geen 1RM.",
 	},
 	group: {
 		title: "Groep herhalen",

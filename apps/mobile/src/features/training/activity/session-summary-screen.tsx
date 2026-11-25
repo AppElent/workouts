@@ -5,7 +5,7 @@
 import {
 	formatDurationMinutes,
 	formatScore,
-	isTimedExercise,
+	timedLookup,
 	toKg,
 	workingVolume,
 } from "@foundry/core";
@@ -62,6 +62,8 @@ export function SessionSummaryScreen() {
 		for (const e of exercises ?? []) map.set(e._id, e.name);
 		return map;
 	}, [exercises]);
+
+	const isTimed = useMemo(() => timedLookup(exercises ?? []), [exercises]);
 
 	/** One group per exercise, in the order the session worked through them. */
 	const groups = useMemo(() => {
@@ -120,7 +122,7 @@ export function SessionSummaryScreen() {
 	const duration = session.endTime
 		? formatDurationMinutes(session.endTime - session.startTime)
 		: null;
-	const volume = workingVolume(sets);
+	const volume = workingVolume(sets, isTimed);
 
 	return (
 		<ScrollView
@@ -163,7 +165,7 @@ export function SessionSummaryScreen() {
 								key={group.exerciseId}
 								name={group.name}
 								sets={group.sets}
-								timed={isTimedExercise(group.exerciseId)}
+								timed={isTimed(group.exerciseId)}
 							/>
 						))}
 					</View>

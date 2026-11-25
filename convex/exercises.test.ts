@@ -134,3 +134,77 @@ it("stores muscle groups lowercased once each and no increment for bodyweight", 
 	expect(exercise?.muscleGroups).toEqual(["chest"]);
 	expect(exercise?.weightIncrement).toBeUndefined();
 });
+
+it("stores the measure and keeps it when an older app's edit leaves it out", async () => {
+	const alice = convexTest(schema, modules).withIdentity({ subject: "alice" });
+	const id = await alice.mutation(api.exercises.create, {
+		...values,
+		measure: "seconds",
+	});
+	await alice.mutation(api.exercises.update, {
+		id,
+		...values,
+		name: "Renamed",
+	});
+	expect(await alice.query(api.exercises.getById, { id })).toMatchObject({
+		name: "Renamed",
+		measure: "seconds",
+	});
+	const reps = await alice.mutation(api.exercises.create, values);
+	expect(
+		(await alice.query(api.exercises.getById, { id: reps }))?.measure,
+	).toBeUndefined();
+});
+
+it("drops and restores set-derived references when the measure changes", async () => {
+	const t = convexTest(schema, modules);
+	const alice = t.withIdentity({ subject: "alice" });
+	const id = await alice.mutation(api.exercises.create, values);
+	await t.run(async (ctx) => {
+		const sessionId = await ctx.db.insert("workoutSessions", {
+			userId: "alice",
+			date: 1,
+			startTime: 1,
+			status: "completed",
+		});
+		await ctx.db.insert("sets", {
+			userId: "alice",
+			sessionId,
+			exerciseId: id,
+			setNumber: 1,
+			reps: 1,
+			weight: 80,
+			unit: "kg",
+			setType: "working",
+			loggedAt: 1,
+			performanceVerified: true,
+		});
+		await ctx.db.insert("oneRepMaxes", {
+			userId: "alice",
+			exerciseId: id,
+			value: 90,
+			unit: "kg",
+			date: 1,
+			source: "manual",
+		});
+	});
+	const state = () =>
+		t.run(async (ctx) => ({
+			sets: (await ctx.db.query("sets").collect()).map((set) => [
+				set.reps,
+				set.referenceValueKg ?? null,
+			]),
+			maxes: (await ctx.db.query("oneRepMaxes").collect())
+				.map((max) => max.value)
+				.sort(),
+		}));
+	const measure = (value: "reps" | "seconds") =>
+		alice.mutation(api.exercises.update, { id, ...values, measure: value });
+
+	await measure("seconds");
+	expect(await state()).toEqual({ sets: [[1, null]], maxes: [90] });
+	await measure("reps");
+	expect(await state()).toEqual({ sets: [[1, 80]], maxes: [80, 90] });
+	await measure("seconds");
+	expect(await state()).toEqual({ sets: [[1, null]], maxes: [90] });
+});

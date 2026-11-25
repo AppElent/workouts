@@ -31,6 +31,16 @@ const EQUIPMENT_TRAITS: Readonly<
 	other: { loaded: true, step: 2.5 },
 };
 
+/** What a Set's count (`reps`) holds. A Personal Exercise without one counts reps. */
+export const EXERCISE_MEASURES = ["reps", "seconds"] as const;
+export type ExerciseMeasure = (typeof EXERCISE_MEASURES)[number];
+
+/** What tells reps from seconds: the shipped id, or a Personal Exercise's measure. */
+export type MeasuredExercise = {
+	readonly _id?: string;
+	readonly measure?: ExerciseMeasure;
+};
+
 export function isLoadedEquipment(equipment: Equipment): boolean {
 	return EQUIPMENT_TRAITS[equipment].loaded;
 }
@@ -39,7 +49,7 @@ export function isLoadedEquipment(equipment: Equipment): boolean {
  * Shipped exercises measured as a held time. A Set on one of these records
  * seconds in its count (`reps`) field: "45" on a Plank is a 45-second hold.
  * Timed Sets never feed One-rep Max references, rep maxes, or work volume.
- * Personal exercises are always counted in reps.
+ * A Personal Exercise says it with its own `measure`.
  */
 const TIMED_EXERCISE_IDS: ReadonlySet<string> = new Set([
 	"shipped:exercise:plank",
@@ -60,15 +70,44 @@ export const TIMED_STEP_SECONDS = 5;
 export const TIMED_LONG_HOLD_SECONDS = 600;
 
 /** How far one step moves a Set's count: seconds in fives, reps one at a time. */
-export function countStep(exerciseId: string | null | undefined): number {
-	return isTimedExercise(exerciseId) ? TIMED_STEP_SECONDS : 1;
+export function countStep(timed: boolean): number {
+	return timed ? TIMED_STEP_SECONDS : 1;
 }
 
 /** Whether a Set on this exercise counts seconds held instead of reps. */
 export function isTimedExercise(
-	exerciseId: string | null | undefined,
+	exercise: MeasuredExercise | null | undefined,
 ): boolean {
-	return !!exerciseId && TIMED_EXERCISE_IDS.has(exerciseId);
+	return exerciseMeasure(exercise) === "seconds";
+}
+
+export function exerciseMeasure(
+	exercise: MeasuredExercise | null | undefined,
+): ExerciseMeasure {
+	if (exercise?._id && TIMED_EXERCISE_IDS.has(exercise._id)) return "seconds";
+	return exercise?.measure ?? "reps";
+}
+
+/** Answers `isTimedExercise` by id; shipped holds count even while `exercises` loads. */
+export type TimedLookup = (exerciseId: string) => boolean;
+export function timedLookup(
+	exercises: readonly (MeasuredExercise & { readonly _id: string })[],
+): TimedLookup {
+	const timed = new Set<string>([
+		...TIMED_EXERCISE_IDS,
+		...exercises.filter(isTimedExercise).map((exercise) => exercise._id),
+	]);
+	return (exerciseId) => timed.has(exerciseId);
+}
+
+/**
+ * Whether a Set's load is the weight lifted, so it can feed One-rep Max
+ * references. A hold's load is added weight, as on a bodyweight exercise.
+ */
+export function isLoadedExercise(
+	exercise: MeasuredExercise & { readonly equipment: Equipment },
+): boolean {
+	return isLoadedEquipment(exercise.equipment) && !isTimedExercise(exercise);
 }
 
 export const EXERCISE_CATEGORIES = ["compound", "isolation"] as const;
@@ -165,6 +204,7 @@ export type ExerciseInput = {
 	readonly equipment: Equipment;
 	readonly notes?: string;
 	readonly weightIncrement?: number;
+	readonly measure?: ExerciseMeasure;
 };
 
 type Normalized<T extends ExerciseInput> = Omit<

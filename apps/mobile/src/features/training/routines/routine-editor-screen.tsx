@@ -1,8 +1,4 @@
-import {
-	countStep,
-	isTimedExercise,
-	TIMED_DEFAULT_SECONDS,
-} from "@foundry/core";
+import { countStep, TIMED_DEFAULT_SECONDS, timedLookup } from "@foundry/core";
 import type { Exercise, ExerciseId } from "@foundry/core/exercises";
 /**
  * Build or change a routine: one screen that starts empty or starts full.
@@ -15,7 +11,7 @@ import type { Exercise, ExerciseId } from "@foundry/core/exercises";
  * should ask.
  */
 import { useMutation } from "convex/react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { api, type Id } from "../../../convex/api";
 import { useExercises } from "../../../data/exercises";
@@ -88,6 +84,7 @@ function RoutineEditorForm({
 	const createRoutine = useMutation(api.routines.create);
 	const updateRoutine = useMutation(api.routines.update);
 
+	const isTimed = useMemo(() => timedLookup(exercises), [exercises]);
 	const [name, setName] = useState(routine?.name ?? "");
 	const [entries, setEntries] = useState<Entry[]>(
 		() =>
@@ -188,12 +185,10 @@ function RoutineEditorForm({
 									onChange={(value) => patch(index, { defaultSets: value })}
 								/>
 								<StepperField
-									label={
-										isTimedExercise(entry.exerciseId) ? copy.seconds : copy.reps
-									}
+									label={isTimed(entry.exerciseId) ? copy.seconds : copy.reps}
 									value={entry.defaultReps}
 									min={1}
-									step={countStep(entry.exerciseId)}
+									step={countStep(isTimed(entry.exerciseId))}
 									onChange={(value) => patch(index, { defaultReps: value })}
 								/>
 								<StepperField
@@ -224,9 +219,7 @@ function RoutineEditorForm({
 										exerciseId: id,
 										name: found?.name ?? copy.exercise,
 										defaultSets: 3,
-										defaultReps: isTimedExercise(id)
-											? TIMED_DEFAULT_SECONDS
-											: 8,
+										defaultReps: isTimed(id) ? TIMED_DEFAULT_SECONDS : 8,
 										defaultWeight: 0,
 									},
 								],

@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing Training, Start activity, Strength Sessions, the set editor, Set Drafts, or strength references.
-version: 2.2.1
+version: 2.3.0
 status: current
 ---
 
@@ -113,7 +113,7 @@ the app; there is no separate data.
 
 - **Personal Exercises:** `create_exercise` reuses the in-app create path and
   returns the caller's existing Personal Exercise with the same name (ignoring
-  case) instead of a duplicate.
+  case) instead of a duplicate. It takes the measure, reps unless given.
 - **Routines:** `create_routine` uses the in-app create path, with its set, rep,
   and load limits and exercise ownership checks. Like the editors, it requires a
   name and at least one exercise and takes each exercise once. A retry with the
@@ -181,6 +181,20 @@ the app; there is no separate data.
 - In a session it opens from the set editor menu, the exercise menu, and a direct
   Krachtprofiel action on the current exercise card, beside Add set (hidden for
   bodyweight exercises).
+
+### Holds
+
+- A Personal Exercise is measured in reps or seconds, chosen when it is created
+  (phone and web) and changeable when it is edited (phone). Quick create inside a session makes a
+  reps exercise. Absent means reps, so
+  every earlier exercise keeps counting reps; an edit that leaves the measure out
+  keeps it, so an older app never clears one. Shipped holds are fixed by id.
+- A hold reads and logs seconds everywhere, stepped in fives from 30. Its load is
+  optional added weight on any equipment, and its Sets never feed One-rep Max
+  references, rep maxes, percentages, or work volume.
+- Sets carry no measure of their own: switching an exercise re-reads the Sets
+  already logged, which the phone's form says, and drops or restores their
+  set-derived references. Manual 1RMs and the logged numbers stay.
 
 ### Krachtprofiel outside a session
 

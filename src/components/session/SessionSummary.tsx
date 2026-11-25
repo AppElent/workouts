@@ -3,7 +3,7 @@ import type { Doc } from "@convex/_generated/dataModel";
 import {
 	formatDurationMinutes,
 	formatScore,
-	isTimedExercise,
+	timedLookup,
 	toKg,
 	workingVolume,
 } from "@foundry/core";
@@ -47,7 +47,8 @@ export function SessionSummary({ session, sets, exerciseMap }: Props) {
 		? session.endTime - session.startTime
 		: null;
 
-	const totalVolume = Math.round(workingVolume(sets));
+	const isTimed = timedLookup([...exerciseMap.values()]);
+	const totalVolume = Math.round(workingVolume(sets, isTimed));
 
 	const exerciseIds: string[] = [];
 	for (const s of sets) {
@@ -168,18 +169,16 @@ export function SessionSummary({ session, sets, exerciseMap }: Props) {
 										}`}
 									>
 										{i + 1}. {s.weight > 0 ? `${s.weight}kg` : "BW"} ×{" "}
-										{setCount(s)}
+										{setCount(s, isTimed(ex.id))}
 									</span>
 								))}
 							</div>
-							{ex.bestSet &&
-								ex.bestSet.weight > 0 &&
-								!isTimedExercise(ex.id) && (
-									<p className="text-xs text-text-muted mt-2">
-										Best: {ex.bestSet.weight}
-										{ex.bestSet.unit} × {ex.bestSet.reps} reps
-									</p>
-								)}
+							{ex.bestSet && ex.bestSet.weight > 0 && !isTimed(ex.id) && (
+								<p className="text-xs text-text-muted mt-2">
+									Best: {ex.bestSet.weight}
+									{ex.bestSet.unit} × {ex.bestSet.reps} reps
+								</p>
+							)}
 						</div>
 					))
 				)}

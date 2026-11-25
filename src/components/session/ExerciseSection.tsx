@@ -4,7 +4,7 @@ import {
 	convertLoad,
 	countStep,
 	getWeightStep,
-	isLoadedEquipment,
+	isLoadedExercise,
 	isTimedExercise,
 	type LoadUnit,
 	SET_LIMITS,
@@ -13,7 +13,7 @@ import {
 	TIMED_DEFAULT_SECONDS,
 	validateSetInput,
 } from "@foundry/core";
-import type { Exercise, ExerciseId } from "@foundry/core/exercises";
+import type { Exercise } from "@foundry/core/exercises";
 import { useMutation, useQuery } from "convex/react";
 import type { FunctionArgs } from "convex/server";
 import { ConvexError } from "convex/values";
@@ -28,28 +28,18 @@ import { SetCard } from "./SetCard";
 import { SetRow } from "./SetRow";
 
 interface Props {
-	exerciseId: ExerciseId;
-	exerciseName: string;
-	equipment: Exercise["equipment"];
-	weightIncrement?: number;
+	exercise: Exercise;
 	sessionId: Id<"workoutSessions">;
 	sets: Doc<"sets">[];
 	plannedSets: { reps: number; weight: number; unit: LoadUnit }[];
 	repeated: Doc<"sets"> | null;
 	busy: boolean;
 	write: (action: () => Promise<unknown>) => Promise<boolean>;
-	onEditSet: (
-		set: Doc<"sets">,
-		exerciseName: string,
-		weightStep: number,
-	) => void;
+	onEditSet: (set: Doc<"sets">, exercise: Exercise, weightStep: number) => void;
 }
 
 export function ExerciseSection({
-	exerciseId,
-	exerciseName,
-	equipment,
-	weightIncrement,
+	exercise,
 	sessionId,
 	sets,
 	onEditSet,
@@ -58,6 +48,7 @@ export function ExerciseSection({
 	busy,
 	write,
 }: Props) {
+	const { _id: exerciseId, name: exerciseName, equipment } = exercise;
 	const toast = useToast();
 	const errorMessage = useConvexErrorMessage();
 	const [attempt, setAttempt] = useState<FunctionArgs<
@@ -71,15 +62,14 @@ export function ExerciseSection({
 		excludeSessionId: sessionId,
 	});
 
-	const isBodyweight = !isLoadedEquipment(equipment);
+	const isBodyweight = !isLoadedExercise(exercise);
 	/** A hold: the set's count is seconds, stepped in fives. */
-	const timed = isTimedExercise(exerciseId);
+	const timed = isTimedExercise(exercise);
 	const countLabel = timed ? "Seconds" : "Reps";
 	const defaultCount = timed ? TIMED_DEFAULT_SECONDS : 8;
-	const weightStep = getWeightStep(equipment, weightIncrement);
+	const weightStep = getWeightStep(equipment, exercise.weightIncrement);
 
-	const handleEdit = (set: Doc<"sets">) =>
-		onEditSet(set, exerciseName, weightStep);
+	const handleEdit = (set: Doc<"sets">) => onEditSet(set, exercise, weightStep);
 
 	const [weight, setWeight] = useState(() => {
 		const previous = sets.at(-1);
@@ -94,7 +84,7 @@ export function ExerciseSection({
 
 	const consumedRepeat = useRef<Doc<"sets"> | null>(null);
 	const valid = validateSetInput({ weight, reps, rpe }).ok;
-	const isBarbell = equipment === "barbell";
+	const isBarbell = equipment === "barbell" && !timed;
 	useEffect(() => {
 		if (!repeated || attempt || consumedRepeat.current === repeated) return;
 		consumedRepeat.current = repeated;
@@ -201,7 +191,12 @@ export function ExerciseSection({
 						</thead>
 						<tbody>
 							{sets.map((set) => (
-								<SetRow key={set._id} set={set} onEdit={handleEdit} />
+								<SetRow
+									key={set._id}
+									set={set}
+									timed={timed}
+									onEdit={handleEdit}
+								/>
 							))}
 						</tbody>
 					</table>
@@ -211,7 +206,12 @@ export function ExerciseSection({
 			{sets.length > 0 && (
 				<div className="flex sm:hidden flex-col gap-2 mb-4">
 					{sets.map((set) => (
-						<SetCard key={set._id} set={set} onEdit={handleEdit} />
+						<SetCard
+							key={set._id}
+							set={set}
+							timed={timed}
+							onEdit={handleEdit}
+						/>
 					))}
 				</div>
 			)}
@@ -268,7 +268,7 @@ export function ExerciseSection({
 					<Stepper
 						value={reps}
 						onChange={setReps}
-						step={countStep(exerciseId)}
+						step={countStep(timed)}
 						min={SET_LIMITS.reps.min}
 						max={SET_LIMITS.reps.max}
 						label={countLabel}

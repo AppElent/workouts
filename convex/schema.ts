@@ -7,6 +7,7 @@ import {
 	enduranceSport,
 	equipment,
 	exerciseCategory,
+	exerciseMeasure,
 	exerciseReference,
 	hostedLevel,
 	libraryCategory,
@@ -219,6 +220,9 @@ export default defineSchema({
 		notes: v.optional(v.string()),
 		instructions: v.optional(v.array(v.string())),
 		weightIncrement: v.optional(v.number()),
+		// What its sets' `reps` hold. Absent, as on every row from before the field
+		// existed, counts reps.
+		measure: v.optional(exerciseMeasure),
 		// New rows are personal. `isDefault` rows without a `userId` are retained
 		// copies of the catalog that used to be seeded; `shippedExerciseId` names
 		// their shipped exercise.

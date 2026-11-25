@@ -28,8 +28,9 @@ export function formatSetShort(
 	const load = formatNumber(shownLoad(row), locale, row.unit === "lbs" ? 1 : 2);
 	const count = countOf(row, kind, locale);
 	if (kind.timed && kind.bodyweight && !(row.kg > 0)) return count;
-	if (kind.bodyweight) return `+${load} × ${count}`;
-	return row.unit === "lbs" ? `${load} lbs × ${count}` : `${load} × ${count}`;
+	const sign = kind.bodyweight ? "+" : "";
+	const unit = row.unit === "lbs" ? " lbs" : "";
+	return `${sign}${load}${unit} × ${count}`;
 }
 /** "95 kg × 5", used where the load stands on its own. */
 export function formatSetFull(
@@ -47,7 +48,7 @@ export function formatLoadOnly(
 	locale: string,
 ) {
 	const load = formatNumber(shownLoad(row), locale, row.unit === "lbs" ? 1 : 2);
-	return kind.bodyweight ? `+${load} kg` : `${load} ${row.unit}`;
+	return `${kind.bodyweight ? "+" : ""}${load} ${row.unit}`;
 }
 /** Reads a 1RM in the same unit as the set it came from. */
 export function formatOneRm(valueKg: number, unit: LoadUnit, locale: string) {

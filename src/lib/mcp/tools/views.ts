@@ -476,7 +476,7 @@ export const viewTools = [
 				if (set.loggedAt < fromMs || set.setType === "warmup") continue;
 				if (set.reps < 1 || set.weight <= 0) continue;
 				// A hold counts seconds, not reps: no load progress or e1RM.
-				if (isTimedExercise(set.exerciseId)) continue;
+				if (isTimedExercise(exercise)) continue;
 				const weight = round1(convertLoad(set.weight, set.unit, unit));
 				const value =
 					metric === "e1rm"

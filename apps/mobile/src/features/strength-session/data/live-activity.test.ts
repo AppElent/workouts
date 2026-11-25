@@ -190,7 +190,7 @@ describe("nextSetOf", () => {
 			],
 			facts,
 		);
-		expect(nextSetOf(plan)).toEqual({
+		expect(nextSetOf(plan, false)).toEqual({
 			exerciseId: "squat",
 			setIndex: 2,
 			setCount: 2,
@@ -215,7 +215,7 @@ describe("nextSetOf", () => {
 		plan.sets.squat = (plan.sets.squat ?? []).map((row) =>
 			withTypedLoad(switchUnit(row, "lbs", facts()), 225),
 		);
-		expect(nextSetOf(plan)).toMatchObject({
+		expect(nextSetOf(plan, false)).toMatchObject({
 			unit: "lbs",
 			typedLbs: 225,
 			kg: convertLoad(225, "lbs", "kg"),
@@ -239,9 +239,12 @@ describe("nextSetOf", () => {
 		const [warmup, ...working] = plan.sets.squat ?? [];
 		if (!warmup) throw new Error("no rows");
 		plan.sets.squat = [{ ...warmup, kind: "warmup" }, ...working];
-		expect(nextSetOf(plan)).toMatchObject({ setIndex: null, setCount: null });
+		expect(nextSetOf(plan, false)).toMatchObject({
+			setIndex: null,
+			setCount: null,
+		});
 		plan.sets.squat = [{ ...warmup, kind: "warmup", done: true }, ...working];
-		expect(nextSetOf(plan)).toMatchObject({ setIndex: 1, setCount: 2 });
+		expect(nextSetOf(plan, false)).toMatchObject({ setIndex: 1, setCount: 2 });
 	});
 	it("offers one more set like the last once a free exercise is done", () => {
 		const plan = seedPlan(
@@ -259,7 +262,7 @@ describe("nextSetOf", () => {
 			plan: undefined,
 			done: true,
 		}));
-		expect(nextSetOf(plan)).toEqual({
+		expect(nextSetOf(plan, false)).toEqual({
 			exerciseId: "squat",
 			setIndex: 2,
 			setCount: 2,
@@ -273,15 +276,18 @@ describe("nextSetOf", () => {
 		const plan = seedPlan(
 			[
 				{
-					exerciseId: "shipped:exercise:plank",
+					exerciseId: "personal-hold",
 					plannedSets: [{ reps: 60, weight: 0, unit: "kg" }],
 				},
 			],
 			[],
 			facts,
 		);
-		expect(nextSetOf(plan)).toMatchObject({ reps: null, durationSeconds: 60 });
-		expect(nextSetOf(null)).toBeNull();
+		expect(nextSetOf(plan, true)).toMatchObject({
+			reps: null,
+			durationSeconds: 60,
+		});
+		expect(nextSetOf(null, false)).toBeNull();
 	});
 });
 

@@ -3,7 +3,9 @@ import {
 	EQUIPMENT,
 	type Equipment,
 	EXERCISE_CATEGORIES,
+	EXERCISE_MEASURES,
 	type ExerciseCategory,
+	type ExerciseMeasure,
 	isLoadedEquipment,
 	validateExerciseInput,
 } from "@foundry/core";
@@ -22,6 +24,7 @@ type Draft = {
 	muscleGroupsRaw: string;
 	category: ExerciseCategory;
 	equipment: Equipment;
+	measure: ExerciseMeasure;
 	notes: string;
 	weightIncrement: number | undefined;
 };
@@ -48,6 +51,7 @@ export function AddExerciseForm({
 			muscleGroupsRaw: "",
 			category: "compound",
 			equipment: "barbell",
+			measure: "reps",
 			notes: "",
 			weightIncrement: undefined,
 		} as Draft,
@@ -177,6 +181,33 @@ export function AddExerciseForm({
 								{EQUIPMENT.map((eq) => (
 									<option key={eq} value={eq} className="capitalize">
 										{eq.charAt(0).toUpperCase() + eq.slice(1)}
+									</option>
+								))}
+							</select>
+						</div>
+					)}
+				</form.Field>
+
+				<form.Field name="measure">
+					{(field) => (
+						<div className="flex flex-col gap-1">
+							<label
+								htmlFor="exercise-measure"
+								className="text-xs text-text-muted"
+							>
+								Measured in
+							</label>
+							<select
+								id="exercise-measure"
+								className="h-9 rounded-md border border-border bg-surface-2 px-3 text-sm text-text focus:outline-none focus:ring-1 focus:ring-accent-ink"
+								value={field.state.value}
+								onChange={(e) =>
+									field.handleChange(e.target.value as ExerciseMeasure)
+								}
+							>
+								{EXERCISE_MEASURES.map((measure) => (
+									<option key={measure} value={measure}>
+										{measure.charAt(0).toUpperCase() + measure.slice(1)}
 									</option>
 								))}
 							</select>

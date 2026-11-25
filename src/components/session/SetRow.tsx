@@ -4,10 +4,12 @@ import { setCount, setReference } from "#/lib/load";
 
 interface Props {
 	set: Doc<"sets">;
+	/** A hold: the count is seconds. */
+	timed: boolean;
 	onEdit: (set: Doc<"sets">) => void;
 }
 
-export function SetRow({ set, onEdit }: Props) {
+export function SetRow({ set, timed, onEdit }: Props) {
 	const orm = setReference(set);
 
 	return (
@@ -34,7 +36,7 @@ export function SetRow({ set, onEdit }: Props) {
 				)}
 			</td>
 			<td className="py-2 pr-3 w-16">
-				<span className="text-text">{setCount(set)}</span>
+				<span className="text-text">{setCount(set, timed)}</span>
 			</td>
 			<td className="py-2 pr-3 w-16">
 				<span className="text-text-muted">{set.rpe ?? "—"}</span>

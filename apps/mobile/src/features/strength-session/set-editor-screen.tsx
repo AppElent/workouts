@@ -378,7 +378,7 @@ export function SetEditorScreen() {
 	const bodyweight = facts.bodyweight;
 	const timed = facts.timed;
 	/** Seconds move in fives on a hold; reps move one at a time. */
-	const countStep = countStepFor(row.exerciseId);
+	const countStep = countStepFor(facts.timed);
 	const group = groupOfRow(plan, row.id);
 	const roundIndex = group
 		? group.rounds.findIndex((round) =>
@@ -558,6 +558,7 @@ export function SetEditorScreen() {
 			: text.levelsNoWeight;
 	const plateLine =
 		exercise?.equipment === "barbell" &&
+		!bodyweight &&
 		row.unit === "kg" &&
 		row.kg >= DEFAULT_BAR.kg
 			? (() => {
@@ -1076,7 +1077,7 @@ export function SetEditorScreen() {
 						) : null}
 						{!advanced ? null : bodyweight ? (
 							<AppText variant="secondary" style={{ color: colors.textMuted }}>
-								{text.bodyweightNote}
+								{timed ? text.holdNote : text.bodyweightNote}
 							</AppText>
 						) : (
 							<View style={[styles.insight, highlight && styles.insightOn]}>

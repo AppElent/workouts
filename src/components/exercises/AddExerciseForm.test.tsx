@@ -55,6 +55,20 @@ describe("AddExerciseForm", () => {
 		);
 	});
 
+	it("counts reps unless Seconds is chosen", async () => {
+		createExercise.mockResolvedValue("exercise-id");
+		const onSuccess = renderForm();
+		fill(/^Name/, "Side plank");
+		const measure = screen.getByRole("combobox", { name: "Measured in" });
+		expect(measure).toHaveProperty("value", "reps");
+		fireEvent.change(measure, { target: { value: "seconds" } });
+		submit();
+		await waitFor(() => expect(onSuccess).toHaveBeenCalled());
+		expect(createExercise).toHaveBeenCalledWith(
+			expect.objectContaining({ name: "Side plank", measure: "seconds" }),
+		);
+	});
+
 	it("saves an exercise without muscle groups and no increment for bodyweight", async () => {
 		createExercise.mockResolvedValue("exercise-id");
 		const onSuccess = renderForm();
