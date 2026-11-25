@@ -47,6 +47,12 @@ export const PREFERENCE_KEYS = {
 	nutritionAiWebSearch: asKey("workouts:nutrition-ai-web-search"),
 } as const;
 
+/** State of this phone that is not a preference and outlives a launch. */
+export const DEVICE_KEYS = {
+	/** The running Live Activity and the session it shows (`live-activity.ios.ts`). */
+	liveActivity: asKey("workouts:live-activity"),
+} as const;
+
 const reportedOperations = new Set<string>();
 function failed(operation: string, error: unknown) {
 	if (reportedOperations.has(operation)) return;

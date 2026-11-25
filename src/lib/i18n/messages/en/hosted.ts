@@ -1,4 +1,60 @@
+type HostedStatus = "draft" | "open" | "closed";
+
 export const hosted = {
+	paused: {
+		title: "Hosted Workouts are paused",
+		description:
+			"Hosting and joining group workouts is switched off for now. Your own sessions, WODs, and scores are not affected.",
+		home: "Go to Foundry",
+	},
+	join: {
+		loading: "Loading...",
+		notFound: "Hosted workout not found.",
+		status: {
+			draft: "Draft",
+			open: "Open",
+			closed: "Closed",
+		} satisfies Record<HostedStatus, string>,
+		yourName: "Your name",
+		namePlaceholder: "Name on leaderboard",
+		join: "Join workout",
+		joining: "Joining...",
+		joinFailed: "Failed to join workout.",
+		signIn: "Sign in to join",
+		closed: "This workout has closed. Scores are final.",
+		notStarted:
+			"This workout hasn't started yet. Check back once the host opens it.",
+		host: "Host",
+		signedInAthlete: "Signed-in athlete",
+	},
+	guest: {
+		name: "Guest name",
+		namePlaceholder: "Name on leaderboard",
+		submit: "Submit guest score",
+	},
+	blocks: {
+		strength: "Strength",
+		timeCap: "Time cap {time}",
+		minutes: "{count} min",
+		noMovements: "No movements",
+		rank: "#",
+		athlete: "Athlete",
+		level: "Level",
+		score: "Score",
+		noScores: "No scores yet.",
+		removeScore: "Remove score",
+	},
+	scoreForm: {
+		title: "Submit score",
+		submit: "Submit score",
+		submitHosted: "Submit hosted score",
+		submitting: "Submitting...",
+		submitted: "Score submitted.",
+		failed: "Failed to submit score.",
+		wod: "WOD",
+		notes: "Notes (optional)",
+		noWods: "This hosted workout has no WOD scores to submit.",
+	},
 	claim: {
 		title: { one: "Keep your guest score", other: "Keep your guest scores" },
 		signedIn: {

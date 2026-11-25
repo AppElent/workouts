@@ -3,6 +3,7 @@ import type { GenericTableInfo, Query } from "convex/server";
 import { v } from "convex/values";
 import type { Id, TableNames } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
+import { appError } from "./errors";
 import { literals } from "./validators";
 
 type Db = QueryCtx["db"];
@@ -180,8 +181,9 @@ type PersonalTable = keyof typeof sources;
 const all: Record<PersonalTable, Source> = sources;
 
 /**
- * Hosted events other accounts take part in; `personalDataBlocker` keeps them
- * from being deleted with one account's data.
+ * Hosted events other accounts take part in. Account deletion removes them
+ * with `deleteHostedWorkoutData` (`lib/hosted.ts`); a test-data reset is
+ * refused instead (`personalDataBlocker`).
  */
 type SharedTable =
 	| "hostedWorkouts"
@@ -215,29 +217,80 @@ export function readPersonalTable(db: Db, table: ExportTable, userId: string) {
 	return all[table].read(db, userId);
 }
 
+export type ExportCursor = { table: string; cursor: string | null } | null;
+
+/** Rows per export page; bounded so a page stays within one query's limits. */
+export const EXPORT_PAGE_SIZE = 200;
+
+/**
+ * One bounded page of the account export, walking `exportTables` in order:
+ * the cursor names the table and its Convex cursor. Shared by the in-app
+ * export (`exportData.personalPage`) and the account portal.
+ */
+export async function readExportStep(
+	db: Db,
+	userId: string,
+	cursor: ExportCursor,
+) {
+	const index = cursor ? exportTables.indexOf(cursor.table as ExportTable) : 0;
+	if (index < 0) throw appError("invalid", "cursor");
+	const table = exportTables[index];
+	const page = await readPersonalTable(db, table, userId).paginate({
+		cursor: cursor?.cursor ?? null,
+		numItems: EXPORT_PAGE_SIZE,
+	});
+	const following = exportTables[index + 1];
+	const next: ExportCursor = !page.isDone
+		? { table, cursor: page.continueCursor }
+		: following
+			? { table: following, cursor: null }
+			: null;
+	return { table, rows: page.page, next };
+}
+
 const PERSONAL_DATA_BLOCKERS = [
 	"activeActivity",
 	"hostedWorkout",
 ] as const satisfies readonly AppErrorCode[];
 type PersonalDataBlocker = (typeof PERSONAL_DATA_BLOCKERS)[number];
 
+export const personalDataBlockerCode = literals(PERSONAL_DATA_BLOCKERS);
 export const personalDataBlockerValidator = v.union(
-	literals(PERSONAL_DATA_BLOCKERS),
+	personalDataBlockerCode,
 	v.null(),
 );
 
-/** Running Activities and shared events make deleting personal records unsafe. */
-export async function personalDataBlocker(
-	ctx: QueryCtx | MutationCtx,
-	userId: string,
-): Promise<PersonalDataBlocker | null> {
-	const active = await ctx.db
+function runningActivity(ctx: QueryCtx | MutationCtx, userId: string) {
+	return ctx.db
 		.query("workoutSessions")
 		.withIndex("by_user_status", (q) =>
 			q.eq("userId", userId).eq("status", "active"),
 		)
 		.first();
-	if (active) return "activeActivity";
+}
+
+/**
+ * Why deleting the account's data in the app is unsafe: only a running
+ * Activity, which would be lost mid-session. Hosted Workouts are deleted with
+ * the account (`deleteHostedWorkoutData`), so this never answers
+ * `"hostedWorkout"`; the validator keeps it for installed clients.
+ */
+export async function accountDeletionBlocker(
+	ctx: QueryCtx | MutationCtx,
+	userId: string,
+): Promise<PersonalDataBlocker | null> {
+	return (await runningActivity(ctx, userId)) ? "activeActivity" : null;
+}
+
+/**
+ * Why a test-data reset is unsafe: a running Activity, or Hosted Workouts,
+ * which a reset would break for other accounts instead of deleting them.
+ */
+export async function personalDataBlocker(
+	ctx: QueryCtx | MutationCtx,
+	userId: string,
+): Promise<PersonalDataBlocker | null> {
+	if (await runningActivity(ctx, userId)) return "activeActivity";
 	const host = await ctx.db
 		.query("hostedWorkouts")
 		.withIndex("by_host", (q) => q.eq("hostUserId", userId))

@@ -70,6 +70,8 @@ export type WorkspaceResource = {
 export type WorkspaceGeneratedFile = {
 	path: string;
 	digest: string;
+	/** Digest without deployment selectors, which the Convex CLI may rewrite. */
+	selectorFreeDigest?: string;
 	createdByWorkspace: boolean;
 	status: "active" | "removed" | "modified" | "missing";
 };
@@ -152,6 +154,8 @@ export type WorkspaceDependencies = {
 		manifestPath?: string;
 		reference: string;
 		isolationRoot: string;
+		/** A local backend: run the Convex CLI from the checkout, not isolated. */
+		local?: boolean;
 		runCommand: WorkspaceCommandRunner;
 	}) => Promise<{ exitCode: number }>;
 	isPortAvailable?: (port: number) => Promise<boolean>;

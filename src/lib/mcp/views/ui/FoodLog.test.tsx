@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import type { App } from "@modelcontextprotocol/ext-apps";
 import {
+	act,
 	cleanup,
 	fireEvent,
 	render,
@@ -9,6 +10,7 @@ import {
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { FoodLogReviewResult, Macros } from "../types";
+import { ControlBridge } from "./appTools";
 import { FoodLog } from "./FoodLog";
 import { viewText } from "./i18n";
 
@@ -74,16 +76,18 @@ function setup(
 	});
 	const updateModelContext = vi.fn(async () => ({}));
 	const app = { callServerTool, updateModelContext } as unknown as App;
+	const bridge = new ControlBridge();
 	render(
 		<FoodLog
 			app={app}
 			result={RESULT}
 			text={viewText(locale)}
-			reload={async () => undefined}
+			reload={async () => RESULT}
 			header={null}
+			bridge={bridge}
 		/>,
 	);
-	return { calls, updateModelContext };
+	return { calls, updateModelContext, bridge };
 }
 
 const ok = (call: ToolCall): ToolResponse => ({
@@ -191,6 +195,102 @@ describe("food log view", () => {
 		await screen.findByText("Logged to your Nutrition Diary.");
 		expect(calls).toHaveLength(1);
 		expect(screen.queryByRole("button", { name: "Put Oats back" })).toBeNull();
+	});
+
+	describe("app tools", () => {
+		it("changes, removes, and adds items without logging them", async () => {
+			const { calls, bridge } = setup((call) =>
+				call.name === "review_food_log"
+					? {
+							structuredContent: {
+								...RESULT,
+								reviewId: "review-2",
+								items: [
+									{
+										foodId: "shipped:apple",
+										name: { en: "Apple", nl: "Appel" },
+										servingIndex: 0,
+										quantity: 1,
+										servings: [
+											{
+												servingIndex: 0,
+												label: { en: "1 medium", nl: "1 middel" },
+												perQuantity: macros(95),
+											},
+										],
+									},
+								],
+							},
+						}
+					: ok(call),
+			);
+			const tools = bridge;
+			const set = await act(() =>
+				tools.get("setQuantity")?.({ foodId: "shipped:banana", quantity: 3 }),
+			);
+			expect(set).toContain("3 × 1 medium Banana");
+			expect(
+				(screen.getByLabelText("Quantity of Banana") as HTMLInputElement).value,
+			).toBe("3");
+
+			const removed = await act(() =>
+				tools.get("removeItem")?.("shipped:oats"),
+			);
+			expect(removed).not.toContain("Oats");
+			expect(screen.getByText("Removed")).toBeTruthy();
+
+			const added = await act(() =>
+				tools.get("addItem")?.({
+					foodId: "shipped:apple",
+					servingIndex: 0,
+					quantity: 1,
+				}),
+			);
+			expect(added).toContain("1 × 1 medium Apple");
+			expect(added).toContain("Meal 410 kcal");
+			expect(screen.getByText("Apple")).toBeTruthy();
+			// Only the lookup ran; nothing is logged until the user presses Log.
+			expect(calls.map((call) => call.name)).toEqual(["review_food_log"]);
+			expect(calls[0].arguments).toEqual({
+				date: "2026-11-19",
+				meal: "dinner",
+				items: [{ foodId: "shipped:apple", servingIndex: 0, quantity: 1 }],
+			});
+
+			fireEvent.click(screen.getByRole("button", { name: "Log 2 items" }));
+			await screen.findByText("Logged to your Nutrition Diary.");
+			const logged = calls.filter((call) => call.name === "log_food");
+			expect(logged.map((call) => call.arguments.foodId)).toEqual([
+				"shipped:banana",
+				"shipped:apple",
+			]);
+			expect(logged[0].arguments.quantity).toBe(3);
+		});
+
+		it("refuses to change what is logged or a serving the food lacks", async () => {
+			const { bridge } = setup(ok);
+			expect(
+				await act(() =>
+					bridge.get("setQuantity")?.({
+						foodId: "shipped:oats",
+						servingIndex: 4,
+					}),
+				),
+			).toContain("no servingIndex 4");
+			fireEvent.click(logButton());
+			await screen.findByText("Logged to your Nutrition Diary.");
+			expect(
+				await act(() =>
+					bridge.get("setQuantity")?.({ foodId: "shipped:oats", quantity: 5 }),
+				),
+			).toContain("already logged");
+			expect(
+				await act(() => bridge.get("removeItem")?.("shipped:banana")),
+			).toContain("already logged");
+			expect(
+				await act(() => bridge.get("removeItem")?.("shipped:unknown")),
+			).toContain("no item with foodId shipped:unknown");
+		});
 	});
 
 	it("shows food names in the host's language", () => {

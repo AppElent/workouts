@@ -76,6 +76,13 @@ it("counts the exercise library in words, not as an object", async () => {
 	expect(screen.queryByText(/\[object Object\]/)).toBeNull();
 });
 
+it("hides the Hosted workouts entry while they are parked", async () => {
+	jest.mocked(useQueries).mockImplementation(() => ({}));
+	await renderApp("/train", { train: TrainRoute });
+	expect(await screen.findByText("WODs")).toBeTruthy();
+	expect(screen.queryByText("Hosted workouts")).toBeNull();
+});
+
 it("counts the exercise library in Dutch", async () => {
 	writeLocal(PREFERENCE_KEYS.locale, "nl");
 	jest.mocked(useQueries).mockImplementation(() => ({}));

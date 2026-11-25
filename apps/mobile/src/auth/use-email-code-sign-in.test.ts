@@ -12,20 +12,24 @@ const mockVerifyCode = jest.fn();
 const mockFinalize = jest.fn();
 const mockReset = jest.fn();
 const mockErrors = { fields: {}, global: null };
+const mockSignIn = {
+	status: "needs_first_factor",
+	emailCode: { sendCode: mockSendCode, verifyCode: mockVerifyCode },
+	finalize: mockFinalize,
+	reset: mockReset,
+};
+const mockPush = jest.fn();
 
 jest.mock("@clerk/expo", () => ({
-	useSignIn: () => ({
-		signIn: {
-			emailCode: { sendCode: mockSendCode, verifyCode: mockVerifyCode },
-			finalize: mockFinalize,
-			reset: mockReset,
-		},
-		errors: mockErrors,
-	}),
+	useSignIn: () => ({ signIn: mockSignIn, errors: mockErrors }),
+}));
+jest.mock("expo-router", () => ({
+	useRouter: () => ({ push: mockPush }),
 }));
 
 afterEach(() => {
 	jest.resetAllMocks();
+	mockSignIn.status = "needs_first_factor";
 	removeLocal(PREFERENCE_KEYS.locale);
 });
 
@@ -68,6 +72,23 @@ it("verifies the code and finalizes the session", async () => {
 	expect(mockFinalize).toHaveBeenCalled();
 });
 
+it("opens the second-factor step for an account with MFA", async () => {
+	mockVerifyCode.mockImplementation(async () => {
+		mockSignIn.status = "needs_second_factor";
+		return { error: null };
+	});
+	const { result } = await renderHook(() => useEmailCodeSignIn(), {
+		wrapper: LocaleProvider,
+	});
+	await act(() => result.current.verify("123456"));
+	expect(mockFinalize).not.toHaveBeenCalled();
+	expect(mockPush).toHaveBeenCalledWith({
+		pathname: "/sign-in-second-factor",
+		params: { from: "signIn" },
+	});
+	expect(result.current.busy).toBe(false);
+});
+
 it("does not finalize when the code is wrong", async () => {
 	mockVerifyCode.mockResolvedValue({ error: { code: "form_code_incorrect" } });
 	const { result } = await renderHook(() => useEmailCodeSignIn(), {
@@ -87,6 +108,15 @@ it("explains a wrong code in the phone's language", async () => {
 	});
 	await act(() => result.current.verify("000000"));
 	expect(result.current.error).toBe("Die code klopt niet.");
+});
+
+it("asks for a new code after too many wrong ones", async () => {
+	mockVerifyCode.mockResolvedValue({ error: { code: "verification_failed" } });
+	const { result } = await renderHook(() => useEmailCodeSignIn(), {
+		wrapper: LocaleProvider,
+	});
+	await act(() => result.current.verify("000000"));
+	expect(result.current.error).toBe("Too many wrong codes. Send a new one.");
 });
 
 it("starts over so a corrected address gets a fresh sign-in", async () => {

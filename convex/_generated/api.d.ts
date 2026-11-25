@@ -9,6 +9,7 @@
  */
 
 import type * as account from "../account.js";
+import type * as accountPortal from "../accountPortal.js";
 import type * as activities from "../activities.js";
 import type * as bodyMetrics from "../bodyMetrics.js";
 import type * as enduranceActivities from "../enduranceActivities.js";
@@ -67,6 +68,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   account: typeof account;
+  accountPortal: typeof accountPortal;
   activities: typeof activities;
   bodyMetrics: typeof bodyMetrics;
   enduranceActivities: typeof enduranceActivities;

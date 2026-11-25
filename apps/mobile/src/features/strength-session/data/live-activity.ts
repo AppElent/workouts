@@ -4,7 +4,7 @@
  */
 import type { LiveActivityProps } from "./live-activity-props";
 
-/** Starts or updates the one session activity, replacing any it did not start. */
+/** Starts or updates the one session activity, replacing any another session left. */
 export function showSessionActivity(_props: LiveActivityProps): void {}
 /** Ends every session activity. */
 export function endSessionActivity(): void {}

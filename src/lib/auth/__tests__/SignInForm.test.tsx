@@ -14,16 +14,26 @@ const password = vi.fn();
 const sendCode = vi.fn();
 const verifyCode = vi.fn();
 const finalize = vi.fn();
+const reset = vi.fn();
+const verifyTOTP = vi.fn();
 // Core 3 methods resolve to `{ error }` and update the resource in place.
 const signIn = {
 	status: "needs_identifier",
 	supportedFirstFactors: [] as { strategy: string }[],
+	supportedSecondFactors: [] as { strategy: string }[],
+	firstFactorVerification: { strategy: null as string | null },
 	create,
 	password,
 	emailCode: { sendCode, verifyCode },
+	mfa: { verifyTOTP },
 	finalize,
+	reset,
 };
-vi.mock("@clerk/react", () => ({ useSignIn: () => ({ signIn }) }));
+const auth = { isLoaded: true };
+vi.mock("@clerk/react", () => ({
+	useSignIn: () => ({ signIn }),
+	useAuth: () => auth,
+}));
 
 function ok(update: Partial<typeof signIn> = {}) {
 	return async () => {
@@ -51,11 +61,22 @@ describe("SignInForm", () => {
 	afterEach(() => {
 		cleanup();
 		vi.unstubAllEnvs();
-		for (const m of [create, password, sendCode, verifyCode, finalize]) {
+		for (const m of [
+			create,
+			password,
+			sendCode,
+			verifyCode,
+			finalize,
+			reset,
+			verifyTOTP,
+		]) {
 			m.mockReset();
 		}
 		signIn.status = "needs_identifier";
 		signIn.supportedFirstFactors = [];
+		signIn.supportedSecondFactors = [];
+		signIn.firstFactorVerification = { strategy: null };
+		auth.isLoaded = true;
 	});
 
 	beforeEach(() => {
@@ -81,6 +102,24 @@ describe("SignInForm", () => {
 		expect(onSuccess).toHaveBeenCalled();
 	});
 
+	it("sends nothing until Clerk has loaded", () => {
+		auth.isLoaded = false;
+		renderForm();
+		fireEvent.change(screen.getByLabelText("Email"), {
+			target: { value: "a@b.com" },
+		});
+		const submit = screen.getByRole("button", { name: "Please wait…" });
+		expect((submit as HTMLButtonElement).disabled).toBe(true);
+		fireEvent.submit(submit);
+		const code = screen.getByRole("button", {
+			name: "Email me a sign-in code",
+		});
+		expect((code as HTMLButtonElement).disabled).toBe(true);
+		fireEvent.click(code);
+		expect(password).not.toHaveBeenCalled();
+		expect(create).not.toHaveBeenCalled();
+	});
+
 	it("marks the credential fields for password managers", () => {
 		renderForm();
 		expect(screen.getByLabelText("Email").getAttribute("autocomplete")).toBe(
@@ -91,14 +130,112 @@ describe("SignInForm", () => {
 		);
 	});
 
-	it("does not activate a sign-in that needs another step", async () => {
-		password.mockImplementation(ok({ status: "needs_second_factor" }));
+	it("does not activate a sign-in that stops at a step it can't complete", async () => {
+		password.mockImplementation(ok({ status: "needs_first_factor" }));
 		const onSuccess = vi.fn();
 		renderForm(onSuccess);
 		fireEvent.click(screen.getByRole("button", { name: /^sign in$/i }));
-		await vi.waitFor(() => expect(password).toHaveBeenCalled());
+		expect(
+			await screen.findByText("Additional verification is required."),
+		).toBeDefined();
 		expect(finalize).not.toHaveBeenCalled();
 		expect(onSuccess).not.toHaveBeenCalled();
+	});
+
+	it.each(["needs_second_factor", "needs_client_trust"])(
+		"asks for a second factor after the password at %s",
+		async (status) => {
+			password.mockImplementation(
+				ok({ status, supportedSecondFactors: [{ strategy: "totp" }] }),
+			);
+			verifyTOTP.mockImplementation(ok({ status: "complete" }));
+			const onSuccess = vi.fn();
+			renderForm(onSuccess);
+			fireEvent.click(screen.getByRole("button", { name: /^sign in$/i }));
+			expect(await screen.findByText("Verify it's you")).toBeDefined();
+			expect(finalize).not.toHaveBeenCalled();
+			fireEvent.change(screen.getByLabelText("Code"), {
+				target: { value: "424242" },
+			});
+			fireEvent.click(screen.getByRole("button", { name: "Verify" }));
+			await vi.waitFor(() => expect(onSuccess).toHaveBeenCalled());
+			expect(verifyTOTP).toHaveBeenCalledWith({ code: "424242" });
+		},
+	);
+
+	it("asks for a second factor after an emailed sign-in code", async () => {
+		create.mockImplementation(
+			ok({ supportedFirstFactors: [{ strategy: "email_code" }] }),
+		);
+		sendCode.mockImplementation(ok());
+		verifyCode.mockImplementation(
+			ok({
+				status: "needs_second_factor",
+				supportedSecondFactors: [{ strategy: "totp" }],
+			}),
+		);
+		renderForm();
+		fireEvent.change(screen.getByLabelText("Email"), {
+			target: { value: "a@b.com" },
+		});
+		fireEvent.click(
+			screen.getByRole("button", { name: "Email me a sign-in code" }),
+		);
+		fireEvent.change(await screen.findByLabelText("Code"), {
+			target: { value: "123456" },
+		});
+		fireEvent.click(screen.getByRole("button", { name: /^sign in$/i }));
+		expect(await screen.findByText("Verify it's you")).toBeDefined();
+		expect(finalize).not.toHaveBeenCalled();
+	});
+
+	it("goes back to a clean sign-in from the second factor", async () => {
+		password.mockImplementation(
+			ok({
+				status: "needs_second_factor",
+				supportedSecondFactors: [{ strategy: "totp" }],
+			}),
+		);
+		reset.mockImplementation(ok({ status: "needs_identifier" }));
+		renderForm();
+		fireEvent.click(screen.getByRole("button", { name: /^sign in$/i }));
+		fireEvent.click(
+			await screen.findByRole("button", { name: "Back to sign in" }),
+		);
+		expect(await screen.findByLabelText("Password")).toBeDefined();
+		expect(reset).toHaveBeenCalled();
+	});
+
+	it("picks up a social sign-in that came back needing a second factor", async () => {
+		Object.assign(signIn, {
+			status: "needs_second_factor",
+			supportedSecondFactors: [{ strategy: "totp" }],
+			firstFactorVerification: { strategy: "oauth_google" },
+		});
+		render(<SignInForm resumeSocial />);
+		expect(await screen.findByText("Verify it's you")).toBeDefined();
+	});
+
+	it("leaves an open social sign-in alone unless sent from the callback", () => {
+		Object.assign(signIn, {
+			status: "needs_second_factor",
+			supportedSecondFactors: [{ strategy: "totp" }],
+			firstFactorVerification: { strategy: "oauth_google" },
+		});
+		renderForm();
+		expect(screen.getByLabelText("Password")).toBeDefined();
+		expect(screen.queryByText("Verify it's you")).toBeNull();
+	});
+
+	it("leaves an abandoned password attempt alone on arrival", () => {
+		Object.assign(signIn, {
+			status: "needs_second_factor",
+			supportedSecondFactors: [{ strategy: "totp" }],
+			firstFactorVerification: { strategy: "password" },
+		});
+		render(<SignInForm resumeSocial />);
+		expect(screen.getByLabelText("Password")).toBeDefined();
+		expect(screen.queryByText("Verify it's you")).toBeNull();
 	});
 
 	it("shows a readable error on failure", async () => {

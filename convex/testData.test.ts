@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+import { SHIPPED_EXERCISES } from "@foundry/core/exercises";
 import { convexTest } from "convex-test";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { api } from "./_generated/api";
@@ -6,6 +7,10 @@ import { readStrengthReferences } from "./lib/strengthReferences";
 import schema from "./schema";
 
 const modules = import.meta.glob("./**/*.*s");
+const routineExercises = [
+	{ exerciseId: SHIPPED_EXERCISES[0]._id, defaultSets: 3, defaultReps: 8 },
+];
+
 afterEach(() => {
 	vi.unstubAllEnvs();
 	vi.useRealTimers();
@@ -19,7 +24,7 @@ describe("in-app test data", () => {
 		const alice = t.withIdentity({ subject: "alice" });
 		await alice.mutation(api.routines.create, {
 			name: "Keep me",
-			exercises: [],
+			exercises: routineExercises,
 		});
 		const session = await alice.mutation(api.workoutSessions.create, {});
 		for (const mode of ["load", "clear"] as const)
@@ -193,7 +198,7 @@ describe("in-app test data", () => {
 		).not.toEqual([]);
 		await alice.mutation(api.routines.create, {
 			name: "Added after load",
-			exercises: [],
+			exercises: routineExercises,
 		});
 		await alice.mutation(api.nutritionDiary.applyOperation, {
 			operationId: "manual-snack",
@@ -263,11 +268,11 @@ describe("in-app test data", () => {
 		const bob = t.withIdentity({ subject: "bob" });
 		await bob.mutation(api.routines.create, {
 			name: "Bob's routine",
-			exercises: [],
+			exercises: routineExercises,
 		});
 		await alice.mutation(api.routines.create, {
 			name: "Manual routine",
-			exercises: [],
+			exercises: routineExercises,
 		});
 		const load = async () => {
 			await alice.mutation(api.testData.reset, {

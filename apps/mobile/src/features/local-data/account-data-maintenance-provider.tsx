@@ -10,7 +10,10 @@ import {
 	useState,
 } from "react";
 import { ActivityIndicator } from "react-native";
-import { leaveSignedOutNotice } from "../../auth/signed-out-notice";
+import {
+	type AppleRevocation,
+	leaveSignedOutNotice,
+} from "../../auth/signed-out-notice";
 import { api } from "../../convex/api";
 import { useOnline } from "../../convex/online";
 import { AppQueryCacheProvider } from "../../convex/query-cache";
@@ -22,13 +25,16 @@ import { FormScreen } from "../../ui/form";
 import { AppText } from "../../ui/text";
 import { useToast } from "../../ui/toast";
 import { writeFailureMessage } from "../../ui/use-screen-write";
+import { isRecentSignInRefusal } from "../profile/recent-sign-in";
 
 type Request = {
 	mode: "load" | "clear" | "deleteData" | "deleteAccount";
 	subject: string;
+	/** Delete account only: how Sign in with Apple ended, for the notice. */
+	apple?: AppleRevocation;
 };
 const AccountDataContext = createContext<
-	((mode: Request["mode"]) => void) | null
+	((mode: Request["mode"], apple?: AppleRevocation) => void) | null
 >(null);
 
 /** Unmount data providers while resetting, then reopen them without stale memory. */
@@ -84,14 +90,23 @@ export function AccountDataMaintenanceProvider({
 			if (request?.mode === "deleteAccount") {
 				// Ends the session; the signed-in layout then redirects to sign-in,
 				// which shows the confirmation.
-				leaveSignedOutNotice("accountDeleted");
+				leaveSignedOutNotice({
+					kind: "accountDeleted",
+					apple: request.apple ?? "notLinked",
+				});
 				try {
 					// No user: nothing was deleted, so no confirmation either.
 					if (!user) throw new Error("No Clerk user to delete");
 					await user.delete();
-				} catch {
+				} catch (error) {
 					leaveSignedOutNotice(null);
-					toast.error(t.account.deletion.accountError);
+					// The sign-in was checked before the data went, but the window
+					// can lapse while a large deletion runs.
+					toast.error(
+						isRecentSignInRefusal(error)
+							? t.account.deletion.signInToFinish
+							: t.account.deletion.accountError,
+					);
 					setRequest(null);
 					return;
 				}
@@ -101,7 +116,15 @@ export function AccountDataMaintenanceProvider({
 			setRequest(null);
 			toast.success(t.testData.success);
 		},
-		[toast, request?.mode, user, signOut, t.account.deletion, t.testData],
+		[
+			toast,
+			request?.mode,
+			request?.apple,
+			user,
+			signOut,
+			t.account.deletion,
+			t.testData,
+		],
 	);
 	useEffect(() => {
 		if (!request || processed.current === request) return;
@@ -151,7 +174,7 @@ export function AccountDataMaintenanceProvider({
 		);
 	return (
 		<AccountDataContext
-			value={(mode) => {
+			value={(mode, apple) => {
 				if (!online || !owner.current || running.current) {
 					toast.error(
 						mode === "load" || mode === "clear"
@@ -160,7 +183,7 @@ export function AccountDataMaintenanceProvider({
 					);
 					return;
 				}
-				setRequest({ mode, subject: owner.current });
+				setRequest({ mode, subject: owner.current, apple });
 			}}
 		>
 			<AppQueryCacheProvider scope={sessionId ?? userId ?? "signed-out"}>
@@ -179,10 +202,11 @@ export function useTestDataReset() {
 /**
  * Permanently deletes the account's Foundry data, then signs out
  * (`deleteData`, the AppElent login stays) or deletes the AppElent login
- * (`deleteAccount`).
+ * (`deleteAccount`, with how Sign in with Apple ended for the notice).
  */
 export function useAccountDeletion() {
 	const maintain = use(AccountDataContext);
 	if (!maintain) throw new Error("AccountDataMaintenanceProvider is missing");
-	return (mode: "deleteData" | "deleteAccount") => maintain(mode);
+	return (mode: "deleteData" | "deleteAccount", apple?: AppleRevocation) =>
+		maintain(mode, apple);
 }

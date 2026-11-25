@@ -64,7 +64,7 @@ function resetClerk() {
 vi.mock("@clerk/react", () => ({
 	useSignIn: () => ({ signIn }),
 	useSignUp: () => ({ signUp }),
-	useAuth: () => ({ isSignedIn: false }),
+	useAuth: () => ({ isLoaded: true, isSignedIn: false }),
 	useUser: () => ({ user: null }),
 	Show: ({ when, children }: { when: string; children: React.ReactNode }) =>
 		when === "signed-out" ? children : null,
@@ -262,8 +262,12 @@ describe("join link through auth", () => {
 		expect(callbackProps).toMatchObject({
 			signInFallbackRedirectUrl: JOIN,
 			signUpFallbackRedirectUrl: JOIN,
-			signInUrl: `/sign-in${WITH_JOIN}`,
+			signInUrl: `/sign-in${WITH_JOIN}&resume=social`,
+			secondFactorUrl: `/sign-in${WITH_JOIN}&resume=social`,
 			signUpUrl: `/sign-up${WITH_JOIN}`,
+			continueSignUpUrl: `/sign-up${WITH_JOIN}&resume=social`,
+			verifyEmailAddressUrl: `/sign-up${WITH_JOIN}&resume=social`,
+			verifyPhoneNumberUrl: `/sign-up${WITH_JOIN}&resume=social`,
 		});
 	});
 
@@ -280,8 +284,12 @@ describe("join link through auth", () => {
 		expect(callbackProps).toMatchObject({
 			signInFallbackRedirectUrl: "/dashboard",
 			signUpFallbackRedirectUrl: "/dashboard",
-			signInUrl: "/sign-in",
+			signInUrl: "/sign-in?resume=social",
+			secondFactorUrl: "/sign-in?resume=social",
 			signUpUrl: "/sign-up",
+			continueSignUpUrl: "/sign-up?resume=social",
+			verifyEmailAddressUrl: "/sign-up?resume=social",
+			verifyPhoneNumberUrl: "/sign-up?resume=social",
 		});
 	});
 
@@ -349,8 +357,12 @@ describe("join link through auth", () => {
 			expect(callbackProps).toMatchObject({
 				signInFallbackRedirectUrl: "/dashboard",
 				signUpFallbackRedirectUrl: "/dashboard",
-				signInUrl: "/sign-in",
+				signInUrl: "/sign-in?resume=social",
+				secondFactorUrl: "/sign-in?resume=social",
 				signUpUrl: "/sign-up",
+				continueSignUpUrl: "/sign-up?resume=social",
+				verifyEmailAddressUrl: "/sign-up?resume=social",
+				verifyPhoneNumberUrl: "/sign-up?resume=social",
 			});
 		});
 	});
@@ -386,7 +398,11 @@ describe("join link through auth", () => {
 				"signInFallbackRedirectUrl",
 				"signUpFallbackRedirectUrl",
 				"signInUrl",
+				"secondFactorUrl",
 				"signUpUrl",
+				"continueSignUpUrl",
+				"verifyEmailAddressUrl",
+				"verifyPhoneNumberUrl",
 			]) {
 				expect(String(props[key])).toMatch(/^\/(?![/\\])/);
 				expect(sameSite(props[key])).toBe(true);

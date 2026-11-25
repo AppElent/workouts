@@ -20,6 +20,7 @@ export const auth = {
 			"Dit wachtwoord voldoet niet aan de eisen.",
 		codeIncorrect: "Deze code klopt niet.",
 		codeExpired: "Deze code is verlopen. Vraag een nieuwe aan.",
+		codeAttemptsExceeded: "Te veel foute codes. Vraag een nieuwe aan.",
 		tooManyRequests: "Te veel pogingen. Wacht even en probeer het opnieuw.",
 		network: "De server is niet bereikbaar. Controleer je verbinding.",
 		appleSignInIncomplete:
@@ -62,6 +63,47 @@ export const auth = {
 		resent: "Er is een nieuwe code onderweg.",
 		usePassword: "Gebruik je wachtwoord",
 	},
+	secondFactor: {
+		title: "Bevestig dat jij het bent",
+		prompt: {
+			totp: "Vul de code van 6 cijfers uit je authenticator-app in.",
+			phone_code:
+				"We hebben een code van 6 cijfers gesms't naar {destination}.",
+			email_code:
+				"We hebben een code van 6 cijfers gestuurd naar {destination}.",
+			backup_code: "Vul een van de back-upcodes in die je hebt bewaard.",
+		},
+		codeExpired:
+			"De code die we naar {destination} hebben gestuurd, is verlopen. Kies hieronder ‘{resend}’.",
+		codeLocked: "Te veel foute codes. Kies hieronder ‘{resend}’.",
+		codeLockedOther:
+			"Te veel foute codes. Kies hieronder ‘{resend}’ of een andere methode.",
+		yourPhone: "je telefoon",
+		yourEmail: "je e-mailadres",
+		code: "Code",
+		backupCode: "Back-upcode",
+		submit: "Bevestigen",
+		resend: "Stuur een nieuwe code",
+		resent: "Er is een nieuwe code onderweg.",
+		switchTo: {
+			totp: "Gebruik je authenticator-app",
+			phone_code: "Sms een code naar {destination}",
+			email_code: "Mail een code naar {destination}",
+			backup_code: "Gebruik een back-upcode",
+		},
+		passwordChanged:
+			"Je wachtwoord is gewijzigd. Nog één stap om in te loggen.",
+		codeMissing: "Vul eerst de code in.",
+		methodLocked:
+			"Te veel foute codes voor deze methode. Gebruik een andere methode, of ga terug en log opnieuw in.",
+		attemptEnded:
+			"Deze inlogpoging duurde te lang en kan niet verder. Ga terug en log opnieuw in.",
+		notFinished:
+			"Deze inlogpoging kon niet worden afgerond. Ga terug en log opnieuw in.",
+		noMethod:
+			"De tweede inlogstap van je account is hier niet beschikbaar. Neem contact op met support om in te loggen.",
+		backToSignIn: "Terug naar inloggen",
+	},
 	signUp: {
 		title: "Maak je account aan",
 		submit: "Account aanmaken",
@@ -69,7 +111,30 @@ export const auth = {
 		codeSent: "We hebben een code gestuurd naar {email}.",
 		code: "Verificatiecode",
 		verify: "Verifiëren",
+		backToSignUp: "Terug naar aanmelden",
 		invalidCode: "Ongeldige of onvolledige verificatie.",
+	},
+	signUpContinue: {
+		title: "Nog één stap",
+		intro: "Vul aan wat nog ontbreekt om je account af te ronden.",
+		fields: {
+			email_address: "E-mail",
+			username: "Gebruikersnaam",
+			first_name: "Voornaam",
+			last_name: "Achternaam",
+			phone_number: "Telefoonnummer (met landcode)",
+			password: "Wachtwoord",
+		},
+		submit: "Doorgaan",
+		codePrompt:
+			"We hebben een code gestuurd naar {destination}. Vul die in om door te gaan.",
+		invalidDetails: "Controleer wat je hebt ingevuld en probeer het opnieuw.",
+		taken: "Dit is al in gebruik bij een ander account. Kies iets anders.",
+		attemptEnded:
+			"Deze aanmelding duurde te lang en kan niet verder. Begin opnieuw.",
+		unsupported:
+			"Deze aanmelding kan hier niet worden afgerond. Begin opnieuw om je op een andere manier aan te melden.",
+		startOver: "Opnieuw beginnen",
 	},
 	forgotPassword: {
 		title: "Wachtwoord opnieuw instellen",
@@ -81,6 +146,14 @@ export const auth = {
 	},
 	ssoCallback: {
 		title: "Je wordt ingelogd…",
+	},
+	session: {
+		checking: "Je inlog wordt gecontroleerd…",
+		stalled: "Dit duurt langer dan normaal",
+		stalledHelp:
+			"Probeer het opnieuw, of log opnieuw in als het blijft gebeuren.",
+		retry: "Opnieuw proberen",
+		signInAgain: "Opnieuw inloggen",
 	},
 	testLogin: {
 		button: "▶ Dev: inloggen als testgebruiker",

@@ -7,6 +7,9 @@ export function AuthField({
 	onChange,
 	error,
 	autoComplete,
+	inputMode,
+	autoFocus,
+	describedBy,
 	required,
 }: {
 	label: string;
@@ -15,6 +18,11 @@ export function AuthField({
 	onChange: (value: string) => void;
 	error?: string;
 	autoComplete?: string;
+	inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+	/** Only for a field in a step that replaces what the person was using. */
+	autoFocus?: boolean;
+	/** Id of text that explains the field, read along with its label. */
+	describedBy?: string;
 	required?: boolean;
 }) {
 	const id = useId();
@@ -30,7 +38,12 @@ export function AuthField({
 				value={value}
 				required={required}
 				autoComplete={autoComplete}
-				aria-describedby={error ? errorId : undefined}
+				inputMode={inputMode}
+				// biome-ignore lint/a11y/noAutofocus: opt-in, for a step that replaces the previous one.
+				autoFocus={autoFocus}
+				aria-describedby={
+					[describedBy, error && errorId].filter(Boolean).join(" ") || undefined
+				}
 				onChange={(e) => onChange(e.target.value)}
 				className="rounded-xl border border-border bg-surface-2 px-3 py-2 text-sm text-text outline-none focus:border-accent-ink"
 			/>

@@ -18,6 +18,7 @@ export const auth = {
 			"This password doesn't meet the requirements.",
 		codeIncorrect: "That code is incorrect.",
 		codeExpired: "That code has expired. Request a new one.",
+		codeAttemptsExceeded: "Too many wrong codes. Request a new one.",
 		tooManyRequests: "Too many attempts. Wait a moment and try again.",
 		network: "Can't reach the server. Check your connection.",
 		appleSignInIncomplete: "Apple sign-in didn't finish. Please try again.",
@@ -59,6 +60,47 @@ export const auth = {
 		resent: "A new code is on its way.",
 		usePassword: "Use your password instead",
 	},
+	secondFactor: {
+		title: "Verify it's you",
+		prompt: {
+			totp: "Enter the 6-digit code from your authenticator app.",
+			phone_code: "We texted a 6-digit code to {destination}.",
+			email_code: "We sent a 6-digit code to {destination}.",
+			backup_code: "Enter one of the backup codes you saved.",
+		},
+		/** Replaces the prompt; `resend` is the button that sends another. */
+		codeExpired:
+			"The code we sent to {destination} has expired. Choose “{resend}” below.",
+		/** Also replaces the prompt; the second when there is another method. */
+		codeLocked: "Too many wrong codes. Choose “{resend}” below.",
+		codeLockedOther:
+			"Too many wrong codes. Choose “{resend}” or another method below.",
+		/** Shown when Clerk gives no masked number or address. */
+		yourPhone: "your phone",
+		yourEmail: "your email",
+		code: "Code",
+		backupCode: "Backup code",
+		submit: "Verify",
+		resend: "Send a new code",
+		resent: "A new code is on its way.",
+		switchTo: {
+			totp: "Use your authenticator app",
+			phone_code: "Text a code to {destination}",
+			email_code: "Email a code to {destination}",
+			backup_code: "Use a backup code",
+		},
+		passwordChanged:
+			"Your password has been changed. One more step to sign in.",
+		codeMissing: "Enter the code first.",
+		methodLocked:
+			"Too many wrong codes for this method. Use another method, or go back and sign in again.",
+		attemptEnded:
+			"This sign-in took too long and can't continue. Go back and sign in again.",
+		notFinished: "This sign-in couldn't finish. Go back and sign in again.",
+		noMethod:
+			"Your account's second sign-in step isn't available here. Contact support to sign in.",
+		backToSignIn: "Back to sign in",
+	},
 	signUp: {
 		title: "Create your account",
 		submit: "Create account",
@@ -66,7 +108,29 @@ export const auth = {
 		codeSent: "We sent a code to {email}.",
 		code: "Verification code",
 		verify: "Verify",
+		backToSignUp: "Back to sign up",
 		invalidCode: "Invalid or incomplete verification.",
+	},
+	signUpContinue: {
+		title: "One more step",
+		intro: "Fill in what's missing to finish creating your account.",
+		fields: {
+			email_address: "Email",
+			username: "Username",
+			first_name: "First name",
+			last_name: "Last name",
+			phone_number: "Phone number (with country code)",
+			password: "Password",
+		},
+		submit: "Continue",
+		codePrompt: "We sent a code to {destination}. Enter it to continue.",
+		invalidDetails: "Check what you entered and try again.",
+		taken: "Another account already uses this. Choose something else.",
+		attemptEnded:
+			"This sign-up took too long and can't continue. Start over to try again.",
+		unsupported:
+			"This sign-up can't be finished here. Start over to sign up another way.",
+		startOver: "Start over",
 	},
 	forgotPassword: {
 		title: "Reset your password",
@@ -78,6 +142,13 @@ export const auth = {
 	},
 	ssoCallback: {
 		title: "Signing you in…",
+	},
+	session: {
+		checking: "Checking your sign-in…",
+		stalled: "This is taking longer than usual",
+		stalledHelp: "Try again, or sign in again if it keeps happening.",
+		retry: "Try again",
+		signInAgain: "Sign in again",
 	},
 	testLogin: {
 		button: "▶ Dev: log in as test user",

@@ -1,65 +1,65 @@
-# Strength session redesign
+# Strength session redesign, round 2
 
-Approved in Claude canvas v45 and rendered in
-[session_redesign_final.html](session_redesign_final.html). It extends
-[session_final.html](session_final.html) (set editor + krachtprofiel) and replaces
-it where they differ: the editor is now a sheet over a set table, percentages come
-from Measured, and set details moved under Meer.
+Approved on the Active Workout canvas, page "Ronde 2"
+([claude.ai artifact](https://claude.ai/artifact/E7eJRxyAFN2G3LxxfXMEnR)), and built in
+APP-619. The canvas is the spec and replaces round 1's set table
+([session_redesign_final.html](session_redesign_final.html) stays as history). Where the
+two differ, this page wins.
+
+## Boards
+
+| Board | What it shows |
+| --- | --- |
+| Session with a plan | Done cards (collapsed, ✓ on the thumbnail), the current card with its sets, upcoming cards; a progress strip with one segment per working set and the volume; the Now card at the bottom |
+| Rest | The Now card counts down with −15 / +15, the next set under it, and "Log set n" |
+| Ad hoc | No plan: the Now card has weight and reps steppers, an "Oefening" button and "Vorige set" from last time |
+| Empty | Quick-start tiles of what you trained lately, each with last time's set and when |
+| Set editor | Two value cards (weight, reps), four set-type segments, the subtitle "Vorige keer … @ RPE · date", "Log · x"; advanced shows percentage chips, RPE and the 1RM this set gives, with and without a known 1RM |
+| Exercise overview | "‹ Sessie", header, Overzicht / Geschiedenis / Records; the 1RM card with its trend and "▲ x kg in n weken", tiles, "Wat je nu aankunt"; level and records under Records |
+| Finish | Unchanged recap, plus "Terug naar sessie" top left. The session button says "Afronden" |
 
 ## Decisions
 
-- **1RM runs both ways.** Choose a percentage of 1RM to get a weight; every set
-  shows the 1RM it would produce. Percentages use Measured unless the person saves
-  a newer manual 1RM.
-- **Warm-ups never count toward 1RM** on the client: not in the row, toast, recap
-  or work volume. The server still counts them (see Limits).
-- **A set is logged by its check.** Swipe and long press offer the same actions.
-  Tap opens the editor. Open sets can be added from an empty start.
-- **Set groups repeat.** Rounds carry rest; AMRAP carries a clock and a score, and
-  no rest. Group classes stay out of scope.
-- **Hosted** keeps its behaviour and score routes, in the session body.
-- **Session saves at Gereed.** "Terug naar sessie" reopens it; closing the app on
-  the recap keeps it open behind the resume bar.
+- **One next set.** The Now card always names the next set (warm-ups included) and
+  logs it with one tap. Rows still log by their check; tap opens the editor.
+- **Counts are working sets.** The header, progress strip and "n van m sets" leave
+  warm-ups out. Planned sets are working sets, so a logged warm-up never uses one up.
+- **The editor has no empty middle** (APP-549). Without advanced details it shows
+  last time's sets for this exercise in a "Vorige keer" card.
+- **Previous set by kind and position.** "Vorige keer" matches the same set type and
+  number in the last session, with its RPE and date.
+- **The 1RM says where it comes from.** Gemeten, Handmatige or Geschat, in the
+  overview label and the editor's detail lines.
+- **Back names where it goes.** The overview and the recap use `BackLink` in a
+  `Stack.Toolbar.View`, because a toolbar button with an icon hides its label.
 
 ## Bindings
 
 | Concern | Binding |
 | --- | --- |
-| Plan, groups, calculations | `session-plan.ts`, pure and tested |
-| Device workspace | `data/session-workspace.ts`, kv key `strength-session-plan:v1:<subject>:<sessionId>` |
-| Server writes | `data/session-actions.ts`: `sets.add/update/remove`, `workoutSessions.addExercise/finish/cancel`, `oneRepMaxes.addManual`, `exercises.create` |
-| Rest and clock alerts | `components/rest-timer.tsx`, `data/session-notifications.ts` |
-| Chrome | `Stack.Toolbar` and native materials; the study's CSS glass is not shipped |
+| Session cards | `components/session-exercise-block.tsx`, `session-set-row.tsx`, `session-progress.tsx` |
+| Now card and rest | `components/now-card.tsx` in `session-dock.tsx` |
+| Empty state | `components/session-quick-start.tsx` |
+| Previous performance | `data/previous-session.ts` (`previousSetOf`, `previousSetsOf`) |
+| Set editor | `set-editor-screen.tsx`, a formSheet; `Segmented` with `maxSegments={4}` |
+| Overview chart | `src/ui/trend-line.tsx`: SVG, scaled to its own range, not from zero |
+| Tokens | `surface3`, `dock`, `type.value*`, `type.overline` |
 
-No Convex change: the plan, groups, rest default and drafts live on the device and
-reconcile with logged Sets from the server.
+No Convex change: everything ships as an OTA update.
 
-## Slices built
+## Deviations from the canvas
 
-1. Plan model and workspace, seeded from the session and restored after a restart.
-2. Table, row check, undo, rest, toast.
-3. Editor, Meer, Krachtprofiel, manual 1RM, typo checks.
-4. Picker, empty start, new exercise.
-5. Swipe, long press, session and exercise menus, swap, move, remove.
-6. Set groups: rounds and AMRAP.
-7. Offline, retry, receipts, finish, recap, resume bar.
-8. Dynamic Type, Reduce Motion, VoiceOver labels.
-
-## Deviations
-
-- At the largest text sizes the editor keeps weight and reps side by side instead
-  of stacking: both fit, and stacking pushes Log off the screen. Percent chips do
-  go to two columns.
-- The resume bar stays on Train and the Home card, the existing placement.
-- A stopped clock with nothing logged offers Reset clock instead of closing, so an
-  empty close can't take the group's plan away.
+- The simple editor shows the "Vorige keer" card where the canvas leaves space, so
+  the sheet has no empty middle.
+- In light mode the chart line uses `accentInk`; the canvas lime fails contrast on
+  white.
+- The set type segment reads "Dropset", the existing copy; the canvas says "Drop".
+- The editor menu keeps Krachtprofiel, which the canvas does not draw.
+- The note field (APP-690) also shows in the simple view when the set has a note, so
+  a note is never hidden. Set rows show the note under the load.
 
 ## Limits
 
-- Warm-up singles still count server-side, because no Convex deployment comes with
-  this work. Fix with a backend change to eligibility.
-- A saved manual 1RM applies only when newer than the measured one, while the
-  picker lists current references with manual first, so they can disagree on old
-  data.
-- The plan is per device. Logged Sets sync; open sets and groups do not.
-- Recap rows do not link to exercise progress.
+- Warm-up singles still count server-side, as in round 1.
+- Session references are snapshotted when an exercise is added, so a 1RM saved
+  later shows in the overview but not in that session.

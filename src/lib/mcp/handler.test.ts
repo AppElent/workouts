@@ -1,3 +1,4 @@
+import { getShippedExercise } from "@foundry/core/exercises";
 import { getFunctionName } from "convex/server";
 import { ConvexError } from "convex/values";
 import { describe, expect, it } from "vitest";
@@ -272,6 +273,69 @@ describe("Foundry MCP endpoint", () => {
 		});
 	});
 
+	it("round-trips a set's note", async () => {
+		const set: Record<string, unknown> = {
+			_id: "set_1",
+			exerciseId: "back-squat",
+			setNumber: 1,
+			reps: 5,
+			weight: 100,
+			unit: "kg",
+			setType: "working",
+			loggedAt: Date.parse("2026-11-10T11:40:00Z"),
+		};
+		const backend = fakeBackend({
+			"workoutSessions:getById": () => ({
+				_id: "session_1",
+				status: "active",
+				startTime: Date.parse("2026-11-10T11:30:00Z"),
+				exercises: [],
+			}),
+			"sets:listForSession": () => [set],
+			"exercises:getHistory": () => [set],
+			"sets:add": ({ notes }: { notes?: string }) => {
+				set.notes = notes;
+				return "set_1";
+			},
+			"sets:update": ({ notes }: { notes?: string }) => {
+				set.notes = notes;
+				return null;
+			},
+		});
+		const log = (notes: string) =>
+			callTool(backend, "log_set", {
+				idempotencyKey: "key-12345",
+				sessionId: "session_1",
+				exerciseId: "back-squat",
+				setNumber: 1,
+				reps: 5,
+				weight: 100,
+				unit: "kg",
+				notes,
+			});
+		expect((await log("a".repeat(501))).isError).toBe(true);
+		await log(" narrow grip ");
+		const session = await callTool(backend, "get_strength_session", {
+			sessionId: "session_1",
+		});
+		expect(JSON.stringify(session.structuredContent)).toContain(
+			'"notes":"narrow grip"',
+		);
+		const history = await callTool(backend, "get_exercise_history", {
+			exerciseId: "back-squat",
+		});
+		expect(JSON.stringify(history.structuredContent)).toContain(
+			'"notes":"narrow grip"',
+		);
+		await callTool(backend, "update_set", { setId: "set_1", notes: "" });
+		expect(backend.calls.at(-1)).toMatchObject({
+			name: "sets:update",
+			args: { notes: "" },
+		});
+		await callTool(backend, "update_set", { setId: "set_1", reps: 6 });
+		expect(backend.calls.at(-1)?.args).not.toHaveProperty("notes");
+	});
+
 	it("returns the active session instead of starting a second one", async () => {
 		const session = {
 			_id: "session_1",
@@ -319,6 +383,164 @@ describe("Foundry MCP endpoint", () => {
 			kind: "mutation",
 			name: "exercises:ensurePersonal",
 			args: { name: "Sled Push" },
+		});
+	});
+
+	describe("create_routine", () => {
+		const input = {
+			idempotencyKey: "routine-key-1",
+			name: " Push day ",
+			exercises: [
+				{
+					exerciseId: SQUAT,
+					defaultSets: 3,
+					defaultReps: 8,
+					defaultWeight: 60,
+				},
+			],
+		};
+		const backendWith = (stored: () => object[]) =>
+			fakeBackend({
+				"routines:create": () => "routine_1",
+				"routines:list": stored,
+				"exercises:listPersonal": () => ({
+					page: [],
+					isDone: true,
+					continueCursor: "",
+				}),
+			});
+		const saved = {
+			_id: "routine_1",
+			_creationTime: 1,
+			userId: "user_1",
+			name: "Push day",
+			exercises: [
+				{
+					...input.exercises[0],
+					exerciseName: getShippedExercise(SQUAT)?.name,
+				},
+			],
+		};
+
+		it("saves a Routine and returns it as list_routines does", async () => {
+			const backend = backendWith(() => [saved]);
+			const call = await callTool(backend, "create_routine", input);
+			expect(call.isError).toBeUndefined();
+			expect(backend.calls[0]).toEqual({
+				kind: "mutation",
+				name: "routines:create",
+				args: {
+					operationId: "mcp:routine-key-1",
+					name: "Push day",
+					exercises: input.exercises,
+				},
+			});
+			const listed = await callTool(backend, "list_routines", {});
+			expect(listed.structuredContent?.routines).toEqual([
+				call.structuredContent?.routine,
+			]);
+		});
+
+		it.each([
+			[
+				"edited",
+				[
+					{
+						...saved,
+						name: "Renamed",
+						exercises: [{ ...saved.exercises[0], defaultSets: 4 }],
+					},
+				],
+			],
+			["deleted", []],
+		])(
+			"replays the first result when the Routine was %s since",
+			async (_, after) => {
+				let stored: object[] = [saved];
+				const backend = backendWith(() => stored);
+				const first = await callTool(backend, "create_routine", input);
+				stored = after;
+				const retry = await callTool(backend, "create_routine", input);
+				expect(retry.isError).toBeUndefined();
+				expect(retry.structuredContent).toEqual(first.structuredContent);
+				const writes = backend.calls.filter((c) => c.kind === "mutation");
+				expect(writes).toHaveLength(2);
+				expect(writes[1]).toEqual(writes[0]);
+			},
+		);
+
+		it("refuses a repeated Exercise without calling Convex", async () => {
+			const backend = fakeBackend();
+			const call = await callTool(backend, "create_routine", {
+				...input,
+				exercises: [
+					input.exercises[0],
+					{ ...input.exercises[0], defaultReps: 5 },
+				],
+			});
+			expect(call.isError).toBe(true);
+			expect(call.content[0]?.text).toContain("more than once");
+			expect(backend.calls).toHaveLength(0);
+		});
+
+		it.each([
+			["no key", { idempotencyKey: undefined }],
+			["blank name", { name: "  " }],
+			["too long a name", { name: "a".repeat(101) }],
+			["no exercises", { exercises: [] }],
+			[
+				"too many exercises",
+				{ exercises: Array(101).fill(input.exercises[0]) },
+			],
+			...(
+				[
+					["zero sets", { defaultSets: 0 }],
+					["fractional sets", { defaultSets: 1.5 }],
+					["too many sets", { defaultSets: 101 }],
+					["zero reps", { defaultReps: 0 }],
+					["too many reps", { defaultReps: 1001 }],
+					["too much weight", { defaultWeight: 2001 }],
+					["negative weight", { defaultWeight: -1 }],
+					["empty exercise ID", { exerciseId: "" }],
+				] as const
+			).map(
+				([label, change]) =>
+					[label, { exercises: [{ ...input.exercises[0], ...change }] }] as [
+						string,
+						object,
+					],
+			),
+		] as [string, object][])(
+			"refuses %s without calling Convex",
+			async (_, change) => {
+				const backend = fakeBackend();
+				const call = await callTool(backend, "create_routine", {
+					...input,
+					...change,
+				});
+				expect(call.isError).toBe(true);
+				expect(backend.calls).toHaveLength(0);
+			},
+		);
+
+		it("explains an unknown or foreign Exercise", async () => {
+			const backend = fakeBackend({
+				"routines:create": () => {
+					throw new ConvexError({ code: "notFound", field: "exerciseId" });
+				},
+			});
+			const call = await callTool(backend, "create_routine", input);
+			expect(call.isError).toBe(true);
+			expect(call.content[0]?.text).toContain("list_exercises");
+		});
+
+		it("is not callable with a read-only grant", async () => {
+			const backend = fakeBackend();
+			const call = await callTool(backend, "create_routine", input, [
+				"foundry:read",
+			]);
+			expect(call.isError).toBe(true);
+			expect(backend.calls).toHaveLength(0);
 		});
 	});
 
@@ -633,6 +855,7 @@ const EXISTING_TOOLS = [
 	"log_wod_result",
 	"list_exercises",
 	"create_exercise",
+	"create_routine",
 	"get_exercise_history",
 	"get_exercise_volume",
 	"list_one_rep_maxes",
@@ -654,6 +877,7 @@ const EXISTING_TOOLS = [
 	"update_diary_entry",
 ];
 const VIEW_TOOLS = {
+	open_foundry: "ui://foundry/home",
 	show_week_overview: "ui://foundry/week-overview",
 	review_food_log: "ui://foundry/food-log",
 	show_exercise_progress: "ui://foundry/exercise-progress",
@@ -662,8 +886,14 @@ const SQUAT = "shipped:exercise:barbell-back-squat";
 
 type ListedTool = {
 	name: string;
+	title?: string;
+	inputSchema: { required?: string[] };
 	annotations: { readOnlyHint: boolean };
-	_meta?: { ui?: { resourceUri?: string }; "ui/resourceUri"?: string };
+	_meta?: {
+		ui?: { resourceUri?: string };
+		"ui/resourceUri"?: string;
+		"openai/ui"?: { entrypoints?: { type: string }[] };
+	};
 };
 
 async function listTools(scopes: string[]) {
@@ -715,7 +945,7 @@ const GOALS = {
 };
 
 describe("Foundry MCP views", () => {
-	it("keeps the existing tools and adds the three view tools", async () => {
+	it("keeps the existing tools and adds the view tools", async () => {
 		const tools = await listTools(READ_WRITE);
 		expect(tools.map((tool) => tool.name).sort()).toEqual(
 			[...EXISTING_TOOLS, ...Object.keys(VIEW_TOOLS)].sort(),
@@ -726,6 +956,10 @@ describe("Foundry MCP views", () => {
 				expect(tool._meta?.ui?.resourceUri).toBe(view);
 				expect(tool._meta?.["ui/resourceUri"]).toBe(view);
 				expect(tool.annotations.readOnlyHint).toBe(true);
+				// Only open_foundry is an app the user opens from Claude.
+				expect(tool._meta?.["openai/ui"] !== undefined).toBe(
+					tool.name === "open_foundry",
+				);
 			} else {
 				expect(tool._meta).toBeUndefined();
 			}
@@ -792,6 +1026,161 @@ describe("Foundry MCP views", () => {
 			);
 		},
 	);
+
+	it("lists open_foundry as a global entry point Claude can open from the sidebar", async () => {
+		const tool = (await listTools(["foundry:read"])).find(
+			(entry) => entry.name === "open_foundry",
+		);
+		expect(tool?._meta).toEqual({
+			ui: { resourceUri: "ui://foundry/home" },
+			"ui/resourceUri": "ui://foundry/home",
+			"openai/ui": { entrypoints: [{ type: "global" }] },
+		});
+		// Claude lists an entry point only with these; it opens it with `{}`.
+		expect(tool?.title).toBe("Open Foundry");
+		expect(tool?.title?.length).toBeLessThanOrEqual(60);
+		expect(tool?.title).not.toMatch(/claude|anthropic/i);
+		expect(tool?.name).not.toMatch(/__|\.\.|\._|_\./);
+		expect(tool?.inputSchema.required ?? []).toEqual([]);
+	});
+
+	it("asks Claude to move only the week overview out of the conversation", async () => {
+		const read = async (uri: string) =>
+			(
+				await result<{
+					contents: { _meta: { ui: { preferredDisplayMode?: string } } }[];
+				}>(
+					await handleFoundryMcpRequest(
+						rpc("resources/read", { uri }),
+						options(fakeBackend()),
+					),
+				)
+			).contents[0]._meta.ui.preferredDisplayMode;
+		expect(await read("ui://foundry/week-overview")).toBe("fullscreen");
+		for (const uri of [
+			"ui://foundry/home",
+			"ui://foundry/food-log",
+			"ui://foundry/exercise-progress",
+		])
+			expect(await read(uri)).toBeUndefined();
+	});
+
+	it("opens Foundry home with today, the latest session, and this week", async () => {
+		const backend = fakeBackend({
+			"workoutSessions:getActive": () => null,
+			"activities:list": (args: { sport?: string }) =>
+				args.sport === "strength"
+					? {
+							items: [
+								{
+									id: "session_1",
+									sport: "strength",
+									occurredAt: Date.parse("2026-11-09T18:00:00Z"),
+									durationSeconds: 3600,
+								},
+							],
+							cursor: null,
+							isDone: false,
+						}
+					: { items: [], cursor: null, isDone: true },
+			"workoutSessions:getById": () => ({
+				_id: "session_1",
+				name: "Legs",
+				status: "completed",
+				startTime: Date.parse("2026-11-09T18:00:00Z"),
+				exercises: [{ exerciseId: SQUAT, plannedSets: [] }],
+			}),
+			"sets:listForSession": () => [
+				{ exerciseId: SQUAT },
+				{ exerciseId: SQUAT },
+				{ exerciseId: "missing:exercise" },
+			],
+			"exercises:listPersonal": () => ({
+				page: [],
+				isDone: true,
+				continueCursor: "",
+			}),
+			"nutritionDiary:day": () => ({
+				date: "2026-11-10",
+				entries: [{ _id: "entry_0" }, { _id: "entry_1" }],
+				totals: macroTotals(1800, 120),
+				revision: 1,
+			}),
+			"nutritionGoals:forDate": () => GOALS,
+			"nutritionReview:week": () => ({
+				startDate: "2026-11-09",
+				endDate: "2026-11-15",
+				days: [],
+				averages: {
+					energy: 1900,
+					protein: null,
+					energyDays: 1,
+					proteinDays: 0,
+					energyQualified: false,
+					proteinQualified: false,
+				},
+			}),
+		});
+		const call = await callTool(backend, "open_foundry", {});
+		expect(call.isError).toBeUndefined();
+		expect(call.structuredContent).toMatchObject({
+			view: "home",
+			timeZone: "UTC",
+			today: {
+				date: "2026-11-10",
+				nutrition: { entryCount: 2, energyKcal: 1800, proteinG: 120 },
+				goals: [
+					{ macro: "energyKcal", direction: "max", target: 2200 },
+					{ macro: "proteinG", direction: "min", target: 150 },
+				],
+			},
+			session: {
+				id: "session_1",
+				name: "Legs",
+				status: "completed",
+				startedAt: "2026-11-09T18:00:00.000Z",
+				setCount: 3,
+				exercises: [{ id: SQUAT, name: expect.any(String) }],
+			},
+			week: { weekStart: "2026-11-09", loggedDays: 0, energyAverageKcal: 1900 },
+		});
+		expect(call.content[0].text).toContain(
+			"Showing Foundry home for 2026-11-10",
+		);
+		expect(backend.calls.some((c) => c.kind === "mutation")).toBe(false);
+	});
+
+	it("opens Foundry home without a session", async () => {
+		const backend = fakeBackend({
+			"workoutSessions:getActive": () => null,
+			"activities:list": () => ({ items: [], cursor: null, isDone: true }),
+			"nutritionDiary:day": () => ({
+				date: "2026-11-10",
+				entries: [],
+				totals: macroTotals(0, 0),
+				revision: 0,
+			}),
+			"nutritionGoals:forDate": () => ({ ...GOALS, basis: "none", goals: [] }),
+			"nutritionReview:week": () => ({
+				startDate: "2026-11-09",
+				endDate: "2026-11-15",
+				days: [],
+				averages: {
+					energy: null,
+					protein: null,
+					energyDays: 0,
+					proteinDays: 0,
+					energyQualified: false,
+					proteinQualified: false,
+				},
+			}),
+		});
+		const call = await callTool(backend, "open_foundry", {});
+		expect(call.structuredContent).toMatchObject({
+			session: null,
+			today: { nutrition: { entryCount: 0, energyKcal: null }, goals: [] },
+		});
+	});
 
 	it("gates views and logging by scope", async () => {
 		const readOnly = (await listTools(["foundry:read"])).map(

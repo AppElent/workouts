@@ -303,6 +303,7 @@ export default defineSchema({
 		weight: v.number(),
 		unit: loadUnit,
 		rpe: v.optional(v.number()),
+		notes: v.optional(v.string()),
 		setType,
 		loggedAt: v.number(),
 		// Left by an earlier development schema; no new writes.
@@ -484,5 +485,6 @@ export default defineSchema({
 		submittedAt: v.number(),
 	})
 		.index("by_hosted_workout", ["hostedWorkoutId"])
-		.index("by_hosted_workout_wod", ["hostedWorkoutId", "wodBlockId"]),
+		.index("by_hosted_workout_wod", ["hostedWorkoutId", "wodBlockId"])
+		.index("by_participant", ["participantId"]),
 });

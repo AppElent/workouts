@@ -1,3 +1,4 @@
+import { HOSTED_WORKOUTS_ENABLED } from "@foundry/core/features";
 import { useMutation } from "convex/react";
 import { Stack, useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
@@ -261,13 +262,15 @@ export function TrainingScreen() {
 						chevron
 						onPress={() => router.push("/wods")}
 					/>
-					<InsetRow
-						leading={{ sport: "wod" }}
-						title={copy.hosted}
-						secondary={copy.hostedHint}
-						chevron
-						onPress={() => router.push("/hosted")}
-					/>
+					{HOSTED_WORKOUTS_ENABLED ? (
+						<InsetRow
+							leading={{ sport: "wod" }}
+							title={copy.hosted}
+							secondary={copy.hostedHint}
+							chevron
+							onPress={() => router.push("/hosted")}
+						/>
+					) : null}
 				</InsetList>
 			</FormScreen>
 		</>

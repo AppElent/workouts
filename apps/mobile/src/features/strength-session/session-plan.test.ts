@@ -9,6 +9,7 @@ import {
 	applyPercent,
 	beginAttempt,
 	canSwap,
+	chipPercentOf,
 	clearManual,
 	closeGroup,
 	closeOpenClocks,
@@ -19,15 +20,19 @@ import {
 	failedRows,
 	fillFromLast,
 	findRow,
+	focusExercise,
 	type GroupRound,
 	groupOfExercise,
 	groupWith,
 	isValidRow,
+	loggedCount,
 	manualIsOdd,
 	markFailed,
 	markLogged,
 	moveEntry,
+	nextOpenRow,
 	nextSetNumber,
+	openCount,
 	type PlanSet,
 	payloadFor,
 	recapOf,
@@ -42,6 +47,7 @@ import {
 	rowOneRepMax,
 	rowsOf,
 	type SessionPlan,
+	type SetGroup,
 	seedPlan,
 	sessionExercises,
 	setGroupMode,
@@ -60,6 +66,7 @@ import {
 	typoCheck,
 	updateRow,
 	withTypedLoad,
+	workedCount,
 } from "./session-plan";
 
 const facts = (over: Partial<ExerciseFacts> = {}): ExerciseFacts => ({
@@ -132,6 +139,41 @@ function log(plan: SessionPlan, row: PlanSet, serverId = `s-${row.id}`) {
 		lookup(row.exerciseId),
 	).plan;
 }
+
+describe("seed", () => {
+	it("keeps every planned working set when a warm-up was logged elsewhere", () => {
+		const server = (
+			setNumber: number,
+			setType: "warmup" | "working",
+			weight: number,
+		) => ({
+			_id: `s-${setNumber}`,
+			exerciseId: "press",
+			setNumber,
+			reps: 6,
+			weight,
+			unit: "kg" as const,
+			setType,
+		});
+		const plan = seedPlan(
+			[
+				{
+					exerciseId: "press",
+					plannedSets: [1, 2, 3].map(() => ({
+						reps: 6,
+						weight: 50,
+						unit: "kg" as const,
+					})),
+				},
+			],
+			[server(1, "warmup", 30), server(2, "working", 50)],
+			lookup,
+		);
+		const rows = rowsOf(plan, "press");
+		expect(rows).toHaveLength(4);
+		expect(rows.filter((row) => !row.done)).toHaveLength(2);
+	});
+});
 
 describe("1RM", () => {
 	it("uses Epley, and a single is its weight", () => {
@@ -883,6 +925,37 @@ describe("typo guards", () => {
 	});
 });
 
+describe("focus", () => {
+	const three = () =>
+		plannedPlan({
+			squat: [{ reps: 5, weight: 95 }],
+			curl: [{ reps: 10, weight: 20 }],
+			plain: [{ reps: 8, weight: 40 }],
+		});
+	const ids = (plan: SessionPlan) =>
+		plan.order.map((entry) =>
+			entry.kind === "exercise" ? entry.exerciseId : entry.groupId,
+		);
+	it("moves an upcoming exercise before the current one", () => {
+		const plan = focusExercise(three(), "plain");
+		expect(ids(plan)).toEqual(["plain", "squat", "curl"]);
+		expect(nextOpenRow(plan)?.exerciseId).toBe("plain");
+	});
+	it("keeps done exercises where they are", () => {
+		let plan = three();
+		plan = log(plan, firstOpen(plan));
+		plan = focusExercise(plan, "plain");
+		expect(ids(plan)).toEqual(["squat", "plain", "curl"]);
+		expect(nextOpenRow(plan)?.exerciseId).toBe("plain");
+	});
+	it("leaves the plan alone for the current or a finished exercise", () => {
+		let plan = three();
+		expect(focusExercise(plan, "squat")).toBe(plan);
+		plan = log(plan, firstOpen(plan));
+		expect(focusExercise(plan, "squat")).toBe(plan);
+	});
+});
+
 describe("repeat and add", () => {
 	it("lands a repeat after logged sets, without renumbering", () => {
 		let plan = plannedPlan();
@@ -1008,24 +1081,23 @@ describe("offline", () => {
 			row.id,
 			beginAttempt(plan, row.id, "op-1") as PlanSet,
 		);
-		const next = reconcilePlan(
-			plan,
-			[],
-			[
-				{
-					_id: "server-1",
-					exerciseId: "squat",
-					setNumber: 1,
-					reps: 5,
-					weight: 95,
-					unit: "kg",
-					setType: "working",
-				},
-			],
-			lookup,
-		);
-		expect(rowsOf(next, "squat")).toHaveLength(3);
-		expect(findRow(next, row.id)).toMatchObject({
+		const server = [
+			{
+				_id: "server-1",
+				exerciseId: "squat",
+				setNumber: 1,
+				reps: 5,
+				weight: 95,
+				unit: "kg" as const,
+				setType: "working" as const,
+			},
+		];
+		// The query can deliver it before the ack or receipt does.
+		expect(reconcilePlan(plan, [], server, lookup)).toBe(plan);
+		const logged = markLogged(plan, row.id, "server-1", 1, SQUAT).plan;
+		expect(reconcilePlan(logged, [], server, lookup)).toBe(logged);
+		expect(rowsOf(logged, "squat")).toHaveLength(3);
+		expect(findRow(logged, row.id)).toMatchObject({
 			done: true,
 			setId: "server-1",
 		});
@@ -1097,6 +1169,584 @@ describe("reconcile", () => {
 	it("returns the same plan when nothing changed", () => {
 		const plan = plannedPlan();
 		expect(reconcilePlan(plan, [], [], lookup)).toBe(plan);
+	});
+	describe("a set logged elsewhere (APP-688)", () => {
+		const begin = (plan: SessionPlan, row: PlanSet) =>
+			updateRow(plan, row.id, beginAttempt(plan, row.id, "op-1") as PlanSet);
+		const ids = (plan: SessionPlan) => rowsOf(plan, "squat").map((r) => r.id);
+		const links = (plan: SessionPlan) =>
+			rowsOf(plan, "squat").map((r) => r.setId ?? null);
+
+		it("fills the first open planned row and keeps its target", () => {
+			const plan = plannedPlan();
+			const next = reconcilePlan(
+				plan,
+				[],
+				[
+					{
+						...set("mcp-1", 1),
+						weight: 220,
+						unit: "lbs",
+						reps: 4,
+						rpe: 8,
+						setType: "failure",
+					},
+				],
+				lookup,
+			);
+			expect(ids(next)).toEqual(ids(plan));
+			const row = rowsOf(next, "squat")[0] as PlanSet;
+			expect(row).toMatchObject({
+				done: true,
+				setId: "mcp-1",
+				setNumber: 1,
+				reps: 4,
+				unit: "lbs",
+				typedLbs: 220,
+				rpe: 8,
+				kind: "failure",
+				plan: { kg: 95, reps: 5 },
+			});
+			expect(row.kg).toBeCloseTo(99.79, 2);
+		});
+		it("brings its note, and never fills a row with a note typed here", () => {
+			const plan = plannedPlan();
+			const first = rowsOf(plan, "squat")[0] as PlanSet;
+			const noted = updateRow(plan, first.id, { ...first, notes: "belt" });
+			const server = { ...set("mcp-1", 1), notes: "narrow grip" };
+			const next = reconcilePlan(noted, [], [server], lookup);
+			expect(findRow(next, first.id)).toMatchObject({
+				done: false,
+				notes: "belt",
+			});
+			const filled = rowsOf(next, "squat").find((r) => r.setId === "mcp-1");
+			expect(filled?.notes).toBe("narrow grip");
+			// A note changed elsewhere follows, and so does its removal.
+			const cleared = reconcilePlan(next, [], [set("mcp-1", 1)], lookup);
+			expect(
+				rowsOf(cleared, "squat").find((r) => r.setId === "mcp-1")?.notes,
+			).toBeUndefined();
+			// Rows changed before `edited` was stored count too.
+			const legacy = { ...findRow(noted, first.id), edited: undefined };
+			expect(
+				findRow(
+					reconcilePlan(
+						{
+							...noted,
+							sets: {
+								...noted.sets,
+								squat: rowsOf(noted, "squat").map((r) =>
+									r.id === first.id ? (legacy as PlanSet) : r,
+								),
+							},
+						},
+						[],
+						[server],
+						lookup,
+					),
+					first.id,
+				)?.done,
+			).toBe(false);
+		});
+		it("never fills an unlogged warm-up that holds a note", () => {
+			const added = addWarmup(plannedPlan(), "squat", SQUAT);
+			const row = findRow(added.plan, added.rowId) as PlanSet;
+			const noted = updateRow(added.plan, row.id, { ...row, notes: "belt" });
+			const logged = markLogged(noted, row.id, "own", 1, SQUAT).plan;
+			const unlogged = updateRow(logged, row.id, {
+				...(findRow(logged, row.id) as PlanSet),
+				done: false,
+				setId: undefined,
+				setNumber: undefined,
+			});
+			const next = reconcilePlan(
+				unlogged,
+				[],
+				[{ ...set("mcp-1", 1), setType: "warmup" }],
+				lookup,
+			);
+			expect(findRow(next, row.id)).toMatchObject({
+				done: false,
+				notes: "belt",
+			});
+		});
+		it("never fills an unlogged row without plan or baseline after reps or RPE were typed (APP-783)", () => {
+			const unlog = (plan: SessionPlan, rowId: string) =>
+				updateRow(plan, rowId, {
+					...(findRow(plan, rowId) as PlanSet),
+					done: false,
+					setId: undefined,
+					setNumber: undefined,
+					loggedPercent: undefined,
+				});
+			// Warm-up with a second untouched warm-up: remote lands on the next eligible row.
+			const first = addWarmup(plannedPlan(), "squat", SQUAT);
+			const second = addWarmup(first.plan, "squat", SQUAT);
+			const editedRow = findRow(second.plan, second.rowId) as PlanSet;
+			const edited = updateRow(second.plan, editedRow.id, {
+				...editedRow,
+				reps: 8,
+				rpe: 7,
+			});
+			const logged = markLogged(edited, editedRow.id, "own", 1, SQUAT).plan;
+			const unlogged = unlog(logged, editedRow.id);
+			const next = reconcilePlan(
+				unlogged,
+				[],
+				[{ ...set("mcp-1", 1, 50), reps: 5, setType: "warmup" }],
+				lookup,
+			);
+			expect(findRow(next, editedRow.id)).toMatchObject({
+				done: false,
+				reps: 8,
+				rpe: 7,
+			});
+			expect(findRow(next, first.rowId)).toMatchObject({
+				done: true,
+				setId: "mcp-1",
+			});
+
+			// Blank ad-hoc row with no other open row: remote lands on a new row.
+			const blankAdded = addExerciseToPlan(emptyPlan(), "plain", PLAIN);
+			const blankRow = findRow(
+				blankAdded.plan,
+				blankAdded.rowId as string,
+			) as PlanSet;
+			const typed = updateRow(blankAdded.plan, blankRow.id, {
+				...blankRow,
+				kg: 60,
+				reps: 8,
+				rpe: 7,
+				blank: undefined,
+			});
+			const blankLogged = markLogged(
+				typed,
+				blankRow.id,
+				"own-2",
+				1,
+				PLAIN,
+			).plan;
+			const blankUnlogged = unlog(blankLogged, blankRow.id);
+			const blankNext = reconcilePlan(
+				blankUnlogged,
+				[],
+				[{ ...set("mcp-2", 1, 80), exerciseId: "plain", reps: 5 }],
+				lookup,
+			);
+			expect(findRow(blankNext, blankRow.id)).toMatchObject({
+				done: false,
+				kg: 60,
+				reps: 8,
+				rpe: 7,
+			});
+			expect(rowsOf(blankNext, "plain").map((r) => r.setId ?? null)).toEqual([
+				"mcp-2",
+				null,
+			]);
+		});
+		it("never fills an unlogged row edited while logged (APP-783)", () => {
+			const added = addWarmup(plannedPlan(), "squat", SQUAT);
+			const row = findRow(added.plan, added.rowId) as PlanSet;
+			const logged = markLogged(added.plan, row.id, "own", 1, SQUAT).plan;
+			const corrected = updateRow(logged, row.id, {
+				...(findRow(logged, row.id) as PlanSet),
+				reps: 8,
+				rpe: 7,
+			});
+			const unlogged = updateRow(corrected, row.id, {
+				...(findRow(corrected, row.id) as PlanSet),
+				done: false,
+				setId: undefined,
+				setNumber: undefined,
+				loggedPercent: undefined,
+			});
+			const next = reconcilePlan(
+				unlogged,
+				[],
+				[{ ...set("mcp-1", 1, 50), reps: 5, setType: "warmup" }],
+				lookup,
+			);
+			expect(findRow(next, row.id)).toMatchObject({
+				done: false,
+				reps: 8,
+				rpe: 7,
+			});
+			expect(
+				rowsOf(next, "squat").filter((r) => r.kind === "warmup"),
+			).toHaveLength(2);
+		});
+		it("still fills an untouched row after log and unlog (APP-783)", () => {
+			const unlog = (plan: SessionPlan, rowId: string) =>
+				updateRow(plan, rowId, {
+					...(findRow(plan, rowId) as PlanSet),
+					done: false,
+					setId: undefined,
+					setNumber: undefined,
+					loggedPercent: undefined,
+				});
+			const added = addWarmup(plannedPlan(), "squat", SQUAT);
+			const warm = findRow(added.plan, added.rowId) as PlanSet;
+			const warmUnlogged = unlog(
+				markLogged(added.plan, warm.id, "own-w", 1, SQUAT).plan,
+				warm.id,
+			);
+			const warmNext = reconcilePlan(
+				warmUnlogged,
+				[],
+				[{ ...set("mcp-w", 1, 50), setType: "warmup" }],
+				lookup,
+			);
+			expect(findRow(warmNext, warm.id)).toMatchObject({
+				done: true,
+				setId: "mcp-w",
+			});
+			expect(rowsOf(warmNext, "squat")).toHaveLength(4);
+
+			const plan = plannedPlan();
+			const planned = firstOpen(plan);
+			const plannedUnlogged = unlog(log(plan, planned, "own-p"), planned.id);
+			const plannedNext = reconcilePlan(
+				plannedUnlogged,
+				[],
+				[set("mcp-p", 1)],
+				lookup,
+			);
+			expect(links(plannedNext)).toEqual(["mcp-p", null, null]);
+		});
+		it("keeps no note on a repeated set", () => {
+			const plan = plannedPlan();
+			const first = rowsOf(plan, "squat")[0] as PlanSet;
+			const noted = updateRow(plan, first.id, { ...first, notes: "belt" });
+			const repeated = repeatRow(noted, first.id).plan;
+			expect(
+				rowsOf(repeated, "squat").filter((r) => r.notes === "belt"),
+			).toHaveLength(1);
+		});
+		it("fills one row per set, whatever the set numbers are", () => {
+			const plan = plannedPlan();
+			const own = log(plan, firstOpen(plan), "own");
+			const server = [set("own", 1), set("b", 1), set("c", 7)];
+			const next = reconcilePlan(own, [], server, lookup);
+			expect(ids(next)).toEqual(ids(plan));
+			expect(links(next)).toEqual(["own", "b", "c"]);
+			expect(reconcilePlan(next, [], server, lookup)).toBe(next);
+		});
+		it("appends a row once none is open", () => {
+			const plan = plannedPlan({ squat: [{ reps: 5, weight: 95 }] });
+			const own = log(plan, firstOpen(plan), "own");
+			const next = reconcilePlan(own, [], [set("own", 1), set("b", 2)], lookup);
+			expect(links(next)).toEqual(["own", "b"]);
+		});
+		it.each([
+			["a load", { kg: 100 }],
+			["reps", { reps: 8 }],
+			["an RPE", { rpe: 8 }],
+			["a unit", { unit: "lbs" }],
+			["a set type", { kind: "failure" }],
+			["a failed log", { failed: true }],
+		] as [string, Partial<PlanSet>][])(
+			"passes over %s entered here",
+			(_, change) => {
+				const plan = plannedPlan();
+				const row = firstOpen(plan);
+				const edited = updateRow(plan, row.id, { ...row, ...change });
+				const next = reconcilePlan(edited, [], [set("b", 1)], lookup);
+				expect(findRow(next, row.id)).toEqual(findRow(edited, row.id));
+				expect(links(next)).toEqual([null, "b", null]);
+			},
+		);
+		it("fills a row whose change was put back", () => {
+			const plan = plannedPlan();
+			const row = firstOpen(plan);
+			let next = updateRow(plan, row.id, { ...row, kg: 100 });
+			next = updateRow(next, row.id, {
+				...(findRow(next, row.id) as PlanSet),
+				kg: 95,
+			});
+			next = reconcilePlan(next, [], [set("b", 1)], lookup);
+			expect(links(next)).toEqual(["b", null, null]);
+		});
+		it("adds a row when every open one holds input", () => {
+			const plan = plannedPlan({ squat: [{ reps: 5, weight: 95 }] });
+			const row = firstOpen(plan);
+			const edited = updateRow(plan, row.id, { ...row, kg: 100 });
+			const next = reconcilePlan(edited, [], [set("b", 1)], lookup);
+			expect(links(next)).toEqual(["b", null]);
+			expect(findRow(next, row.id)).toMatchObject({ kg: 100, done: false });
+		});
+		it("passes over an in-flight attempt", () => {
+			const plan = plannedPlan();
+			const row = firstOpen(plan);
+			const sending = begin(plan, row);
+			const next = reconcilePlan(sending, [], [set("b", 2)], lookup);
+			expect(findRow(next, row.id)).toEqual(findRow(sending, row.id));
+			expect(links(next)).toEqual([null, "b", null]);
+		});
+		it.each([
+			["other", 60],
+			["equal", 95],
+		])(
+			"never takes another device's set with %s values for an attempt with its number",
+			(_, weight) => {
+				const plan = plannedPlan();
+				const row = firstOpen(plan);
+				const sending = begin(plan, row);
+				const other = set("b", 1, weight);
+				const both = [other, set("own", 1)];
+				expect(reconcilePlan(sending, [], [other], lookup)).toBe(sending);
+				expect(reconcilePlan(sending, [], both, lookup)).toBe(sending);
+				const landed = markLogged(sending, row.id, "own", 1, SQUAT).plan;
+				expect(links(reconcilePlan(landed, [], both, lookup))).toEqual([
+					"own",
+					"b",
+					null,
+				]);
+				const rejected = markFailed(sending, row.id, false);
+				expect(links(reconcilePlan(rejected, [], [other], lookup))).toEqual([
+					null,
+					"b",
+					null,
+				]);
+			},
+		);
+		it.each([
+			["load", { kg: 100 }],
+			["reps", { reps: 8 }],
+			["unit", { unit: "lbs" }],
+		] as [string, Partial<PlanSet>][])(
+			"passes over a %s changed before changes were marked",
+			(_, change) => {
+				const plan = plannedPlan();
+				const row = firstOpen(plan);
+				const old = {
+					...plan,
+					sets: {
+						squat: rowsOf(plan, "squat").map((item) =>
+							item.id === row.id ? { ...item, ...change } : item,
+						),
+					},
+				};
+				expect(links(reconcilePlan(old, [], [set("b", 1)], lookup))).toEqual([
+					null,
+					"b",
+					null,
+				]);
+			},
+		);
+		it("passes over a change made before a swap", () => {
+			const input = addWarmup(plannedPlan(), "squat", SQUAT).plan;
+			const [warm, work] = rowsOf(input, "squat") as [PlanSet, PlanSet];
+			let plan = updateRow(input, warm.id, { ...warm, reps: 3 });
+			plan = updateRow(plan, work.id, { ...work, reps: 8 });
+			plan = swapExercise(plan, "squat", "press", lookup("press")).plan;
+			const remote = { ...set("b", 1), exerciseId: "press" };
+			const warmup = { ...remote, _id: "w", setType: "warmup" as const };
+			const next = reconcilePlan(plan, [], [remote, warmup], lookup);
+			expect(findRow(next, warm.id)).toEqual(findRow(plan, warm.id));
+			expect(findRow(next, work.id)).toEqual(findRow(plan, work.id));
+			expect(rowsOf(next, "press").map((r) => r.setId ?? null)).toEqual([
+				"w",
+				null,
+				null,
+				"b",
+				null,
+			]);
+			// Swapping back restores the input, and its protection.
+			const back = swapExercise(plan, "press", "squat", SQUAT).plan;
+			expect(links(reconcilePlan(back, [], [set("b", 1)], lookup))).toEqual([
+				null,
+				null,
+				"b",
+				null,
+			]);
+		});
+		it("keeps warm-ups and planned working sets apart", () => {
+			const plan = plannedPlan();
+			const warm = { ...set("w", 1), setType: "warmup" as const };
+			const added = reconcilePlan(plan, [], [warm], lookup);
+			expect(links(added)).toEqual(["w", null, null, null]);
+			const withWarmup = addWarmup(plan, "squat", SQUAT).plan;
+			expect(links(reconcilePlan(withWarmup, [], [warm], lookup))).toEqual([
+				"w",
+				null,
+				null,
+				null,
+			]);
+			expect(
+				links(reconcilePlan(withWarmup, [], [set("b", 1)], lookup)),
+			).toEqual([null, "b", null, null]);
+		});
+	});
+	describe("a grouped set logged on another device (APP-233)", () => {
+		// What the server holds for the sets this device logged.
+		const known = (plan: SessionPlan) =>
+			allRows(plan)
+				.filter((row) => row.setId)
+				.map((row) => ({
+					_id: row.setId as string,
+					exerciseId: row.exerciseId,
+					setNumber: row.setNumber as number,
+					reps: row.reps,
+					weight: row.kg,
+					unit: "kg" as const,
+					setType: row.kind,
+				}));
+		const remote = (exerciseId: string, id: string, setNumber: number) => ({
+			...set(id, setNumber),
+			exerciseId,
+		});
+		const shape = (plan: SessionPlan, id: string) =>
+			plan.groups[id]?.rounds.map((round) =>
+				round.items.map(
+					(row) =>
+						`${row.exerciseId}:${row.setId ?? (row.done ? "?" : "open")}`,
+				),
+			);
+		const grouped = (sets: Parameters<typeof plannedPlan>[0]) => {
+			const result = groupWith(plannedPlan(sets), "squat", "curl");
+			return { plan: result.plan, id: result.groupId as string };
+		};
+		const planned = (count: number, weight = 95) =>
+			Array.from({ length: count }, () => ({ reps: 5, weight }));
+
+		it("fills the exercise's next open set in the existing round", () => {
+			const start = grouped({ squat: planned(3), curl: planned(3, 40) });
+			const plan = log(start.plan, firstOpen(start.plan), "sq-1");
+			const open = rowsOf(plan, "squat")[1] as PlanSet;
+			const next = reconcilePlan(
+				plan,
+				[],
+				[...known(plan), remote("squat", "web-1", 2)],
+				lookup,
+			);
+			expect(shape(next, start.id)).toEqual([
+				["squat:sq-1", "curl:open"],
+				["squat:web-1", "curl:open"],
+				["squat:open", "curl:open"],
+			]);
+			expect(findRow(next, open.id)).toMatchObject({
+				done: true,
+				setId: "web-1",
+				setNumber: 2,
+			});
+		});
+		it("passes over a set this device is still logging", () => {
+			const start = grouped({ squat: planned(3), curl: planned(3, 40) });
+			const row = firstOpen(start.plan);
+			const plan = updateRow(
+				start.plan,
+				row.id,
+				beginAttempt(start.plan, row.id, "op-1") as PlanSet,
+			);
+			const next = reconcilePlan(
+				plan,
+				[],
+				[remote("squat", "web-2", 2)],
+				lookup,
+			);
+			expect(findRow(next, row.id)).toMatchObject({ done: false });
+			expect(shape(next, start.id)?.[1]).toEqual(["squat:web-2", "curl:open"]);
+			expect(next.groups[start.id]?.rounds).toHaveLength(3);
+		});
+		it("passes over a change made here (APP-688)", () => {
+			const start = grouped({ squat: planned(2), curl: planned(2, 40) });
+			const row = firstOpen(start.plan);
+			const plan = updateRow(start.plan, row.id, { ...row, kg: 100 });
+			const next = reconcilePlan(
+				plan,
+				[],
+				[remote("squat", "web-5", 1)],
+				lookup,
+			);
+			expect(shape(next, start.id)).toEqual([
+				["squat:open", "curl:open"],
+				["squat:web-5", "curl:open"],
+			]);
+			expect(findRow(next, row.id)).toMatchObject({ kg: 100, done: false });
+		});
+		it("fills a set that only inherited a load in pounds (APP-688)", () => {
+			const start = grouped({ squat: planned(2), curl: planned(2, 40) });
+			const row = firstOpen(start.plan);
+			let plan = updateRow(
+				start.plan,
+				row.id,
+				withTypedLoad({ ...row, unit: "lbs" }, 225),
+			);
+			plan = log(plan, findRow(plan, row.id) as PlanSet, "sq-1");
+			const open = firstOpen(plan);
+			expect(open).toMatchObject({ carried: true, unit: "lbs" });
+			const first = { ...remote("squat", "sq-1", 1), weight: 225 };
+			const next = reconcilePlan(
+				plan,
+				[],
+				[{ ...first, unit: "lbs" as const }, remote("squat", "web-7", 2)],
+				lookup,
+			);
+			expect(shape(next, start.id)).toEqual([
+				["squat:sq-1", "curl:open"],
+				["squat:web-7", "curl:open"],
+			]);
+		});
+		it("keeps an AMRAP's open round and score when that set holds a change (APP-688)", () => {
+			const start = grouped({ squat: planned(1), curl: planned(1, 40) });
+			let plan = setGroupMode(start.plan, start.id, "amrap").plan;
+			const row = firstOpen(plan);
+			plan = updateRow(plan, row.id, { ...row, kg: 100 });
+			const next = reconcilePlan(
+				plan,
+				[],
+				[remote("squat", "web-6", 1)],
+				lookup,
+			);
+			expect(shape(next, start.id)).toEqual([
+				["squat:web-6"],
+				["squat:open", "curl:open"],
+			]);
+			for (const scored of [next, closeGroup(next, start.id)])
+				expect(
+					amrapScore(groupOfExercise(scored, "squat") as SetGroup),
+				).toEqual({ rounds: 0, sets: 1 });
+		});
+		it("joins a round that lacks the exercise when none is open", () => {
+			let plan = plannedPlan({ squat: planned(2), curl: planned(1, 40) });
+			plan = log(plan, firstOpen(plan, "curl"), "cu-1");
+			const result = groupWith(plan, "squat", "curl");
+			const id = result.groupId as string;
+			plan = log(result.plan, firstOpen(result.plan), "sq-1");
+			plan = log(plan, firstOpen(plan), "sq-2");
+			const next = reconcilePlan(
+				plan,
+				[],
+				[...known(plan), remote("curl", "web-3", 2)],
+				lookup,
+			);
+			expect(shape(next, id)).toEqual([
+				["squat:sq-1", "curl:cu-1"],
+				["squat:sq-2", "curl:web-3"],
+			]);
+		});
+		it("adds a round only when every round already has the exercise logged", () => {
+			const start = grouped({ squat: planned(1), curl: planned(1, 40) });
+			let plan = log(start.plan, firstOpen(start.plan), "sq-1");
+			plan = log(plan, firstOpen(plan, "curl"), "cu-1");
+			const next = reconcilePlan(
+				plan,
+				[],
+				[...known(plan), remote("squat", "web-4", 2)],
+				lookup,
+			);
+			expect(shape(next, start.id)).toEqual([
+				["squat:sq-1", "curl:cu-1"],
+				["squat:web-4"],
+			]);
+		});
+		it("keeps a set this device logged in its own round", () => {
+			const start = grouped({ squat: planned(2), curl: planned(2, 40) });
+			const plan = log(start.plan, firstOpen(start.plan), "sq-1");
+			const next = reconcilePlan(plan, [], known(plan), lookup);
+			expect(next).toBe(plan);
+			expect(next.groups[start.id]?.rounds).toHaveLength(2);
+		});
 	});
 });
 
@@ -1261,7 +1911,9 @@ describe("recap", () => {
 		plan = addWarmup(plan, "squat", SQUAT).plan;
 		for (const row of rowsOf(plan, "squat")) plan = log(plan, row);
 		const recap = recapOf(plan, lookup);
-		expect(recap.sets).toBe(2);
+		// Working sets only, as the header and the strip count (APP-624).
+		expect(recap.sets).toBe(1);
+		expect(recap.exercises[0]?.sets).toBe(1);
 		expect(recap.volume).toBe(125);
 		expect(recap.exercises[0]).toMatchObject({
 			tag: "newMeasured",
@@ -1282,6 +1934,49 @@ describe("recap", () => {
 			tag: "newMeasured",
 			best: { value: 200, measured: true },
 		});
+	});
+});
+
+describe("set counts (APP-624)", () => {
+	it("count working sets everywhere: header, Finish and recap", () => {
+		let plan = plannedPlan({ squat: [{ reps: 5, weight: 100 }] });
+		plan = addWarmup(plan, "squat", SQUAT).plan;
+		const [warm, work] = [...rowsOf(plan, "squat")].sort(
+			(a, b) => Number(b.kind === "warmup") - Number(a.kind === "warmup"),
+		) as [PlanSet, PlanSet];
+		plan = log(plan, warm);
+		expect(loggedCount(plan)).toBe(1);
+		expect(workedCount(plan)).toBe(0);
+		// An unlogged warm-up is not a set left to do.
+		expect(openCount(plan)).toBe(1);
+		plan = log(plan, work);
+		expect(loggedCount(plan)).toBe(2);
+		expect(workedCount(plan)).toBe(1);
+		expect(openCount(plan)).toBe(0);
+	});
+	it("does not count an unlogged warm-up as open", () => {
+		const plan = addWarmup(
+			plannedPlan({ squat: [{ reps: 5, weight: 100 }] }),
+			"squat",
+			SQUAT,
+		).plan;
+		expect(openCount(plan)).toBe(1);
+	});
+});
+
+describe("chipPercentOf", () => {
+	const ref = { value: 99 };
+	it("keeps the planned percentage while the weight prices it", () => {
+		expect(chipPercentOf({ kg: 82.5 }, 83, ref, false)).toBe(83);
+	});
+	it("falls back to the weight's share of the 1RM, so 83% lights a chip", () => {
+		expect(chipPercentOf({ kg: 82.5 }, null, ref, false)).toBe(83.3);
+		expect(chipPercentOf({ kg: 60 }, null, { value: 60 }, false)).toBe(100);
+	});
+	it("shows none without a reference, a load, or on bodyweight", () => {
+		expect(chipPercentOf({ kg: 80 }, null, null, false)).toBeNull();
+		expect(chipPercentOf({ kg: 0 }, null, ref, false)).toBeNull();
+		expect(chipPercentOf({ kg: 10 }, null, ref, true)).toBeNull();
 	});
 });
 

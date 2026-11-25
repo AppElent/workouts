@@ -53,6 +53,10 @@ export interface PlanSet {
 	percent: number | null;
 	kind: SetType;
 	rpe: number | null;
+	/** As typed; saved trimmed. */
+	notes?: string;
+	/** On a draft of a logged set: its note was typed here. */
+	notesEdited?: boolean;
 	done: boolean;
 	setId?: string;
 	setNumber?: number;
@@ -72,6 +76,8 @@ export interface PlanSet {
 	confirmedKey?: string;
 	failed?: boolean;
 	attempt?: LogAttempt;
+	/** Set whose values someone changed here; kept across log/unlog; see `updateRow`. */
+	edited?: boolean;
 }
 export interface GroupRound {
 	id: string;
@@ -116,7 +122,14 @@ export interface ExerciseFacts {
 	estimated: number | null;
 	savedManual: { value: number; date: number } | null;
 	measuredDate: number | null;
-	last: { kg: number; reps: number } | null;
+	/** The last logged set of this exercise in another session. */
+	last: {
+		kg: number;
+		reps: number;
+		rpe?: number | null;
+		/** When it was logged, epoch ms. */
+		date?: number | null;
+	} | null;
 }
 export type PlanFacts = (exerciseId: string) => ExerciseFacts;
 export interface PlanNote {
@@ -211,7 +224,16 @@ export function isValidRow(row: PlanSet, facts: ExerciseFacts) {
 		validateSetInput({ weight: shownLoad(row), reps: row.reps }).ok
 	);
 }
+export const noteOf = (row: Pick<PlanSet, "notes">) => row.notes?.trim() ?? "";
+/**
+ * A draft of a logged set with the note saving it would leave: one nobody typed
+ * here stays the stored note, which may have changed elsewhere since.
+ */
+export function withStoredNote(draft: PlanSet, stored: PlanSet): PlanSet {
+	return draft.notesEdited ? draft : { ...draft, notes: stored.notes };
+}
 export function payloadFor(row: PlanSet, setNumber: number): LogPayload {
+	const notes = noteOf(row);
 	return {
 		exerciseId: row.exerciseId,
 		setNumber,
@@ -223,6 +245,7 @@ export function payloadFor(row: PlanSet, setNumber: number): LogPayload {
 				: Math.round(row.kg * 1e6) / 1e6,
 		unit: row.unit,
 		...(row.rpe === null ? {} : { rpe: row.rpe }),
+		...(notes ? { notes } : {}),
 		setType: row.kind,
 	};
 }
@@ -272,6 +295,21 @@ export function targetPercent(
 		near(snapLoad(exact, stepKg), row.kg)
 		? row.percent
 		: null;
+}
+/**
+ * The percentage the chips should show for a set: its planned one while the
+ * weight still prices it, otherwise the weight's share of the 1RM to a tenth.
+ */
+export function chipPercentOf(
+	row: Pick<PlanSet, "kg">,
+	target: number | null,
+	reference: { value: number } | null,
+	bodyweight: boolean,
+) {
+	if (target !== null) return target;
+	if (!reference || bodyweight || !(row.kg > 0) || !(reference.value > 0))
+		return null;
+	return Math.round((row.kg / reference.value) * 1000) / 10;
 }
 export function shownPercent(
 	row: PlanSet,
@@ -394,7 +432,7 @@ function replaceRow(plan: SessionPlan, id: string, next: PlanSet): SessionPlan {
 
 export type ServerSet = Pick<
 	Doc<"sets">,
-	"setNumber" | "reps" | "weight" | "unit" | "rpe" | "setType"
+	"setNumber" | "reps" | "weight" | "unit" | "rpe" | "notes" | "setType"
 > & { _id: string; exerciseId: string };
 export type ServerExercise = {
 	exerciseId: string;
@@ -413,6 +451,7 @@ function rowFromServer(set: ServerSet): PlanSet {
 		percent: null,
 		kind: set.setType,
 		rpe: set.rpe ?? null,
+		...(set.notes === undefined ? {} : { notes: set.notes }),
 		done: true,
 		setId: set._id,
 		setNumber: set.setNumber,
@@ -479,8 +518,9 @@ function seedExercise(
 			...plan.sets,
 			[exercise.exerciseId]: [
 				...logged.map(rowFromServer),
+				// Planned sets are working sets: a logged warm-up uses none of them.
 				...exercise.plannedSets
-					.slice(logged.length)
+					.slice(logged.filter((set) => set.setType !== "warmup").length)
 					.map((planned) =>
 						plannedRow(plan, exercise.exerciseId, planned, facts),
 					),
@@ -504,6 +544,91 @@ export function seedPlan(
 		emptyPlan(restDefault),
 	);
 }
+/**
+ * Whether an open row moved from its plan, or a free row from the set it
+ * copied. Also covers rows changed before `edited` was stored. A carried load
+ * came from another set, not from input on this one.
+ */
+function offStart(row: PlanSet) {
+	// A row with no start to compare, such as an unlogged warm-up, keeps its note too.
+	if (noteOf(row) !== "") return true;
+	const start =
+		row.plan ??
+		(row.baseline && { ...row.baseline, kg: row.pricedKg ?? row.baseline.kg });
+	if (!start) return false;
+	return (
+		(!row.carried && !near(row.kg, start.kg)) ||
+		row.reps !== start.reps ||
+		row.rpe !== null ||
+		Boolean(
+			row.plan &&
+				(row.kind !== "working" || (!row.carried && row.unit !== "kg")),
+		)
+	);
+}
+/**
+ * Whether a set logged elsewhere may fill this row: an open one without input
+ * from this device, and a warm-up only for a warm-up, since a logged warm-up
+ * never uses up a planned working set.
+ */
+const fills = (row: PlanSet, set: ServerSet) =>
+	row.exerciseId === set.exerciseId &&
+	!row.done &&
+	!row.edited &&
+	!offStart(row) &&
+	!isUnsaved(row) &&
+	(row.kind === "warmup") === (set.setType === "warmup");
+/** The logged set takes over the row but keeps its place and its target. */
+function filledRow(row: PlanSet, set: ServerSet): PlanSet {
+	return {
+		...rowFromServer(set),
+		id: row.id,
+		...(row.plan ? { plan: row.plan } : {}),
+	};
+}
+/**
+ * A set logged elsewhere for a grouped exercise takes the place logging it here
+ * would have: the first open set it may fill. With none, it joins the first
+ * round that lacks the exercise, and only then a round of its own.
+ */
+function slotIntoGroup(group: SetGroup, set: ServerSet): SetGroup {
+	const target = groupRows(group).find((row) => fills(row, set));
+	if (target)
+		return normalizeGroup({
+			...group,
+			rounds: group.rounds.map((round) => ({
+				...round,
+				items: round.items.map((row) =>
+					row.id === target.id ? filledRow(row, set) : row,
+				),
+			})),
+		});
+	const logged = rowFromServer(set);
+	const own = (row: PlanSet) => row.exerciseId === set.exerciseId;
+	const gap = group.rounds.findIndex((round) => !round.items.some(own));
+	if (gap >= 0)
+		return normalizeGroup({
+			...group,
+			rounds: group.rounds.map((round, index) =>
+				index === gap ? { ...round, items: [...round.items, logged] } : round,
+			),
+		});
+	// Before a round still open here. An AMRAP copies its last round and counts
+	// full ones, so there the extra round must be neither.
+	const open = group.rounds.findIndex((round) =>
+		round.items.some((row) => own(row) && !row.done),
+	);
+	const at = open < 0 ? group.rounds.length : open;
+	const extra: GroupRound = {
+		id: newRowId(),
+		...(open >= 0 && group.mode === "amrap" ? { partial: true } : {}),
+		items: [logged],
+	};
+	return normalizeGroup({
+		...group,
+		rounds: [...group.rounds.slice(0, at), extra, ...group.rounds.slice(at)],
+	});
+}
 /** Server state wins for logged sets. Open sets and the session's shape stay local. */
 export function reconcilePlan(
 	plan: SessionPlan,
@@ -519,28 +644,7 @@ export function reconcilePlan(
 	);
 	let changed = false;
 	const syncRow = (row: PlanSet): PlanSet | null => {
-		if (!row.setId) {
-			const attempt = row.attempt;
-			const landed =
-				attempt &&
-				serverSets.find(
-					(set) =>
-						set.exerciseId === row.exerciseId &&
-						set.setNumber === attempt.setNumber &&
-						!linked.has(set._id),
-				);
-			if (!landed) return row;
-			changed = true;
-			linked.add(landed._id);
-			return {
-				...row,
-				done: true,
-				setId: landed._id,
-				setNumber: landed.setNumber,
-				attempt: undefined,
-				failed: undefined,
-			};
-		}
+		if (!row.setId) return row;
 		const set = byId.get(row.setId);
 		if (!set) {
 			// A set this client just logged may be one render ahead of its query.
@@ -554,6 +658,7 @@ export function reconcilePlan(
 			set.reps === row.reps &&
 			set.unit === row.unit &&
 			(set.rpe ?? null) === row.rpe &&
+			(set.notes ?? "") === noteOf(row) &&
 			set.setType === row.kind
 		)
 			return row;
@@ -565,6 +670,7 @@ export function reconcilePlan(
 			reps: set.reps,
 			unit: set.unit,
 			rpe: set.rpe ?? null,
+			notes: set.notes,
 			kind: set.setType,
 		};
 	};
@@ -617,22 +723,21 @@ export function reconcilePlan(
 	}
 	for (const set of serverSets) {
 		if (linked.has(set._id)) continue;
+		// The number of a set still being logged here: that set, or another
+		// device's, even with equal values. Only its ack or receipt can tell.
+		if (
+			rowsOf(next, set.exerciseId).some(
+				(row) => row.attempt?.setNumber === set.setNumber,
+			)
+		)
+			continue;
 		changed = true;
 		linked.add(set._id);
 		const home = groupOfExercise(next, set.exerciseId);
 		if (home) {
 			next = {
 				...next,
-				groups: {
-					...next.groups,
-					[home.id]: {
-						...home,
-						rounds: [
-							...home.rounds,
-							{ id: newRowId(), items: [rowFromServer(set)] },
-						],
-					},
-				},
+				groups: { ...next.groups, [home.id]: slotIntoGroup(home, set) },
 			};
 			continue;
 		}
@@ -651,17 +756,18 @@ export function reconcilePlan(
 				removed: next.removed.filter((id) => id !== set.exerciseId),
 			};
 		const rows = next.sets[set.exerciseId] ?? [];
+		// The first row it may fill, not the one at its set number: MCP callers
+		// count sets their own way, and two devices can use the same number.
+		const target = rows.find((row) => fills(row, set));
 		const firstOpen = rows.findIndex((row) => !row.done);
 		const at = firstOpen < 0 ? rows.length : firstOpen;
 		next = {
 			...next,
 			sets: {
 				...next.sets,
-				[set.exerciseId]: [
-					...rows.slice(0, at),
-					rowFromServer(set),
-					...rows.slice(at),
-				],
+				[set.exerciseId]: target
+					? rows.map((row) => (row === target ? filledRow(row, set) : row))
+					: [...rows.slice(0, at), rowFromServer(set), ...rows.slice(at)],
 			},
 		};
 	}
@@ -743,12 +849,17 @@ function freshCopy(row: PlanSet): PlanSet {
 		...(unknownReps ? { blank: true } : {}),
 	};
 }
+/** Stores a row, noting when that changes a set's values. */
 export function updateRow(
 	plan: SessionPlan,
 	id: string,
 	next: PlanSet,
 ): SessionPlan {
-	return replaceRow(plan, id, next);
+	const stored = findRow(plan, id);
+	if (!stored || stored.done !== next.done || sameSet(stored, next))
+		return replaceRow(plan, id, next);
+	const onPlan = next.plan && !next.carried && !offStart(next);
+	return replaceRow(plan, id, { ...next, edited: onPlan ? undefined : true });
 }
 /** A percentage chip prices the set; it does not touch reps. */
 export function applyPercent(
@@ -930,6 +1041,35 @@ export function moveEntry(
 	if (at < 0 || to < 0 || to >= plan.order.length) return plan;
 	const order = [...plan.order];
 	[order[at], order[to]] = [order[to] as OrderEntry, order[at] as OrderEntry];
+	return { ...plan, order };
+}
+/**
+ * Makes an exercise the current one: its entry moves to just before the
+ * entry that holds the next open set, so the Now card, the highlight and the
+ * Live Activity all follow it. Done entries keep their place.
+ */
+export function focusExercise(
+	plan: SessionPlan,
+	exerciseId: string,
+): SessionPlan {
+	const from = plan.order.findIndex(
+		(item) => item.kind === "exercise" && item.exerciseId === exerciseId,
+	);
+	if (from < 0) return plan;
+	if (!(plan.sets[exerciseId] ?? []).some((row) => !row.done)) return plan;
+	const next = nextOpenRow(plan);
+	if (!next || next.exerciseId === exerciseId) return plan;
+	const current = plan.order.findIndex((item) =>
+		item.kind === "exercise"
+			? item.exerciseId === next.exerciseId && !groupOfRow(plan, next.id)
+			: (plan.groups[item.groupId]?.rounds ?? []).some((round) =>
+					round.items.some((row) => row.id === next.id),
+				),
+	);
+	if (current < 0 || current > from) return plan;
+	const order = [...plan.order];
+	const [entry] = order.splice(from, 1);
+	order.splice(current, 0, entry as OrderEntry);
 	return { ...plan, order };
 }
 const sameEntry = (a: OrderEntry, b: OrderEntry) =>
@@ -1324,8 +1464,10 @@ export function swapExercise(
 		if (row.orig?.exerciseId === to)
 			return { ...row.orig.row, id: row.id, rpe: null };
 		const orig = row.orig ?? { exerciseId: row.exerciseId, row };
+		// What someone entered stays theirs: no set logged elsewhere may fill it.
+		const edited = row.edited || offStart(row) ? { edited: true } : {};
 		if (row.kind !== "warmup" || facts.bodyweight)
-			return { ...swapWork(row, to, reference, facts), orig };
+			return { ...swapWork(row, to, reference, facts), orig, ...edited };
 		const kg =
 			workKg > 0
 				? Math.max(facts.stepKg, snapLoad(workKg / 2, facts.stepKg, row.unit))
@@ -1342,6 +1484,7 @@ export function swapExercise(
 			done: false,
 			free: true,
 			orig,
+			...edited,
 			...(kg > 0 ? {} : { blank: true }),
 		};
 	};
@@ -2021,7 +2164,7 @@ export function closeGroup(plan: SessionPlan, groupId: string): SessionPlan {
 	const rounds = group.rounds
 		.map((round) => ({
 			...round,
-			partial: !isRoundComplete(round),
+			partial: round.partial || !isRoundComplete(round),
 			items: round.items.filter((row) => row.done),
 		}))
 		.filter((round) => round.items.length > 0);
@@ -2050,6 +2193,7 @@ export function sameSet(a: PlanSet, b: PlanSet) {
 		near(a.kg, b.kg) &&
 		a.reps === b.reps &&
 		a.rpe === b.rpe &&
+		noteOf(a) === noteOf(b) &&
 		a.kind === b.kind &&
 		a.unit === b.unit
 	);
@@ -2061,7 +2205,7 @@ export function unsavedEdits(
 ) {
 	return Object.values(drafts).filter((draft) => {
 		const stored = findRow(plan, draft.id);
-		return stored?.done && !sameSet(draft, stored);
+		return stored?.done && !sameSet(withStoredNote(draft, stored), stored);
 	}).length;
 }
 
@@ -2316,7 +2460,8 @@ export function recapOf(plan: SessionPlan, getFacts: PlanFacts) {
 					: null;
 		return {
 			exerciseId,
-			sets: mine.length,
+			// Working sets, as the header and the progress strip count them.
+			sets: mine.filter((row) => row.kind !== "warmup").length,
 			best: newMeasured
 				? { value: today.measured as number, measured: true }
 				: newEstimated
@@ -2329,7 +2474,7 @@ export function recapOf(plan: SessionPlan, getFacts: PlanFacts) {
 		};
 	});
 	return {
-		sets: rows.length,
+		sets: rows.filter((row) => row.kind !== "warmup").length,
 		volume,
 		exercises,
 		heroes: exercises.filter(
@@ -2356,9 +2501,17 @@ export function closeOpenClocks(plan: SessionPlan): SessionPlan {
 		)
 		.reduce((next, group) => closeGroup(next, group.id), plan);
 }
+/** Working sets still to do: warm-ups never count (APP-624). */
 export function openCount(plan: SessionPlan) {
-	return allRows(plan).filter((row) => !row.done).length;
+	return allRows(plan).filter((row) => !row.done && row.kind !== "warmup")
+		.length;
 }
+/** Everything logged, warm-ups too: with none, finishing offers to delete. */
 export function loggedCount(plan: SessionPlan) {
 	return allRows(plan).filter((row) => row.done).length;
+}
+/** Working sets logged: the number the header, the strip and Finish show. */
+export function workedCount(plan: SessionPlan) {
+	return allRows(plan).filter((row) => row.done && row.kind !== "warmup")
+		.length;
 }

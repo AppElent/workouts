@@ -9,7 +9,9 @@ import {
 	estimatedMaxReps,
 	formatClock,
 	SET_LIMITS,
+	SET_NOTE_LENGTH,
 	SET_TYPES,
+	toKg,
 } from "@foundry/core";
 import {
 	Stack,
@@ -18,6 +20,7 @@ import {
 	usePreventRemove,
 	useRouter,
 } from "expo-router";
+import { SymbolView } from "expo-symbols";
 import {
 	type ComponentRef,
 	type RefObject,
@@ -37,7 +40,14 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { api, type Id } from "../../convex/api";
 import { useQuery } from "../../convex/query-cache";
-import { fmt, parseLocalizedDecimal, useI18n } from "../../i18n";
+import { dayLabel } from "../../data/session-data";
+import {
+	dateLocale,
+	fmt,
+	type Locale,
+	parseLocalizedDecimal,
+	useI18n,
+} from "../../i18n";
 import {
 	PREFERENCE_KEYS,
 	readLocal,
@@ -56,7 +66,12 @@ import { Segmented } from "../../ui/segmented";
 import { SelectionMenu } from "../../ui/selection-menu";
 import { AppText } from "../../ui/text";
 import { useChoice } from "../../ui/use-choice";
-import { useLargeText } from "./components/session-set-row";
+import { useCompactPhone } from "./components/now-card";
+import {
+	previousSetOf,
+	previousSetsOf,
+	usePreviousSession,
+} from "./data/previous-session";
 import { useRestState } from "./data/rest-timer";
 import { useSessionActions } from "./data/session-actions";
 import { useSessionWorkspace, workspaceStore } from "./data/session-workspace";
@@ -69,11 +84,13 @@ import {
 import {
 	applyPercent,
 	bestKnown,
+	chipPercentOf,
 	confirmKey,
 	findRow,
 	groupOfRow,
 	isValidRow,
 	loadStep,
+	noteOf,
 	type PlanSet,
 	referenceFor,
 	repeatRow,
@@ -88,6 +105,7 @@ import {
 	targetPercent,
 	typoCheck,
 	updateRow,
+	withStoredNote,
 	withTypedLoad,
 } from "./session-plan";
 import {
@@ -112,39 +130,46 @@ const near = (a: number, b: number) => Math.abs(a - b) < 0.01;
 type FieldRef = RefObject<ComponentRef<typeof TextInput> | null>;
 const parseNumber = (text: string) => parseLocalizedDecimal(text) ?? Number.NaN;
 
-function NumberField({
+type ValueSize = "valueHero" | "valueLarge" | "valueMedium" | "valueCompact";
+type Step = { spoken: string; disabled: boolean; onPress: () => void };
+
+/** A big editable value with its − and + steppers under it. */
+function ValueCard({
 	label,
 	value,
-	placeholder,
 	decimal,
+	size,
 	inputRef,
 	onChange,
 	onFocus,
 	onBlur,
 	disabled,
+	steps,
 	testID,
 }: {
 	label: string;
 	value: string;
-	placeholder: string;
 	decimal: boolean;
+	size: ValueSize;
 	inputRef: FieldRef;
 	onChange: (text: string) => void;
 	onFocus: () => void;
 	onBlur: () => void;
 	disabled: boolean;
+	steps: readonly [Step, Step] | null;
 	testID: string;
 }) {
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
+	const compact = useCompactPhone();
 	return (
-		<View style={styles.fieldColumn}>
+		<View style={styles.valueCard}>
 			<AppText
-				variant="label"
+				variant="overline"
 				numberOfLines={1}
 				adjustsFontSizeToFit
-				minimumFontScale={0.5}
-				style={styles.fieldLabel}
+				minimumFontScale={0.6}
+				style={styles.valueLabel}
 			>
 				{label}
 			</AppText>
@@ -158,51 +183,67 @@ function NumberField({
 				onChangeText={onChange}
 				onFocus={onFocus}
 				onBlur={onBlur}
-				placeholder={placeholder}
+				placeholder="—"
 				placeholderTextColor={colors.textFaint}
-				style={styles.field}
+				maxFontSizeMultiplier={1.2}
+				style={[styles.valueInput, type[size]]}
 				testID={testID}
 			/>
+			{steps ? (
+				<View style={styles.stepRow}>
+					{steps.map((step, index) => (
+						<Pressable
+							key={step.spoken}
+							accessibilityRole="button"
+							accessibilityLabel={step.spoken}
+							disabled={step.disabled}
+							onPress={step.onPress}
+							style={({ pressed }) => [
+								styles.step,
+								compact && styles.stepCompact,
+								pressed && styles.pressed,
+								step.disabled && styles.dimmed,
+							]}
+						>
+							<SymbolView
+								name={index === 0 ? "minus" : "plus"}
+								size={20}
+								weight="bold"
+								tintColor={colors.text}
+							/>
+						</Pressable>
+					))}
+				</View>
+			) : null}
 		</View>
 	);
 }
 /** The sheet's header has a fixed height, so its title scales only so far. */
 const NAV_TITLE_MAX_SCALE = 1.3;
 
-function StepButton({
-	label,
-	spoken,
-	onPress,
-	disabled,
-}: {
-	label: string;
-	spoken: string;
-	onPress: () => void;
-	disabled?: boolean;
-}) {
-	const styles = useThemedStyles(createStyles);
-	return (
-		<Pressable
-			accessibilityRole="button"
-			accessibilityLabel={spoken}
-			disabled={disabled}
-			onPress={onPress}
-			style={({ pressed }) => [
-				styles.step,
-				pressed && styles.pressed,
-				disabled && styles.dimmed,
-			]}
-		>
-			<AppText
-				variant="control"
-				numberOfLines={1}
-				adjustsFontSizeToFit
-				minimumFontScale={0.5}
-			>
-				{label}
-			</AppText>
-		</Pressable>
+const shortDay = (time: number, locale: Locale) =>
+	new Date(time)
+		.toLocaleDateString(dateLocale(locale), { day: "numeric", month: "short" })
+		.replace(".", "");
+
+/** "Last time 80 × 8 @ RPE 8 · 11 Nov": the set this one follows. */
+function lastLine(
+	last: { kg: number; reps: number; rpe?: number | null; date?: number | null },
+	text: { previous: string; previousRpe: string; previousDate: string },
+	locale: Locale,
+	format: (set: { kg: number; reps: number }) => string,
+	todayLabel: string,
+) {
+	const load = format(last);
+	const line =
+		typeof last.rpe === "number"
+			? fmt(text.previousRpe, { load, rpe: formatNumber(last.rpe, locale, 1) })
+			: fmt(text.previous, { load });
+	if (typeof last.date !== "number") return line;
+	const date = dayLabel(last.date, todayLabel, (time) =>
+		shortDay(time, locale),
 	);
+	return fmt(text.previousDate, { line, date });
 }
 
 export function SetEditorScreen() {
@@ -216,7 +257,6 @@ export function SetEditorScreen() {
 	const router = useRouter();
 	const navigation = useNavigation();
 	const { locale, t } = useI18n();
-	const largeText = useLargeText();
 	const copy = t.strength.plan;
 	const text = copy.editor;
 	const colors = useTokens();
@@ -226,10 +266,35 @@ export function SetEditorScreen() {
 	const restState = useRestState();
 	const stored = plan ? findRow(plan, params.rowId) : undefined;
 	// An edit only ever applies to a set that is still logged.
-	const draft = stored?.done ? drafts[params.rowId] : undefined;
+	const saved = stored?.done ? drafts[params.rowId] : undefined;
+	const draft = saved && stored ? withStoredNote(saved, stored) : undefined;
 	const row = draft ?? stored;
 	const facts = row ? getFacts(row.exerciseId) : null;
-	const [focus, setFocus] = useState<"kg" | "reps" | "percent" | null>(null);
+	const previous = usePreviousSession(workspace.own ? workspace.session : null);
+	const previousSets = previous?.sets ?? null;
+	// The same set last time: same kind, same place among this exercise's sets.
+	const position =
+		plan && row
+			? rowsOf(plan, row.exerciseId)
+					.filter(
+						(item) => (item.kind === "warmup") === (row.kind === "warmup"),
+					)
+					.findIndex((item) => item.id === row.id) + 1
+			: 0;
+	const matched =
+		previousSets && row
+			? previousSetOf(
+					previousSets,
+					row.exerciseId,
+					Math.max(1, position),
+					row.kind === "warmup",
+				)
+			: null;
+	const history =
+		previousSets && row ? previousSetsOf(previousSets, row.exerciseId) : [];
+	const [focus, setFocus] = useState<"kg" | "reps" | "percent" | "note" | null>(
+		null,
+	);
 	const [loadText, setLoadText] = useState("");
 	const [repsText, setRepsText] = useState("");
 	const [percentText, setPercentText] = useState("");
@@ -243,9 +308,26 @@ export function SetEditorScreen() {
 	};
 	const bodyMetrics = useQuery(api.bodyMetrics.list, advanced ? {} : "skip");
 	const keyboard = useKeyboardHeight();
+	const compact = useCompactPhone();
+	const valueSize: ValueSize = compact
+		? advanced
+			? "valueCompact"
+			: "valueMedium"
+		: advanced
+			? "valueLarge"
+			: "valueHero";
 	const loadRef = useRef<ComponentRef<typeof TextInput>>(null);
 	const repsRef = useRef<ComponentRef<typeof TextInput>>(null);
 	const percentRef = useRef<ComponentRef<typeof TextInput>>(null);
+	const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
+	useEffect(() => {
+		// The note sits at the end, so the keyboard would cover it.
+		if (focus !== "note" || keyboard === 0) return;
+		const frame = requestAnimationFrame(() =>
+			scrollRef.current?.scrollToEnd({ animated: true }),
+		);
+		return () => cancelAnimationFrame(frame);
+	}, [focus, keyboard]);
 	const logged = Boolean(stored?.done);
 	const changed = Boolean(logged && stored && draft && !sameSet(draft, stored));
 	const [saving, setSaving] = useState(false);
@@ -335,6 +417,12 @@ export function SetEditorScreen() {
 				? ""
 				: String(row.reps);
 	const valid = isValidRow(row, facts);
+	// The simple view has no note field, but never hides a note there is.
+	const showNote =
+		advanced ||
+		focus === "note" ||
+		noteOf(row) !== "" ||
+		Boolean(stored && noteOf(stored));
 	const midType = focus === "kg" || focus === "reps";
 	// A cleared or unreadable field isn't the old value: nothing logs until it's filled.
 	const typedEmpty =
@@ -350,7 +438,10 @@ export function SetEditorScreen() {
 	const others = bestKnown(plan, row.exerciseId, facts, row.id);
 	const estimate = rowOneRepMax(row, facts);
 	const target = targetPercent(row, reference, facts.stepKg);
-	const custom = target !== null && !PRESETS.includes(target);
+	// The chip that matches the weight: the planned percentage, else what the
+	// weight is of the 1RM, so 83% or 100% lights the custom chip (APP-624).
+	const chipPercent = chipPercentOf(row, target, reference, bodyweight);
+	const custom = chipPercent !== null && !PRESETS.includes(chipPercent);
 	const clockIdle =
 		group?.mode === "amrap" && group.state === "idle" && !logged;
 	const fullLoad = formatSetFull(row, facts, locale);
@@ -420,7 +511,7 @@ export function SetEditorScreen() {
 			Math.round(estimate.value) > Math.round(others.estimated)
 		) {
 			highlight = true;
-			note = fmt(text.noteBetter, { value: Math.round(others.estimated) });
+			note = fmt(text.noteRecord, { value: Math.round(others.estimated) });
 		}
 		if (check) {
 			highlight = false;
@@ -495,6 +586,8 @@ export function SetEditorScreen() {
 		measuredRef: reference
 			? formatNumber(Math.round(reference.value), locale)
 			: "",
+		source:
+			reference?.source === "manual" ? text.sourceManual : text.sourceMeasured,
 		estimated: others.estimated
 			? Math.round((row.kg / others.estimated) * 100)
 			: 0,
@@ -520,25 +613,31 @@ export function SetEditorScreen() {
 					theory(others.estimated) >= 1
 				? fmt(text.detailReps, {
 						measured: theory(reference.value),
+						source: detailValues.source,
 						estimated: theory(others.estimated),
 					})
 				: reference && theory(reference.value) >= 1
-					? fmt(text.detailRepsMeasured, { measured: theory(reference.value) })
+					? fmt(text.detailRepsMeasured, {
+							measured: theory(reference.value),
+							source: detailValues.source,
+						})
 					: others.estimated && theory(others.estimated) >= 1
 						? fmt(text.detailRepsEstimated, {
 								estimated: theory(others.estimated),
 							})
 						: "";
+	// A warm-up never borrows last time's work set.
+	const lastSet = matched ?? (row?.kind === "warmup" ? null : facts.last);
 	const previousLine = logged
 		? text.loggedSub
-		: facts.last
-			? fmt(text.previous, {
-					load: formatSetShort(
-						{ kg: facts.last.kg, reps: facts.last.reps, unit: "kg" },
-						facts,
-						locale,
-					),
-				})
+		: lastSet
+			? lastLine(
+					lastSet,
+					text,
+					locale,
+					(last) => formatSetShort({ ...last, unit: "kg" }, facts, locale),
+					copy.now.today,
+				)
 			: text.firstTime;
 	const restLine = restState.running
 		? restState.over
@@ -638,13 +737,20 @@ export function SetEditorScreen() {
 				blank: undefined,
 			});
 	};
+	const otherUnit = row.unit === "kg" ? "lbs" : "kg";
 	const menuGroups = [
 		{
+			title: text.viewTitle,
 			options: [
-				{
-					id: "mode",
-					label: advanced ? text.modeSimple : text.modeAdvanced,
-				},
+				{ id: "simple", label: text.viewSimple, selected: !advanced },
+				{ id: "advanced", label: text.viewAdvanced, selected: advanced },
+			],
+		},
+		{
+			options: [
+				...(bodyweight
+					? []
+					: [{ id: "unit", label: fmt(text.unitMenu, { unit: row.unit }) }]),
 				...(group
 					? []
 					: [
@@ -665,8 +771,10 @@ export function SetEditorScreen() {
 		},
 	];
 	async function onMenu(id: string) {
-		if (!row) return;
-		if (id === "mode") toggleMode();
+		if (!row || !facts) return;
+		if (id === "simple" || id === "advanced") {
+			if ((id === "advanced") !== advanced) toggleMode();
+		} else if (id === "unit") change(switchUnit(row, otherUnit, facts));
 		else if (id === "repeat") {
 			actions.apply(repeatRow(actions.plan(), row.id));
 			close();
@@ -761,16 +869,30 @@ export function SetEditorScreen() {
 					</Stack.Toolbar>
 					<Stack.Toolbar placement="right">
 						<Stack.Toolbar.Menu icon="ellipsis" accessibilityLabel={title}>
-							<Stack.Toolbar.MenuAction
-								icon={
-									advanced
-										? "slider.horizontal.below.rectangle"
-										: "slider.horizontal.3"
-								}
-								onPress={toggleMode}
-							>
-								{advanced ? text.modeSimple : text.modeAdvanced}
-							</Stack.Toolbar.MenuAction>
+							<Stack.Toolbar.Menu inline title={text.viewTitle}>
+								<Stack.Toolbar.MenuAction
+									isOn={!advanced}
+									subtitle={text.viewSimpleSub}
+									onPress={() => void onMenu("simple")}
+								>
+									{text.viewSimple}
+								</Stack.Toolbar.MenuAction>
+								<Stack.Toolbar.MenuAction
+									isOn={advanced}
+									subtitle={text.viewAdvancedSub}
+									onPress={() => void onMenu("advanced")}
+								>
+									{text.viewAdvanced}
+								</Stack.Toolbar.MenuAction>
+							</Stack.Toolbar.Menu>
+							{bodyweight ? null : (
+								<Stack.Toolbar.MenuAction
+									disabled={locked}
+									onPress={() => void onMenu("unit")}
+								>
+									{fmt(text.unitMenu, { unit: row.unit })}
+								</Stack.Toolbar.MenuAction>
+							)}
 							{group ? null : (
 								<Stack.Toolbar.MenuAction
 									disabled={!valid}
@@ -798,361 +920,486 @@ export function SetEditorScreen() {
 				</>
 			) : null}
 			<View style={[styles.screen, { paddingBottom: keyboard }]}>
-				<ScrollView
-					style={styles.scroll}
-					contentContainerStyle={styles.content}
-					contentInsetAdjustmentBehavior="automatic"
-					keyboardShouldPersistTaps="handled"
-				>
-					{!advanced ? null : bodyweight ? (
-						<AppText variant="secondary" style={{ color: colors.textMuted }}>
-							{text.bodyweightNote}
-						</AppText>
-					) : reference ? (
-						<View style={styles.lineRow}>
-							<AppText
-								variant="secondary"
-								style={[styles.lineText, { color: colors.textMuted }]}
-							>
-								{referenceLine}
-							</AppText>
-							<Pressable
-								accessibilityRole="button"
-								hitSlop={8}
-								onPress={() => void onMenu("profile")}
-							>
-								<AppText variant="secondary" style={styles.link}>
-									{copy.profile.title} ›
-								</AppText>
-							</Pressable>
+				<View collapsable={false} style={styles.scrollHost}>
+					<ScrollView
+						ref={scrollRef}
+						style={styles.scroll}
+						contentContainerStyle={[
+							styles.content,
+							compact && styles.contentCompact,
+						]}
+						contentInsetAdjustmentBehavior="automatic"
+						keyboardShouldPersistTaps="handled"
+					>
+						<View style={styles.values}>
+							<ValueCard
+								label={
+									bodyweight ? text.added : fmt(text.weight, { unit: row.unit })
+								}
+								value={loadShown}
+								decimal
+								size={valueSize}
+								inputRef={loadRef}
+								disabled={locked}
+								testID="session-editor-load"
+								onChange={onLoadText}
+								onFocus={() => {
+									setLoadText(loadShown);
+									setFocus("kg");
+								}}
+								onBlur={() => setFocus(null)}
+								steps={
+									keyboard > 0
+										? null
+										: [
+												{
+													spoken: fmt(text.stepDown, { step: stepLabel }),
+													disabled: locked,
+													onPress: () => change(stepLoad(row, -1, facts)),
+												},
+												{
+													spoken: fmt(text.stepUp, { step: stepLabel }),
+													disabled: locked,
+													onPress: () => change(stepLoad(row, 1, facts)),
+												},
+											]
+								}
+							/>
+							<ValueCard
+								label={timed ? text.seconds : text.reps}
+								value={repsShown}
+								decimal={false}
+								size={valueSize}
+								inputRef={repsRef}
+								disabled={locked}
+								testID="session-editor-reps"
+								onChange={onRepsText}
+								onFocus={() => {
+									setRepsText(repsShown);
+									setFocus("reps");
+								}}
+								onBlur={() => setFocus(null)}
+								steps={
+									keyboard > 0
+										? null
+										: [
+												{
+													spoken: timed
+														? fmt(text.secondsDown, { step: countStep })
+														: text.repsDown,
+													disabled: locked || row.reps <= 0,
+													onPress: () =>
+														change({
+															...row,
+															reps: Math.max(0, row.reps - countStep),
+														}),
+												},
+												{
+													spoken: timed
+														? fmt(text.secondsUp, { step: countStep })
+														: text.repsUp,
+													disabled: locked,
+													onPress: () =>
+														change({
+															...row,
+															reps: row.reps + countStep,
+															blank: undefined,
+														}),
+												},
+											]
+								}
+							/>
 						</View>
-					) : levels ? null : (
-						<View style={styles.noReference}>
-							<View style={styles.lineText}>
-								<AppText variant="row" style={{ fontWeight: "600" }}>
-									{text.noRefTitle}
+						{!advanced && keyboard === 0 && history.length > 0 && previous ? (
+							<View style={styles.history} testID="session-editor-history">
+								<AppText variant="overline" style={styles.sectionTitle}>
+									{fmt(text.lastTimeTitle, {
+										date: dayLabel(previous.date, copy.now.today, (time) =>
+											shortDay(time, locale),
+										),
+									})}
 								</AppText>
+								{history.map((set, index) => {
+									const warm = set.setType === "warmup";
+									const number = history
+										.slice(0, index + 1)
+										.filter(
+											(item) => (item.setType === "warmup") === warm,
+										).length;
+									const same =
+										warm === (row.kind === "warmup") &&
+										number === Math.max(1, position);
+									return (
+										<View
+											key={set._id}
+											style={[styles.historyRow, same && styles.historyRowOn]}
+										>
+											<AppText
+												variant="secondary"
+												style={{ color: colors.textMuted }}
+											>
+												{warm
+													? text.lastTimeWarmup
+													: fmt(text.lastTimeSet, { number })}
+											</AppText>
+											<AppText variant="body" style={styles.historyValue}>
+												{typeof set.rpe === "number"
+													? fmt(text.lastTimeRpe, {
+															load: formatSetShort(
+																{
+																	kg: toKg(set.weight, set.unit),
+																	reps: set.reps,
+																	unit: "kg",
+																},
+																facts,
+																locale,
+															),
+															rpe: formatNumber(set.rpe, locale, 1),
+														})
+													: formatSetShort(
+															{
+																kg: toKg(set.weight, set.unit),
+																reps: set.reps,
+																unit: "kg",
+															},
+															facts,
+															locale,
+														)}
+											</AppText>
+										</View>
+									);
+								})}
+							</View>
+						) : null}
+						{!advanced ? null : bodyweight ? (
+							<AppText variant="secondary" style={{ color: colors.textMuted }}>
+								{text.bodyweightNote}
+							</AppText>
+						) : (
+							<View style={[styles.insight, highlight && styles.insightOn]}>
+								<View
+									style={[
+										styles.insightTile,
+										highlight && styles.insightTileOn,
+									]}
+								>
+									<SymbolView
+										name={highlight ? "arrow.up" : "function"}
+										size={18}
+										weight="bold"
+										tintColor={highlight ? colors.onAccent : colors.textMuted}
+									/>
+								</View>
+								<View style={styles.lineText}>
+									<AppText
+										variant="row"
+										style={{ fontWeight: "800" }}
+										testID="session-editor-one-rm"
+									>
+										{estimate
+											? fmt(
+													row.reps === 1
+														? text.insightMeasured
+														: text.insightEstimate,
+													{
+														value: formatNumber(
+															row.reps === 1
+																? Math.round(estimate.value * 10) / 10
+																: Math.round(estimate.value),
+															locale,
+														),
+													},
+												)
+											: `${text.oneRmFromSet} · —`}
+									</AppText>
+									{note ? (
+										<AppText
+											variant="secondary"
+											style={{ color: check ? colors.warn : colors.textMuted }}
+										>
+											{note}
+										</AppText>
+									) : null}
+								</View>
+							</View>
+						)}
+						{!advanced || bodyweight || reference || levels ? null : (
+							<View style={styles.noReference}>
+								<View style={styles.lineText}>
+									<AppText variant="row" style={{ fontWeight: "600" }}>
+										{text.noRefTitle}
+									</AppText>
+									<AppText
+										variant="secondary"
+										style={{ color: colors.textMuted }}
+									>
+										{row.percent !== null
+											? row.kg > 0
+												? fmt(text.noRefPlan, {
+														percent: row.percent,
+														load: loadOnly,
+													})
+												: fmt(text.noRefPlanEmpty, { percent: row.percent })
+											: text.noRefSub}
+									</AppText>
+								</View>
+								<Pressable
+									accessibilityRole="button"
+									hitSlop={8}
+									onPress={() => {
+										if (actions.blocked()) return;
+										router.push({
+											pathname: "/session-manual",
+											params: {
+												sessionId: params.sessionId,
+												exerciseId: row.exerciseId,
+											},
+										});
+									}}
+								>
+									<AppText variant="secondary" style={styles.link}>
+										{copy.refEnter}
+									</AppText>
+								</Pressable>
+							</View>
+						)}
+						{advanced && reference && !bodyweight ? (
+							<View style={styles.section}>
+								<View style={styles.sectionHead}>
+									<AppText variant="label" style={styles.sectionTitle}>
+										{text.percentTitle}
+									</AppText>
+									<Pressable
+										accessibilityRole="button"
+										accessibilityLabel={`${fmt(text.percentRef, {
+											value: formatNumber(
+												Math.round(reference.value * 10) / 10,
+												locale,
+											),
+											source:
+												reference.source === "manual"
+													? text.refManual
+													: text.refMeasured,
+										})}, ${copy.strengthProfile}`}
+										hitSlop={8}
+										onPress={() => void onMenu("profile")}
+									>
+										<AppText variant="label" style={styles.sectionAside}>
+											{fmt(text.percentRef, {
+												value: formatNumber(
+													Math.round(reference.value * 10) / 10,
+													locale,
+												),
+												source:
+													reference.source === "manual"
+														? text.refManual
+														: text.refMeasured,
+											})}
+										</AppText>
+									</Pressable>
+								</View>
+								<ScrollView
+									horizontal
+									showsHorizontalScrollIndicator={false}
+									keyboardShouldPersistTaps="handled"
+									contentContainerStyle={styles.chipRow}
+									style={styles.chipScroll}
+								>
+									{PRESETS.map((percent) => {
+										const priced = applyPercent(row, percent, reference, facts);
+										const on =
+											chipPercent === percent && near(priced.kg, row.kg);
+										const chipLoad = formatNumber(
+											on ? shownLoad(row) : shownLoad(priced),
+											locale,
+											row.unit === "lbs" ? 1 : 2,
+										);
+										return (
+											<Pressable
+												key={percent}
+												accessibilityRole="button"
+												accessibilityState={{ selected: on }}
+												accessibilityLabel={`${percent}%, ${chipLoad} ${row.unit}`}
+												disabled={locked}
+												onPress={() => change(priced)}
+												style={[styles.chip, on && styles.chipOn]}
+												testID={`session-percent-${percent}`}
+											>
+												<AppText
+													variant="row"
+													style={[styles.chipTop, on && styles.chipInk]}
+												>
+													{percent}%
+												</AppText>
+											</Pressable>
+										);
+									})}
+									<Pressable
+										accessibilityRole="button"
+										accessibilityLabel={text.customPercentTitle}
+										accessibilityState={{ selected: custom }}
+										disabled={locked}
+										onPress={() => {
+											setPercentText(
+												custom && chipPercent ? String(chipPercent) : "",
+											);
+											setCustomOpen((value) => !value);
+											requestAnimationFrame(() => percentRef.current?.focus());
+										}}
+										style={[styles.chip, custom && styles.chipOn]}
+									>
+										<AppText
+											variant="row"
+											numberOfLines={1}
+											style={[styles.chipTop, custom && styles.chipInk]}
+										>
+											{custom && chipPercent
+												? `${formatNumber(chipPercent, locale, 1)}%`
+												: text.customPercent}
+										</AppText>
+									</Pressable>
+								</ScrollView>
+								{customOpen ? (
+									<View style={styles.customRow}>
+										<TextInput
+											ref={percentRef}
+											accessibilityLabel={text.customPercentTitle}
+											value={percentText}
+											onChangeText={setPercentText}
+											keyboardType="decimal-pad"
+											onFocus={() => setFocus("percent")}
+											onBlur={() => setFocus(null)}
+											placeholder={text.percentMax}
+											placeholderTextColor={colors.textFaint}
+											style={styles.customInput}
+										/>
+										<Pressable
+											accessibilityRole="button"
+											onPress={applyCustom}
+											style={styles.customApply}
+										>
+											<AppText variant="control" style={styles.link}>
+												{text.apply}
+											</AppText>
+										</Pressable>
+									</View>
+								) : null}
+								{referenceLine ? (
+									<AppText
+										variant="caption"
+										style={{ color: colors.textMuted }}
+									>
+										{referenceLine}
+									</AppText>
+								) : null}
+							</View>
+						) : null}
+						{advanced && levels ? (
+							<View style={styles.section}>
+								<View style={styles.sectionHead}>
+									<AppText variant="label" style={styles.sectionTitle}>
+										{bodyweightKg
+											? fmt(text.levelsTitle, {
+													weight: Math.round(bodyweightKg),
+												})
+											: text.levelsTitleRatio}
+									</AppText>
+									{bodyweightKg ? (
+										<AppText variant="label" style={styles.sectionAside}>
+											{text.levelsHint}
+										</AppText>
+									) : null}
+								</View>
+								<View style={styles.levelRow}>
+									{levels.map((level, index) => {
+										const on = where?.index === index;
+										const range =
+											level.fromKg !== null
+												? level.toKg !== null
+													? `${level.fromKg}–${level.toKg}`
+													: `${level.fromKg}+`
+												: level.to !== null
+													? `${formatNumber(level.from, locale)}–${formatNumber(level.to, locale)}×`
+													: `${formatNumber(level.from, locale)}×+`;
+										const off = !bodyweightKg || locked;
+										return (
+											<Pressable
+												key={level.id}
+												accessibilityRole="button"
+												accessibilityState={{ selected: on, disabled: off }}
+												accessibilityLabel={`${text.levels[level.id]}, ${range}${level.fromKg !== null ? " kg" : ""}`}
+												disabled={off}
+												onPress={() => {
+													if (!bodyweightKg) return;
+													const kg = snapLoad(
+														startLoadKg(level, bodyweightKg),
+														facts.stepKg,
+														row.unit,
+													);
+													change({
+														...withTypedLoad(
+															row,
+															row.unit === "lbs"
+																? Math.round(convertLoad(kg, "kg", "lbs"))
+																: kg,
+														),
+														reps: row.reps >= 1 ? row.reps : START_REPS,
+														blank: undefined,
+													});
+												}}
+												style={[styles.level, on && styles.levelOn]}
+												testID={`session-level-${level.id}`}
+											>
+												<AppText
+													variant="caption"
+													numberOfLines={1}
+													adjustsFontSizeToFit
+													style={{ fontWeight: "700" }}
+												>
+													{text.levels[level.id]}
+												</AppText>
+												<AppText
+													variant="row"
+													numberOfLines={1}
+													adjustsFontSizeToFit
+													style={styles.chipTop}
+												>
+													{range}
+												</AppText>
+											</Pressable>
+										);
+									})}
+								</View>
 								<AppText
 									variant="secondary"
 									style={{ color: colors.textMuted }}
 								>
-									{row.percent !== null
-										? row.kg > 0
-											? fmt(text.noRefPlan, {
-													percent: row.percent,
-													load: loadOnly,
-												})
-											: fmt(text.noRefPlanEmpty, { percent: row.percent })
-										: text.noRefSub}
+									{levelLine}
 								</AppText>
 							</View>
-							<Pressable
-								accessibilityRole="button"
-								hitSlop={8}
-								onPress={() => {
-									if (actions.blocked()) return;
-									router.push({
-										pathname: "/session-manual",
-										params: {
-											sessionId: params.sessionId,
-											exerciseId: row.exerciseId,
-										},
-									});
-								}}
-							>
-								<AppText variant="secondary" style={styles.link}>
-									{copy.refEnter}
-								</AppText>
-							</Pressable>
-						</View>
-					)}
-					{advanced && reference ? (
-						<View style={styles.chips}>
-							{PRESETS.map((percent) => {
-								const on = target === percent;
-								const priced = applyPercent(row, percent, reference, facts);
-								const chipLoad = formatNumber(
-									on ? shownLoad(row) : shownLoad(priced),
-									locale,
-									row.unit === "lbs" ? 1 : 2,
-								);
-								return (
-									<Pressable
-										key={percent}
-										accessibilityRole="button"
-										accessibilityState={{ selected: on }}
-										accessibilityLabel={`${percent}%, ${chipLoad} ${row.unit}`}
-										disabled={locked}
-										onPress={() => change(priced)}
-										style={[
-											styles.chip,
-											largeText && styles.chipLarge,
-											on && styles.chipOn,
-										]}
-										testID={`session-percent-${percent}`}
-									>
-										<AppText
-											variant="row"
-											style={[styles.chipTop, on && styles.chipInk]}
-										>
-											{percent}%
-										</AppText>
-										<AppText
-											variant="caption"
-											style={[styles.chipSub, on && styles.chipInk]}
-										>
-											{chipLoad}
-										</AppText>
-									</Pressable>
-								);
-							})}
-							<Pressable
-								accessibilityRole="button"
-								accessibilityLabel={text.customPercentTitle}
-								accessibilityState={{ selected: custom }}
-								disabled={locked}
-								onPress={() => {
-									setPercentText(custom && target ? String(target) : "");
-									setCustomOpen((value) => !value);
-									requestAnimationFrame(() => percentRef.current?.focus());
-								}}
-								style={[
-									styles.chip,
-									largeText && styles.chipLarge,
-									custom && styles.chipOn,
-								]}
-							>
-								<AppText
-									variant="row"
-									numberOfLines={1}
-									style={[styles.chipTop, custom && styles.chipInk]}
-								>
-									{custom && target
-										? `${formatNumber(target, locale, 1)}%`
-										: text.customPercent.replace(" %", "")}
-								</AppText>
-								<AppText
-									variant="caption"
-									style={[styles.chipSub, custom && styles.chipInk]}
-								>
-									{custom ? formatNumber(shownLoad(row), locale) : "%"}
-								</AppText>
-							</Pressable>
-						</View>
-					) : null}
-					{advanced && customOpen ? (
-						<View style={styles.customRow}>
-							<TextInput
-								ref={percentRef}
-								accessibilityLabel={text.customPercentTitle}
-								value={percentText}
-								onChangeText={setPercentText}
-								keyboardType="decimal-pad"
-								onFocus={() => setFocus("percent")}
-								onBlur={() => setFocus(null)}
-								placeholder={text.percentMax}
-								placeholderTextColor={colors.textFaint}
-								style={styles.customInput}
-							/>
-							<Pressable
-								accessibilityRole="button"
-								onPress={applyCustom}
-								style={styles.customApply}
-							>
-								<AppText variant="control" style={styles.link}>
-									{text.apply}
-								</AppText>
-							</Pressable>
-						</View>
-					) : null}
-					{advanced && levels ? (
-						<View style={styles.levels}>
-							<View style={styles.lineRow}>
-								<AppText
-									variant="label"
-									style={[styles.lineText, { color: colors.textMuted }]}
-								>
-									{bodyweightKg
-										? fmt(text.levelsTitle, {
-												weight: Math.round(bodyweightKg),
-											})
-										: text.levelsTitleRatio}
-								</AppText>
-								{bodyweightKg ? (
-									<AppText variant="label" style={{ color: colors.textMuted }}>
-										{text.levelsHint}
-									</AppText>
-								) : null}
-							</View>
-							<View style={styles.levelRow}>
-								{levels.map((level, index) => {
-									const on = where?.index === index;
-									const range =
-										level.fromKg !== null
-											? level.toKg !== null
-												? `${level.fromKg}–${level.toKg}`
-												: `${level.fromKg}+`
-											: level.to !== null
-												? `${formatNumber(level.from, locale)}–${formatNumber(level.to, locale)}×`
-												: `${formatNumber(level.from, locale)}×+`;
-									const off = !bodyweightKg || locked;
-									return (
-										<Pressable
-											key={level.id}
-											accessibilityRole="button"
-											accessibilityState={{ selected: on, disabled: off }}
-											accessibilityLabel={`${text.levels[level.id]}, ${range}${level.fromKg !== null ? " kg" : ""}`}
-											disabled={off}
-											onPress={() => {
-												if (!bodyweightKg) return;
-												const kg = snapLoad(
-													startLoadKg(level, bodyweightKg),
-													facts.stepKg,
-													row.unit,
-												);
-												change({
-													...withTypedLoad(
-														row,
-														row.unit === "lbs"
-															? Math.round(convertLoad(kg, "kg", "lbs"))
-															: kg,
-													),
-													reps: row.reps >= 1 ? row.reps : START_REPS,
-													blank: undefined,
-												});
-											}}
-											style={[styles.level, on && styles.levelOn]}
-											testID={`session-level-${level.id}`}
-										>
-											<AppText
-												variant="caption"
-												numberOfLines={1}
-												adjustsFontSizeToFit
-												style={{ fontWeight: "700" }}
-											>
-												{text.levels[level.id]}
-											</AppText>
-											<AppText
-												variant="row"
-												numberOfLines={1}
-												adjustsFontSizeToFit
-												style={styles.chipTop}
-											>
-												{range}
-											</AppText>
-										</Pressable>
-									);
-								})}
-							</View>
-							<AppText variant="secondary" style={{ color: colors.textMuted }}>
-								{levelLine}
-							</AppText>
-						</View>
-					) : null}
-					{!advanced && check && note ? (
-						<AppText variant="secondary" style={{ color: colors.warn }}>
-							{note}
-						</AppText>
-					) : null}
-					{!advanced || bodyweight ? null : (
-						<View style={[styles.card, highlight && styles.cardHighlight]}>
-							<AppText variant="label" style={{ color: colors.textMuted }}>
-								{text.oneRmFromSet}
-							</AppText>
-							<AppText variant="display" testID="session-editor-one-rm">
-								{estimate
-									? `${row.reps === 1 ? "" : "≈"}${formatNumber(
-											row.reps === 1
-												? Math.round(estimate.value * 10) / 10
-												: Math.round(estimate.value),
-											locale,
-										)} kg`
-									: "—"}
-							</AppText>
-							{note ? (
-								<AppText
-									variant="secondary"
-									style={{
-										color: check
-											? colors.warn
-											: highlight
-												? colors.accent
-												: colors.textMuted,
-									}}
-								>
-									{note}
-								</AppText>
-							) : null}
-						</View>
-					)}
-					{bodyweight && note ? (
-						<AppText variant="secondary" style={{ color: colors.warn }}>
-							{note}
-						</AppText>
-					) : null}
-					{advanced && plateLine ? (
-						<AppText variant="row" style={{ fontWeight: "600" }}>
-							{plateLine}
-						</AppText>
-					) : null}
-					{advanced && planLoad ? (
-						<Pressable
-							accessibilityRole={onPlan ? undefined : "button"}
-							disabled={Boolean(onPlan) || locked}
-							onPress={() => change(resetToPlan(row))}
-						>
-							<AppText
-								variant="secondary"
-								style={onPlan ? { color: colors.textMuted } : styles.link}
-							>
-								{fmt(onPlan ? text.onPlan : text.backToPlan, {
-									load: planLoad,
-								})}
-							</AppText>
-						</Pressable>
-					) : null}
-					<View style={styles.section}>
-						<AppText variant="label" style={{ color: colors.textMuted }}>
-							{text.kindTitle}
-						</AppText>
-						<Segmented
-							options={SET_TYPES.map((kind) => ({
-								value: kind,
-								label: {
-									warmup: text.kindWarmup,
-									working: text.kindWorking,
-									drop: text.kindDrop,
-									failure: text.kindFailure,
-								}[kind],
-							}))}
-							value={row.kind}
-							onChange={(kind) => {
-								if (!locked) change({ ...row, kind });
-							}}
-						/>
-					</View>
-					{advanced ? (
-						<View style={styles.moreBody}>
+						) : null}
+						{advanced ? (
 							<View style={styles.section}>
-								<View style={styles.lineRow}>
-									<AppText
-										variant="label"
-										style={[styles.lineText, { color: colors.textMuted }]}
-									>
+								<View style={styles.sectionHead}>
+									<AppText variant="label" style={styles.sectionTitle}>
 										{text.rpeTitle}
 									</AppText>
 									{row.rpe === null ? null : (
-										<AppText
-											variant="label"
-											style={{ color: colors.textMuted }}
-										>
-											{fmt(text.rpeLeftShort, {
-												count: formatNumber(10 - row.rpe, locale, 1),
-											})}
+										<AppText variant="label" style={styles.sectionAside}>
+											{10 - row.rpe === 1
+												? text.rpeLeftShortOne
+												: fmt(text.rpeLeftShort, {
+														count: formatNumber(10 - row.rpe, locale, 1),
+													})}
 										</AppText>
 									)}
 								</View>
-								<View style={styles.chips}>
+								<ScrollView
+									horizontal
+									showsHorizontalScrollIndicator={false}
+									contentContainerStyle={styles.chipRow}
+									style={styles.chipScroll}
+								>
 									{RPE_CHIPS.map((value) => {
 										const on = row.rpe === value;
 										return (
@@ -1167,7 +1414,11 @@ export function SetEditorScreen() {
 												onPress={() =>
 													change({ ...row, rpe: on ? null : value })
 												}
-												style={[styles.rpeChip, on && styles.chipOn]}
+												style={[
+													styles.chip,
+													styles.rpeChip,
+													on && styles.chipOn,
+												]}
 												testID={`session-rpe-${value}`}
 											>
 												<AppText
@@ -1179,37 +1430,99 @@ export function SetEditorScreen() {
 											</Pressable>
 										);
 									})}
-								</View>
+								</ScrollView>
 							</View>
-							{bodyweight ? null : (
-								<Segmented
-									options={[
-										{ value: "kg", label: text.unitKg },
-										{ value: "lbs", label: text.unitLbs },
-									]}
-									value={row.unit}
-									onChange={(unit) => change(switchUnit(row, unit, facts))}
+						) : null}
+						{!advanced && check && note ? (
+							<AppText variant="secondary" style={{ color: colors.warn }}>
+								{note}
+							</AppText>
+						) : null}
+						{bodyweight && note ? (
+							<AppText variant="secondary" style={{ color: colors.warn }}>
+								{note}
+							</AppText>
+						) : null}
+						<Segmented
+							maxSegments={4}
+							options={SET_TYPES.map((kind) => ({
+								value: kind,
+								label: {
+									warmup: text.kindWarmup,
+									working: text.kindWorking,
+									drop: text.kindDrop,
+									failure: text.kindFailure,
+								}[kind],
+							}))}
+							value={row.kind}
+							onChange={(kind) => {
+								if (!locked) change({ ...row, kind });
+							}}
+						/>
+						{showNote ? (
+							<View style={styles.note}>
+								<SymbolView
+									name="pencil"
+									size={16}
+									tintColor={colors.textFaint}
 								/>
-							)}
-							{detail ? (
+								<TextInput
+									accessibilityLabel={text.setNote}
+									value={row.notes ?? ""}
+									onChangeText={(notes) =>
+										change({
+											...row,
+											notes,
+											...(logged ? { notesEdited: true } : {}),
+										})
+									}
+									onFocus={() => setFocus("note")}
+									onBlur={() => setFocus(null)}
+									editable={!locked}
+									multiline
+									submitBehavior="blurAndSubmit"
+									returnKeyType="done"
+									maxLength={SET_NOTE_LENGTH}
+									placeholder={text.setNotePlaceholder}
+									placeholderTextColor={colors.textFaint}
+									style={[type.secondary, styles.noteInput]}
+									testID="session-editor-note"
+								/>
+							</View>
+						) : null}
+						{advanced && plateLine ? (
+							<AppText variant="secondary" style={{ color: colors.textMuted }}>
+								{plateLine}
+							</AppText>
+						) : null}
+						{advanced && planLoad ? (
+							<Pressable
+								accessibilityRole={onPlan ? undefined : "button"}
+								disabled={Boolean(onPlan) || locked}
+								onPress={() => change(resetToPlan(row))}
+							>
 								<AppText
 									variant="secondary"
-									style={{ color: colors.textMuted }}
+									style={onPlan ? { color: colors.textMuted } : styles.link}
 								>
-									{detail}
+									{fmt(onPlan ? text.onPlan : text.backToPlan, {
+										load: planLoad,
+									})}
 								</AppText>
-							) : null}
-							{detailReps ? (
-								<AppText
-									variant="secondary"
-									style={{ color: colors.textMuted }}
-								>
-									{detailReps}
-								</AppText>
-							) : null}
-						</View>
-					) : null}
-				</ScrollView>
+							</Pressable>
+						) : null}
+						{advanced && detail ? (
+							<AppText variant="caption" style={{ color: colors.textMuted }}>
+								{detail}
+							</AppText>
+						) : null}
+						{advanced && detailReps ? (
+							<AppText variant="caption" style={{ color: colors.textMuted }}>
+								{detailReps}
+							</AppText>
+						) : null}
+					</ScrollView>
+				</View>
 				<View
 					style={[
 						styles.footer,
@@ -1219,103 +1532,33 @@ export function SetEditorScreen() {
 						},
 					]}
 				>
-					<View style={styles.fields}>
-						<NumberField
-							label={
-								bodyweight ? text.added : fmt(text.weight, { unit: row.unit })
-							}
-							value={loadShown}
-							placeholder="—"
-							decimal
-							inputRef={loadRef}
-							disabled={locked}
-							testID="session-editor-load"
-							onChange={onLoadText}
-							onFocus={() => {
-								setLoadText(loadShown);
-								setFocus("kg");
-							}}
-							onBlur={() => setFocus(null)}
-						/>
-						<NumberField
-							label={timed ? text.seconds : text.reps}
-							value={repsShown}
-							placeholder="—"
-							decimal={false}
-							inputRef={repsRef}
-							disabled={locked}
-							testID="session-editor-reps"
-							onChange={onRepsText}
-							onFocus={() => {
-								setRepsText(repsShown);
-								setFocus("reps");
-							}}
-							onBlur={() => setFocus(null)}
-						/>
-					</View>
-					{keyboard > 0 ? null : (
-						<View style={styles.fields}>
-							<View style={styles.stepPair}>
-								<StepButton
-									label={`−${stepLabel}`}
-									spoken={fmt(text.stepDown, { step: stepLabel })}
-									disabled={locked}
-									onPress={() => change(stepLoad(row, -1, facts))}
-								/>
-								<StepButton
-									label={`+${stepLabel}`}
-									spoken={fmt(text.stepUp, { step: stepLabel })}
-									disabled={locked}
-									onPress={() => change(stepLoad(row, 1, facts))}
-								/>
-							</View>
-							<View style={styles.stepPair}>
-								<StepButton
-									label={`−${countStep}`}
-									spoken={
-										timed
-											? fmt(text.secondsDown, { step: countStep })
-											: text.repsDown
-									}
-									disabled={locked || row.reps <= 0}
-									onPress={() =>
-										change({ ...row, reps: Math.max(0, row.reps - countStep) })
-									}
-								/>
-								<StepButton
-									label={`+${countStep}`}
-									spoken={
-										timed
-											? fmt(text.secondsUp, { step: countStep })
-											: text.repsUp
-									}
-									disabled={locked}
-									onPress={() =>
-										change({
-											...row,
-											reps: row.reps + countStep,
-											blank: undefined,
-										})
-									}
-								/>
-							</View>
-						</View>
-					)}
 					<Pressable
 						accessibilityRole="button"
 						accessibilityState={{ disabled: !primaryEnabled }}
 						disabled={!primaryEnabled}
 						onPress={() => void onPrimary()}
-						style={[styles.primary, !primaryEnabled && styles.primaryOff]}
+						style={({ pressed }) => [
+							styles.primary,
+							!primaryEnabled && styles.primaryOff,
+							pressed && styles.pressed,
+						]}
 						testID="session-editor-primary"
 					>
+						{primaryEnabled && !sending ? (
+							<SymbolView
+								name="checkmark"
+								size={18}
+								weight="bold"
+								tintColor={colors.onAccent}
+							/>
+						) : null}
 						<AppText
-							variant="control"
+							variant="heading"
 							numberOfLines={2}
 							style={{
 								color: primaryEnabled ? colors.onAccent : colors.textMuted,
-								fontWeight: "700",
 								textAlign: "center",
+								flexShrink: 1,
 							}}
 						>
 							{primary}
@@ -1377,15 +1620,89 @@ const createStyles = (colors: Tokens) =>
 	StyleSheet.create({
 		screen: { flex: 1, backgroundColor: colors.bg },
 		headerTitle: { alignItems: "center", maxWidth: 240 },
+		scrollHost: { flex: 1 },
 		scroll: { flex: 1 },
-		content: { padding: spacing.md, gap: spacing.md },
-		lineRow: {
+		content: {
+			flexGrow: 1,
+			paddingHorizontal: spacing.md,
+			paddingTop: 10,
+			paddingBottom: spacing.md,
+			gap: 14,
+		},
+		contentCompact: { gap: spacing.sm },
+		values: { flexDirection: "row", gap: spacing.sm + 4 },
+		// The simple view has nothing under the values, so they take the room.
+		history: {
+			backgroundColor: colors.surface,
+			borderRadius: radius.contentCard,
+			borderCurve: "continuous",
+			paddingHorizontal: 16,
+			paddingVertical: 12,
+			gap: 2,
+		},
+		historyRow: {
+			flexDirection: "row",
+			justifyContent: "space-between",
+			alignItems: "center",
+			minHeight: 36,
+			paddingHorizontal: 10,
+			marginHorizontal: -10,
+			borderRadius: 12,
+		},
+		historyRowOn: { backgroundColor: colors.accentDim },
+		historyValue: { fontVariant: ["tabular-nums"] },
+		valueCard: {
+			flex: 1,
+			minWidth: 0,
+			alignItems: "center",
+			justifyContent: "space-evenly",
+			gap: spacing.xs,
+			paddingTop: 14,
+			paddingHorizontal: 10,
+			paddingBottom: 12,
+			backgroundColor: colors.surface,
+			borderRadius: radius.contentCard,
+			borderCurve: "continuous",
+		},
+		valueLabel: { color: colors.textMuted, textAlign: "center" },
+		valueInput: {
+			alignSelf: "stretch",
+			textAlign: "center",
+			color: colors.text,
+			fontVariant: ["tabular-nums"],
+			padding: 0,
+		},
+		stepRow: { flexDirection: "row", gap: spacing.xs + 4 },
+		step: {
+			width: 60,
+			height: 52,
+			alignItems: "center",
+			justifyContent: "center",
+			borderRadius: 26,
+			backgroundColor: colors.surface3,
+		},
+		stepCompact: { width: 52, height: 44, borderRadius: 22 },
+		insight: {
 			flexDirection: "row",
 			alignItems: "center",
-			flexWrap: "wrap",
 			gap: spacing.sm,
+			paddingVertical: spacing.sm,
+			paddingHorizontal: 14,
+			backgroundColor: colors.surface,
+			borderRadius: radius.contentCard,
+			borderCurve: "continuous",
 		},
-		lineText: { flex: 1, minWidth: 160 },
+		insightOn: { backgroundColor: colors.accentDim },
+		insightTile: {
+			width: 36,
+			height: 36,
+			alignItems: "center",
+			justifyContent: "center",
+			borderRadius: 10,
+			backgroundColor: colors.surface3,
+		},
+		insightTileOn: { backgroundColor: colors.accentFill },
+		lineText: { flex: 1, minWidth: 0 },
 		noReference: {
 			flexDirection: "row",
 			flexWrap: "wrap",
@@ -1396,23 +1713,34 @@ const createStyles = (colors: Tokens) =>
 			borderRadius: radius.contentCard,
 		},
 		link: { color: colors.accent, fontWeight: "600" },
-		chips: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs },
+		section: { gap: spacing.xs + 2 },
+		sectionHead: {
+			flexDirection: "row",
+			alignItems: "flex-end",
+			justifyContent: "space-between",
+			flexWrap: "wrap",
+			gap: spacing.sm,
+		},
+		sectionTitle: { flexShrink: 1, color: colors.textMuted },
+		sectionAside: { color: colors.textMuted, textAlign: "right" },
+		chipScroll: { marginHorizontal: -spacing.md },
+		chipRow: { gap: spacing.xs + 2, paddingHorizontal: spacing.md },
 		chip: {
-			flexGrow: 1,
-			flexBasis: "22%",
-			minHeight: 56,
+			minWidth: 60,
+			height: 40,
 			alignItems: "center",
 			justifyContent: "center",
-			paddingVertical: spacing.xs,
-			paddingHorizontal: 4,
-			backgroundColor: colors.surface2,
-			borderRadius: radius.lg,
-			borderCurve: "continuous",
+			paddingHorizontal: 14,
+			borderRadius: 20,
+			borderWidth: 1,
+			borderColor: colors.borderStrong,
 		},
-		chipLarge: { flexBasis: "46%" },
-		chipOn: { backgroundColor: colors.accentFill },
+		rpeChip: { minWidth: 48 },
+		chipOn: {
+			backgroundColor: colors.accentFill,
+			borderColor: colors.accentFill,
+		},
 		chipTop: { fontWeight: "700", fontVariant: ["tabular-nums"] },
-		chipSub: { color: colors.textMuted, fontVariant: ["tabular-nums"] },
 		chipInk: { color: colors.onAccent },
 		customRow: { flexDirection: "row", gap: spacing.sm, alignItems: "center" },
 		customInput: {
@@ -1429,27 +1757,6 @@ const createStyles = (colors: Tokens) =>
 			alignItems: "center",
 			justifyContent: "center",
 		},
-		card: {
-			padding: spacing.md,
-			gap: 2,
-			backgroundColor: colors.surface,
-			borderRadius: radius.contentCard,
-			borderCurve: "continuous",
-		},
-		cardHighlight: { backgroundColor: colors.accentDim },
-		moreBody: { gap: spacing.md },
-		section: { gap: spacing.xs },
-		rpeChip: {
-			flexGrow: 1,
-			minWidth: 44,
-			minHeight: 44,
-			alignItems: "center",
-			justifyContent: "center",
-			paddingHorizontal: spacing.xs,
-			backgroundColor: colors.surface2,
-			borderRadius: radius.pill,
-		},
-		levels: { gap: spacing.xs },
 		levelRow: { flexDirection: "row", gap: spacing.xs },
 		level: {
 			flex: 1,
@@ -1461,52 +1768,45 @@ const createStyles = (colors: Tokens) =>
 			borderRadius: radius.lg,
 			borderCurve: "continuous",
 			borderWidth: 1,
-			borderColor: colors.border,
+			borderColor: colors.borderStrong,
 		},
 		levelOn: {
 			borderWidth: 2,
 			borderColor: colors.accentFill,
 			backgroundColor: colors.accentDim,
 		},
+		note: {
+			minHeight: 44,
+			flexDirection: "row",
+			alignItems: "center",
+			gap: 10,
+			paddingHorizontal: 14,
+			borderRadius: radius.lg,
+			borderCurve: "continuous",
+			borderWidth: 1,
+			borderColor: colors.borderStrong,
+		},
+		noteInput: {
+			flex: 1,
+			minWidth: 0,
+			maxHeight: 132,
+			paddingVertical: spacing.sm,
+			color: colors.text,
+		},
 		footer: {
 			paddingHorizontal: spacing.md,
-			paddingTop: spacing.sm,
+			paddingTop: 10,
 			gap: spacing.xs,
-			borderTopWidth: StyleSheet.hairlineWidth,
-			borderTopColor: colors.separator,
 			backgroundColor: colors.bg,
-		},
-		fields: { flexDirection: "row", gap: spacing.sm },
-		fieldColumn: { flex: 1, minWidth: 0, gap: 4 },
-		fieldLabel: { textAlign: "center", color: colors.textMuted },
-		field: {
-			minHeight: 64,
-			textAlign: "center",
-			color: colors.text,
-			backgroundColor: colors.surface2,
-			borderRadius: radius.lg,
-			borderCurve: "continuous",
-			...type.quantityCompact,
-			fontVariant: ["tabular-nums"],
-			padding: 0,
-		},
-		stepPair: { flex: 1, flexDirection: "row", gap: spacing.xs },
-		step: {
-			flex: 1,
-			minHeight: 48,
-			alignItems: "center",
-			justifyContent: "center",
-			borderWidth: 1,
-			borderColor: colors.border,
-			borderRadius: radius.lg,
-			borderCurve: "continuous",
 		},
 		pressed: { opacity: opacity.pressed },
 		dimmed: { opacity: opacity.disabled },
 		primary: {
 			minHeight: 56,
+			flexDirection: "row",
 			alignItems: "center",
 			justifyContent: "center",
+			gap: spacing.sm,
 			paddingHorizontal: spacing.md,
 			backgroundColor: colors.accentFill,
 			borderRadius: radius.pill,

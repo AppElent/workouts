@@ -29,6 +29,10 @@ const mockSignIn = {
 jest.mock("@clerk/expo", () => ({
 	useSignIn: () => ({ signIn: mockSignIn, errors: mockErrors }),
 }));
+const mockPush = jest.fn();
+jest.mock("expo-router", () => ({
+	useRouter: () => ({ push: mockPush }),
+}));
 
 const ok = { error: null };
 
@@ -131,18 +135,46 @@ it("explains a weak password in Dutch", async () => {
 	expect(result.current.error).toBe("Dat wachtwoord is te kort.");
 });
 
-it("does not finalize a reset that needs a step the app cannot do", async () => {
+it("continues a reset that needs a second factor into that step", async () => {
 	mockSubmitPassword.mockImplementation(async () => {
 		mockSignIn.status = "needs_second_factor";
+		return ok;
+	});
+	const { result } = await renderReset();
+	await act(() => result.current.reset("424242", "a-new-password"));
+	expect(mockFinalize).not.toHaveBeenCalled();
+	expect(mockPush).toHaveBeenCalledWith({
+		pathname: "/sign-in-second-factor",
+		params: { from: "reset" },
+	});
+	expect(result.current.stage).toBe("saved");
+	expect(result.current.error).toBeNull();
+	expect(result.current.busy).toBe(false);
+});
+
+it("verifies a new device (Device Trust) with the same step", async () => {
+	mockSubmitPassword.mockImplementation(async () => {
+		mockSignIn.status = "needs_client_trust";
+		return ok;
+	});
+	const { result } = await renderReset();
+	await act(() => result.current.reset("424242", "a-new-password"));
+	expect(mockPush).toHaveBeenCalledTimes(1);
+	expect(mockFinalize).not.toHaveBeenCalled();
+});
+
+it("does not finalize a reset that needs a step the app cannot do", async () => {
+	mockSubmitPassword.mockImplementation(async () => {
+		mockSignIn.status = "needs_protect_check";
 		return ok;
 	});
 	const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
 	const { result } = await renderReset();
 	await act(() => result.current.reset("424242", "a-new-password"));
 	expect(mockFinalize).not.toHaveBeenCalled();
-	expect(result.current.stage).toBe("needsWeb");
-	expect(result.current.error).toMatch(/password is changed/);
-	expect(result.current.error).toMatch(/web app/);
+	expect(mockPush).not.toHaveBeenCalled();
+	expect(result.current.stage).toBe("unsupported");
+	expect(result.current.error).toMatch(/doesn't support yet/);
 	expect(result.current.busy).toBe(false);
 	warn.mockRestore();
 });

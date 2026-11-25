@@ -5,7 +5,7 @@
  */
 import { fmt, type Locale, type Messages, plural } from "../../../i18n";
 import { darkColors } from "../../../theme/palette";
-import { formatNumber, formatSeconds } from "../session-format";
+import { formatLoadOnly, formatSeconds } from "../session-format";
 import type { SessionNow } from "./use-session-now";
 
 export interface LiveActivityProps {
@@ -13,7 +13,7 @@ export interface LiveActivityProps {
 	exercise: string | null;
 	/** "Set 3 of 4". */
 	setLine: string | null;
-	/** "80 kg × 8", "8 reps", "45 s", "10 kg × 45 s". */
+	/** "80 kg × 8", "176,4 lbs × 8", "8 reps", "45 s", "10 kg × 45 s". */
 	loadLine: string | null;
 	startedAt: number;
 	/** Null when not resting, or once the rest has ended. */
@@ -44,12 +44,22 @@ export type LiveActivityCopy = Messages["strength"]["plan"]["liveActivity"] & {
 };
 
 export function loadLineOf(
-	now: Pick<SessionNow, "kg" | "reps" | "durationSeconds">,
+	now: Pick<
+		SessionNow,
+		"kg" | "unit" | "typedLbs" | "reps" | "durationSeconds"
+	>,
 	copy: LiveActivityCopy,
 	locale: Locale,
 ): string | null {
+	// Read the load as the session screen does, in the set's own unit.
 	const load =
-		now.kg !== null && now.kg > 0 ? `${formatNumber(now.kg, locale)} kg` : null;
+		now.kg !== null && now.kg > 0
+			? formatLoadOnly(
+					{ kg: now.kg, unit: now.unit ?? "kg", typedLbs: now.typedLbs },
+					{ bodyweight: false, timed: false },
+					locale,
+				)
+			: null;
 	if (now.durationSeconds !== null) {
 		const hold = formatSeconds(now.durationSeconds, locale);
 		return load ? `${load} × ${hold}` : hold;

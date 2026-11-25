@@ -17,6 +17,7 @@ export type { SegmentedOption, SegmentedProps } from "./segmented.types";
 
 export function Segmented<Value extends string>({
 	options,
+	maxSegments = 3,
 	value,
 	onChange,
 }: SegmentedProps<Value>) {
@@ -26,7 +27,7 @@ export function Segmented<Value extends string>({
 		fontScale > 1.2 ||
 		width < 350 ||
 		options.some((option) => option.label.length > 20);
-	const wrap = stacked || options.length > 3;
+	const wrap = stacked || options.length > maxSegments;
 	return (
 		<View style={[styles.row, wrap && { flexWrap: "wrap" }]}>
 			{options.map((option) => {

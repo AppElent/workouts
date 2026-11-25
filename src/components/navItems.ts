@@ -1,4 +1,5 @@
 import { useAuth } from "@clerk/react";
+import { HOSTED_WORKOUTS_ENABLED } from "@foundry/core/features";
 import { useRouter } from "@tanstack/react-router";
 import {
 	BookOpen,
@@ -29,6 +30,11 @@ const NAV_ITEMS = [
 	Icon: LucideIcon;
 }[];
 
+/** Parked Hosted Workouts (APP-437) drop out of the nav. */
+const VISIBLE_NAV_ITEMS = NAV_ITEMS.filter(
+	(item) => HOSTED_WORKOUTS_ENABLED || item.key !== "hostedWorkouts",
+);
+
 const AUTHED_LAYOUT_ID = "/_app/_authed" satisfies FileRouteTypes["id"];
 
 /**
@@ -39,7 +45,7 @@ export function useNavItems() {
 	const { nav } = useMessages();
 	const { isSignedIn } = useAuth();
 	const router = useRouter();
-	return NAV_ITEMS.map((item) => ({
+	return VISIBLE_NAV_ITEMS.map((item) => ({
 		...item,
 		label: nav[item.key].label,
 		shortLabel: nav[item.key].shortLabel,

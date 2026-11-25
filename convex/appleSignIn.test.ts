@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+import { HOSTED_LEVELS } from "@foundry/core";
 import { convexTest } from "convex-test";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { api, internal } from "./_generated/api";
@@ -330,6 +331,34 @@ describe("web Apple revocation server checks", () => {
 			alice.action(api.account.revokeAppleSignIn, WEB),
 		).rejects.toMatchObject({ data: { code: "activeActivity" } });
 		expect(calls).toEqual([]);
+	});
+
+	it("revokes for a Hosted Workout host, whose events go with the account", async () => {
+		const { alice, calls } = await setUp({
+			"/auth/token": appleToken("apple-alice"),
+			"/auth/revoke": new Response(null, { status: 200 }),
+		});
+		await alice.mutation(api.hostedWorkouts.createDraft, {
+			title: "Friday lift",
+			hostParticipation: "hostOnly",
+			template: {
+				strengthBlocks: [],
+				wodBlocks: [
+					{
+						blockId: "max",
+						name: "Max clean",
+						type: "load",
+						levels: HOSTED_LEVELS.map((level) => ({
+							level,
+							label: level,
+							movements: [{ name: "Clean" }],
+						})),
+					},
+				],
+			},
+		});
+		await alice.action(api.account.revokeAppleSignIn, WEB);
+		expect(paths(calls)).toEqual(["/auth/token", "/auth/revoke"]);
 	});
 
 	it("revokes when the code's Apple user is the one mirrored for the caller", async () => {

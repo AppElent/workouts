@@ -1,11 +1,16 @@
 import { api } from "@convex/_generated/api";
-import { WOD_TYPES, type WodType, wodTimingFromMinutes } from "@foundry/core";
+import {
+	WOD_TIMING_FIELD,
+	WOD_TYPES,
+	type WodType,
+	wodTimingFromMinutes,
+} from "@foundry/core";
 import { useMutation } from "convex/react";
 import { Plus, X } from "lucide-react";
 import { useState } from "react";
-import { WOD_TYPE_LABELS, wodTimingLabel } from "#/components/hosted/wodBlock";
 import { useToast } from "#/components/ui/toast";
 import { useConvexErrorMessage } from "#/lib/convexError";
+import { useMessages } from "#/lib/i18n";
 
 interface MovementDraft {
 	id: string;
@@ -20,6 +25,7 @@ function newMovement(): MovementDraft {
 
 export function CreateWodForm() {
 	const createWod = useMutation(api.wods.create);
+	const wodCopy = useMessages().wods;
 	const toast = useToast();
 	const errorMessage = useConvexErrorMessage();
 	const [saving, setSaving] = useState(false);
@@ -81,7 +87,7 @@ export function CreateWodForm() {
 		setMovements([newMovement()]);
 	}
 
-	const timingLabel = wodTimingLabel(type);
+	const timingField = WOD_TIMING_FIELD[type];
 	const inputCls =
 		"h-9 rounded-md border border-border bg-surface-2 px-3 text-sm text-text placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent-ink";
 
@@ -114,7 +120,7 @@ export function CreateWodForm() {
 								: "bg-surface-2 text-text-muted border border-border hover:text-text",
 						].join(" ")}
 					>
-						{WOD_TYPE_LABELS[t]}
+						{wodCopy.type[t]}
 					</button>
 				))}
 			</div>
@@ -127,11 +133,11 @@ export function CreateWodForm() {
 					onChange={(e) => setRepScheme(e.target.value)}
 					className={`${inputCls} flex-1`}
 				/>
-				{timingLabel && (
+				{timingField && (
 					<input
 						type="number"
 						min="0"
-						placeholder={`${timingLabel} (min)`}
+						placeholder={wodCopy.timingMinutes[timingField]}
 						value={minutes}
 						onChange={(e) => setMinutes(e.target.value)}
 						className={`${inputCls} w-36`}

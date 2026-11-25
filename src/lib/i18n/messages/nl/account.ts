@@ -1,10 +1,24 @@
 export const account = {
+	portal: {
+		label: "Beheer je AppElent-account",
+		footer:
+			"Inlogmethoden, apparaten, tweestapsverificatie en je gegevens in elke AppElent-app.",
+	},
+	export: {
+		title: "Je gegevens exporteren",
+		footer:
+			"Download een volledige back-up als JSON, of je setgeschiedenis als spreadsheet.",
+		setsCsv: "Sets als CSV",
+		fullJson: "Alles als JSON",
+		error:
+			"De export kon niet worden gemaakt. Maak opnieuw verbinding en probeer het nogmaals.",
+	},
 	deletionTitle: "Gegevens of account verwijderen",
 	deleteData: "Alleen Foundry-gegevens verwijderen",
 	deleteDataFooter:
-		"Verwijdert al je Foundry-trainingen, routines, hardloop- en fietsritten, lichaamsmetingen, voedingsmiddelen, combo's, dagboek, doelen en notities, inclusief voedselfoto's, en logt je hier uit. Je AppElent-login blijft, dus Gather, Fairway en Arcade Club blijven werken, en als je weer inlogt bij Foundry begin je opnieuw. Exporteer eerst je gegevens als je een kopie wilt.",
+		"Verwijdert al je Foundry-trainingen, routines, hardloop- en fietsritten, lichaamsmetingen, voedingsmiddelen, combo's, dagboek, doelen en notities, inclusief voedselfoto's, en logt je hier uit. Groepstrainingen die je organiseert worden voor alle deelnemers verwijderd, en je scores verdwijnen uit de groepstrainingen waaraan je meedeed. Je AppElent-login blijft, dus Gather, Fairway en Arcade Club blijven werken, en als je weer inlogt bij Foundry begin je opnieuw. Exporteer eerst je gegevens als je een kopie wilt.",
 	deleteDataConfirm:
-		"Al je Foundry-trainings- en voedingsgegevens, inclusief opgeslagen notities en voedselfoto's, worden definitief van elk toestel verwijderd en je wordt hier uitgelogd. Je AppElent-login blijft en werkt nog in Gather, Fairway en Arcade Club. Dit kan niet ongedaan worden gemaakt.",
+		"Al je Foundry-trainings- en voedingsgegevens, inclusief opgeslagen notities en voedselfoto's, worden definitief van elk toestel verwijderd en je wordt hier uitgelogd. Groepstrainingen die je organiseert worden voor alle deelnemers verwijderd, en je scores verdwijnen uit de groepstrainingen waaraan je meedeed. Je AppElent-login blijft en werkt nog in Gather, Fairway en Arcade Club. Dit kan niet ongedaan worden gemaakt.",
 	deleteAccount: "Mijn hele AppElent-account verwijderen",
 	deleteAccountFooter:
 		"Verwijdert je AppElent-login, de ene login voor Gather, Foundry, Fairway en Arcade Club, en je gegevens in alle vier de apps. Exporteer eerst je gegevens als je een kopie wilt.",
@@ -16,6 +30,13 @@ export const account = {
 		dataDeleted: "Je Foundry-gegevens zijn verwijderd.",
 		dataDeletedDetail:
 			"Je AppElent-login werkt nog in Gather, Fairway en Arcade Club. Als je weer inlogt bij Foundry, begin je opnieuw.",
+		accountDeleted: "Je AppElent-account is verwijderd.",
+		accountDeletedDetail:
+			"Je login is weg, en daarmee je gegevens in Gather, Foundry, Fairway en Arcade Club.",
+		accountDeletedAppleRevokedDetail:
+			"Je login is weg, en daarmee je gegevens in Gather, Foundry, Fairway en Arcade Club. Foundry gebruikt Log in met Apple niet meer voor jou.",
+		accountDeletedAppleNotRevokedDetail:
+			"Je login is weg, en daarmee je gegevens in Gather, Foundry, Fairway en Arcade Club. Foundry kon Log in met Apple voor jou niet stoppen. Stop het zelf: ga naar account.apple.com, open Log in met Apple, kies Foundry en stop het gebruik.",
 		signOutError:
 			"Je Foundry-gegevens zijn verwijderd, maar je kon niet worden uitgelogd. Log zelf uit via het menu.",
 		error:

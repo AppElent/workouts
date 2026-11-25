@@ -2,6 +2,7 @@ import { api } from "@convex/_generated/api";
 import type { Doc, Id } from "@convex/_generated/dataModel";
 import { parseConvexError } from "@foundry/core";
 import type { ExerciseId } from "@foundry/core/exercises";
+import { HOSTED_WORKOUTS_ENABLED } from "@foundry/core/features";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { format } from "date-fns";
@@ -20,6 +21,7 @@ import { Modal, ModalHeader } from "#/components/ui/Modal";
 import { useToast } from "#/components/ui/toast";
 import { useConvexErrorMessage } from "#/lib/convexError";
 import { useExercises } from "#/lib/exercises";
+import { useMessages } from "#/lib/i18n";
 
 function isEmptySessionError(error: unknown) {
 	return parseConvexError(error).code === "emptySession";
@@ -39,11 +41,13 @@ function ActiveSessionPage() {
 		useQuery(api.sets.listForSession, {
 			sessionId: sessionId as Id<"workoutSessions">,
 		}) ?? [];
+	// While Hosted Workouts are parked (APP-437), a session that came from one
+	// renders as a normal session: no hosted plan, and the normal WOD list.
 	const hostedParticipant = useQuery(
 		api.hostedWorkoutParticipants.getBySession,
-		{
-			sessionId: sessionId as Id<"workoutSessions">,
-		},
+		HOSTED_WORKOUTS_ENABLED
+			? { sessionId: sessionId as Id<"workoutSessions"> }
+			: "skip",
 	);
 
 	const finishSession = useMutation(api.workoutSessions.finish);
@@ -52,6 +56,7 @@ function ActiveSessionPage() {
 	const confirm = useConfirm();
 	const toast = useToast();
 	const errorMessage = useConvexErrorMessage();
+	const hostedCopy = useMessages().hosted;
 	const submitHostedScore = useMutation(
 		api.hostedWorkoutSubmissions.submitForSession,
 	);
@@ -303,7 +308,7 @@ function ActiveSessionPage() {
 					<div className="mt-4">
 						<HostedScoreForm
 							wodBlocks={hostedParticipant.hosted.template.wodBlocks}
-							submitLabel="Submit hosted score"
+							submitLabel={hostedCopy.scoreForm.submitHosted}
 							onSubmit={async (payload) => {
 								if (
 									!(await write(() =>

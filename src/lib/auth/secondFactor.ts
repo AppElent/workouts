@@ -1,0 +1,144 @@
+/**
+ * The second factor a web sign-in can ask for after its first one (password,
+ * emailed code, social provider, or a password reset). Mirrors the mobile
+ * app's `apps/mobile/src/auth/second-factor.ts` (APP-253).
+ *
+ * Clerk stops a sign-in at `needs_second_factor` when the account has MFA on,
+ * and at `needs_client_trust` when Device Trust wants a new device verified;
+ * both are completed with the same `signIn.mfa` methods. Which methods are on
+ * offer comes from `supportedSecondFactors`: only what the instance enables
+ * and the account has set up. The order picks the default: an authenticator
+ * app needs nothing sent, a texted or emailed code comes next, and backup
+ * codes are the last resort because each one works only once.
+ */
+import type { useSignIn } from "@clerk/react";
+import { clerkErrorCode } from "@foundry/core";
+
+export const SECOND_FACTOR_STRATEGIES = [
+	"totp",
+	"phone_code",
+	"email_code",
+	"backup_code",
+] as const;
+export type SecondFactorStrategy = (typeof SECOND_FACTOR_STRATEGIES)[number];
+
+type SignIn = ReturnType<typeof useSignIn>["signIn"];
+
+/** The sign-in has passed its first factor and waits for a second. */
+export function needsSecondFactor(status: string | null | undefined) {
+	return status === "needs_second_factor" || status === "needs_client_trust";
+}
+
+export interface SecondFactorOption {
+	strategy: SecondFactorStrategy;
+	/** Masked phone number or address a code goes to, e.g. `+1*******55`. */
+	safeIdentifier?: string;
+}
+
+/** The methods this form can complete, default first, one per strategy. */
+export function secondFactorOptions(
+	factors: readonly { strategy: string; safeIdentifier?: string }[] | null,
+): SecondFactorOption[] {
+	return SECOND_FACTOR_STRATEGIES.flatMap((strategy) => {
+		const factor = factors?.find((f) => f.strategy === strategy);
+		if (!factor) return [];
+		return [
+			factor.safeIdentifier
+				? { strategy, safeIdentifier: factor.safeIdentifier }
+				: { strategy },
+		];
+	});
+}
+
+/**
+ * The method this attempt last sent a code for or tried, if it is on offer.
+ * Clerk keeps it on the attempt, so it survives a reload; before that the
+ * verification is empty (`strategy: null`).
+ */
+export function startedSecondFactor(
+	signIn: SignIn,
+	options: SecondFactorOption[],
+): SecondFactorStrategy | null {
+	const started = signIn.secondFactorVerification?.strategy;
+	return options.find((o) => o.strategy === started)?.strategy ?? null;
+}
+
+/**
+ * The code this attempt last sent can no longer be used. clerk-js reads a
+ * missing `expire_at` as the moment it parses the response, so a time since
+ * this page loaded may only be that: it counts when Clerk's status says so, or
+ * when the step saw it coming (`codeExpiry`).
+ */
+export function startedCodeExpired(signIn: SignIn) {
+	const { status, expireAt } = signIn.secondFactorVerification ?? {};
+	return (
+		status === "expired" ||
+		(!!expireAt && expireAt.getTime() < performance.timeOrigin)
+	);
+}
+
+/** When the code last sent for this method expires, in ms, if Clerk says. */
+export function codeExpiry(
+	signIn: SignIn,
+	strategy: SecondFactorStrategy | null,
+): number | null {
+	const verification = signIn.secondFactorVerification;
+	if (!strategy || !sendsCode(strategy)) return null;
+	if (verification?.strategy !== strategy || verification.status === "verified")
+		return null;
+	return verification.expireAt?.getTime() ?? null;
+}
+
+/** Too many wrong codes were tried for the method this attempt last used. */
+export function startedLocked(signIn: SignIn) {
+	return signIn.secondFactorVerification?.status === "failed";
+}
+
+/** Texted and emailed codes are sent first; the other methods need nothing. */
+export function sendsCode(strategy: SecondFactorStrategy) {
+	return strategy === "phone_code" || strategy === "email_code";
+}
+
+export function sendSecondFactorCode(
+	signIn: SignIn,
+	strategy: SecondFactorStrategy,
+): Promise<{ error: unknown }> {
+	if (strategy === "phone_code") return signIn.mfa.sendPhoneCode();
+	if (strategy === "email_code") return signIn.mfa.sendEmailCode();
+	return Promise.resolve({ error: null });
+}
+
+export function verifySecondFactor(
+	signIn: SignIn,
+	strategy: SecondFactorStrategy,
+	code: string,
+): Promise<{ error: unknown }> {
+	switch (strategy) {
+		case "totp":
+			return signIn.mfa.verifyTOTP({ code });
+		case "phone_code":
+			return signIn.mfa.verifyPhoneCode({ code });
+		case "email_code":
+			return signIn.mfa.verifyEmailCode({ code });
+		case "backup_code":
+			return signIn.mfa.verifyBackupCode({ code });
+	}
+}
+
+/**
+ * Codes after which this attempt cannot finish: it expired or was dropped
+ * while the form waited. Unlike mobile (APP-507), too many wrong codes
+ * (`verification_failed`) is not one: Clerk only locks that method, so a new
+ * code or another method still finishes the same sign-in (APP-526).
+ */
+const ATTEMPT_ENDED_CODES = new Set(["resource_not_found", "sign_in_expired"]);
+
+export function endsAttempt(error: unknown) {
+	const code = clerkErrorCode(error);
+	return !!code && ATTEMPT_ENDED_CODES.has(code);
+}
+
+/** Too many wrong codes: this method is locked for the attempt. */
+export function locksMethod(error: unknown) {
+	return clerkErrorCode(error) === "verification_failed";
+}

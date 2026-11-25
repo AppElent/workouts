@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when connecting to, operating, or changing the Foundry MCP server.
-version: 3.3.0
+version: 3.6.0
 ---
 
 # Foundry MCP
@@ -59,21 +59,27 @@ Read (`foundry:read`): `get_current_user`, `list_activities`, `get_run_or_ride`,
 `get_exercise_history`, `get_exercise_volume`, `list_one_rep_maxes`,
 `list_routines`, `get_active_strength_session`, `get_strength_session`,
 `get_nutrition_day`, `get_nutrition_week`, `get_nutrition_goals`,
-`search_foods`, and the view tools `show_week_overview`, `review_food_log`, and
-`show_exercise_progress` (see [Views](#views)).
+`search_foods`, and the view tools `open_foundry`, `show_week_overview`,
+`review_food_log`, and `show_exercise_progress` (see [Views](#views)).
 
 Write (`foundry:write`): `log_run_or_ride`, `update_run_or_ride`,
-`log_body_metrics`, `log_wod_result`, `create_exercise`,
+`log_body_metrics`, `log_wod_result`, `create_exercise`, `create_routine`,
 `start_strength_session`, `add_exercise_to_session`, `log_set`, `update_set`,
 `finish_strength_session`, `record_one_rep_max`, `log_food`,
 `log_custom_food`, `update_diary_entry`.
 
 Training setup and logging afterwards follow the
 [Training contract](../contracts/training.md#connected-app-setup):
-`create_exercise` dedupes by name, `add_exercise_to_session` takes
+`create_exercise` dedupes by name, `create_routine` saves a reusable Routine
+with default loads in kg, `add_exercise_to_session` takes
 `plannedSets` (kg or a percentage of the 1RM), and `start_strength_session`,
 `log_set`, and `finish_strength_session` take `startedAt`, `loggedAt`, and
 `endedAt`.
+
+`log_set` and `update_set` take an optional `notes` (at most 500 characters).
+On `update_set`, leaving it out keeps the Set's note and an empty string clears
+it. `get_strength_session`, `get_active_strength_session`, and
+`get_exercise_history` return it.
 
 Rules for every tool:
 
@@ -95,12 +101,13 @@ needs a Convex idempotency key (`operationId`, `clientEntryId`, or
 
 ## Views
 
-Three read tools open an interactive view (an [MCP App](https://modelcontextprotocol.io/extensions/apps/overview))
+Four read tools open an interactive view (an [MCP App](https://modelcontextprotocol.io/extensions/apps/overview))
 in hosts that support it, such as Claude.ai. Other clients get the same data as
 JSON and text.
 
 | Tool                     | View                         | What it does                                                                                              |
 | ------------------------ | ---------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `open_foundry`           | `ui://foundry/home`              | Home: today's nutrition against goals, the active or latest Strength Session, and this week. Links open the week overview and exercise progress in the same view. |
 | `show_week_overview`     | `ui://foundry/week-overview`     | Activities and nutrition per day for one Monday-to-Sunday week. Previous/next week call the tool again. |
 | `review_food_log`        | `ui://foundry/food-log`          | Proposed diary entries to adjust, remove, and log. Log calls `log_food` per item.                        |
 | `show_exercise_progress` | `ui://foundry/exercise-progress` | e1RM or top set over 4w, 12w, or 1y as SVG charts, with weekly volume and 1RMs.                           |
@@ -110,7 +117,7 @@ How it works:
 - The UI is React in `src/lib/mcp/views/ui/`. The Vite plugin in
   `src/lib/mcp/views/vitePlugin.ts` builds it into one HTML file with inlined
   JS and CSS and exposes it as `virtual:foundry-mcp-views`. The Worker bundle
-  carries it; there is no separate deploy. All three views share the file, and
+  carries it; there is no separate deploy. All views share the file, and
   the server sets `data-view` per resource.
 - The views make no network requests, so the resource declares no CSP domains.
   They talk to the server only through the host (`callServerTool`).
@@ -137,6 +144,78 @@ How it works:
   host's language.
 - View text follows the host locale in English or Dutch
   (`src/lib/i18n/messages/*/mcp-views.ts`).
+
+### Foundry as an app in Claude
+
+Claude can also open Foundry as an app: from the Artifacts page or the sidebar,
+in the side panel next to the chat, and with tools Claude calls inside the open
+view. Claude rolls these out to a limited set of organisations, only in the
+unified Claude experience (no Chat/Cowork choice) and not on mobile. Where they
+are missing, the same views render inline in the conversation. Claude's docs:
+[entry points](https://claude.com/docs/connectors/building/mcp-apps/entry-points),
+[display modes](https://claude.com/docs/connectors/building/mcp-apps/display-modes),
+and [app tools](https://claude.com/docs/connectors/building/mcp-apps/app-tools).
+
+- **Entry point.** `open_foundry` carries
+  `_meta["openai/ui"].entrypoints = [{ type: "global" }]` next to
+  `_meta.ui.resourceUri` (the `meta` field of `defineTool`). Every input is
+  optional, and `{}` shows the home view. Claude lists it only when the title
+  is 60 characters or fewer without Claude's or Anthropic's name, the name has
+  no `__`, `..`, or `._`/`_.`, and the tool is not Blocked. A change can take two
+  hours to show; on claude.ai → Customize → Connectors, the connector's menu has
+  **Refresh tools list** to apply it at once.
+- **Display modes.** Every view declares `availableDisplayModes: ["inline",
+  "fullscreen"]` and shows its own expand button, which calls
+  `requestDisplayMode` from the click. In Claude, `fullscreen` is the side
+  panel (opens at about half the chat, at least about 320 px) or full screen.
+  The week overview's resource sets `_meta.ui.preferredDisplayMode:
+  "fullscreen"`, a Claude extension: after the tool returns, Claude tries once
+  to move it out of the conversation. The layouts work from 320 px up; the
+  week shows seven columns from 720 px.
+- **App tools.** Each view registers tools with `app.registerTool` in
+  `src/lib/mcp/views/ui/appTools.ts`, before `app.connect()` (in `useApp`'s
+  `onAppCreated`), with zod schemas (ext-apps 1.7 or later and zod 4.2 or later
+  are required). They change only what the view shows and answer with text;
+  writes still go through server tools and the view's buttons.
+
+  | View                | App tools                                                                 |
+  | ------------------- | ------------------------------------------------------------------------- |
+  | `home`              | `go_home`, `go_to_week`, `show_exercise`, `set_range`, `set_metric`       |
+  | `week-overview`     | `go_to_week`                                                              |
+  | `exercise-progress` | `set_range`, `set_metric`                                                 |
+  | `food-log`          | `add_item`, `set_quantity`, `remove_item` (Log stays the user's button)   |
+
+  The tools are registered once, but what they act on is React state, so each
+  screen publishes its controls to a `ControlBridge`; a tool whose screen is
+  not showing answers that nothing changed. `add_item` looks the food up with
+  `review_food_log` and gives the new row a fresh idempotency key. Claude sees
+  a view's tools from the message after the view opened, and a conversation can
+  hold two views; each tool changes only its own view.
+
+`appTools.test.ts` checks the registration and schemas, `FoodLog.test.tsx` the
+food log tools, and `handler.test.ts` the `_meta` of `open_foundry` and the
+display-mode metadata.
+
+#### Views on claude.ai in the browser
+
+On 12 Nov 2026 the views rendered in Claude Desktop but not on claude.ai in a
+browser; the tool data still showed. What the code rules out:
+
+- The resource is the same for both: one connector URL, so the same
+  `_meta.ui.domain`. A wrong domain shows an error on the web and in Desktop
+  alike.
+- The views load nothing from the network, so no CSP domain is missing.
+- Tool results are a few KB, far under the 150,000 characters after which
+  Claude writes a result to a file and the view never hydrates.
+- The HTML is about 680 KB: zod (bundled by ext-apps for protocol validation)
+  and React DOM make up most of it. Claude documents no size limit for a view.
+
+What is left is the browser: an extension or a privacy setting that blocks the
+third-party `*.claudemcpcontent.com` iframe or its scripts. To check, open the
+chat in a private window with extensions off. If the view renders there, it is
+an extension; otherwise open developer tools, find the nested
+`claudemcpcontent.com` iframe, and read its console (Verbose level for the SDK
+messages).
 
 To change a view, edit `src/lib/mcp/views/ui/` and check it in a host:
 

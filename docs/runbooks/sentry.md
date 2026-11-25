@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when changing Sentry coverage, project bindings, or source-map uploads.
-version: 1.0.1
+version: 1.1.0
 ---
 
 # Foundry Sentry operations
@@ -21,7 +21,7 @@ owns Infisical/EAS/CI setup. Installed SDK versions live in package/lockfiles.
 | --- | --- |
 | Browser/Worker | Navigation/request traces; React/route and caught Convex failures; Worker SSR 5xx fallback. Git SHA or SENTRY_RELEASE aligns web/Worker/maps. Sentry environment is the built Wrangler environment's `environment_name` (CI overrides with `VITE_SENTRY_ENVIRONMENT`), shared by both bundles. |
 | Mobile | Navigation/app-start/network traces, frame/stall measurements, Hermes/native profiling, masked replay, shake-to-report. Sentry environment follows EAS Update channel, with development/production fallback. |
-| Convex | Free-plan log forwarder for failed executions, including scheduled functions; production runs on an always-on Mac (see [Convex forwarder](#convex-forwarder)). |
+| Convex | Free-plan log forwarder for failed executions, including scheduled functions; production runs in the shared incident inbox (see [Production](#production)). |
 
 | Signal | Foundry sampling |
 | --- | --- |
@@ -79,7 +79,7 @@ overriding the DSN. Native dependency changes require a compatible new binary.
 
 ## Convex forwarder
 
-From the root, with CLI authentication or a private deployment-scoped key:
+For local or ad-hoc runs (dev or preview deployments), from the root, with CLI authentication or a private deployment-scoped key:
 
 ```sh
 pnpm sentry:convex --prod
@@ -95,44 +95,30 @@ supervisor sees the failure. The DSN comes from `SENTRY_CONVEX_DSN`, else the
 exceed history; delivery has no durable queue. It supplies neither backend
 performance/distributed traces nor authenticated-user attribution.
 
-### Production host
+### Production
 
-The production reader runs on Eric's always-on Mac Studio as the launchd user
-agent `com.appelent.convex-sentry.foundry`
-(`~/Library/LaunchAgents/com.appelent.convex-sentry.foundry.plist`). It has
-`RunAtLoad`, `KeepAlive`, and a 30 s `ThrottleInterval`, and survives a reboot
-while that user is logged in. The service files live outside this repository.
+Production failures are forwarded by the shared
+[incident inbox](https://github.com/AppElent/developer-home/blob/main/services/incident-inbox/README.md) in `AppElent/developer-home`, not by this repo's
+script (since 17 Nov 2026). One launchd agent on Eric's always-on Mac,
+`com.appelent.incident-inbox` (run from `~/Developer/.services/developer-home`),
+reads `eric-jansen:workout-tracker:prod` with the logged-in Convex CLI and sends failed executions to this
+app's Sentry project with the same `app=foundry-convex` tag and
+`environment=production`. Its incident poll then files each new Sentry issue in
+Linear (team `APP`, labels `app:foundry` and Source `convex`). Events are grouped
+by throwing function and message, so one helper failing under several queries
+is one Sentry issue; the `func` tag still names the query.
 
-- Checkout: `~/Developer/.services/workouts`, a dedicated clone reset to
-  `origin/main` on each start when the tree is clean. Do not run the production
-  reader from a T3 worktree or `~/Developer/workouts`.
-- Wrapper: `~/Developer/.services/bin/convex-sentry-run foundry`.
-- Log: `~/Library/Logs/convex-sentry-foundry.log`.
-- Secrets: the wrapper runs `pnpm env:exec production --only github`, which loads
-  Infisical `sentry-dsn` as `VITE_SENTRY_DSN`, and exports it as `SENTRY_DSN` and
-  `SENTRY_CONVEX_DSN` with `SENTRY_ENVIRONMENT=production`.
-- Convex access: the wrapper unsets `CONVEX_DEPLOY_KEY` and
-  `CONVEX_DEPLOYMENT_TOKEN`; the production deploy key can deploy but lacks
-  `deployment:logs:view`. Logs are read with the logged-in Convex CLI and
-  `--deployment eric-jansen:workout-tracker:prod`, the public selector from
-  `env.manifest.ts`.
+- Log: `~/Library/Logs/incident-inbox.log`. A healthy start logs
+  `convex foundry: reading eric-jansen:workout-tracker:prod`.
+- Restart: `launchctl kickstart -k "gui/$(id -u)/com.appelent.incident-inbox"`.
+- Deployment, tag and DSN (`SENTRY_DSN_FOUNDRY`) are set in the inbox's `config.mjs` and
+  its env file; change them there, not here.
 
-Restart and watch the log:
-
-```sh
-launchctl kickstart -k "gui/$(id -u)/com.appelent.convex-sentry.foundry"
-tail -f ~/Library/Logs/convex-sentry-foundry.log
-```
-
-A healthy start logs `[Production] eric-jansen:workout-tracker:production (prod)`
-and a `Watching logs` line. Stop it with:
-
-```sh
-launchctl bootout "gui/$(id -u)/com.appelent.convex-sentry.foundry"
-```
-
-After a `bootout`, load it again with
-`launchctl bootstrap "gui/$(id -u)" ~/Library/LaunchAgents/com.appelent.convex-sentry.foundry.plist`.
+Do not run `pnpm sentry:convex` against production while the inbox runs:
+Sentry would get each failure twice. The old per-app agent
+`com.appelent.convex-sentry.foundry`, its clone `~/Developer/.services/workouts`
+and the `convex-sentry-run` wrapper are retired
+([APP-98](https://linear.app/appelent/issue/APP-98), [APP-222](https://linear.app/appelent/issue/APP-222)).
 
 If adopting managed Convex reporting, stop the corresponding reader to avoid
 duplicate ingestion. Verify plan support and per-deployment behavior using the

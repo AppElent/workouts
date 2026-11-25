@@ -34,3 +34,46 @@ it("logs a load score in the chosen unit", async () => {
 		expect.objectContaining({ load: 2.5, loadUnit: "lbs" }),
 	);
 });
+
+it("shows the score form in Dutch", () => {
+	render(
+		<LocaleProvider initialLocale="nl">
+			<LogWodResultForm wodId={"wod" as Id<"wods">} type="forTime" />
+		</LocaleProvider>,
+	);
+	expect(screen.getByText("Tijdslimiet gehaald (niet afgemaakt)")).toBeTruthy();
+	fireEvent.click(screen.getByRole("checkbox"));
+	expect(screen.getByText("Herh.")).toBeTruthy();
+	expect(
+		screen.getByRole("button", { name: "Resultaat vastleggen" }),
+	).toBeTruthy();
+});
+
+// APP-600: two steppers side by side overflow a phone-width card.
+it.each(["forTime", "amrap"] as const)(
+	"stacks the %s steppers below the sm breakpoint",
+	(type) => {
+		render(
+			<LocaleProvider initialLocale="en">
+				<LogWodResultForm wodId={"wod" as Id<"wods">} type={type} />
+			</LocaleProvider>,
+		);
+		const steppers = screen.getAllByRole("button", { name: /^Increase/ });
+		expect(steppers).toHaveLength(2);
+		const grid = steppers[0].closest(".grid");
+		expect(grid?.className).toContain("grid-cols-1");
+		expect(grid?.className).toContain("sm:grid-cols-2");
+	},
+);
+
+// APP-677: the Load stepper and its unit select overflow a 320px card side by side.
+it("stacks the load stepper and unit select below the sm breakpoint", () => {
+	render(
+		<LocaleProvider initialLocale="en">
+			<LogWodResultForm wodId={"wod" as Id<"wods">} type="load" />
+		</LocaleProvider>,
+	);
+	const grid = screen.getByLabelText("Load unit").closest(".grid");
+	expect(grid?.className).toContain("grid-cols-1");
+	expect(grid?.className).toContain("sm:grid-cols-[1fr_84px]");
+});

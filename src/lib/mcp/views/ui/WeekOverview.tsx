@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { MacroGoal, WeekDay, WeekOverviewResult } from "../types";
+import { describeScreen } from "./appTools";
 import type { ViewText } from "./i18n";
 import type { ViewProps } from "./ViewRoot";
 
-function goal(goals: readonly MacroGoal[], macro: MacroGoal["macro"]) {
+export function goal(goals: readonly MacroGoal[], macro: MacroGoal["macro"]) {
 	return goals.find((entry) => entry.macro === macro);
 }
 
-function GoalBar({
+export function GoalBar({
 	value,
 	target,
 	label,
@@ -118,21 +119,34 @@ export function WeekOverview({
 	text,
 	reload,
 	header,
+	bridge,
 }: ViewProps<WeekOverviewResult>) {
 	const { t } = text;
 	const [busy, setBusy] = useState(false);
 	const [failed, setFailed] = useState(false);
-	const go = async (weekStart: string) => {
-		setBusy(true);
-		setFailed(false);
-		try {
-			await reload("show_week_overview", { weekStart });
-		} catch {
-			setFailed(true);
-		} finally {
-			setBusy(false);
-		}
-	};
+	const show = useCallback(
+		async (weekStart: string) => {
+			setBusy(true);
+			setFailed(false);
+			try {
+				return await reload("show_week_overview", { weekStart });
+			} catch (error) {
+				setFailed(true);
+				throw error;
+			} finally {
+				setBusy(false);
+			}
+		},
+		[reload],
+	);
+	const go = (weekStart: string) => show(weekStart).catch(() => undefined);
+	useEffect(
+		() =>
+			bridge.set("screen", {
+				goToWeek: async (weekStart) => describeScreen(await show(weekStart)),
+			}),
+		[bridge, show],
+	);
 	const { training, nutrition } = result;
 	const energyGoal = goal(nutrition.goals, "energyKcal");
 	const proteinGoal = goal(nutrition.goals, "proteinG");

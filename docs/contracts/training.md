@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing Training, Start activity, Strength Sessions, the set editor, Set Drafts, or strength references.
-version: 1.2.0
+version: 2.1.3
 status: current
 ---
 
@@ -18,10 +18,15 @@ references. Studies: [training](../../designs/app/training_final.html),
 ### Training screen
 
 - Start activity sits above compact routines; New sits beside the routine section;
-  library rows follow (Exercises, WODs, Hosted Workouts, History). One header menu
+  library rows follow (Exercises, WODs, History). Hosted Workouts are parked and
+  have no row ([ADR 0018](../adr/0018-park-hosted-workouts.md)). One header menu
   holds the history shortcuts (all, strength, running, cycling); no header +.
 - Tap a routine name to edit; a separate play button starts it. Row menu and long
   press expose Start, Edit, Delete. Swipe reveals Edit/Delete and never commits.
+- A Routine requires a non-empty name (stored trimmed, up to 200 characters) and
+  at least one Exercise. Each Exercise may appear at most once (by resolved
+  exercise id), up to 50 Exercises and 500 total Planned Sets, keeping session
+  start well under Convex document limits.
 - Deletion confirms and explains that past sessions remain; a failed deletion keeps
   the row.
 - The ActiveSessionBar stays in the shell accessory and shows only while the
@@ -48,12 +53,25 @@ references. Studies: [training](../../designs/app/training_final.html),
   logging records performance; plans and drafts never count toward totals or
   references ([ADR 0012](../adr/0012-separate-planned-sets-from-performance.md)).
   Exercise membership and order persist without logged Sets.
-- The session is a table: per set the percentage of 1RM, weight × reps, the 1RM it
-  would produce, and a check that logs it. Tap opens the editor; swipe and long
-  press offer the same set actions. Sets can be added from an empty start.
+- The session follows the round-2 canvas
+  ([companion](../../designs/app/session_redesign_final.md)): done exercises
+  collapse, the current one shows its sets, upcoming ones wait below, and a Now
+  card names the next set and logs it in one tap (rest counts down there). Each
+  row logs by its check; tap opens the editor; swipe and long press offer the
+  same set actions. An empty session starts from quick-start tiles; an ad hoc
+  exercise offers steppers and last time's set.
+- Set counts and the progress strip count working sets. Planned sets are working
+  sets: a logged warm-up never uses one up when the plan is rebuilt.
+- A set logged elsewhere (MCP or another device) fills the exercise's first open
+  set, alone or in a group; with none left it is added. It never fills a set that
+  holds changes made here, a failed log, or a log still being sent, and a warm-up
+  and a working set never fill each other.
+- A session finished elsewhere says it ended, even when the device's plan is
+  already gone.
 - Keep set edit/delete, repeat (prepares a draft), set types, previous performance,
   equipment increments, plates, rest timer, elapsed time, resume, and hosted score
-  routes. Clearing a saved RPE leaves other fields unchanged.
+  routes (hidden while Hosted Workouts are parked). Clearing a saved RPE leaves
+  other fields unchanged.
 - **Default rest** is per session and set from session options; a new session
   starts from the account's last choice on this device. A running rest timer
   belongs to the session it began in: another session, including a new one, never
@@ -78,6 +96,11 @@ the app; there is no separate data.
 - **Personal Exercises:** `create_exercise` reuses the in-app create path and
   returns the caller's existing Personal Exercise with the same name (ignoring
   case) instead of a duplicate.
+- **Routines:** `create_routine` uses the in-app create path, with its set, rep,
+  and load limits and exercise ownership checks. Like the editors, it requires a
+  name and at least one exercise and takes each exercise once. A retry with the
+  same key and input returns the first result, even after the Routine was edited
+  or deleted in the app, and never makes a second one.
 - **Planned Sets:** `add_exercise_to_session` with `plannedSets` replaces that
   exercise's Planned Sets in an active session. A target is a load or a
   percentage of the session's 1RM (Measured unless a newer Manual), rounded to
@@ -103,9 +126,29 @@ the app; there is no separate data.
 
 ### Set editor
 
-- A focused sheet with weight and reps, percentage chips, and set details (set type,
-  optional RPE showing reps remaining, half values reachable) under Meer. There is no
-  advanced mode: Meer only folds details, and it offers no other way to log.
+- A focused sheet with weight and reps value cards, four set-type segments, and
+  last time's matching set (same type and position, with RPE and date) as its
+  subtitle. Without advanced details it shows last time's sets, never an empty
+  middle. Advanced adds percentage chips and optional RPE showing reps remaining
+  (half values reachable), and the set's note. The 1RM source (measured, manual, estimated) is named
+  wherever it is used. Simple or advanced is a choice in the editor menu,
+  remembered on the device; advanced only shows more and offers no other way to
+  log. Simple shows the note field only when the set has a note.
+- **Note:** a logged Set can hold one note (`sets.notes`), stored trimmed, at most
+  500 characters; an empty note is removed. A correction that leaves the note out
+  keeps it, so an older app never wipes one, and an empty string clears it. The
+  session's set rows, the phone's exercise history, and the session summary show
+  it under the set (two lines at most), and the web and the MCP return it. The JSON
+  export carries it and the sets CSV has a `notes` column. New, repeated, and
+  swapped-in sets start without one; swapping back restores the original's.
+- **Spoken set:** each set row in the phone's exercise history and the session
+  summary is one accessible element with one spoken label: set number, load and
+  reps in words ("20 kilograms, 5 reps"), set type or, for a working set, its
+  RPE ("RPE 8"), estimated 1RM, then the note, each only when the row has it.
+  Every spoken phrase, the RPE included, comes from the en/nl message catalog.
+  Placeholders such as "—" are never read.
+  The session summary's visible chip and its "Best" line name the set's unit
+  (`80 kg × 8`, `135 lbs × 5`); a bodyweight set shows none.
 - Percentage chips use the session's 1RM: Measured unless a newer manual 1RM is
   saved. Choosing one changes the weight; the sheet shows the 1RM this set would
   produce. Missing references are unknown and do not block logging. Never replace
@@ -135,7 +178,9 @@ the app; there is no separate data.
 - The session plan and each set's draft live on the device per account and session.
   They survive dismissal, restart, and sign-out while the session is active. Logging,
   discard, or session end clears a draft. Another account never sees them, and they
-  do not sync between devices. Drafts from builds before account scoping are not
+  do not sync between devices. A draft carries the note like reps and weight, and a
+  note typed here counts as a change made here; a draft whose note was not touched
+  never overwrites the stored one. Drafts from builds before account scoping are not
   carried over.
 - Recording a Set needs a connection. Offline, the set is marked failed without being
   sent, rest still runs, and finishing is blocked until it is retried or removed. A

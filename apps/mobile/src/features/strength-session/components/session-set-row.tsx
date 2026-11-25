@@ -2,7 +2,7 @@
 import { convertLoad } from "@foundry/core";
 import { SymbolView } from "expo-symbols";
 import { type ReactNode, useMemo } from "react";
-import { Pressable, StyleSheet, useWindowDimensions, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { fmt, useI18n } from "../../../i18n";
 import {
 	radius,
@@ -11,13 +11,16 @@ import {
 	useThemedStyles,
 	useTokens,
 } from "../../../theme";
+import { RowNote } from "../../../ui/row-note";
 import { type RowAction, SwipeableRow } from "../../../ui/swipeable-row";
 import { AppText } from "../../../ui/text";
+import { useLargeText } from "../../../ui/use-large-text";
 import { workspaceStore } from "../data/session-workspace";
 import { formatNumber, formatSetShort } from "../session-format";
 import {
 	type ExerciseFacts,
 	groupOfRow,
+	noteOf,
 	type PlanSet,
 	referenceFor,
 	repeatRow,
@@ -27,9 +30,6 @@ import {
 	shownPercent,
 } from "../session-plan";
 import { useSessionScreen } from "../session-screen-context";
-
-/** At accessibility text sizes a row takes two lines instead of dropping content. */
-export const useLargeText = () => useWindowDimensions().fontScale >= 1.35;
 
 function oneRmText(
 	row: PlanSet,
@@ -151,7 +151,10 @@ function RowShell({
 		>
 			{(accessibility) => (
 				<View
-					style={[styles.row, isNext && { backgroundColor: colors.accentDim }]}
+					style={[
+						styles.groupRow,
+						isNext && { backgroundColor: colors.accentDim },
+					]}
 				>
 					<Pressable
 						accessibilityRole="button"
@@ -162,7 +165,7 @@ function RowShell({
 						onPress={() => {
 							if (!pending) openEditor(row.id);
 						}}
-						style={styles.body}
+						style={styles.groupBody}
 						testID={`session-set-${row.id}`}
 					>
 						{children}
@@ -218,6 +221,7 @@ function rowSpeech(
 	copy: ReturnType<typeof useRowFacts>["copy"],
 	oneRm: string | null,
 ) {
+	const note = noteOf(row);
 	const state = row.failed
 		? `, ${copy.failed}`
 		: row.done
@@ -230,8 +234,13 @@ function rowSpeech(
 					unit: copy.unitSpoken[row.unit],
 				})
 			: ""
-	}`;
+	}${note ? fmt(copy.rowNoteSpoken, { note }) : ""}`;
 }
+/**
+ * A set in the current exercise's card (APP-619 canvas): label, load, RPE or
+ * percentage, and its state on the right. The row opens the editor; the
+ * state is a checkbox that logs or unlogs; swipe and long press offer the rest.
+ */
 export function SessionSetRow({
 	row,
 	isNext,
@@ -239,15 +248,16 @@ export function SessionSetRow({
 }: {
 	row: PlanSet;
 	isNext: boolean;
-	/** Off when nothing prices this exercise's sets, so no empty column. */
+	/** Off when nothing prices this exercise's sets. */
 	showPercent?: boolean;
 }) {
-	const { plan, workspace } = useSessionScreen();
-	const { copy, loadText, percent, percentText, pending, oneRm, facts } =
+	const { openEditor, plan, toggleRow, workspace } = useSessionScreen();
+	const { copy, locale, loadText, percent, percentText, pending, oneRm } =
 		useRowFacts(row);
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
 	const large = useLargeText();
+	const rowActions = useRowActions(row);
 	const mates = rowsOf(plan, row.exerciseId).filter(
 		(item) => item.kind !== "warmup",
 	);
@@ -260,67 +270,136 @@ export function SessionSetRow({
 				: row.kind === "failure"
 					? copy.markFailure
 					: String(number);
-	const ink = row.done ? colors.textMuted : colors.text;
-	const weight = isNext ? "700" : row.done ? "500" : "600";
 	const status = pending ? copy.saving : row.failed ? copy.failed : null;
-	const statusInk = row.failed ? colors.warn : colors.textMuted;
+	const meta =
+		status ??
+		(row.rpe !== null && row.done
+			? fmt(copy.now.rpe, { value: formatNumber(row.rpe, locale, 1) })
+			: showPercent && percent !== null
+				? percentText
+				: "");
 	const name = workspace.nameOf(row.exerciseId);
 	const setLabel =
 		row.kind === "warmup"
 			? `${name}, ${copy.rowSetWarmup}`
 			: `${name}, ${fmt(copy.rowSet, { number })}`;
 	const label = rowSpeech(row, setLabel, percent, loadText, copy, oneRm);
-	if (large)
-		return (
-			<RowShell row={row} label={label} isNext={isNext}>
-				<AppText variant="heading" style={{ color: ink, fontWeight: weight }}>
-					{loadText}
-				</AppText>
-				<AppText variant="secondary" style={{ color: statusInk }}>
-					{[mark, percentText, status ?? oneRm].filter(Boolean).join(" · ")}
-				</AppText>
-			</RowShell>
-		);
+	const markInk =
+		row.kind === "warmup"
+			? colors.warn
+			: isNext
+				? colors.accentInk
+				: colors.textMuted;
 	return (
-		<RowShell row={row} label={label} isNext={isNext}>
-			<View style={styles.columns}>
-				<AppText
-					variant="secondary"
-					style={[styles.setColumn, { color: colors.textMuted }]}
-				>
-					{mark}
-				</AppText>
-				{!showPercent ? null : facts.bodyweight ? (
-					<View style={styles.percentColumn} />
-				) : (
-					<AppText
-						variant="secondary"
-						numberOfLines={1}
-						style={[styles.percentColumn, { color: ink }]}
-					>
-						{percentText}
-					</AppText>
-				)}
-				<AppText
-					variant="heading"
-					numberOfLines={1}
-					adjustsFontSizeToFit
-					style={[styles.loadColumn, { color: ink, fontWeight: weight }]}
-				>
-					{loadText}
-				</AppText>
-				<AppText
-					variant="secondary"
-					numberOfLines={1}
+		<SwipeableRow
+			actions={rowActions}
+			menuTitle={`${name} · ${loadText}`}
+			closeMenuLabel={copy.close}
+		>
+			{(accessibility) => (
+				<View
 					style={[
-						styles.oneRmColumn,
-						{ color: status ? statusInk : colors.textMuted },
+						styles.row,
+						isNext && styles.rowNext,
+						large && styles.rowLarge,
 					]}
 				>
-					{status ?? oneRm ?? ""}
-				</AppText>
-			</View>
-		</RowShell>
+					<Pressable
+						accessibilityRole="button"
+						accessibilityLabel={label}
+						accessibilityActions={accessibility.accessibilityActions}
+						onAccessibilityAction={accessibility.onAccessibilityAction}
+						onLongPress={accessibility.onLongPress}
+						onPress={() => {
+							if (!pending) openEditor(row.id);
+						}}
+						style={[styles.body, noteOf(row) !== "" && styles.bodyNote]}
+						testID={`session-set-${row.id}`}
+					>
+						<View style={[styles.line, large && styles.lineLarge]}>
+							<AppText
+								variant="secondary"
+								style={[styles.mark, { color: markInk }]}
+							>
+								{mark}
+							</AppText>
+							<AppText
+								variant="row"
+								numberOfLines={large ? undefined : 1}
+								adjustsFontSizeToFit={!large}
+								style={[
+									styles.load,
+									{
+										color: row.done ? colors.textMuted : colors.text,
+										fontWeight: isNext ? "800" : "600",
+									},
+								]}
+							>
+								{loadText}
+							</AppText>
+							{meta ? (
+								<AppText
+									variant="footnote"
+									numberOfLines={1}
+									style={[
+										styles.meta,
+										{ color: row.failed ? colors.warn : colors.textMuted },
+									]}
+								>
+									{meta}
+								</AppText>
+							) : null}
+						</View>
+						<RowNote note={noteOf(row)} style={styles.noteIndent} />
+					</Pressable>
+					<Pressable
+						accessibilityRole="checkbox"
+						accessibilityState={{ checked: row.done, busy: pending }}
+						accessibilityLabel={fmt(
+							row.done ? copy.rowLoggedLabel : copy.rowLogLabel,
+							{ set: `${name} ${loadText}` },
+						)}
+						disabled={pending}
+						hitSlop={4}
+						onPress={() => toggleRow(row.id)}
+						style={styles.stateHit}
+						testID={`session-check-${row.id}`}
+					>
+						{row.done ? (
+							<View style={styles.doneBadge}>
+								<SymbolView
+									name="checkmark"
+									size={14}
+									weight="bold"
+									tintColor={colors.accentInk}
+									fallback={
+										<AppText
+											variant="label"
+											style={{ color: colors.accentInk }}
+										>
+											✓
+										</AppText>
+									}
+								/>
+							</View>
+						) : isNext ? (
+							<View style={styles.nowPill}>
+								<AppText variant="eyebrow" style={{ color: colors.onAccent }}>
+									{copy.now.nowBadge}
+								</AppText>
+							</View>
+						) : (
+							<View
+								style={[
+									styles.openBadge,
+									pending && { borderColor: colors.textFaint },
+								]}
+							/>
+						)}
+					</Pressable>
+				</View>
+			)}
+		</SwipeableRow>
 	);
 }
 export function SessionGroupItemRow({
@@ -369,6 +448,7 @@ export function SessionGroupItemRow({
 							{status ?? `1RM ${oneRm}`}
 						</AppText>
 					) : null}
+					<RowNote note={noteOf(row)} />
 				</View>
 				<AppText
 					variant="heading"
@@ -385,28 +465,77 @@ const createStyles = (colors: Tokens) =>
 		row: {
 			flexDirection: "row",
 			alignItems: "center",
+			minHeight: 44,
+			paddingLeft: 14,
+			paddingRight: 6,
+			backgroundColor: colors.surface,
+			borderTopWidth: StyleSheet.hairlineWidth,
+			borderTopColor: colors.separator,
+		},
+		rowNext: { minHeight: 50, backgroundColor: colors.accentDim },
+		rowLarge: { paddingVertical: spacing.xs },
+		body: {
+			flex: 1,
+			minWidth: 0,
+			minHeight: 44,
+			justifyContent: "center",
+		},
+		bodyNote: { paddingVertical: spacing.sm },
+		line: {
+			flexDirection: "row",
+			alignItems: "center",
+			gap: spacing.sm,
+		},
+		lineLarge: { flexWrap: "wrap" },
+		noteIndent: { paddingLeft: 30 + spacing.sm },
+		mark: { width: 30, fontWeight: "700", fontVariant: ["tabular-nums"] },
+		load: { flex: 1, minWidth: 0, fontVariant: ["tabular-nums"] },
+		meta: { textAlign: "right", fontVariant: ["tabular-nums"] },
+		stateHit: {
+			width: 52,
+			minHeight: 44,
+			alignItems: "flex-end",
+			justifyContent: "center",
+			paddingRight: spacing.sm,
+		},
+		doneBadge: {
+			width: 28,
+			height: 28,
+			borderRadius: 14,
+			alignItems: "center",
+			justifyContent: "center",
+			backgroundColor: colors.accentDim,
+		},
+		openBadge: {
+			width: 28,
+			height: 28,
+			borderRadius: 14,
+			borderWidth: 1.5,
+			borderColor: colors.borderStrong,
+		},
+		nowPill: {
+			height: 24,
+			paddingHorizontal: spacing.sm,
+			borderRadius: 12,
+			alignItems: "center",
+			justifyContent: "center",
+			backgroundColor: colors.accentFill,
+		},
+		groupRow: {
+			flexDirection: "row",
+			alignItems: "center",
 			minHeight: 60,
 			paddingLeft: spacing.md,
 			paddingRight: spacing.xs,
 			borderTopWidth: StyleSheet.hairlineWidth,
 			borderTopColor: colors.separator,
 		},
-		body: {
+		groupBody: {
 			flex: 1,
 			minWidth: 0,
 			paddingVertical: spacing.xs,
 			minHeight: 56,
 			justifyContent: "center",
-		},
-		columns: { flexDirection: "row", alignItems: "center", gap: 6 },
-		setColumn: { width: 22, fontVariant: ["tabular-nums"] },
-		percentColumn: { width: 44, fontVariant: ["tabular-nums"] },
-		loadColumn: { flex: 1, minWidth: 0, fontVariant: ["tabular-nums"] },
-		oneRmColumn: {
-			minWidth: 48,
-			maxWidth: 76,
-			textAlign: "right",
-			fontVariant: ["tabular-nums"],
 		},
 		itemColumns: {
 			flexDirection: "row",

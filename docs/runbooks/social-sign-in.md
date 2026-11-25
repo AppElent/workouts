@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when enabling, configuring, or debugging Apple, Google, or Microsoft sign-in on the shared Appelent Clerk application.
-version: 2.3.4
+version: 2.4.0
 ---
 
 # Social sign-in
@@ -66,8 +66,9 @@ credentials); production needs them.
    Google, Microsoft, and Apple.
 2. **Configure → User & authentication**: keep every sign-up field providers
    do not supply (username, phone, legal acceptance) optional. A required one
-   blocks first-time social sign-up in every app; mobile then shows "Finish
-   signing up on the web".
+   adds a step to first-time social sign-up in every app: mobile shows "Finish
+   signing up on the web", and the web asks for it on `/sign-up?resume=social`
+   (`SignUpContinueStep`). Legal acceptance has no field there and blocks it.
 
 ### 2. Google
 

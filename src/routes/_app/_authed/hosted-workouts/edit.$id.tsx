@@ -1,11 +1,15 @@
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
+import { HOSTED_WORKOUTS_ENABLED } from "@foundry/core/features";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { HostedWorkoutBuilder } from "#/components/hosted/HostedWorkoutBuilder";
+import { HostedWorkoutsPaused } from "#/components/hosted/HostedWorkoutsPaused";
 
 export const Route = createFileRoute("/_app/_authed/hosted-workouts/edit/$id")({
-	component: EditHostedWorkoutPage,
+	component: HOSTED_WORKOUTS_ENABLED
+		? EditHostedWorkoutPage
+		: HostedWorkoutsPaused,
 });
 
 function EditHostedWorkoutPage() {

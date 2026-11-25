@@ -1,4 +1,6 @@
+import { SHIPPED_EXERCISES } from "@foundry/core/exercises";
 import { fireEvent, render as renderUi, screen } from "@testing-library/react";
+import { ConvexError } from "convex/values";
 import type { ReactElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "#/lib/i18n";
@@ -144,5 +146,73 @@ describe("EditRoutineModal", () => {
 		const cancelBtns = screen.getAllByRole("button", { name: /cancel/i });
 		fireEvent.click(cancelBtns[0]);
 		expect(onClose).toHaveBeenCalled();
+	});
+
+	it("ignores picking an exercise that is already in the routine", () => {
+		const shipped = SHIPPED_EXERCISES[0];
+		const onSave = vi.fn();
+		render(
+			<EditRoutineModal
+				routine={{
+					...mockRoutine,
+					exercises: [
+						{
+							exerciseId: shipped._id,
+							exerciseName: shipped.name,
+							defaultSets: 3,
+							defaultReps: 8,
+						},
+					],
+				}}
+				open={true}
+				onClose={vi.fn()}
+				onSave={onSave}
+			/>,
+		);
+		fireEvent.click(screen.getByRole("button", { name: /add exercise/i }));
+		fireEvent.change(
+			screen.getByRole("searchbox", { name: /search exercises/i }),
+			{
+				target: { value: shipped.name },
+			},
+		);
+		fireEvent.click(
+			screen.getByRole("button", {
+				name: new RegExp(`^${shipped.name}`, "i"),
+			}),
+		);
+		fireEvent.click(screen.getByRole("button", { name: /^save$/i }));
+		expect(onSave).toHaveBeenCalledWith({
+			name: "Push Day A",
+			exercises: [
+				{
+					exerciseId: shipped._id,
+					defaultSets: 3,
+					defaultReps: 8,
+				},
+			],
+		});
+	});
+
+	it("explains how to fix an oversized routine when saving fails", async () => {
+		const onSave = vi
+			.fn()
+			.mockRejectedValue(
+				new ConvexError({ code: "routineTooLarge", field: "exercises" }),
+			);
+		render(
+			<EditRoutineModal
+				routine={mockRoutine}
+				open={true}
+				onClose={vi.fn()}
+				onSave={onSave}
+			/>,
+		);
+		fireEvent.click(screen.getByRole("button", { name: /^save$/i }));
+		expect(
+			await screen.findByText(
+				"This routine is too large. Remove exercises or reduce the number of sets.",
+			),
+		).toBeTruthy();
 	});
 });

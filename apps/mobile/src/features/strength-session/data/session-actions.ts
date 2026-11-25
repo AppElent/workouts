@@ -30,6 +30,7 @@ import {
 	markLogged,
 	newRecordFor,
 	nextOpenRow,
+	noteOf,
 	type PlanNote,
 	type PlanResult,
 	type PlanSet,
@@ -49,6 +50,7 @@ import {
 	swapExercise,
 	typoCheck,
 	updateRow,
+	withStoredNote,
 } from "../session-plan";
 import { useRestTimer } from "./rest-timer";
 import { cancelClockAlert, scheduleClockAlert } from "./session-notifications";
@@ -396,15 +398,18 @@ export function useSessionActions(workspace: SessionWorkspace) {
 			if (rows.some(sending)) say(copy.blockedBusy);
 			for (const row of rows) if (!sending(row)) await send(row.id);
 		}
-		async function setLogged(rowId: string, draft: PlanSet) {
+		async function setLogged(rowId: string, edited: PlanSet) {
 			if (blocked()) return false;
 			const stored = findRow(plan(), rowId);
 			if (!stored?.setId) return false;
+			const draft = withStoredNote(edited, stored);
+			const notes = noteOf(draft);
 			const { weight } = payloadFor(draft, stored.setNumber ?? 0);
 			const sameLoad = Math.abs(draft.kg - stored.kg) < 0.01;
 			const facts = getFacts(draft.exerciseId);
 			const next: PlanSet = {
 				...draft,
+				notesEdited: undefined,
 				done: true,
 				setId: stored.setId,
 				setNumber: stored.setNumber,
@@ -418,6 +423,8 @@ export function useSessionActions(workspace: SessionWorkspace) {
 						weight,
 						unit: draft.unit,
 						rpe: draft.rpe,
+						// Left out when unchanged, which keeps the stored note.
+						...(notes === noteOf(stored) ? {} : { notes }),
 						setType: draft.kind,
 					});
 					set(updateRow(plan(), rowId, next));

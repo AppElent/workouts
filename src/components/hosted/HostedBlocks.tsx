@@ -13,15 +13,17 @@ import {
 	type HostedWodBlock,
 	movementKey,
 } from "#/components/hosted/wodBlock";
+import { useMessages } from "#/lib/i18n";
 
 type StrengthBlock =
 	Doc<"hostedWorkouts">["template"]["strengthBlocks"][number];
 
 export function HostedStrengthBlocks({ blocks }: { blocks: StrengthBlock[] }) {
+	const t = useMessages().hosted.blocks;
 	if (blocks.length === 0) return null;
 	return (
 		<section className="rounded-lg border border-border bg-surface p-4">
-			<h2 className="text-sm font-semibold text-text">Strength</h2>
+			<h2 className="text-sm font-semibold text-text">{t.strength}</h2>
 			<div className="mt-3 grid gap-3 sm:grid-cols-2">
 				{blocks.map((block) => (
 					<div
@@ -57,7 +59,10 @@ export function HostedWodBlockCard<RowId extends string>({
 	rows: LeaderboardRow<RowId>[];
 	onRemove?: (id: RowId) => void;
 }) {
-	const timing = formatWodTiming(block);
+	const messages = useMessages();
+	const t = messages.hosted.blocks;
+	const wodTypes = messages.wods.type;
+	const timing = formatWodTiming(block, t);
 	return (
 		<section className="rounded-lg border border-border bg-surface p-4">
 			<div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
@@ -71,7 +76,9 @@ export function HostedWodBlockCard<RowId extends string>({
 						<p className="mt-1 text-sm text-text-muted">{block.description}</p>
 					)}
 				</div>
-				<span className="text-xs uppercase text-text-muted">{block.type}</span>
+				<span className="text-xs uppercase text-text-muted">
+					{wodTypes[block.type]}
+				</span>
 			</div>
 			<div className="mt-3 grid gap-2 sm:grid-cols-2">
 				{block.levels.map((level) => (
@@ -84,7 +91,7 @@ export function HostedWodBlockCard<RowId extends string>({
 						</p>
 						<ul className="mt-1 space-y-0.5">
 							{level.movements.length === 0 && (
-								<li className="text-xs text-text-muted">No movements</li>
+								<li className="text-xs text-text-muted">{t.noMovements}</li>
 							)}
 							{level.movements.map((movement) => (
 								<li
@@ -112,6 +119,7 @@ function Leaderboard<RowId extends string>({
 	rows: LeaderboardRow<RowId>[];
 	onRemove?: (id: RowId) => void;
 }) {
+	const t = useMessages().hosted.blocks;
 	const sortedRows = sortLeaderboard(block.type, rows);
 	const columns = onRemove
 		? "grid-cols-[44px_1fr_76px_92px_44px]"
@@ -122,14 +130,14 @@ function Leaderboard<RowId extends string>({
 			<div
 				className={`grid ${columns} gap-2 border-b border-border px-3 py-2 text-xs font-semibold uppercase text-text-muted`}
 			>
-				<span>#</span>
-				<span>Athlete</span>
-				<span>Level</span>
-				<span>Score</span>
+				<span>{t.rank}</span>
+				<span>{t.athlete}</span>
+				<span>{t.level}</span>
+				<span>{t.score}</span>
 				{onRemove && <span />}
 			</div>
 			{sortedRows.length === 0 && (
-				<p className="px-3 py-4 text-sm text-text-muted">No scores yet.</p>
+				<p className="px-3 py-4 text-sm text-text-muted">{t.noScores}</p>
 			)}
 			{sortedRows.map((row, index) => (
 				<div
@@ -147,7 +155,7 @@ function Leaderboard<RowId extends string>({
 					{onRemove && (
 						<button
 							type="button"
-							aria-label="Remove score"
+							aria-label={t.removeScore}
 							onClick={() => onRemove(row.id)}
 							className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-text-muted hover:text-danger"
 						>

@@ -1,5 +1,5 @@
 {
-	"$schema": "https://biomejs.dev/schemas/2.6.4/schema.json",
+	"$schema": "https://biomejs.dev/schemas/2.6.7/schema.json",
 	"vcs": {
 		"enabled": true,
 		"clientKind": "git",
@@ -16,6 +16,7 @@
 			"!scripts/check-project.mjs",
 			"!scripts/env.mjs",
 			"!scripts/run-mobile.mjs",
+			"!scripts/store-screenshots.mjs",
 			"!scripts/sync-devtools.mjs",
 			"!scripts/workspace.mjs",
 			"!scripts/lib/baseline.mjs",
@@ -36,6 +37,8 @@
 			"!**/src/routeTree.gen.ts",
 			"!designs",
 			"!apps/mobile/expo-env.d.ts",
+			"!apps/mobile/src/observability/ota-label.js",
+			"!apps/mobile/scripts/ota-label.mjs",
 			"!apps/mobile/ios",
 			"!apps/mobile/android",
 			"!**/src/styles.css",

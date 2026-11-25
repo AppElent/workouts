@@ -6,6 +6,7 @@ import {
 } from "@foundry/core";
 import { useState } from "react";
 import { Stepper } from "#/components/ui/Stepper";
+import { useMessages } from "#/lib/i18n";
 
 type Draft = {
 	minutes: number;
@@ -50,12 +51,13 @@ export function WodScoreFields({
 	draft: Draft;
 	onChange: (patch: Partial<Draft>) => void;
 }) {
+	const t = useMessages().wods.score;
 	const reps = (
 		<Stepper
 			value={draft.reps}
 			onChange={(value) => onChange({ reps: value })}
 			min={0}
-			label="Reps"
+			label={t.reps}
 		/>
 	);
 	switch (type) {
@@ -70,26 +72,26 @@ export function WodScoreFields({
 								onChange({ timeCapped: event.target.checked })
 							}
 						/>
-						Hit the time cap (didn't finish)
+						{t.timeCapped}
 					</label>
 					{draft.timeCapped ? (
 						reps
 					) : (
-						<div className="grid grid-cols-2 gap-2">
+						<div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
 							<Stepper
 								value={draft.minutes}
 								onChange={(value) => onChange({ minutes: value })}
 								min={0}
-								unit="min"
-								label="Min"
+								unit={t.minutesUnit}
+								label={t.minutes}
 							/>
 							<Stepper
 								value={draft.seconds}
 								onChange={(value) => onChange({ seconds: value })}
 								min={0}
 								max={59}
-								unit="sec"
-								label="Sec"
+								unit={t.secondsUnit}
+								label={t.seconds}
 							/>
 						</div>
 					)}
@@ -97,12 +99,12 @@ export function WodScoreFields({
 			);
 		case "amrap":
 			return (
-				<div className="grid grid-cols-2 gap-2">
+				<div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
 					<Stepper
 						value={draft.rounds}
 						onChange={(value) => onChange({ rounds: value })}
 						min={0}
-						label="Rounds"
+						label={t.rounds}
 					/>
 					{reps}
 				</div>
@@ -111,21 +113,21 @@ export function WodScoreFields({
 			return reps;
 		case "load":
 			return (
-				<div className="grid grid-cols-[1fr_84px] gap-2">
+				<div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_84px]">
 					<Stepper
 						value={draft.load}
 						onChange={(value) => onChange({ load: value })}
 						min={0}
 						step={2.5}
-						label="Load"
+						label={t.load}
 					/>
 					<select
 						value={draft.loadUnit}
 						onChange={(event) =>
 							onChange({ loadUnit: event.target.value as LoadUnit })
 						}
-						aria-label="Load unit"
-						className="h-full rounded-lg border border-border bg-surface-2 px-2 text-sm text-text"
+						aria-label={t.loadUnit}
+						className="h-11 rounded-lg border border-border bg-surface-2 px-2 text-sm text-text sm:h-full"
 					>
 						{LOAD_UNITS.map((unit) => (
 							<option key={unit} value={unit}>
