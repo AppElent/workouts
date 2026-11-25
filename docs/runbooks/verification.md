@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when running checks, dev servers, or test login for Foundry.
-version: 2.4.0
+version: 2.4.1
 ---
 
 # Verify Foundry
@@ -23,7 +23,7 @@ pnpm env:check                                # env manifest and .env.example
 node scripts/check-project.mjs --strict       # package, CI and Wrangler metadata
 pnpm --filter @foundry/core check:foods       # committed shipped-food files are current
 # verify:types
-pnpm typecheck                                # everything outside apps/ and packages/
+pnpm typecheck                                # everything outside apps/ and packages/; Convex also with its own tsconfig
 pnpm --filter @foundry/core typecheck         # core's scripts and tests, which its build skips
 pnpm --filter @foundry/mobile typecheck
 # verify:tests

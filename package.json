@@ -16,7 +16,7 @@
     "preview": "pnpm build:development && wrangler dev",
     "test": "pnpm build:packages && vitest run",
     "build:packages": "pnpm --filter @foundry/core build",
-    "typecheck": "pnpm build:packages && tsc --noEmit",
+    "typecheck": "pnpm build:packages && tsc --noEmit && tsc --noEmit -p convex/tsconfig.json",
     "format": "biome format",
     "lint": "biome lint",
     "lint:fix": "biome check --write",
