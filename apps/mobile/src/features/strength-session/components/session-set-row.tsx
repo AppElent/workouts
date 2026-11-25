@@ -8,6 +8,7 @@ import {
 	radius,
 	spacing,
 	type Tokens,
+	type as typeRamp,
 	useThemedStyles,
 	useTokens,
 } from "../../../theme";
@@ -392,7 +393,11 @@ export function SessionSetRow({
 							</View>
 						) : isNext ? (
 							<View style={styles.nowPill}>
-								<AppText variant="eyebrow" style={{ color: colors.onAccent }}>
+								<AppText
+									variant="eyebrow"
+									numberOfLines={1}
+									style={[styles.nowText, { color: colors.onAccent }]}
+								>
 									{copy.now.nowBadge}
 								</AppText>
 							</View>
@@ -499,12 +504,14 @@ const createStyles = (colors: Tokens) =>
 		mark: { width: 30, fontWeight: "700", fontVariant: ["tabular-nums"] },
 		load: { flex: 1, minWidth: 0, fontVariant: ["tabular-nums"] },
 		meta: { textAlign: "right", fontVariant: ["tabular-nums"] },
+		// Fits the "Now" pill, so the percentages above and below stay aligned;
+		// it grows with larger text. The load and percentage give way to it.
 		stateHit: {
-			width: 52,
+			minWidth: 66,
 			minHeight: 44,
 			alignItems: "flex-end",
 			justifyContent: "center",
-			paddingRight: spacing.sm,
+			paddingHorizontal: spacing.sm,
 		},
 		doneBadge: {
 			width: 28,
@@ -522,13 +529,15 @@ const createStyles = (colors: Tokens) =>
 			borderColor: colors.borderStrong,
 		},
 		nowPill: {
-			height: 24,
+			minHeight: 24,
 			paddingHorizontal: spacing.sm,
 			borderRadius: 12,
 			alignItems: "center",
 			justifyContent: "center",
 			backgroundColor: colors.accentFill,
 		},
+		// Letter spacing also trails the last letter; this keeps the word centred.
+		nowText: { marginRight: -typeRamp.eyebrow.letterSpacing },
 		groupRow: {
 			flexDirection: "row",
 			alignItems: "center",
