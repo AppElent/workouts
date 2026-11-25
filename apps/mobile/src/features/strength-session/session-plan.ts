@@ -202,13 +202,16 @@ export function stepLoad(
 	const kg = round2(row.kg + facts.stepKg * direction);
 	return { ...row, kg: Math.max(floor, kg), typedLbs: undefined };
 }
-/** A unit switch only changes how a set reads. Its load stays what it was. */
+/**
+ * A unit switch only changes how a set reads. Its load stays what it was.
+ * Added load is in kg, so a set already in lbs can only go back.
+ */
 export function switchUnit(
 	row: PlanSet,
 	unit: LoadUnit,
 	facts: ExerciseFacts,
 ): PlanSet {
-	if (row.unit === unit || facts.bodyweight) return row;
+	if (row.unit === unit || (facts.bodyweight && unit === "lbs")) return row;
 	if (unit === "kg" && row.lbStep && !row.done)
 		return {
 			...row,
