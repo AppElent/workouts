@@ -69,29 +69,37 @@ function CoachTabs() {
 						<ActiveSessionBar />
 					</NativeTabs.BottomAccessory>
 				) : null}
-				<NativeTabs.Trigger name="(home)">
+				{/* Explicit accessibility labels: when a language switch changes a
+				    tab's title, UIKit redraws it but keeps reading out the old one. */}
+				<NativeTabs.Trigger name="(home)" accessibilityLabel={t.tabs.home}>
 					<NativeTabs.Trigger.Label>{t.tabs.home}</NativeTabs.Trigger.Label>
 					<NativeTabs.Trigger.Icon sf="house.fill" md="home" />
 				</NativeTabs.Trigger>
 
-				<NativeTabs.Trigger name="train">
+				<NativeTabs.Trigger name="train" accessibilityLabel={t.tabs.train}>
 					<NativeTabs.Trigger.Label>{t.tabs.train}</NativeTabs.Trigger.Label>
 					<NativeTabs.Trigger.Icon sf="play.fill" md="play_arrow" />
 				</NativeTabs.Trigger>
 
-				<NativeTabs.Trigger name="nutrition">
+				<NativeTabs.Trigger
+					name="nutrition"
+					accessibilityLabel={t.tabs.nutrition}
+				>
 					<NativeTabs.Trigger.Label>
 						{t.tabs.nutrition}
 					</NativeTabs.Trigger.Label>
 					<NativeTabs.Trigger.Icon sf="fork.knife" md="restaurant" />
 				</NativeTabs.Trigger>
 
-				<NativeTabs.Trigger name="progress">
+				<NativeTabs.Trigger
+					name="progress"
+					accessibilityLabel={t.tabs.progress}
+				>
 					<NativeTabs.Trigger.Label>{t.tabs.progress}</NativeTabs.Trigger.Label>
 					<NativeTabs.Trigger.Icon sf="chart.bar.fill" md="bar_chart" />
 				</NativeTabs.Trigger>
 
-				<NativeTabs.Trigger name="profile">
+				<NativeTabs.Trigger name="profile" accessibilityLabel={t.tabs.profile}>
 					<NativeTabs.Trigger.Label>{t.tabs.profile}</NativeTabs.Trigger.Label>
 					<NativeTabs.Trigger.Icon sf="person.fill" md="person" />
 				</NativeTabs.Trigger>
