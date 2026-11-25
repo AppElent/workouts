@@ -40,7 +40,6 @@ export function useTrainExercise() {
 	async function train(exercise: { _id: string; name: string }) {
 		if (locked.current) return;
 		locked.current = true;
-		setPending(true);
 		try {
 			if (active instanceof Error || active === undefined) {
 				toast.error(copy.unknownActive);
@@ -63,6 +62,8 @@ export function useTrainExercise() {
 					});
 					if (!add) return;
 					try {
+						// Busy only while writing, not while the prompt is open.
+						setPending(true);
 						await addExercise({
 							sessionId: active._id,
 							exerciseId: exercise._id,
@@ -79,6 +80,7 @@ export function useTrainExercise() {
 				toast.error(copy.onlineRequired);
 				return;
 			}
+			setPending(true);
 			const id = await create({
 				exerciseId: exercise._id,
 				name: exercise.name,
