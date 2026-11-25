@@ -40,6 +40,7 @@ import {
 	useTokens,
 } from "../../../theme";
 import { BackLink } from "../../../ui/back-link";
+import { PrimaryButton } from "../../../ui/button";
 import { TrendChart } from "../../../ui/chart";
 import { Card, Eyebrow, StatBox } from "../../../ui/coach";
 import { useConfirm } from "../../../ui/confirm-dialog";
@@ -59,6 +60,7 @@ import {
 	strengthLevels,
 } from "../../strength-session/strength-levels";
 import { spokenSet } from "../set-speech";
+import { useTrainExercise } from "../use-train-exercise";
 import { dailyBest, dayOf, exerciseInsight } from "./exercise-insight";
 import { MuscleIcon } from "./muscle-icon";
 
@@ -92,6 +94,7 @@ export function ExerciseDetailScreen() {
 	const [tab, setTab] = useState<Tab>("Overview");
 
 	const exercise = useExercise(exerciseId);
+	const trainNow = useTrainExercise();
 	const deleteExercise = async () => {
 		if (!exercise || exercise.isDefault || deleting) return;
 		if (
@@ -264,6 +267,16 @@ export function ExerciseDetailScreen() {
 				</View>
 			</View>
 
+			{/* Inside a session the sheet already belongs to one (APP-871). */}
+			{params.from === "session" ? null : (
+				<PrimaryButton
+					label={t.exercises.trainNow}
+					accessibilityHint={t.exercises.trainNowSpoken}
+					loading={trainNow.pending}
+					onPress={() => void trainNow.train(exercise)}
+					testID="exercise-train-now"
+				/>
+			)}
 			<Segmented
 				value={tab}
 				onChange={setTab}
