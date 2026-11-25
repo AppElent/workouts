@@ -869,7 +869,9 @@ export function HistoryTab({
 							const kind =
 								row.setType === "working"
 									? row.rpe !== null
-										? `RPE ${formatKg(row.rpe, locale)}`
+										? fmt(t.strength.plan.editor.rpeValue, {
+												value: formatKg(row.rpe, locale),
+											})
 										: ""
 									: t.strength[row.setType as "warmup" | "drop" | "failure"];
 							const estimate =

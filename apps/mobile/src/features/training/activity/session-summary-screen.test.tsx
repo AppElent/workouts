@@ -113,6 +113,7 @@ describe.each([
 		warmup: "set 3, 20 kilograms, 1 rep, Warm-up",
 		pounds: "set 4, 135 pounds, 5 reps",
 		bodyweight: "set 1, 8 reps",
+		withRpe: "set 1, 80 kilograms, 8 reps, RPE 8.5, note: narrow grip",
 	},
 	{
 		locale: "nl",
@@ -121,6 +122,7 @@ describe.each([
 		warmup: "set 3, 20 kilo, 1 herhaling, Warming-up",
 		pounds: "set 4, 135 pond, 5 herhalingen",
 		bodyweight: "set 1, 8 herhalingen",
+		withRpe: "set 1, 80 kilo, 8 herhalingen, RPE 8,5, notitie: narrow grip",
 	},
 ])("a summary set spoken in $locale", (expected) => {
 	beforeEach(() => writeLocal(PREFERENCE_KEYS.locale, expected.locale));
@@ -138,6 +140,12 @@ describe.each([
 		expect(screen.getByLabelText(expected.warmup)).toBeTruthy();
 		expect(screen.getByLabelText(expected.pounds)).toBeTruthy();
 		expect(screen.getAllByLabelText(/^set \d/)).toHaveLength(4);
+	});
+
+	it("speaks a set's RPE before its note", async () => {
+		mockSets.mockReturnValue([{ ...set("a", 1, "narrow grip"), rpe: 8.5 }]);
+		await renderScreen(<SessionSummaryScreen />);
+		expect(screen.getByLabelText(expected.withRpe)).toBeTruthy();
 	});
 
 	it("says a bodyweight set without a load", async () => {
