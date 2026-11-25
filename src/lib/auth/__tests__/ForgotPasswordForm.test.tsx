@@ -23,7 +23,11 @@ const signIn = {
 	finalize,
 	reset: vi.fn(async () => ({ error: null })),
 };
-vi.mock("@clerk/react", () => ({ useSignIn: () => ({ signIn }) }));
+const auth = { isLoaded: true };
+vi.mock("@clerk/react", () => ({
+	useSignIn: () => ({ signIn }),
+	useAuth: () => auth,
+}));
 
 function ok(update: Partial<typeof signIn> = {}) {
 	return async () => {
@@ -67,6 +71,19 @@ describe("ForgotPasswordForm", () => {
 		}
 		signIn.status = "needs_identifier";
 		signIn.supportedSecondFactors = [];
+		auth.isLoaded = true;
+	});
+
+	it("sends nothing until Clerk has loaded", () => {
+		auth.isLoaded = false;
+		renderForm();
+		fireEvent.change(screen.getByLabelText("Email"), {
+			target: { value: "a@b.com" },
+		});
+		const submit = screen.getByRole("button", { name: "Please wait…" });
+		expect((submit as HTMLButtonElement).disabled).toBe(true);
+		fireEvent.submit(submit);
+		expect(create).not.toHaveBeenCalled();
 	});
 
 	it("requests a reset code then sets a new password", async () => {

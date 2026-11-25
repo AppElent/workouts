@@ -303,6 +303,7 @@ describe("/sign-in resuming a social sign-in", () => {
 		expect(screen.getByText("Verify it's you")).toBeDefined();
 		await click("Back to sign in");
 		expectPlainForm();
+		expect(document.activeElement).toBe(screen.getByLabelText("Email"));
 		expect(navigate).not.toHaveBeenCalled();
 	});
 

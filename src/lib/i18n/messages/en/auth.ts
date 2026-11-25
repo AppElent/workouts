@@ -94,6 +94,8 @@ export const auth = {
 		codeMissing: "Enter the code first.",
 		methodLocked:
 			"Too many wrong codes for this method. Use another method, or go back and sign in again.",
+		/** The same, when the account has no other method. */
+		methodLockedOnly: "Too many wrong codes. Go back and sign in again.",
 		attemptEnded:
 			"This sign-in took too long and can't continue. Go back and sign in again.",
 		notFinished: "This sign-in couldn't finish. Go back and sign in again.",

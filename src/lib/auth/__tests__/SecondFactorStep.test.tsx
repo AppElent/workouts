@@ -516,6 +516,13 @@ describe("SecondFactorStep", () => {
 		await screen.findByRole("button", { name: "Verify" });
 		enter("Code", "000000");
 		expect(
+			await screen.findByText(
+				"Too many wrong codes. Choose “Send a new code” below.",
+			),
+		).toBeDefined();
+		expect(screen.queryByRole("alert")).toBeNull();
+		enter("Code", "000000");
+		expect(
 			await screen.findByText("Too many wrong codes. Request a new one."),
 		).toBeDefined();
 		fireEvent.click(screen.getByRole("button", { name: "Send a new code" }));
@@ -538,6 +545,84 @@ describe("SecondFactorStep", () => {
 		expect(
 			screen.getByRole("button", { name: "Use a backup code" }),
 		).toBeDefined();
+	});
+
+	it("keeps each method locked on this page locked", async () => {
+		signIn.supportedSecondFactors = ALL;
+		mfa.verifyTOTP.mockImplementation(clerkError("verification_failed"));
+		mfa.verifyBackupCode.mockImplementation(clerkError("verification_failed"));
+		renderStep();
+		enter("Code", "000000");
+		const locked =
+			"Too many wrong codes for this method. Use another method, or go back and sign in again.";
+		await screen.findByText(locked);
+		fireEvent.click(screen.getByRole("button", { name: "Use a backup code" }));
+		await screen.findByText("Enter one of the backup codes you saved.");
+		enter("Backup code", "0000");
+		await screen.findByText(locked);
+		fireEvent.click(
+			screen.getByRole("button", { name: "Use your authenticator app" }),
+		);
+		await screen.findByLabelText("Code");
+		expect(screen.getByText(locked)).toBeDefined();
+	});
+
+	it.each([
+		["en", "Too many wrong codes. Go back and sign in again."],
+		["nl", "Te veel foute codes. Ga terug en log opnieuw in."],
+	] as const)(
+		"offers a locked authenticator app only the way back when it is the only method (%s)",
+		async (locale, message) => {
+			signIn.supportedSecondFactors = [{ strategy: "totp" }];
+			mfa.verifyTOTP.mockImplementation(clerkError("verification_failed"));
+			renderStep({}, locale);
+			const submit = () =>
+				fireEvent.submit(
+					screen.getByLabelText("Code").closest("form") as HTMLFormElement,
+				);
+			fireEvent.change(screen.getByLabelText("Code"), {
+				target: { value: "000000" },
+			});
+			submit();
+			await screen.findByText(message);
+			submit();
+			expect((await screen.findByRole("alert")).textContent).toBe(message);
+		},
+	);
+
+	it("says the code expired when Clerk refuses it as expired", async () => {
+		signIn.supportedSecondFactors = [{ strategy: "email_code" }];
+		mfa.verifyEmailCode.mockImplementation(clerkError("verification_expired"));
+		renderStep();
+		await vi.waitFor(() => expect(mfa.sendEmailCode).toHaveBeenCalledTimes(1));
+		await screen.findByRole("button", { name: "Verify" });
+		enter("Code", "000000");
+		expect(
+			await screen.findByText(
+				"The code we sent to your email has expired. Choose “Send a new code” below.",
+			),
+		).toBeDefined();
+		expect(screen.getByRole("alert").textContent).toBe(
+			"That code has expired. Request a new one.",
+		);
+	});
+
+	it("announces a prompt that changes in place, not one a switch brings", async () => {
+		signIn.supportedSecondFactors = ALL;
+		mfa.verifyTOTP.mockImplementation(clerkError("verification_failed"));
+		renderStep();
+		const prompt = screen.getByText(
+			"Enter the 6-digit code from your authenticator app.",
+		);
+		expect(prompt.getAttribute("aria-live")).toBe("polite");
+		enter("Code", "000000");
+		await vi.waitFor(() => expect(prompt.textContent).toMatch(/^Too many/));
+		fireEvent.click(screen.getByRole("button", { name: "Use a backup code" }));
+		// A new element: a live region is silent about what it is added with.
+		expect(
+			await screen.findByText("Enter one of the backup codes you saved."),
+		).not.toBe(prompt);
+		expect(prompt.isConnected).toBe(false);
 	});
 
 	it("shows a wrong code and lets the person try again", async () => {

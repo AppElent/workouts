@@ -1,4 +1,4 @@
-import { useSignIn } from "@clerk/react";
+import { useAuth, useSignIn } from "@clerk/react";
 import { isTestLoginAvailable } from "@foundry/core";
 import { useState } from "react";
 import { useMessages } from "#/lib/i18n";
@@ -8,6 +8,7 @@ import { orThrow, useClerkErrorMessage } from "./clerkError";
 
 export function TestLoginButton({ onSuccess }: { onSuccess?: () => void }) {
 	const { signIn } = useSignIn();
+	const { isLoaded } = useAuth();
 	const { auth } = useMessages();
 	const errorMessage = useClerkErrorMessage();
 	const [error, setError] = useState<string | null>(null);
@@ -27,6 +28,8 @@ export function TestLoginButton({ onSuccess }: { onSuccess?: () => void }) {
 		return null;
 
 	const loginTestUser = async () => {
+		// Clerk queues calls made before it loads; nothing may go out then.
+		if (!isLoaded) return;
 		setError(null);
 		setLoading(true);
 		try {
@@ -55,6 +58,7 @@ export function TestLoginButton({ onSuccess }: { onSuccess?: () => void }) {
 				type="button"
 				variant="ghost"
 				loading={loading}
+				disabled={!isLoaded}
 				onClick={loginTestUser}
 			>
 				{auth.testLogin.button}
