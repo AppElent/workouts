@@ -742,6 +742,7 @@ export function SetEditorScreen() {
 			});
 	};
 	const otherUnit = row.unit === "kg" ? "lbs" : "kg";
+	const canSwitchUnit = !bodyweight || row.unit === "lbs";
 	const menuGroups = [
 		{
 			title: text.viewTitle,
@@ -752,7 +753,7 @@ export function SetEditorScreen() {
 		},
 		{
 			options: [
-				...(bodyweight
+				...(!canSwitchUnit
 					? []
 					: [{ id: "unit", label: fmt(text.unitMenu, { unit: row.unit }) }]),
 				...(group
@@ -889,7 +890,7 @@ export function SetEditorScreen() {
 									{text.viewAdvanced}
 								</Stack.Toolbar.MenuAction>
 							</Stack.Toolbar.Menu>
-							{bodyweight ? null : (
+							{!canSwitchUnit ? null : (
 								<Stack.Toolbar.MenuAction
 									disabled={locked}
 									onPress={() => void onMenu("unit")}
@@ -937,9 +938,9 @@ export function SetEditorScreen() {
 					>
 						<View style={styles.values}>
 							<ValueCard
-								label={
-									bodyweight ? text.added : fmt(text.weight, { unit: row.unit })
-								}
+								label={fmt(bodyweight ? text.added : text.weight, {
+									unit: row.unit,
+								})}
 								value={loadShown}
 								decimal
 								size={valueSize}
