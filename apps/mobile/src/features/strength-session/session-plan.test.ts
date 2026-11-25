@@ -898,6 +898,16 @@ describe("typo guards", () => {
 			typoCheck(plan, { ...row, kg: 200, reps: 60 }, PLANK, row)?.code,
 		).toBe("addedHigh");
 	});
+	it("asks about an implausibly long hold", () => {
+		expect(
+			typoCheck(plan, { ...row, kg: 0, reps: 600 }, PLANK, row),
+		).toBeNull();
+		expect(typoCheck(plan, { ...row, kg: 0, reps: 601 }, PLANK, row)).toEqual({
+			kind: "reps",
+			code: "holdLong",
+			values: { reps: 601 },
+		});
+	});
 	it("asks about implausible load", () => {
 		expect(typoCheck(plan, { ...row, kg: 200 }, SQUAT, row)?.kind).toBe("kg");
 		expect(typoCheck(plan, { ...row, kg: 30 }, SQUAT, row)?.code).toBe(

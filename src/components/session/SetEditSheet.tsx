@@ -1,6 +1,7 @@
 import { api } from "@convex/_generated/api";
 import type { Doc } from "@convex/_generated/dataModel";
 import {
+	countStep,
 	isTimedExercise,
 	SET_LIMITS,
 	SET_TYPES,
@@ -313,7 +314,7 @@ export function SetEditSheet({
 				</div>
 				<BigStepper
 					value={draft.reps}
-					step={timed ? 5 : SET_LIMITS.reps.step}
+					step={countStep(set.exerciseId)}
 					min={SET_LIMITS.reps.min}
 					max={SET_LIMITS.reps.max}
 					quickJumps={repsJumps}

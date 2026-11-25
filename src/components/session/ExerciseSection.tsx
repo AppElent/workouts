@@ -2,6 +2,7 @@ import { api } from "@convex/_generated/api";
 import type { Doc, Id } from "@convex/_generated/dataModel";
 import {
 	convertLoad,
+	countStep,
 	getWeightStep,
 	isLoadedEquipment,
 	isTimedExercise,
@@ -9,6 +10,7 @@ import {
 	SET_LIMITS,
 	SET_TYPES,
 	type SetType,
+	TIMED_DEFAULT_SECONDS,
 	validateSetInput,
 } from "@foundry/core";
 import type { Exercise, ExerciseId } from "@foundry/core/exercises";
@@ -73,7 +75,7 @@ export function ExerciseSection({
 	/** A hold: the set's count is seconds, stepped in fives. */
 	const timed = isTimedExercise(exerciseId);
 	const countLabel = timed ? "Seconds" : "Reps";
-	const defaultCount = timed ? 30 : 8;
+	const defaultCount = timed ? TIMED_DEFAULT_SECONDS : 8;
 	const weightStep = getWeightStep(equipment, weightIncrement);
 
 	const handleEdit = (set: Doc<"sets">) =>
@@ -266,7 +268,7 @@ export function ExerciseSection({
 					<Stepper
 						value={reps}
 						onChange={setReps}
-						step={timed ? 5 : SET_LIMITS.reps.step}
+						step={countStep(exerciseId)}
 						min={SET_LIMITS.reps.min}
 						max={SET_LIMITS.reps.max}
 						label={countLabel}
