@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing Training, Start activity, Strength Sessions, the set editor, Set Drafts, or strength references.
-version: 2.1.3
+version: 2.2.0
 status: current
 ---
 
@@ -86,6 +86,21 @@ references. Studies: [training](../../designs/app/training_final.html),
   logged Sets but is not a completed Activity. Both clear drafts and wait for pending
   set writes.
 - Legacy history stays as recorded; never present prefilled targets as measured.
+
+### Train now
+
+- The phone's exercise page offers **Train now** under its header (not in the
+  session's exercise sheet), and the exercise library's row menu offers the
+  same action (APP-871).
+- With no active session it starts a Strength Session for that exercise in one
+  write (`workoutSessions.create` with `exerciseId`): named after the exercise,
+  its references snapshotted, and last time's working Sets of the exercise (the
+  latest session that logged one, in set order) as its Planned Sets. Without
+  history it starts as an ad hoc exercise. It then opens the session, so the
+  session, set editor, percentages, Krachtprofiel and recap are the ones above.
+- With a session active it offers to add the exercise there and opens it; an
+  exercise already in that session opens it without asking. Cancel writes
+  nothing. Offline or an unresolved active session refuses like any start.
 
 ### Connected-app setup
 

@@ -585,3 +585,66 @@ describe("strength sessions", () => {
 		});
 	});
 });
+
+describe("Train now: a session for one exercise", () => {
+	const athleteOf = () =>
+		convexTest(schema, modules).withIdentity({ subject: "alice" });
+
+	it("names the session after the exercise and starts with it, unplanned without history", async () => {
+		const athlete = athleteOf();
+		const id = await athlete.mutation(api.workoutSessions.create, {
+			exerciseId,
+		});
+		const session = await athlete.query(api.workoutSessions.getById, { id });
+		expect(session?.status).toBe("active");
+		expect(session?.name).toBe("Barbell Bench Press");
+		expect(session?.exercises).toEqual([
+			expect.objectContaining({ exerciseId, plannedSets: [] }),
+		]);
+	});
+
+	it("keeps a given name and plans last time's working sets in order", async () => {
+		const athlete = athleteOf();
+		const earlier = await athlete.mutation(api.workoutSessions.create, {});
+		for (const [setNumber, reps, weight, setType] of [
+			[1, 10, 40, "warmup"],
+			[3, 3, 90, "working"],
+			[2, 5, 80, "working"],
+		] as const)
+			await logSet(athlete, {
+				sessionId: earlier,
+				exerciseId,
+				setNumber,
+				reps,
+				weight,
+				unit: "kg",
+				setType,
+			});
+		await athlete.mutation(api.workoutSessions.finish, { id: earlier });
+
+		const id = await athlete.mutation(api.workoutSessions.create, {
+			exerciseId,
+			name: "Bankdrukken",
+		});
+		const session = await athlete.query(api.workoutSessions.getById, { id });
+		expect(session?.name).toBe("Bankdrukken");
+		expect(session?.exercises?.[0]?.plannedSets).toEqual([
+			{ reps: 5, weight: 80, unit: "kg" },
+			{ reps: 3, weight: 90, unit: "kg" },
+		]);
+		expect(session?.exercises?.[0]?.references).toBeDefined();
+	});
+
+	it("refuses while another session is active, and an unknown exercise", async () => {
+		const athlete = athleteOf();
+		await expect(
+			athlete.mutation(api.workoutSessions.create, {
+				exerciseId: "shipped:exercise:nope",
+			}),
+		).rejects.toMatchObject({ data: { code: "notFound" } });
+		await athlete.mutation(api.workoutSessions.create, {});
+		await expect(
+			athlete.mutation(api.workoutSessions.create, { exerciseId }),
+		).rejects.toMatchObject({ data: { code: "activeSessionExists" } });
+	});
+});

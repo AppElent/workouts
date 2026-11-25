@@ -287,3 +287,61 @@ export async function planSessionExercise(
 		},
 	};
 }
+
+/**
+ * The working Sets of the most recent session that logged this exercise, as
+ * Planned Sets, in set order. Empty when the exercise has none yet.
+ */
+export async function lastWorkingSetsAsPlan(
+	ctx: QueryCtx | MutationCtx,
+	userId: string,
+	exerciseId: string,
+) {
+	const recent = await ctx.db
+		.query("sets")
+		.withIndex("by_user_exercise_logged_at", (q) =>
+			q.eq("userId", userId).eq("exerciseId", exerciseId),
+		)
+		.order("desc")
+		.take(100);
+	const latest = recent.find((set) => set.setType === "working");
+	if (!latest) return [];
+	const sessionSets = await ctx.db
+		.query("sets")
+		.withIndex("by_session", (q) => q.eq("sessionId", latest.sessionId))
+		.collect();
+	return sessionSets
+		.filter((set) => set.exerciseId === exerciseId && set.setType === "working")
+		.sort((a, b) => a.setNumber - b.setNumber || a.loggedAt - b.loggedAt)
+		.slice(0, SET_LIMITS.plannedSets.max)
+		.map(({ reps, weight, unit }) => ({ reps, weight, unit }));
+}
+
+/**
+ * Starts a session for one exercise: named after it unless a name is given,
+ * with its references snapshotted and last time's working Sets as its plan.
+ */
+export async function startExerciseSession(
+	ctx: MutationCtx,
+	userId: string,
+	id: string,
+	name?: string,
+) {
+	const exercise = await resolveExercise(ctx, id, userId);
+	if (!exercise) throw appError("notFound", "exerciseId");
+	const exerciseId = exercise._id;
+	const sessionId = await startSession(ctx, userId, {
+		name: name ?? exercise.name,
+		prescriptions: [{ exerciseId, sets: 0, reps: 0, weight: 0, unit: "kg" }],
+	});
+	const plannedSets = await lastWorkingSetsAsPlan(ctx, userId, exerciseId);
+	if (plannedSets.length > 0) {
+		const session = await ctx.db.get(sessionId);
+		await ctx.db.patch(sessionId, {
+			exercises: (session?.exercises ?? []).map((entry) =>
+				entry.exerciseId === exerciseId ? { ...entry, plannedSets } : entry,
+			),
+		});
+	}
+	return sessionId;
+}
