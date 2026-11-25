@@ -126,7 +126,7 @@ export function ExerciseDetailScreen() {
 		exerciseId ? { exerciseId } : "skip",
 	);
 
-	const timed = isTimedExercise(exerciseId);
+	const timed = isTimedExercise(exercise);
 	const records = useMemo(
 		() =>
 			history?.length ? exerciseRecords(history, exercise, CURVE_REPS) : null,

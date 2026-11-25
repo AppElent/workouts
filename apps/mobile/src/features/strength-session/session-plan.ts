@@ -13,6 +13,7 @@ import {
 	type Equipment,
 	isReferenceEligible,
 	type LoadUnit,
+	type MeasuredExercise,
 	roundLoad,
 	type SetType,
 	sessionOneRepMax,
@@ -115,7 +116,8 @@ export interface SessionPlan {
 
 export interface ExerciseFacts {
 	/** Unknown while the catalog loads or after the exercise was deleted. */
-	exercise: { readonly equipment: Equipment } | null;
+	exercise: (MeasuredExercise & { readonly equipment: Equipment }) | null;
+	/** The load is added weight: bodyweight equipment, or a hold on any equipment. */
 	bodyweight: boolean;
 	/** A held time: the set's `reps` counts seconds (see `isTimedExercise`). */
 	timed: boolean;
@@ -2421,6 +2423,7 @@ export function recapOf(plan: SessionPlan, getFacts: PlanFacts) {
 			reps: row.reps,
 			setType: row.kind,
 		})),
+		(exerciseId) => getFacts(exerciseId).timed,
 	);
 	const names = [...new Set(rows.map((row) => row.exerciseId))];
 	const orderIndex = (id: string) => {

@@ -4,6 +4,8 @@ import { setCount, setReference } from "#/lib/load";
 
 interface Props {
 	set: Doc<"sets">;
+	/** A hold: the count is seconds. */
+	timed: boolean;
 	onEdit: (set: Doc<"sets">) => void;
 }
 
@@ -14,7 +16,7 @@ const TYPE_DOT_COLOR: Record<Doc<"sets">["setType"], string> = {
 	failure: "var(--danger)",
 };
 
-export function SetCard({ set, onEdit }: Props) {
+export function SetCard({ set, timed, onEdit }: Props) {
 	const orm = setReference(set);
 	const dotColor = TYPE_DOT_COLOR[set.setType];
 
@@ -46,7 +48,7 @@ export function SetCard({ set, onEdit }: Props) {
 						<span className="text-sm text-text-muted shrink-0">BW</span>
 					)}
 					<span className="text-sm text-text shrink-0 tabular-nums">
-						×{setCount(set)}
+						×{setCount(set, timed)}
 					</span>
 					{set.rpe !== undefined && (
 						<span className="text-xs text-text-muted shrink-0">

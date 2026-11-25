@@ -3,7 +3,7 @@
  * same name), so the recap can say how today compares (APP-255). Read-only,
  * from existing queries: no backend change.
  */
-import { isTimedExercise, toKg, workingVolume } from "@foundry/core";
+import { type TimedLookup, toKg, workingVolume } from "@foundry/core";
 import { api, type Doc, type Id } from "../../../convex/api";
 import { useQuery } from "../../../convex/query-cache";
 
@@ -31,6 +31,7 @@ type SetLike = {
 export function totalsOf(
 	sets: readonly SetLike[],
 	durationSeconds: number | null,
+	isTimed: TimedLookup,
 ): SessionTotals {
 	const working = sets.filter((set) => set.setType !== "warmup");
 	const top: SessionTotals["top"] = {};
@@ -41,8 +42,7 @@ export function totalsOf(
 		byExercise[set.exerciseId] = {
 			sets: sum.sets + 1,
 			volume:
-				sum.volume +
-				(isTimedExercise(set.exerciseId) ? 0 : Math.max(0, kg) * set.reps),
+				sum.volume + (isTimed(set.exerciseId) ? 0 : Math.max(0, kg) * set.reps),
 		};
 		const best = top[set.exerciseId];
 		if (!best || kg > best.kg || (kg === best.kg && set.reps > best.reps))
@@ -55,10 +55,11 @@ export function totalsOf(
 				...set,
 				setType: set.setType as Doc<"sets">["setType"],
 			})),
+			isTimed,
 		),
 		workingSets: working.length,
 		reps: working
-			.filter((set) => !isTimedExercise(set.exerciseId))
+			.filter((set) => !isTimed(set.exerciseId))
 			.reduce((sum, set) => sum + set.reps, 0),
 		top,
 		byExercise,
@@ -137,13 +138,9 @@ export function usePreviousSession(
 		previous ? { sessionId: previous._id as Id<"workoutSessions"> } : "skip",
 	);
 	if (!previous || !sets) return null;
-	const duration =
+	const durationSeconds =
 		previous.endTime !== undefined
 			? Math.round((previous.endTime - previous.startTime) / 1000)
 			: null;
-	return {
-		date: previous.startTime,
-		totals: totalsOf(sets, duration),
-		sets,
-	};
+	return { date: previous.startTime, durationSeconds, sets };
 }

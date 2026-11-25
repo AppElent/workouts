@@ -61,7 +61,11 @@ type NextSet = Pick<
 > & { exerciseId: string };
 
 /** The next open set of a plan, as the Live Activity and the header read it. */
-export function nextSetOf(plan: SessionPlan | null): NextSet | null {
+export function nextSetOf(
+	plan: SessionPlan | null,
+	/** Whether the next set's exercise is a hold. */
+	timed: boolean,
+): NextSet | null {
 	if (!plan) return null;
 	const row = nextOpenRow(plan);
 	if (!row) {
@@ -69,7 +73,7 @@ export function nextSetOf(plan: SessionPlan | null): NextSet | null {
 		const repeat = repeatSetOf(plan);
 		if (!repeat) return null;
 		return {
-			...loadOf(repeat.template),
+			...loadOf(repeat.template, timed),
 			setIndex: repeat.number,
 			setCount: repeat.number,
 		};
@@ -79,7 +83,7 @@ export function nextSetOf(plan: SessionPlan | null): NextSet | null {
 	);
 	const warmup = row.kind === "warmup";
 	return {
-		...loadOf(row),
+		...loadOf(row, timed),
 		setIndex: warmup
 			? null
 			: working.findIndex((item) => item.id === row.id) + 1,
@@ -87,8 +91,7 @@ export function nextSetOf(plan: SessionPlan | null): NextSet | null {
 	};
 }
 
-function loadOf(row: PlanSet) {
-	const timed = isTimedExercise(row.exerciseId);
+function loadOf(row: PlanSet, timed: boolean) {
 	return {
 		exerciseId: row.exerciseId,
 		kg: row.kg,
@@ -117,9 +120,12 @@ export function useSessionNow(): SessionNow | null {
 	const plan = useSyncExternalStore(subscribe, () =>
 		key ? workspaceStore.plan(key) : null,
 	);
-	const next = useMemo(() => nextSetOf(plan), [plan]);
+	const exerciseId = useMemo(() => nextSetOf(plan, false)?.exerciseId, [plan]);
 	// Only the current exercise: the whole catalog pages in otherwise.
-	const exerciseName = useExercise(next?.exerciseId)?.name ?? null;
+	const exercise = useExercise(exerciseId);
+	const exerciseName = exercise?.name ?? null;
+	const timed = isTimedExercise(exercise ?? { _id: exerciseId });
+	const next = useMemo(() => nextSetOf(plan, timed), [plan, timed]);
 	const sessionName = active?.name ?? null;
 	const startedAt = active?.startTime;
 	return useMemo(() => {

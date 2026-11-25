@@ -1,8 +1,4 @@
-import {
-	formatClock,
-	isTimedExercise,
-	primaryMuscleGroup,
-} from "@foundry/core";
+import { formatClock, primaryMuscleGroup } from "@foundry/core";
 import type { Exercise } from "@foundry/core/exercises";
 import { useRouter } from "expo-router";
 /**
@@ -125,6 +121,7 @@ function statDeltas(
 
 function exerciseDelta(
 	exerciseId: string,
+	timed: boolean,
 	today: SessionTotals,
 	before: SessionTotals | null,
 	copy: Copy,
@@ -136,7 +133,7 @@ function exerciseDelta(
 	if (!now) return null;
 	if (!was) return { text: copy.deltaNew, tone: "flat" };
 	// A timed set's reps are seconds; a "+n reps" chip would misread them.
-	if (isTimedExercise(exerciseId)) return null;
+	if (timed) return null;
 	const kg = Math.round((now.kg - was.kg) * 100) / 100;
 	if (kg > 0)
 		return {
@@ -203,6 +200,7 @@ export function SessionRecap({
 	const insets = useSafeAreaInsets();
 	const router = useRouter();
 	const compact = useWindowDimensions().height < COMPACT_HEIGHT;
+	const isTimed = (exerciseId: string) => getFacts(exerciseId).timed;
 	const previous = usePreviousSession(session);
 	const today = totalsOf(
 		allRows(plan)
@@ -215,8 +213,11 @@ export function SessionRecap({
 				setType: row.kind,
 			})),
 		elapsedSeconds,
+		isTimed,
 	);
-	const before = previous?.totals ?? null;
+	const before = previous
+		? totalsOf(previous.sets, previous.durationSeconds, isTimed)
+		: null;
 	const deltas = statDeltas(today, before, copy, locale);
 	const records = recap.heroes;
 	const scoreText = (rounds: number, sets: number) =>
@@ -385,6 +386,7 @@ export function SessionRecap({
 							const facts = getFacts(row.exerciseId);
 							const delta = exerciseDelta(
 								row.exerciseId,
+								facts.timed,
 								today,
 								before,
 								copy,

@@ -15,7 +15,7 @@ import { useSessionScreen } from "../session-screen-context";
 const MAX_SEGMENTS = 30;
 
 export function SessionProgress() {
-	const { plan } = useSessionScreen();
+	const { plan, workspace } = useSessionScreen();
 	const { locale, t } = useI18n();
 	const copy = t.strength.plan.now;
 	const styles = useThemedStyles(createStyles);
@@ -31,6 +31,7 @@ export function SessionProgress() {
 			reps: row.reps,
 			setType: row.kind,
 		})),
+		(exerciseId) => workspace.getFacts(exerciseId).timed,
 	);
 	const values = { done: done.length, total: rows.length };
 	const volumeText =

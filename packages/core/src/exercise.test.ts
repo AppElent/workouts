@@ -2,13 +2,16 @@ import { describe, expect, it } from "vitest";
 import {
 	countStep,
 	EQUIPMENT,
+	exerciseMeasure,
 	filterExercises,
 	isLoadedEquipment,
+	isLoadedExercise,
 	isTimedExercise,
 	primaryMuscleGroup,
 	TIMED_DEFAULT_SECONDS,
 	TIMED_LONG_HOLD_SECONDS,
 	TIMED_STEP_SECONDS,
+	timedLookup,
 	validateExerciseInput,
 } from "./exercise";
 import { SHIPPED_EXERCISES } from "./exercises";
@@ -150,9 +153,45 @@ describe("timed holds", () => {
 	});
 
 	it("steps seconds in fives and reps one at a time", () => {
-		expect(isTimedExercise("shipped:exercise:plank")).toBe(true);
-		expect(countStep("shipped:exercise:plank")).toBe(5);
-		expect(countStep("shipped:exercise:squat")).toBe(1);
-		expect(countStep(undefined)).toBe(1);
+		expect(countStep(true)).toBe(5);
+		expect(countStep(false)).toBe(1);
+	});
+
+	it("reads a Personal Exercise's measure, and reps when it has none", () => {
+		expect(isTimedExercise({ _id: "mine", measure: "seconds" })).toBe(true);
+		expect(isTimedExercise({ _id: "mine", measure: "reps" })).toBe(false);
+		expect(isTimedExercise({ _id: "mine" })).toBe(false);
+		expect(isTimedExercise(null)).toBe(false);
+		expect(exerciseMeasure({ _id: "shipped:exercise:plank" })).toBe("seconds");
+	});
+
+	it("looks holds up by id, shipped ones before the catalog loads", () => {
+		const isTimed = timedLookup([
+			{ _id: "hold", measure: "seconds" },
+			{ _id: "lift" },
+		]);
+		expect(["hold", "lift", "shipped:exercise:plank"].map(isTimed)).toEqual([
+			true,
+			false,
+			true,
+		]);
+		expect(timedLookup([])("shipped:exercise:plank")).toBe(true);
+	});
+
+	it("treats a hold's load as added weight on any equipment", () => {
+		expect(isLoadedExercise({ equipment: "barbell" })).toBe(true);
+		expect(isLoadedExercise({ equipment: "barbell", measure: "seconds" })).toBe(
+			false,
+		);
+	});
+
+	it("keeps an omitted measure omitted, so an older app never clears it", () => {
+		const result = validateExerciseInput({
+			name: "Side plank",
+			muscleGroups: ["core"],
+			category: "isolation",
+			equipment: "bodyweight",
+		});
+		expect(result.ok && "measure" in result.value).toBe(false);
 	});
 });

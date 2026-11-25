@@ -1,5 +1,6 @@
 import type { Doc } from "@convex/_generated/dataModel";
-import { isTimedExercise } from "@foundry/core";
+import { timedLookup } from "@foundry/core";
+import type { Exercise } from "@foundry/core/exercises";
 import { format } from "date-fns";
 
 /**
@@ -17,11 +18,13 @@ export function csvCell(value: unknown): string {
 
 export function setsToCsv(
 	tables: Record<string, unknown[]>,
-	exerciseName: Map<string, string>,
+	exercises: readonly Pick<Exercise, "_id" | "name" | "measure">[],
 ): string {
 	// personalPage rows are untyped (`v.any()`); these tables hold these documents.
 	const sets = (tables.sets ?? []) as Doc<"sets">[];
 	const sessions = (tables.workoutSessions ?? []) as Doc<"workoutSessions">[];
+	const exerciseName = new Map(exercises.map((e) => [e._id, e.name]));
+	const isTimed = timedLookup(exercises);
 	const sessionName = new Map(
 		sessions.map((s) => [
 			s._id as string,
@@ -44,7 +47,7 @@ export function setsToCsv(
 	const rows = [...sets]
 		.sort((a, b) => a.loggedAt - b.loggedAt)
 		.map((s) => {
-			const timed = isTimedExercise(s.exerciseId);
+			const timed = isTimed(s.exerciseId);
 			return [
 				format(new Date(s.loggedAt), "yyyy-MM-dd HH:mm"),
 				sessionName.get(s.sessionId) ?? "",

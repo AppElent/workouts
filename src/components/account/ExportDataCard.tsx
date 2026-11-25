@@ -53,10 +53,7 @@ export function ExportDataCard() {
 			} else {
 				download(
 					`foundry-sets-${stamp}.csv`,
-					setsToCsv(
-						tables,
-						new Map(exercises.map((e) => [e._id as string, e.name])),
-					),
+					setsToCsv(tables, exercises),
 					"text/csv;charset=utf-8",
 				);
 			}

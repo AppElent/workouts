@@ -7,7 +7,11 @@ import {
 } from "@foundry/core";
 import type { Doc } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
-import { exerciseOneRepMaxes, resolveExercise } from "./exerciseCatalog";
+import {
+	exerciseOneRepMaxes,
+	exerciseSets,
+	resolveExercise,
+} from "./exerciseCatalog";
 
 export async function snapshotStrengthReferences(
 	ctx: MutationCtx,
@@ -91,6 +95,17 @@ export async function recalcStrengthReferences(
 			sourceSetId: best._id,
 		});
 	}
+}
+
+/** Re-derives every logged set's reference after its exercise's measure changed. */
+export async function rebuildSetReferences(
+	ctx: MutationCtx,
+	userId: string,
+	exerciseId: string,
+) {
+	for (const set of await exerciseSets(ctx, userId, exerciseId))
+		await ctx.db.patch(set._id, await performanceReference(ctx, userId, set));
+	await recalcStrengthReferences(ctx, userId, exerciseId);
 }
 
 export async function readStrengthReferences(

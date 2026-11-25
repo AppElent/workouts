@@ -1,7 +1,9 @@
 import {
 	EQUIPMENT,
 	type Equipment,
+	EXERCISE_MEASURES,
 	type ExerciseCategory,
+	exerciseMeasure,
 	isLoadedEquipment,
 	MUSCLE_GROUP_KEYS,
 	type MuscleGroup,
@@ -75,6 +77,8 @@ export function ExerciseEditorForm({
 	const [equipment, setEquipment] = useState<Equipment>(
 		exercise?.equipment ?? "barbell",
 	);
+	const savedMeasure = exerciseMeasure(exercise);
+	const [measure, setMeasure] = useState(savedMeasure);
 	const [increment, setIncrement] = useState(
 		exercise?.weightIncrement?.toString() ?? "",
 	);
@@ -104,6 +108,7 @@ export function ExerciseEditorForm({
 			setAdditionalGroups("");
 			setCategory("compound");
 			setEquipment("barbell");
+			setMeasure("reps");
 			setIncrement("");
 			setNotes("");
 			onClose();
@@ -129,9 +134,18 @@ export function ExerciseEditorForm({
 					toast.error(c.updateError);
 					return;
 				}
-				await update({ id: exercise._id, ...values });
+				await update({
+					id: exercise._id,
+					...values,
+					// Unchanged stays out, so an edit never overwrites another device's choice.
+					measure: measure === savedMeasure ? undefined : measure,
+				});
 			} else {
-				await create({ ...values, instructions: exercise?.instructions });
+				await create({
+					...values,
+					measure: measure === "reps" ? undefined : measure,
+					instructions: exercise?.instructions,
+				});
 			}
 			setName("");
 			setGroups([]);
@@ -225,7 +239,13 @@ export function ExerciseEditorForm({
 			</FormSection>
 			<FormSection
 				title={c.trainingDetails}
-				footer={loaded ? c.stepHelp : undefined}
+				footer={
+					mode === "edit" && measure !== savedMeasure
+						? c.measureChangeHelp
+						: loaded
+							? c.stepHelp
+							: undefined
+				}
 			>
 				<FormSegmentedRow
 					value={category}
@@ -236,6 +256,17 @@ export function ExerciseEditorForm({
 						{ value: "compound", label: c.compound },
 						{ value: "isolation", label: c.isolation },
 					]}
+				/>
+				<FormSegmentedRow
+					label={c.measure}
+					value={measure}
+					onChange={(value) => {
+						if (!busy) setMeasure(value);
+					}}
+					options={EXERCISE_MEASURES.map((value) => ({
+						value,
+						label: c.measureNames[value],
+					}))}
 				/>
 				{loaded ? (
 					<InlineNumberFieldRow

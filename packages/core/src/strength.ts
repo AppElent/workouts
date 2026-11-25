@@ -1,4 +1,9 @@
-import { type Equipment, isLoadedEquipment, isTimedExercise } from "./exercise";
+import {
+	type Equipment,
+	isLoadedExercise,
+	type MeasuredExercise,
+	type TimedLookup,
+} from "./exercise";
 import {
 	calculateOneRepMax,
 	roundLoad,
@@ -146,18 +151,20 @@ export type PerformedSet = {
 	setType?: SetType;
 };
 
+type LoggedExercise = MeasuredExercise & { readonly equipment: Equipment };
+
 /**
  * Whether a logged set may feed One-rep Max references: an explicitly logged
  * positive load with at least one rep, on an exercise that is not bodyweight.
  */
 export function isReferenceEligible(
 	set: Pick<PerformedSet, "weight" | "reps" | "performanceVerified">,
-	exercise: { readonly equipment: Equipment } | null | undefined,
+	exercise: LoggedExercise | null | undefined,
 ): boolean {
 	return (
 		set.performanceVerified === true &&
 		!!exercise &&
-		isLoadedEquipment(exercise.equipment) &&
+		isLoadedExercise(exercise) &&
 		set.weight > 0 &&
 		set.reps >= 1
 	);
@@ -165,16 +172,17 @@ export function isReferenceEligible(
 
 /**
  * Total kg × reps; warm-ups and timed holds (a count of seconds, see
- * `isTimedExercise`) are not work volume.
+ * `timedLookup`) are not work volume.
  */
 export function workingVolume(
 	sets: readonly (Pick<PerformedSet, "weight" | "reps" | "unit" | "setType"> & {
-		exerciseId?: string;
+		exerciseId: string;
 	})[],
+	isTimed: TimedLookup,
 ): number {
 	return sets.reduce(
 		(total, set) =>
-			set.setType === "warmup" || isTimedExercise(set.exerciseId)
+			set.setType === "warmup" || isTimed(set.exerciseId)
 				? total
 				: total + toKg(set.weight, set.unit) * set.reps,
 		0,
@@ -203,7 +211,7 @@ const DEFAULT_REP_TARGETS = [1, 3, 5, 10] as const;
  */
 export function exerciseRecords<T extends PerformedSet>(
 	sets: readonly T[],
-	exercise: { readonly equipment: Equipment } | null | undefined,
+	exercise: LoggedExercise | null | undefined,
 	repTargets: readonly number[] = DEFAULT_REP_TARGETS,
 ): ExerciseRecords<T> {
 	const records: ExerciseRecords<T> = {
@@ -289,10 +297,10 @@ type StrengthReferences<T> = {
  */
 export function resolveStrengthReferences<T extends StrengthReferenceRecord>(
 	records: readonly T[],
-	exercise: { readonly equipment: Equipment } | null | undefined,
+	exercise: LoggedExercise | null | undefined,
 ): StrengthReferences<T> {
 	const derived =
-		exercise && !isLoadedEquipment(exercise.equipment)
+		exercise && !isLoadedExercise(exercise)
 			? []
 			: records.filter((record) => record.sourceSetId);
 	const best = (source: SetReferenceSource) =>

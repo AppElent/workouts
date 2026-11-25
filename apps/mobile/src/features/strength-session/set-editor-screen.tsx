@@ -378,7 +378,7 @@ export function SetEditorScreen() {
 	const bodyweight = facts.bodyweight;
 	const timed = facts.timed;
 	/** Seconds move in fives on a hold; reps move one at a time. */
-	const countStep = countStepFor(row.exerciseId);
+	const countStep = countStepFor(facts.timed);
 	const group = groupOfRow(plan, row.id);
 	const roundIndex = group
 		? group.rounds.findIndex((round) =>

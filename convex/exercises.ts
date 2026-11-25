@@ -1,4 +1,4 @@
-import { validateExerciseInput } from "@foundry/core";
+import { isTimedExercise, validateExerciseInput } from "@foundry/core";
 import {
 	paginationOptsValidator,
 	paginationResultValidator,
@@ -14,6 +14,7 @@ import {
 	exerciseSets,
 	resolveExercise,
 } from "./lib/exerciseCatalog";
+import { rebuildSetReferences } from "./lib/strengthReferences";
 import { exerciseReference } from "./lib/validators";
 
 export const listPersonal = query({
@@ -65,6 +66,7 @@ const exerciseInput = {
 	equipment: exerciseDocument.fields.equipment,
 	notes: exerciseDocument.fields.notes,
 	weightIncrement: exerciseDocument.fields.weightIncrement,
+	measure: exerciseDocument.fields.measure,
 };
 
 /** A personal exercise the caller owns; shipped ones are `readOnly`. */
@@ -131,10 +133,13 @@ export const update = mutation({
 	handler: async (ctx, { id, ...args }) => {
 		const userId = await requireUserId(ctx);
 		const exercise = checked(validateExerciseInput(args));
-		const { _id: documentId } = await requirePersonalExercise(ctx, userId, id);
+		const before = await requirePersonalExercise(ctx, userId, id);
 		// Patch in place: sets, records, routines and instructions keep their identity.
-		// An explicit undefined clears notes and weight increment.
-		await ctx.db.patch(documentId, exercise);
+		// An explicit undefined clears notes and weight increment; a client that
+		// leaves `measure` out keeps the stored one.
+		await ctx.db.patch(before._id, exercise);
+		if (isTimedExercise({ ...before, ...exercise }) !== isTimedExercise(before))
+			await rebuildSetReferences(ctx, userId, before._id);
 		return null;
 	},
 });

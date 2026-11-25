@@ -8,7 +8,7 @@ import {
 	convertLoad,
 	DEFAULT_REST_SECONDS,
 	getWeightStep,
-	isLoadedEquipment,
+	isLoadedExercise,
 	isTimedExercise,
 } from "@foundry/core";
 import type { Exercise } from "@foundry/core/exercises";
@@ -228,7 +228,9 @@ export type LastSet = Pick<Doc<"sets">, "weight" | "unit" | "reps"> &
 const toKg = (reference: RawReference | undefined) =>
 	reference ? convertLoad(reference.value, reference.unit, "kg") : null;
 export function factsFrom(
-	exercise: Pick<Exercise, "equipment" | "weightIncrement"> | undefined,
+	exercise:
+		| Pick<Exercise, "_id" | "equipment" | "weightIncrement" | "measure">
+		| undefined,
 	references: RawReferences | undefined,
 	last: LastSet | null | undefined,
 	exerciseId?: string,
@@ -236,8 +238,8 @@ export function factsFrom(
 	const manual = toKg(references?.manual);
 	return {
 		exercise: exercise ?? null,
-		bodyweight: exercise ? !isLoadedEquipment(exercise.equipment) : false,
-		timed: isTimedExercise(exerciseId),
+		bodyweight: exercise ? !isLoadedExercise(exercise) : false,
+		timed: isTimedExercise(exercise ?? { _id: exerciseId }),
 		stepKg: getWeightStep(
 			exercise?.equipment ?? "barbell",
 			exercise?.weightIncrement,

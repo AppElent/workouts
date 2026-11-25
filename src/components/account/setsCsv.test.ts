@@ -43,7 +43,7 @@ const tables = (sets: unknown[]) => ({
 	sets,
 	workoutSessions: [{ _id: "w1", name: "Push", date: 0 }],
 });
-const names = new Map([["e1", "Bench press"]]);
+const names = [{ _id: "e1", name: "Bench press" }];
 
 it("adds a notes column after rpe, empty when the set has none", () => {
 	const [header, row] = setsToCsv(tables([set({})]), names).split("\n");
@@ -66,7 +66,7 @@ it("guards a session or exercise name that starts with a trigger character", () 
 		sets: [set({})],
 		workoutSessions: [{ _id: "w1", name: "-Push", date: 0 }],
 	};
-	const [, row] = setsToCsv(t, new Map([["e1", "=Bench"]])).split("\n");
+	const [, row] = setsToCsv(t, [{ _id: "e1", name: "=Bench" }]).split("\n");
 	expect(row).toBe("2026-01-02 09:30,'-Push,'=Bench,1,working,100,kg,5,,,");
 });
 
@@ -82,13 +82,20 @@ it("labels a hold's count as seconds and leaves reps empty", () => {
 			set({ loggedAt: 1 }),
 			set({ exerciseId: plank, weight: 0, reps: 45, loggedAt: 2 }),
 		]),
-		new Map([
-			["e1", "Bench press"],
-			[plank, "Plank"],
-		]),
+		[
+			{ _id: "e1", name: "Bench press" },
+			{ _id: plank, name: "Plank" },
+		],
 	);
 	const [header, bench, hold] = csv.split("\n").map((line) => line.split(","));
 	expect(header?.slice(7, 10)).toEqual(["reps", "seconds", "rpe"]);
 	expect(bench?.slice(7, 10)).toEqual(["5", "", ""]);
 	expect(hold?.slice(7, 10)).toEqual(["", "45", ""]);
+});
+
+it("labels a Personal Exercise measured in seconds the same way", () => {
+	const csv = setsToCsv(tables([set({ weight: 0, reps: 40 })]), [
+		{ _id: "e1", name: "Side plank", measure: "seconds" },
+	]);
+	expect(csv.split("\n")[1]?.split(",").slice(7, 10)).toEqual(["", "40", ""]);
 });

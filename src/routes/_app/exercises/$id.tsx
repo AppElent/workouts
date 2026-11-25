@@ -101,7 +101,8 @@ function ExerciseDetailPage() {
 	const strengthCurveFormatter: any = (value: number | null, name: string) =>
 		value !== null ? [`${value} ${unit}`, name] : [null, name];
 
-	const hint = overviewHint(id, {
+	const timed = isTimedExercise(exercise);
+	const hint = overviewHint(timed, {
 		signedIn,
 		hasSets: history.length > 0,
 		hasOneRepMax: Boolean(currentOrm),
@@ -380,7 +381,7 @@ function ExerciseDetailPage() {
 											"Set",
 											"Type",
 											"Weight",
-											isTimedExercise(id) ? "Seconds" : "Reps",
+											timed ? "Seconds" : "Reps",
 											"RPE",
 											"Est. 1RM",
 										].map((h) => (
@@ -427,7 +428,9 @@ function ExerciseDetailPage() {
 														<span className="text-text-muted">BW</span>
 													)}
 												</td>
-												<td className="py-2 pr-4 text-text">{setCount(set)}</td>
+												<td className="py-2 pr-4 text-text">
+													{setCount(set, timed)}
+												</td>
 												<td className="py-2 pr-4 text-text-muted">
 													{set.rpe ?? "—"}
 												</td>
