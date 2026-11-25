@@ -29,6 +29,9 @@ const mustTransform = [
 
 module.exports = {
 	preset: "jest-expo",
+	// Agents run suites in parallel worktrees; uncapped, they exhaust the Mac's
+	// memory (APP-852). CI keeps Jest's default.
+	...(process.env.CI ? {} : { maxWorkers: "25%" }),
 	setupFiles: [
 		require.resolve("react-native-gesture-handler/jestSetup"),
 		"<rootDir>/jest.setup.ts",
