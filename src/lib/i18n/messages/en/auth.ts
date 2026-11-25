@@ -68,6 +68,13 @@ export const auth = {
 			email_code: "We sent a 6-digit code to {destination}.",
 			backup_code: "Enter one of the backup codes you saved.",
 		},
+		/** Replaces the prompt; `resend` is the button that sends another. */
+		codeExpired:
+			"The code we sent to {destination} has expired. Choose “{resend}” below.",
+		/** Also replaces the prompt; the second when there is another method. */
+		codeLocked: "Too many wrong codes. Choose “{resend}” below.",
+		codeLockedOther:
+			"Too many wrong codes. Choose “{resend}” or another method below.",
 		/** Shown when Clerk gives no masked number or address. */
 		yourPhone: "your phone",
 		yourEmail: "your email",
@@ -101,7 +108,29 @@ export const auth = {
 		codeSent: "We sent a code to {email}.",
 		code: "Verification code",
 		verify: "Verify",
+		backToSignUp: "Back to sign up",
 		invalidCode: "Invalid or incomplete verification.",
+	},
+	signUpContinue: {
+		title: "One more step",
+		intro: "Fill in what's missing to finish creating your account.",
+		fields: {
+			email_address: "Email",
+			username: "Username",
+			first_name: "First name",
+			last_name: "Last name",
+			phone_number: "Phone number (with country code)",
+			password: "Password",
+		},
+		submit: "Continue",
+		codePrompt: "We sent a code to {destination}. Enter it to continue.",
+		invalidDetails: "Check what you entered and try again.",
+		taken: "Another account already uses this. Choose something else.",
+		attemptEnded:
+			"This sign-up took too long and can't continue. Start over to try again.",
+		unsupported:
+			"This sign-up can't be finished here. Start over to sign up another way.",
+		startOver: "Start over",
 	},
 	forgotPassword: {
 		title: "Reset your password",

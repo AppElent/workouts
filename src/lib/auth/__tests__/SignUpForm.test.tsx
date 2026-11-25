@@ -21,6 +21,7 @@ const signUp = {
 vi.mock("@clerk/react", () => ({
 	useSignIn: () => ({ signIn: {} }),
 	useSignUp: () => ({ signUp }),
+	useAuth: () => ({ isLoaded: true }),
 }));
 
 function ok(update: Partial<typeof signUp> = {}) {

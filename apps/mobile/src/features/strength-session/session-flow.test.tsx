@@ -1145,6 +1145,99 @@ it("starts empty and offers to delete a session with nothing in it", async () =>
 	expect(cancel).toHaveBeenCalled();
 });
 
+describe("a set's note (APP-690)", () => {
+	const note = () => screen.findByTestId("session-editor-note");
+	const save = async () =>
+		fireEvent.press(await screen.findByRole("button", { name: /^Save/ }));
+	const openLogged = async (notes?: string) => {
+		loggedSets = [
+			{ ...serverSet("set-1", 8, 1), ...(notes ? { notes } : {}) },
+		] as typeof loggedSets;
+		update.mockResolvedValue(undefined);
+		await mount();
+		await fireEvent.press((await screen.findAllByLabelText(/set 1, /))[0]);
+	};
+
+	it("survives a restart on an open set and is logged trimmed", async () => {
+		writeLocal(PREFERENCE_KEYS.setEditorMode, "advanced");
+		const app = await mount();
+		await fireEvent.press(await firstRow());
+		await fireEvent.changeText(await note(), "narrow grip ");
+		await act(() => router.back());
+		await app.unmount();
+		await mount();
+		await fireEvent.press(await firstCheck());
+		expect(add).toHaveBeenCalledWith(
+			expect.objectContaining({ notes: "narrow grip" }),
+		);
+	});
+
+	it("is kept for the retry after a lost connection", async () => {
+		writeLocal(PREFERENCE_KEYS.setEditorMode, "advanced");
+		receipt = undefined;
+		add.mockRejectedValueOnce(new Error("Connection lost"));
+		await mount();
+		await fireEvent.press(await firstRow());
+		await fireEvent.changeText(await note(), "narrow grip");
+		await fireEvent.press(screen.getByTestId("session-editor-primary"));
+		await fireEvent.press(await screen.findByTestId("session-toast-action"));
+		await waitFor(() => expect(add).toHaveBeenCalledTimes(2));
+		expect(add.mock.calls[1][0]).toEqual(add.mock.calls[0][0]);
+		expect(add.mock.calls[1][0]).toMatchObject({ notes: "narrow grip" });
+	});
+
+	it("is hidden in the simple view without a note", async () => {
+		await openLogged();
+		await screen.findByTestId("session-editor-reps");
+		expect(screen.queryByTestId("session-editor-note")).toBeNull();
+	});
+
+	it("shows on the logged row and in the simple view, and is cleared with an empty string", async () => {
+		await openLogged("narrow grip");
+		expect(
+			screen.getAllByLabelText(/note: narrow grip/, {
+				includeHiddenElements: true,
+			}).length,
+		).toBeGreaterThan(0);
+		expect(await screen.findByDisplayValue("narrow grip")).toBeTruthy();
+		await fireEvent.changeText(await note(), "");
+		await save();
+		expect(update).toHaveBeenCalledWith(
+			expect.objectContaining({ id: "set-1", notes: "" }),
+		);
+	});
+
+	it("is left out of a correction that doesn't touch it", async () => {
+		await openLogged("narrow grip");
+		await fireEvent.changeText(
+			await screen.findByTestId("session-editor-reps"),
+			"7",
+		);
+		await save();
+		expect(update).toHaveBeenCalledTimes(1);
+		expect(update.mock.calls[0][0]).not.toHaveProperty("notes");
+	});
+
+	it("is not wiped by a draft stored before notes existed", async () => {
+		loggedSets = [
+			{ ...serverSet("set-1", 8, 1), notes: "narrow grip" },
+		] as typeof loggedSets;
+		update.mockResolvedValue(undefined);
+		await mount();
+		const row = allRows(workspaceStore.plan(planKey()) as SessionPlan).find(
+			(item) => item.setId === "set-1",
+		) as PlanSet;
+		const { notes: _none, ...old } = row;
+		await act(async () =>
+			workspaceStore.setDraft(planKey(), row.id, { ...old, reps: 7 }),
+		);
+		await fireEvent.press((await screen.findAllByLabelText(/set 1, /))[0]);
+		expect(await screen.findByDisplayValue("narrow grip")).toBeTruthy();
+		await save();
+		expect(update.mock.calls[0][0]).not.toHaveProperty("notes");
+	});
+});
+
 describe("Live Activity", () => {
 	type Activity = { props: Record<string, unknown>; ended: boolean };
 	const fake = (

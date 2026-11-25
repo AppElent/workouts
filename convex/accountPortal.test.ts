@@ -101,6 +101,27 @@ describe("account portal", () => {
 		).toBeGreaterThan(0);
 	});
 
+	it("exports a set's note with its set", async () => {
+		const t = await seeded();
+		const set = await t.run((ctx) =>
+			ctx.db
+				.query("sets")
+				.filter((q) => q.eq(q.field("userId"), "alice"))
+				.first(),
+		);
+		if (!set) throw new Error("No seeded set");
+		await t
+			.withIdentity({ subject: "alice" })
+			.mutation(api.sets.update, { id: set._id, notes: "narrow grip" });
+		for (const tables of [
+			await inAppExport(t, "alice"),
+			(await drain(t, "alice")).tables,
+		])
+			expect(tables.sets).toContainEqual(
+				expect.objectContaining({ _id: set._id, notes: "narrow grip" }),
+			);
+	});
+
 	it("caps a count at 1,000 with `more`", async () => {
 		const t = convexTest(schema, modules);
 		await t.run(async (ctx) => {

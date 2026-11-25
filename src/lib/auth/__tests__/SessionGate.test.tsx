@@ -79,7 +79,8 @@ vi.mock("convex/react", () => ({
 }));
 
 import { RouteErrorFallback } from "#/components/RouteErrorFallback";
-import { SESSION_STALL_MS, sessionState } from "#/lib/auth/SessionGate";
+import { sessionState } from "#/lib/auth/SessionGate";
+import { SESSION_STALL_MS } from "#/lib/auth/stall";
 import { LocaleProvider } from "#/lib/i18n";
 import { Route as AuthedRoute } from "#/routes/_app/_authed";
 

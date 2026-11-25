@@ -3,8 +3,8 @@
   "repository": "AppElent/developer-home",
   "scope": "project",
   "ref": "main",
-  "commit": "e30ada58359970de481fd447b8f847bff2aa3f52",
-  "manifestHash": "e65108e45681443ef6ba9b71f41a79b0da096c4250259cea689565eb3b35fa3d",
+  "commit": "34ec7d4cfe1da6aadce20b56e3ffb9b04f434beb",
+  "manifestHash": "7308c1fd69845e8eaf518bf78392aadda17a3ee1ef8044f44d00f8e1d83a81e3",
   "files": {
     "scripts/baseline-mobile.mjs": {
       "sha256": "2ca4cd7d820efda7ad5b902c0c987b724d87197e2c1a4e15d446e39a1085aedf"
@@ -16,7 +16,7 @@
       "sha256": "6336676db6dcd2e4801992cc1b878ffafa65719314a27861247a6c8f73fd0c04"
     },
     "scripts/check-project.mjs": {
-      "sha256": "bdef437ccb5f208566ed0498304a393079d08068e299c45840bb8cfea64bf425"
+      "sha256": "ee4c68f15c2c5bba74c0e3d643d57ae13e4bf623841bd398950e6cd0c6b34dcb"
     },
     "scripts/env.mjs": {
       "sha256": "9347b3602296c5d9d31b7fab503e2ef696886f2f3de4c9899d44b459e8add087"
@@ -91,7 +91,7 @@
       "sha256": "87746377e3e418618d80f672b178dadcbfcf869f56fda43b78a7808bf1a1009d"
     },
     "scripts/lib/workspace/provider.mjs": {
-      "sha256": "c33cc213a87668c011ea7fa78441d1b19ad0103fd9bad408eae193d7342123d1"
+      "sha256": "58a8b9a40e82570a028369f19faf1d096252b437e2c5a4b1b7a3f6c66e7013df"
     },
     "scripts/lib/workspace/types.ts": {
       "sha256": "8af0bf92f6aecb9568e0f89cdfa9087a49714f37bb849f16b74ed964a46b3ce8"
@@ -138,7 +138,7 @@
       "sha256": "3cb78db51701a6eaddb5d07a6e11d65ed911bc2ae556bff54e4025551a50117a"
     },
     "docs/standards/baseline.md": {
-      "sha256": "ec7f02aa38c80e93139f2a6157ba6b3a613f5c3a50a656e515759f45f496a2b4",
+      "sha256": "1d7939d2ccd2107624d08a597d699f6967ac2f4a3fa7d9544604f1f578c29d9b",
       "version": "2.4.1"
     },
     "docs/standards/design-studies.md": {
@@ -259,8 +259,8 @@
       "version": "1.2.1"
     },
     "docs/standards/workspaces.md": {
-      "sha256": "25ecc12a604606debb5991158ccf7b0f920b37ac4ac340141ba30f74eb732a43",
-      "version": "3.5.0"
+      "sha256": "2ec2199e3e645bd67e127d1d147fe769a524195529129df2138d1b3a9082c93e",
+      "version": "3.5.1"
     },
     "docs/standards/workspaces/examples/appelent.json": {
       "sha256": "59a478066a2c9e011cae362d6d917c177eb046912813c3c5e2b471e1a558cb1e"
@@ -504,11 +504,11 @@
       "sha256": "3676673615c25e7ceb75fa7534b68dcdbe99856c715fb79a11c4bafab99e4ea6"
     },
     "docs/standards/mobile-run.md": {
-      "sha256": "6fae6158b32935c5d87e2a2e843b708b69bfb638d71b5c25402fc72ef4d0ce0c",
-      "version": "2.2.0"
+      "sha256": "2abf8051fa73a10da42a41953330fc25f7e6d144539ea61b7bd7a0017ceebcfb",
+      "version": "2.4.0"
     },
     "scripts/run-mobile.mjs": {
-      "sha256": "1dcfee9f2bfaf7b9ddfe487b1ba2a2adcd02e99d39d7eb56d82228ba49717959"
+      "sha256": "c80432686c9f25ae4ca7fa667206145ff08c95ce715a21427c55ff3521da7fdb"
     },
     "docs/standards/auth/examples/web/UsernameHint.tsx": {
       "sha256": "b1e45b0b2dda4d6559ed4c4902e4056764a377cb61400464ed9681bf4001cdb5"
