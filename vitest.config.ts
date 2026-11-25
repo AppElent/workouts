@@ -7,6 +7,9 @@ export default defineConfig({
 	resolve: { tsconfigPaths: true },
 	test: {
 		globals: true,
+		// Agents run suites in parallel worktrees; uncapped, they exhaust the Mac's
+		// memory (APP-852). CI keeps Vitest's default.
+		maxWorkers: process.env.CI ? undefined : "25%",
 		// Nested worktrees carry their own sources and node_modules.
 		exclude: [...configDefaults.exclude, "**/.worktrees/**", "**/.claude/**"],
 		projects: [
