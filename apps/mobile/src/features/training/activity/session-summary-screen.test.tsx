@@ -52,8 +52,8 @@ it("shows a set's note under its chip", async () => {
 });
 
 describe.each([
-	{ locale: "en", reps: "8 reps", best: "Best: 135 lbs × 5" },
-	{ locale: "nl", reps: "8 herh.", best: "Beste: 135 lbs × 5" },
+	{ locale: "en", reps: "8 reps", best: "Best: 80 kg × 8" },
+	{ locale: "nl", reps: "8 herh.", best: "Beste: 80 kg × 8" },
 ])("the visible chip in $locale", ({ locale, reps, best }) => {
 	beforeEach(() => writeLocal(PREFERENCE_KEYS.locale, locale));
 
@@ -83,6 +83,26 @@ describe.each([
 		await renderScreen(<SessionSummaryScreen />);
 		expect(screen.getByText("+10 lbs × 30 s")).toBeTruthy();
 	});
+});
+
+it("compares and totals kg and lbs sets in one unit", async () => {
+	mockSets.mockReturnValue([
+		set("a", 1),
+		{ ...set("b", 2), weight: 135, reps: 5, unit: "lbs" },
+	]);
+	await renderScreen(<SessionSummaryScreen />);
+	expect(screen.getByText("Best: 80 kg × 8")).toBeTruthy();
+	// 80 kg × 8 + 135 lbs (61.23 kg) × 5
+	expect(screen.getByText("946 kg")).toBeTruthy();
+});
+
+it("shows the winning set in its own unit", async () => {
+	mockSets.mockReturnValue([
+		set("a", 1),
+		{ ...set("b", 2), weight: 185, reps: 3, unit: "lbs" },
+	]);
+	await renderScreen(<SessionSummaryScreen />);
+	expect(screen.getByText("Best: 185 lbs × 3")).toBeTruthy();
 });
 
 describe.each([
