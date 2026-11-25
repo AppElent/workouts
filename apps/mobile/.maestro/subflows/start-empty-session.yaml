@@ -1,0 +1,12 @@
+# From the Train tab: submits an empty strength session, then waits for either
+# the session or the app's refusal because one is already active.
+appId: com.appelent.foundry.dev
+---
+- tapOn:
+    id: "train-start-activity"
+- tapOn: "Strength"
+- tapOn: "Empty session"
+- tapOn: "Start"
+- extendedWaitUntil:
+    visible: "Session options|A session is already active"
+    timeout: 15000
