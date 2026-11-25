@@ -150,9 +150,10 @@ describe.each([
 		await visit(back ? "/sign-up?resume=social" : "/sign-up");
 		if (back) {
 			await wait(SESSION_STALL_MS);
-			const buttons = screen.getAllByRole("button");
 			await act(async () => {
-				fireEvent.click(buttons[buttons.length - 1]);
+				fireEvent.click(
+					screen.getByRole("button", { name: "Back to sign up" }),
+				);
 			});
 			await wait(0);
 		}

@@ -1,4 +1,4 @@
-import { useSignIn } from "@clerk/react";
+import { useAuth, useSignIn } from "@clerk/react";
 import { useState } from "react";
 import { useMessages } from "#/lib/i18n";
 import { AuthButton } from "./AuthButton";
@@ -22,6 +22,7 @@ export function ForgotPasswordForm({
 	onBackToSignIn: () => void;
 }) {
 	const { signIn } = useSignIn();
+	const { isLoaded } = useAuth();
 	const { auth } = useMessages();
 	const errorMessage = useClerkErrorMessage();
 	const [step, setStep] = useState<"request" | "reset" | "secondFactor">(
@@ -35,6 +36,8 @@ export function ForgotPasswordForm({
 
 	async function requestCode(e: React.FormEvent) {
 		e.preventDefault();
+		// Clerk queues calls made before it loads; nothing may go out then.
+		if (!isLoaded) return;
 		setError(null);
 		setLoading(true);
 		try {
@@ -121,7 +124,9 @@ export function ForgotPasswordForm({
 				onChange={setEmail}
 				required
 			/>
-			<AuthButton loading={loading}>{auth.forgotPassword.sendCode}</AuthButton>
+			<AuthButton loading={loading || !isLoaded}>
+				{auth.forgotPassword.sendCode}
+			</AuthButton>
 		</form>
 	);
 }

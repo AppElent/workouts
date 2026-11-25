@@ -67,7 +67,9 @@ export function startedSecondFactor(
  * The code this attempt last sent can no longer be used. clerk-js reads a
  * missing `expire_at` as the moment it parses the response, so a time since
  * this page loaded may only be that: it counts when Clerk's status says so, or
- * when the step saw it coming (`codeExpiry`).
+ * when the step saw it coming (`codeExpiry`). A code that runs out between
+ * Clerk's response and the step opening therefore keeps the usual prompt until
+ * it is tried (`expiresCode`): nothing on the attempt tells the two apart.
  */
 export function startedCodeExpired(signIn: SignIn) {
 	const { status, expireAt } = signIn.secondFactorVerification ?? {};
@@ -136,6 +138,11 @@ const ATTEMPT_ENDED_CODES = new Set(["resource_not_found", "sign_in_expired"]);
 export function endsAttempt(error: unknown) {
 	const code = clerkErrorCode(error);
 	return !!code && ATTEMPT_ENDED_CODES.has(code);
+}
+
+/** The code sent last ran out before it was tried. */
+export function expiresCode(error: unknown) {
+	return clerkErrorCode(error) === "verification_expired";
 }
 
 /** Too many wrong codes: this method is locked for the attempt. */

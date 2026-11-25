@@ -1,5 +1,6 @@
 import { AuthenticateWithRedirectCallback, useAuth } from "@clerk/react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { AuthCard } from "#/lib/auth/AuthCard";
 import { AUTH_PATHS, safeRedirect, withRedirect } from "#/lib/auth/paths";
 import { ResumePending } from "#/lib/auth/ResumePending";
@@ -17,6 +18,11 @@ function SsoCallbackPage() {
 	const { locale, messages } = useI18n();
 	const { redirect } = Route.useSearch();
 	const { isLoaded } = useAuth();
+	// Latched: `isLoaded` drops again while Clerk activates the finished session
+	// and leaves the page, which is not a Clerk that still has to load.
+	const [hasLoaded, setHasLoaded] = useState(isLoaded);
+	if (isLoaded && !hasLoaded) setHasLoaded(true);
+	const activating = hasLoaded && !isLoaded;
 	const navigate = useNavigate();
 	const { auth } = messages;
 	// A social sign-in Clerk transfers to a sign-up (or back) ends on these
@@ -30,19 +36,34 @@ function SsoCallbackPage() {
 	);
 	return (
 		<AuthCard title={auth.ssoCallback.title}>
-			{isLoaded ? null : (
+			{activating ? (
+				// Signed in: only the redirect is left, however long that takes.
+				<p className="text-center text-sm text-text-muted" role="status">
+					{auth.wait}
+				</p>
+			) : (
 				<ResumePending
+					// The callback gets its own time. Clerk swallows its errors, so one
+					// that failed shows up only as one that never leaves this page.
+					key={hasLoaded ? "callback" : "load"}
 					backLabel={auth.secondFactor.backToSignIn}
-					// Safe without a page load: Clerk's callback below only mounts, and
-					// so only runs, once Clerk has loaded.
-					onBack={() =>
+					onBack={() => {
+						// Once Clerk has loaded its callback below runs, and unmounting
+						// does not stop it: only a page load keeps it from finishing this
+						// sign-in under the one the person starts next.
+						if (hasLoaded) {
+							window.location.replace(
+								withRedirect(AUTH_PATHS.signIn, redirect),
+							);
+							return;
+						}
 						navigate({
 							to: "/sign-in",
 							search: { redirect },
 							state: { focusSignIn: true },
 							replace: true,
-						})
-					}
+						});
+					}}
 				/>
 			)}
 			<AuthenticateWithRedirectCallback
