@@ -511,7 +511,6 @@ const createStyles = (colors: Tokens) =>
 			minHeight: 44,
 			alignItems: "flex-end",
 			justifyContent: "center",
-			flexShrink: 0,
 			paddingHorizontal: spacing.sm,
 		},
 		doneBadge: {
