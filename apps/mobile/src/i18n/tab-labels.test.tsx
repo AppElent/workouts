@@ -1,8 +1,8 @@
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import { fireEvent, screen } from "@testing-library/react-native";
 import { View as MockView, Pressable } from "react-native";
 import CoachTabsLayout from "../../app/(app)/(coach)/_layout";
-import { AppearanceProvider } from "../theme";
-import { LocaleProvider, useI18n } from ".";
+import { renderScreen } from "../test-support/render-screen";
+import { useI18n } from ".";
 
 jest.mock("expo-router/native-tabs", () => {
 	const Pass = ({ children }: { children?: React.ReactNode }) => children;
@@ -29,13 +29,11 @@ function SwitchToDutch() {
 }
 
 it("gives every tab an accessibility label that follows a language switch", async () => {
-	await render(
-		<AppearanceProvider>
-			<LocaleProvider>
-				<SwitchToDutch />
-				<CoachTabsLayout />
-			</LocaleProvider>
-		</AppearanceProvider>,
+	await renderScreen(
+		<>
+			<SwitchToDutch />
+			<CoachTabsLayout />
+		</>,
 	);
 	const labels = () =>
 		["(home)", "train", "nutrition", "progress", "profile"].map(
