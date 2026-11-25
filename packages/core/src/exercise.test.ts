@@ -1,9 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
+	countStep,
 	EQUIPMENT,
 	filterExercises,
 	isLoadedEquipment,
+	isTimedExercise,
 	primaryMuscleGroup,
+	TIMED_DEFAULT_SECONDS,
+	TIMED_LONG_HOLD_SECONDS,
+	TIMED_STEP_SECONDS,
 	validateExerciseInput,
 } from "./exercise";
 import { SHIPPED_EXERCISES } from "./exercises";
@@ -134,5 +139,20 @@ describe("validateExerciseInput", () => {
 				{ field: "weightIncrement", code: "invalid" },
 			],
 		});
+	});
+});
+
+describe("timed holds", () => {
+	it("starts a hold on a round number the step lands on", () => {
+		expect(TIMED_DEFAULT_SECONDS).toBe(30);
+		expect(TIMED_DEFAULT_SECONDS % TIMED_STEP_SECONDS).toBe(0);
+		expect(TIMED_LONG_HOLD_SECONDS).toBe(600);
+	});
+
+	it("steps seconds in fives and reps one at a time", () => {
+		expect(isTimedExercise("shipped:exercise:plank")).toBe(true);
+		expect(countStep("shipped:exercise:plank")).toBe(5);
+		expect(countStep("shipped:exercise:squat")).toBe(1);
+		expect(countStep(undefined)).toBe(1);
 	});
 });

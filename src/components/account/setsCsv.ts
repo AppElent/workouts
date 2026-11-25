@@ -1,4 +1,5 @@
 import type { Doc } from "@convex/_generated/dataModel";
+import { isTimedExercise } from "@foundry/core";
 import { format } from "date-fns";
 
 /**
@@ -36,13 +37,15 @@ export function setsToCsv(
 		"weight",
 		"unit",
 		"reps",
+		"seconds",
 		"rpe",
 		"notes",
 	];
 	const rows = [...sets]
 		.sort((a, b) => a.loggedAt - b.loggedAt)
-		.map((s) =>
-			[
+		.map((s) => {
+			const timed = isTimedExercise(s.exerciseId);
+			return [
 				format(new Date(s.loggedAt), "yyyy-MM-dd HH:mm"),
 				sessionName.get(s.sessionId) ?? "",
 				exerciseName.get(s.exerciseId) ?? "",
@@ -50,12 +53,14 @@ export function setsToCsv(
 				s.setType,
 				s.weight,
 				s.unit,
-				s.reps,
+				// A hold counts seconds in `reps`: label it so it never reads as reps.
+				timed ? "" : s.reps,
+				timed ? s.reps : "",
 				s.rpe ?? "",
 				s.notes ?? "",
 			]
 				.map(csvCell)
-				.join(","),
-		);
+				.join(",");
+		});
 	return [header.join(","), ...rows].join("\n");
 }

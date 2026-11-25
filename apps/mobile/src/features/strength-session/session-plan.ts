@@ -16,6 +16,8 @@ import {
 	roundLoad,
 	type SetType,
 	sessionOneRepMax,
+	TIMED_DEFAULT_SECONDS,
+	TIMED_LONG_HOLD_SECONDS,
 	validateSetInput,
 	workingVolume,
 } from "@foundry/core";
@@ -805,8 +807,6 @@ export function fillFromLast(
 	};
 }
 
-/** Where a first hold starts, so the ±5 steps land on round numbers. */
-const TIMED_DEFAULT_SECONDS = 30;
 function setBlank(
 	exerciseId: string,
 	facts: Pick<ExerciseFacts, "last" | "timed">,
@@ -1188,8 +1188,11 @@ export function typoCheck(
 	const baseKg = base.kg;
 	const baseReps = base.reps;
 	const free = Boolean(row.free);
-	// A hold's seconds would trip every rep-count check.
-	if (!facts.timed) {
+	// A hold's seconds would trip every rep-count check; only a very long hold asks.
+	if (facts.timed) {
+		if (row.reps > TIMED_LONG_HOLD_SECONDS)
+			return { kind: "reps", code: "holdLong", values: { reps: row.reps } };
+	} else {
 		if (row.reps > 30)
 			return { kind: "reps", code: "repsHigh", values: { reps: row.reps } };
 		if (

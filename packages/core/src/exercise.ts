@@ -50,6 +50,20 @@ const TIMED_EXERCISE_IDS: ReadonlySet<string> = new Set([
 /** The shipped exercises measured in seconds, for catalog checks. */
 export const TIMED_EXERCISES: readonly string[] = [...TIMED_EXERCISE_IDS];
 
+/** Where a first hold starts, so the ±5 steps land on round numbers. */
+export const TIMED_DEFAULT_SECONDS = 30;
+
+/** How far one step moves a hold's seconds. */
+export const TIMED_STEP_SECONDS = 5;
+
+/** A hold longer than this is asked about before it counts. */
+export const TIMED_LONG_HOLD_SECONDS = 600;
+
+/** How far one step moves a Set's count: seconds in fives, reps one at a time. */
+export function countStep(exerciseId: string | null | undefined): number {
+	return isTimedExercise(exerciseId) ? TIMED_STEP_SECONDS : 1;
+}
+
 /** Whether a Set on this exercise counts seconds held instead of reps. */
 export function isTimedExercise(
 	exerciseId: string | null | undefined,

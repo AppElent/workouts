@@ -1,4 +1,8 @@
-import { isTimedExercise } from "@foundry/core";
+import {
+	countStep,
+	isTimedExercise,
+	TIMED_DEFAULT_SECONDS,
+} from "@foundry/core";
 import type { Exercise, ExerciseId } from "@foundry/core/exercises";
 /**
  * Build or change a routine: one screen that starts empty or starts full.
@@ -189,6 +193,7 @@ function RoutineEditorForm({
 									}
 									value={entry.defaultReps}
 									min={1}
+									step={countStep(entry.exerciseId)}
 									onChange={(value) => patch(index, { defaultReps: value })}
 								/>
 								<StepperField
@@ -219,7 +224,9 @@ function RoutineEditorForm({
 										exerciseId: id,
 										name: found?.name ?? copy.exercise,
 										defaultSets: 3,
-										defaultReps: isTimedExercise(id) ? 30 : 8,
+										defaultReps: isTimedExercise(id)
+											? TIMED_DEFAULT_SECONDS
+											: 8,
 										defaultWeight: 0,
 									},
 								],
