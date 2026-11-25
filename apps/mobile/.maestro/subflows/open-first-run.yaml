@@ -1,0 +1,21 @@
+# Opens the First Run by its link and waits for the sheet, once more if needed.
+# On the hosted runner iOS once delivered the link 18 seconds after "Open" was
+# tapped, only after this wait had given up and stopped polling the screen
+# (APP-903). Reopening the link breaks off that polling, so a late link can
+# arrive too; a second link to the open sheet does not stack another one.
+appId: com.appelent.foundry.dev
+---
+- retry:
+    maxRetries: 1
+    commands:
+      - openLink: "foundry-dev://first-run"
+      # iOS asks before an app opens its own link the first time.
+      - runFlow:
+          when:
+            visible: "Open"
+          commands:
+            - tapOn: "Open"
+      - extendedWaitUntil:
+          visible:
+            id: "first-run-screen"
+          timeout: 15000
