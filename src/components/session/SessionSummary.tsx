@@ -168,7 +168,7 @@ export function SessionSummary({ session, sets, exerciseMap }: Props) {
 												: "bg-text/5 text-text-muted"
 										}`}
 									>
-										{i + 1}. {s.weight > 0 ? `${s.weight}kg` : "BW"} ×{" "}
+										{i + 1}. {s.weight > 0 ? `${s.weight}${s.unit}` : "BW"} ×{" "}
 										{setCount(s, isTimed(ex.id))}
 									</span>
 								))}
