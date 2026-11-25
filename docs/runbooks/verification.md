@@ -71,6 +71,8 @@ native modules.
 
 Maestro smoke flows in `apps/mobile/.maestro/` drive the development client
 through sign-in, the tabs, and an empty strength session (started, then discarded).
+That flow first cancels any active session on the signed-in account, so a leftover
+cannot block it; don't run it while someone is training on the shared test account.
 Install the CLI once (`brew install mobile-dev-inc/tap/maestro`), start the app
 with `run-mobile`'s `up`, then run from `apps/mobile`:
 `maestro --device <udid> test -e METRO_PORT=<port> .maestro` (`pnpm test:e2e`
