@@ -29,7 +29,7 @@ import { Platform, ScrollView, StyleSheet, View } from "react-native";
 import { api } from "../../../convex/api";
 import { useQuery } from "../../../convex/query-cache";
 import { useExercise } from "../../../data/exercises";
-import { formatSessionDate } from "../../../data/session-data";
+import { dayLabel, formatSessionDate } from "../../../data/session-data";
 import { dateLocale, fmt, type Locale, plural, useI18n } from "../../../i18n";
 import {
 	radius,
@@ -44,6 +44,7 @@ import { TrendChart } from "../../../ui/chart";
 import { Card, Eyebrow, StatBox } from "../../../ui/coach";
 import { useConfirm } from "../../../ui/confirm-dialog";
 import { DisclosureRow } from "../../../ui/form";
+import { RowNote } from "../../../ui/row-note";
 import { ScreenHeader } from "../../../ui/screen-header";
 import { Segmented } from "../../../ui/segmented";
 import { SkeletonBlock, SkeletonList } from "../../../ui/skeleton";
@@ -57,6 +58,7 @@ import {
 	levelOf,
 	strengthLevels,
 } from "../../strength-session/strength-levels";
+import { spokenSet } from "../set-speech";
 import { dailyBest, dayOf, exerciseInsight } from "./exercise-insight";
 import { MuscleIcon } from "./muscle-icon";
 
@@ -135,9 +137,15 @@ export function ExerciseDetailScreen() {
 	const insight = useMemo(
 		() =>
 			history
-				? exerciseInsight(history, ormHistory ?? [], Date.now(), timed)
+				? exerciseInsight(
+						history,
+						ormHistory ?? [],
+						Date.now(),
+						timed,
+						currentOrm,
+					)
 				: null,
-		[history, ormHistory, timed],
+		[history, ormHistory, timed, currentOrm],
 	);
 
 	if (exercise === undefined) {
@@ -174,6 +182,7 @@ export function ExerciseDetailScreen() {
 						<Stack.Toolbar.View hidesSharedBackground>
 							<BackLink
 								label={t.exercises.backSession}
+								spokenLabel={t.exercises.backSessionSpoken}
 								onPress={() => router.back()}
 								testID="exercise-back-session"
 							/>
@@ -181,7 +190,7 @@ export function ExerciseDetailScreen() {
 					) : (
 						<Stack.Toolbar.Button
 							icon="chevron.left"
-							accessibilityLabel={t.exercises.backSession}
+							accessibilityLabel={t.exercises.backSessionSpoken}
 							onPress={() => router.back()}
 						>
 							{t.exercises.backSession}
@@ -445,7 +454,12 @@ function ProgressTab({
 
 type Insight = ReturnType<typeof exerciseInsight>;
 
-type Orm = { value: number; unit: "kg" | "lbs"; source: string };
+type Orm = {
+	value: number;
+	unit: "kg" | "lbs";
+	source: string;
+	date: number;
+};
 
 /** A tile under the 1RM card: a label, a number, and what it is relative to. */
 function Tile({
@@ -614,7 +628,11 @@ function OverviewInsight({
 								: "—"
 						}
 						caption={
-							insight.best ? shortDate(insight.best.date, locale) : undefined
+							insight.best
+								? dayLabel(insight.best.date, copy.today, (time) =>
+										shortDate(time, locale),
+									)
+								: undefined
 						}
 					/>
 					{timed ? null : (
@@ -773,7 +791,7 @@ function LevelCard({
 	);
 }
 
-function HistoryTab({
+export function HistoryTab({
 	sessions,
 	timed,
 }: {
@@ -812,7 +830,12 @@ function HistoryTab({
 							numberOfLines={1}
 							style={[styles.flex, { color: colors.textMuted }]}
 						>
-							{[formatSessionDate(session.date, locale), session.name]
+							{[
+								dayLabel(session.date, copy.today, (time) =>
+									formatSessionDate(time, locale),
+								),
+								session.name,
+							]
 								.filter(Boolean)
 								.join(" · ")}
 						</AppText>
@@ -826,43 +849,73 @@ function HistoryTab({
 						) : null}
 					</View>
 					<View style={styles.sessionCard}>
-						{session.rows.map((row, index) => (
-							<View
-								key={row.id}
-								style={[styles.historyRow, index > 0 && styles.historyLine]}
-							>
-								<AppText
-									variant="label"
-									style={[styles.setNumber, { color: colors.textMuted }]}
+						{session.rows.map((row, index) => {
+							const load = timed
+								? `${row.reps} s`
+								: `${formatKg(row.weight, locale, 2)}${row.unit === "lbs" ? " lbs" : ""} × ${row.reps}`;
+							const kind =
+								row.setType === "working"
+									? row.rpe !== null
+										? `RPE ${formatKg(row.rpe, locale)}`
+										: ""
+									: t.strength[row.setType as "warmup" | "drop" | "failure"];
+							const estimate =
+								row.estimate !== null ? `≈ ${Math.round(row.estimate)}` : "—";
+							return (
+								<View
+									key={row.id}
+									accessible
+									accessibilityLabel={spokenSet(
+										{
+											number: index + 1,
+											timed,
+											weight: row.weight,
+											unit: row.unit,
+											reps: row.reps,
+											setType: row.setType,
+											rpe: row.setType === "working" ? row.rpe : null,
+											estimateKg: row.estimate,
+											note: row.notes,
+										},
+										t.strength,
+										locale,
+									)}
+									style={index > 0 && styles.historyLine}
 								>
-									{index + 1}
-								</AppText>
-								<AppText variant="row" style={[styles.flex, styles.tabular]}>
-									{timed
-										? `${row.reps} s`
-										: `${formatKg(row.weight, locale, 2)}${row.unit === "lbs" ? " lbs" : ""} × ${row.reps}`}
-								</AppText>
-								<AppText variant="footnote" style={{ color: colors.textMuted }}>
-									{row.setType === "working"
-										? row.rpe !== null
-											? `RPE ${formatKg(row.rpe, locale)}`
-											: ""
-										: t.strength[row.setType as "warmup" | "drop" | "failure"]}
-								</AppText>
-								<AppText
-									variant="row"
-									style={[
-										styles.estimate,
-										styles.tabular,
-										{ color: row.record ? colors.accentInk : colors.text },
-									]}
-								>
-									{row.estimate !== null
-										? `≈ ${Math.round(row.estimate)}`
-										: "—"}
-								</AppText>
-							</View>
-						))}
+									<View style={styles.historyRow}>
+										<AppText
+											variant="label"
+											style={[styles.setNumber, { color: colors.textMuted }]}
+										>
+											{index + 1}
+										</AppText>
+										<AppText
+											variant="row"
+											style={[styles.flex, styles.tabular]}
+										>
+											{load}
+										</AppText>
+										<AppText
+											variant="footnote"
+											style={{ color: colors.textMuted }}
+										>
+											{kind}
+										</AppText>
+										<AppText
+											variant="row"
+											style={[
+												styles.estimate,
+												styles.tabular,
+												{ color: row.record ? colors.accentInk : colors.text },
+											]}
+										>
+											{estimate}
+										</AppText>
+									</View>
+									<RowNote note={row.notes} style={styles.historyNote} />
+								</View>
+							);
+						})}
 					</View>
 				</View>
 			))}
@@ -989,6 +1042,11 @@ const createStyles = (colors: Tokens) =>
 			borderTopColor: colors.separator,
 		},
 		setNumber: { width: 20 },
+		historyNote: {
+			paddingLeft: spacing.md - 2 + 20 + spacing.sm,
+			paddingRight: spacing.md - 2,
+			paddingBottom: spacing.sm,
+		},
 		estimate: { minWidth: 56, textAlign: "right", fontWeight: "700" },
 		instructions: { gap: spacing.sm },
 		step: { color: colors.textMuted },

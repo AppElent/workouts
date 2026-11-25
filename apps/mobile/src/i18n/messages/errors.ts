@@ -7,6 +7,10 @@ export const errorsEn = {
 		"Your signed-in account changed. Reopen this screen and try again.",
 	readOnly: "This is built in and can't be changed.",
 	duplicate: "This already exists.",
+	routineNameTooLong: "Shorten the routine name to 200 characters or fewer.",
+	routineDuplicateExercise: "Remove repeated exercises from the routine.",
+	routineTooLarge:
+		"This routine is too large. Remove exercises or reduce the number of sets.",
 	operationConflict:
 		"This conflicts with a change that was already saved. Refresh and try again.",
 	recordDeleted: "This was deleted on another device.",
@@ -29,6 +33,10 @@ export const errorsNl: typeof errorsEn = {
 		"Je bent met een ander account ingelogd. Open dit scherm opnieuw en probeer het nogmaals.",
 	readOnly: "Dit is ingebouwd en kan niet worden gewijzigd.",
 	duplicate: "Dit bestaat al.",
+	routineNameTooLong: "Kort de naam van het schema in tot maximaal 200 tekens.",
+	routineDuplicateExercise: "Verwijder dubbele oefeningen uit het schema.",
+	routineTooLarge:
+		"Dit schema is te groot. Verwijder oefeningen of verminder het aantal sets.",
 	operationConflict:
 		"Dit botst met een wijziging die al is opgeslagen. Ververs en probeer het opnieuw.",
 	recordDeleted: "Dit is op een ander toestel verwijderd.",

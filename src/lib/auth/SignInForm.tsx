@@ -1,11 +1,12 @@
 import { useAuth, useSignIn } from "@clerk/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { fmt, useMessages } from "#/lib/i18n";
 import { AuthButton } from "./AuthButton";
 import { AuthError } from "./AuthError";
 import { AuthField } from "./AuthField";
 import { orThrow, useClerkErrorMessage } from "./clerkError";
 import { AUTH_PATHS, withRedirect } from "./paths";
+import { ResumePending } from "./ResumePending";
 import { SecondFactorStep } from "./SecondFactorStep";
 import { SocialButtons } from "./SocialButtons";
 import { needsSecondFactor } from "./secondFactor";
@@ -26,22 +27,30 @@ function hasEmailCodeFactor(signIn: SignIn) {
  */
 export function SignInForm({
 	onSuccess,
+	onStartOver,
 	redirect,
 	resumeSocial = false,
+	focusFirst = false,
 }: {
 	onSuccess?: () => void;
+	/** The person left the pending or second-factor step for the plain form. */
+	onStartOver?: () => void;
 	/** Arrived from `/sso-callback`: carry on with its open social sign-in. */
 	resumeSocial?: boolean;
+	/** Focus the first field, e.g. after the way back from `/sso-callback`. */
+	focusFirst?: boolean;
 	/** Where to land after signing in, carried to social sign-in, sign-up, and password reset. */
 	redirect?: string;
 }) {
 	const { signIn } = useSignIn();
 	const { isLoaded } = useAuth();
+	// Pending leaves for a form the person did not open: put them in it.
+	const [autoFocus] = useState(resumeSocial || focusFirst);
 	const { auth } = useMessages();
 	const errorMessage = useClerkErrorMessage();
-	const [step, setStep] = useState<"password" | "code" | "secondFactor">(
-		"password",
-	);
+	const [step, setStep] = useState<
+		"pending" | "password" | "code" | "secondFactor"
+	>(resumeSocial ? "pending" : "password");
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [code, setCode] = useState("");
@@ -50,6 +59,8 @@ export function SignInForm({
 	const [loading, setLoading] = useState(false);
 
 	async function run(action: (signIn: SignIn) => Promise<void>) {
+		// Clerk queues calls made before it loads; nothing may go out then.
+		if (!isLoaded) return;
 		setError(null);
 		setNotice(null);
 		setLoading(true);
@@ -65,20 +76,17 @@ export function SignInForm({
 	// A social sign-in that needs a second factor comes back from
 	// `/sso-callback` with the attempt still open: carry on with it. Only when
 	// sent from there, and only an OAuth attempt, so an attempt someone else
-	// left in this browser is not picked up. Waits for Clerk: before load,
-	// `signIn` is a placeholder.
-	const resumed = useRef(false);
+	// left in this browser is not picked up. Decided once, after Clerk loads:
+	// before that `signIn` is a placeholder.
 	useEffect(() => {
-		if (!isLoaded || resumed.current) return;
-		resumed.current = true;
-		if (
-			resumeSocial &&
+		if (step !== "pending" || !isLoaded) return;
+		setStep(
 			signIn.firstFactorVerification?.strategy?.startsWith("oauth_") &&
-			needsSecondFactor(signIn.status)
-		) {
-			setStep("secondFactor");
-		}
-	}, [isLoaded, signIn, resumeSocial]);
+				needsSecondFactor(signIn.status)
+				? "secondFactor"
+				: "password",
+		);
+	}, [step, isLoaded, signIn]);
 
 	async function finish(signIn: SignIn) {
 		if (needsSecondFactor(signIn.status)) {
@@ -129,6 +137,18 @@ export function SignInForm({
 		});
 	}
 
+	if (step === "pending") {
+		return (
+			<ResumePending
+				backLabel={auth.secondFactor.backToSignIn}
+				onBack={() => {
+					setStep("password");
+					onStartOver?.();
+				}}
+			/>
+		);
+	}
+
 	if (step === "secondFactor") {
 		return (
 			<SecondFactorStep
@@ -138,6 +158,7 @@ export function SignInForm({
 					setNotice(null);
 					setCode("");
 					setStep("password");
+					onStartOver?.();
 				}}
 			/>
 		);
@@ -196,6 +217,7 @@ export function SignInForm({
 				label={auth.email}
 				type="email"
 				autoComplete="username"
+				autoFocus={autoFocus}
 				value={email}
 				onChange={setEmail}
 				required
@@ -208,12 +230,15 @@ export function SignInForm({
 				onChange={setPassword}
 				required
 			/>
-			<AuthButton loading={loading}>{auth.signIn.submit}</AuthButton>
+			<AuthButton loading={loading || !isLoaded}>
+				{auth.signIn.submit}
+			</AuthButton>
 			<AuthButton
 				type="button"
 				variant="ghost"
 				className="border-solid border-border"
 				loading={loading}
+				disabled={!isLoaded}
 				onClick={sendCode}
 			>
 				{auth.signIn.emailCode}

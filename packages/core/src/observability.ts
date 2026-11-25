@@ -10,6 +10,7 @@ type ReportBreadcrumb = {
 
 type ReportEvent = {
 	type?: string;
+	breadcrumbs?: ReportBreadcrumb[];
 	message?: string;
 	user?: { id?: string | number };
 	request?: { method?: string; url?: string };
@@ -22,6 +23,22 @@ type ReportEvent = {
 		}[];
 	};
 };
+
+/**
+ * Interaction breadcrumbs describe the element a person tapped, clicked or
+ * typed into by its accessible name (`aria-label`, `title`, `alt`, or the
+ * React Native accessibility label). Ours carry workout and nutrition values
+ * and the account name, so none of them leave the device: `ui.click` and
+ * `ui.input` on the web, `touch` and `ui.multiClick` (rage taps) on mobile.
+ */
+function isInteractionBreadcrumb(category: string | undefined): boolean {
+	return (
+		category === "touch" ||
+		category === "ui.click" ||
+		category === "ui.input" ||
+		category === "ui.multiClick"
+	);
+}
 
 const BREADCRUMB_DATA_KEYS = [
 	"url",
@@ -68,14 +85,7 @@ export function sanitizeBreadcrumb<T extends ReportBreadcrumb>(
 ): T | null {
 	// Convex server console output can contain entire mutation payloads.
 	if (breadcrumb.category === "console") return null;
-	// Sentry's touch and rage-tap breadcrumbs use the tapped element's
-	// accessibility label as the message, and ours carry workout and nutrition
-	// values and the account name.
-	if (
-		breadcrumb.category === "touch" ||
-		breadcrumb.category === "ui.multiClick"
-	)
-		return null;
+	if (isInteractionBreadcrumb(breadcrumb.category)) return null;
 	return {
 		...breadcrumb,
 		message: breadcrumb.message ? sanitizeText(breadcrumb.message) : undefined,
@@ -104,6 +114,14 @@ export function sanitizeEvent<T extends ReportEvent>(event: T): T {
 		};
 	}
 	delete report.extra;
+	// Breadcrumbs merged into the event after `beforeBreadcrumb` ran, such as
+	// the native SDK's own on mobile, get the same pass here.
+	if (report.breadcrumbs) {
+		report.breadcrumbs = report.breadcrumbs.flatMap((breadcrumb) => {
+			const kept = sanitizeBreadcrumb(breadcrumb);
+			return kept ? [kept] : [];
+		});
+	}
 	if (report.message) report.message = sanitizeText(report.message);
 	for (const exception of report.exception?.values ?? []) {
 		if (exception.value) exception.value = sanitizeText(exception.value);

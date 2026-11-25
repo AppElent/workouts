@@ -1,4 +1,8 @@
-import { validateRecordedTime, validateSetInput } from "@foundry/core";
+import {
+	validateRecordedTime,
+	validateSetInput,
+	validateSetNote,
+} from "@foundry/core";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import type { QueryCtx } from "./_generated/server";
@@ -36,15 +40,20 @@ export const add = mutation({
 		weight: v.number(),
 		unit: loadUnit,
 		rpe: v.optional(v.number()),
+		/** Stored trimmed; empty means no note. */
+		notes: v.optional(v.string()),
 		setType,
 		/** When it was performed, for a session logged afterwards; defaults to now. */
 		loggedAt: v.optional(v.number()),
 	},
-	handler: async (ctx, { operationId, loggedAt, ...values }) => {
+	handler: async (ctx, { operationId, loggedAt, notes, ...input }) => {
 		const userId = await requireUserId(ctx);
 		// A coded rejection tells the client this operation did not commit, so it
 		// may unlock the input; a transport failure keeps the operation id frozen.
-		checked(validateSetInput(values));
+		checked(validateSetInput(input));
+		const note = checked(validateSetNote(notes));
+		// Left out without a note, so receipts from before notes still match.
+		const values = note === undefined ? input : { ...input, notes: note };
 		return withOperationReceipt(
 			ctx,
 			"strengthLogReceipts",
@@ -108,14 +117,18 @@ export const update = mutation({
 		weight: v.optional(v.number()),
 		unit: v.optional(loadUnit),
 		rpe: v.optional(v.union(v.number(), v.null())),
+		/** Omitted keeps the stored note; an empty string clears it. */
+		notes: v.optional(v.string()),
 		setType: v.optional(setType),
 	},
-	handler: async (ctx, { id, rpe, ...values }) => {
+	handler: async (ctx, { id, rpe, notes, ...values }) => {
 		const userId = await requireUserId(ctx);
 		checked(validateSetInput({ ...values, rpe }));
+		const note = checked(validateSetNote(notes));
 		const patch = {
 			...values,
 			...(rpe === undefined ? {} : { rpe: rpe ?? undefined }),
+			...(notes === undefined ? {} : { notes: note }),
 		};
 		const set = await requireOwned(ctx, userId, id);
 		await ctx.db.patch(id, {

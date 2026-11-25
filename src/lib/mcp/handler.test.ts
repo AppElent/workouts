@@ -1,3 +1,4 @@
+import { getShippedExercise } from "@foundry/core/exercises";
 import { getFunctionName } from "convex/server";
 import { ConvexError } from "convex/values";
 import { describe, expect, it } from "vitest";
@@ -272,6 +273,69 @@ describe("Foundry MCP endpoint", () => {
 		});
 	});
 
+	it("round-trips a set's note", async () => {
+		const set: Record<string, unknown> = {
+			_id: "set_1",
+			exerciseId: "back-squat",
+			setNumber: 1,
+			reps: 5,
+			weight: 100,
+			unit: "kg",
+			setType: "working",
+			loggedAt: Date.parse("2026-11-10T11:40:00Z"),
+		};
+		const backend = fakeBackend({
+			"workoutSessions:getById": () => ({
+				_id: "session_1",
+				status: "active",
+				startTime: Date.parse("2026-11-10T11:30:00Z"),
+				exercises: [],
+			}),
+			"sets:listForSession": () => [set],
+			"exercises:getHistory": () => [set],
+			"sets:add": ({ notes }: { notes?: string }) => {
+				set.notes = notes;
+				return "set_1";
+			},
+			"sets:update": ({ notes }: { notes?: string }) => {
+				set.notes = notes;
+				return null;
+			},
+		});
+		const log = (notes: string) =>
+			callTool(backend, "log_set", {
+				idempotencyKey: "key-12345",
+				sessionId: "session_1",
+				exerciseId: "back-squat",
+				setNumber: 1,
+				reps: 5,
+				weight: 100,
+				unit: "kg",
+				notes,
+			});
+		expect((await log("a".repeat(501))).isError).toBe(true);
+		await log(" narrow grip ");
+		const session = await callTool(backend, "get_strength_session", {
+			sessionId: "session_1",
+		});
+		expect(JSON.stringify(session.structuredContent)).toContain(
+			'"notes":"narrow grip"',
+		);
+		const history = await callTool(backend, "get_exercise_history", {
+			exerciseId: "back-squat",
+		});
+		expect(JSON.stringify(history.structuredContent)).toContain(
+			'"notes":"narrow grip"',
+		);
+		await callTool(backend, "update_set", { setId: "set_1", notes: "" });
+		expect(backend.calls.at(-1)).toMatchObject({
+			name: "sets:update",
+			args: { notes: "" },
+		});
+		await callTool(backend, "update_set", { setId: "set_1", reps: 6 });
+		expect(backend.calls.at(-1)?.args).not.toHaveProperty("notes");
+	});
+
 	it("returns the active session instead of starting a second one", async () => {
 		const session = {
 			_id: "session_1",
@@ -319,6 +383,164 @@ describe("Foundry MCP endpoint", () => {
 			kind: "mutation",
 			name: "exercises:ensurePersonal",
 			args: { name: "Sled Push" },
+		});
+	});
+
+	describe("create_routine", () => {
+		const input = {
+			idempotencyKey: "routine-key-1",
+			name: " Push day ",
+			exercises: [
+				{
+					exerciseId: SQUAT,
+					defaultSets: 3,
+					defaultReps: 8,
+					defaultWeight: 60,
+				},
+			],
+		};
+		const backendWith = (stored: () => object[]) =>
+			fakeBackend({
+				"routines:create": () => "routine_1",
+				"routines:list": stored,
+				"exercises:listPersonal": () => ({
+					page: [],
+					isDone: true,
+					continueCursor: "",
+				}),
+			});
+		const saved = {
+			_id: "routine_1",
+			_creationTime: 1,
+			userId: "user_1",
+			name: "Push day",
+			exercises: [
+				{
+					...input.exercises[0],
+					exerciseName: getShippedExercise(SQUAT)?.name,
+				},
+			],
+		};
+
+		it("saves a Routine and returns it as list_routines does", async () => {
+			const backend = backendWith(() => [saved]);
+			const call = await callTool(backend, "create_routine", input);
+			expect(call.isError).toBeUndefined();
+			expect(backend.calls[0]).toEqual({
+				kind: "mutation",
+				name: "routines:create",
+				args: {
+					operationId: "mcp:routine-key-1",
+					name: "Push day",
+					exercises: input.exercises,
+				},
+			});
+			const listed = await callTool(backend, "list_routines", {});
+			expect(listed.structuredContent?.routines).toEqual([
+				call.structuredContent?.routine,
+			]);
+		});
+
+		it.each([
+			[
+				"edited",
+				[
+					{
+						...saved,
+						name: "Renamed",
+						exercises: [{ ...saved.exercises[0], defaultSets: 4 }],
+					},
+				],
+			],
+			["deleted", []],
+		])(
+			"replays the first result when the Routine was %s since",
+			async (_, after) => {
+				let stored: object[] = [saved];
+				const backend = backendWith(() => stored);
+				const first = await callTool(backend, "create_routine", input);
+				stored = after;
+				const retry = await callTool(backend, "create_routine", input);
+				expect(retry.isError).toBeUndefined();
+				expect(retry.structuredContent).toEqual(first.structuredContent);
+				const writes = backend.calls.filter((c) => c.kind === "mutation");
+				expect(writes).toHaveLength(2);
+				expect(writes[1]).toEqual(writes[0]);
+			},
+		);
+
+		it("refuses a repeated Exercise without calling Convex", async () => {
+			const backend = fakeBackend();
+			const call = await callTool(backend, "create_routine", {
+				...input,
+				exercises: [
+					input.exercises[0],
+					{ ...input.exercises[0], defaultReps: 5 },
+				],
+			});
+			expect(call.isError).toBe(true);
+			expect(call.content[0]?.text).toContain("more than once");
+			expect(backend.calls).toHaveLength(0);
+		});
+
+		it.each([
+			["no key", { idempotencyKey: undefined }],
+			["blank name", { name: "  " }],
+			["too long a name", { name: "a".repeat(101) }],
+			["no exercises", { exercises: [] }],
+			[
+				"too many exercises",
+				{ exercises: Array(101).fill(input.exercises[0]) },
+			],
+			...(
+				[
+					["zero sets", { defaultSets: 0 }],
+					["fractional sets", { defaultSets: 1.5 }],
+					["too many sets", { defaultSets: 101 }],
+					["zero reps", { defaultReps: 0 }],
+					["too many reps", { defaultReps: 1001 }],
+					["too much weight", { defaultWeight: 2001 }],
+					["negative weight", { defaultWeight: -1 }],
+					["empty exercise ID", { exerciseId: "" }],
+				] as const
+			).map(
+				([label, change]) =>
+					[label, { exercises: [{ ...input.exercises[0], ...change }] }] as [
+						string,
+						object,
+					],
+			),
+		] as [string, object][])(
+			"refuses %s without calling Convex",
+			async (_, change) => {
+				const backend = fakeBackend();
+				const call = await callTool(backend, "create_routine", {
+					...input,
+					...change,
+				});
+				expect(call.isError).toBe(true);
+				expect(backend.calls).toHaveLength(0);
+			},
+		);
+
+		it("explains an unknown or foreign Exercise", async () => {
+			const backend = fakeBackend({
+				"routines:create": () => {
+					throw new ConvexError({ code: "notFound", field: "exerciseId" });
+				},
+			});
+			const call = await callTool(backend, "create_routine", input);
+			expect(call.isError).toBe(true);
+			expect(call.content[0]?.text).toContain("list_exercises");
+		});
+
+		it("is not callable with a read-only grant", async () => {
+			const backend = fakeBackend();
+			const call = await callTool(backend, "create_routine", input, [
+				"foundry:read",
+			]);
+			expect(call.isError).toBe(true);
+			expect(backend.calls).toHaveLength(0);
 		});
 	});
 
@@ -633,6 +855,7 @@ const EXISTING_TOOLS = [
 	"log_wod_result",
 	"list_exercises",
 	"create_exercise",
+	"create_routine",
 	"get_exercise_history",
 	"get_exercise_volume",
 	"list_one_rep_maxes",

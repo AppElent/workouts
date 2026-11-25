@@ -403,6 +403,11 @@ function ExerciseDetailPage() {
 												</td>
 												<td className="py-2 pr-4 text-text">
 													#{set.setNumber}
+													{set.notes ? (
+														<p className="max-w-48 text-xs text-text-muted whitespace-pre-wrap break-words">
+															{set.notes}
+														</p>
+													) : null}
 												</td>
 												<td className="py-2 pr-4 text-text-muted capitalize">
 													{set.setType}

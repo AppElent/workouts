@@ -24,21 +24,24 @@ export function Stepper({
 	const inc = () =>
 		onChange(Math.min(max, parseFloat((value + step).toFixed(2))));
 
+	// The w-16 label column fits the longest one-word label (EN "Seconds", NL
+	// "Gewicht") with a visible gap; longer labels such as "Added weight" wrap
+	// at the space. On phones the 44px buttons leave room for "102.5 kg" at 320px.
 	return (
-		<div className="flex items-center gap-3">
-			<span className="text-xs text-text-muted uppercase tracking-wide w-12 shrink-0">
+		<div className="flex items-center gap-2">
+			<span className="w-16 shrink-0 break-words text-xs uppercase leading-tight tracking-wide text-text-muted">
 				{label}
 			</span>
-			<div className="flex items-stretch flex-1 h-14 bg-surface-2 rounded-xl border border-border">
+			<div className="flex min-w-0 items-stretch flex-1 h-14 bg-surface-2 rounded-xl border border-border">
 				<button
 					type="button"
 					onClick={dec}
-					className="w-14 flex items-center justify-center text-text-muted hover:text-text hover:bg-text/5 active:bg-text/10 transition-colors touch-manipulation rounded-l-xl"
+					className="w-11 sm:w-14 shrink-0 flex items-center justify-center text-text-muted hover:text-text hover:bg-text/5 active:bg-text/10 transition-colors touch-manipulation rounded-l-xl"
 					aria-label={`Decrease ${label}`}
 				>
 					<Minus size={18} />
 				</button>
-				<div className="flex-1 flex items-center justify-center gap-1.5 select-none">
+				<div className="min-w-0 flex-1 flex items-center justify-center gap-1 select-none">
 					<span className="text-stat font-bold text-text leading-none tabular-nums">
 						{value}
 					</span>
@@ -51,7 +54,7 @@ export function Stepper({
 				<button
 					type="button"
 					onClick={inc}
-					className="w-14 flex items-center justify-center text-text-muted hover:text-text hover:bg-text/5 active:bg-text/10 transition-colors touch-manipulation rounded-r-xl"
+					className="w-11 sm:w-14 shrink-0 flex items-center justify-center text-text-muted hover:text-text hover:bg-text/5 active:bg-text/10 transition-colors touch-manipulation rounded-r-xl"
 					aria-label={`Increase ${label}`}
 				>
 					<Plus size={18} />

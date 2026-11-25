@@ -410,7 +410,8 @@ export function SessionRecap({
 									onPress={() =>
 										router.push({
 											pathname: "/exercise-sheet/[id]",
-											params: { id: row.exerciseId },
+											// "‹ Sessie" back, as from the session itself (APP-624).
+											params: { id: row.exerciseId, from: "session" },
 										})
 									}
 									style={({ pressed }) => [

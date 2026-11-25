@@ -1,38 +1,74 @@
-import { useSignUp } from "@clerk/react";
-import { useState } from "react";
+import { useAuth, useSignUp } from "@clerk/react";
+import { useEffect, useState } from "react";
 import { fmt, useI18n } from "#/lib/i18n";
 import { AuthButton } from "./AuthButton";
 import { AuthError } from "./AuthError";
 import { AuthField } from "./AuthField";
 import { orThrow, useClerkErrorMessage } from "./clerkError";
 import { AUTH_PATHS, withRedirect } from "./paths";
+import { ResumePending } from "./ResumePending";
+import { SignUpContinueStep } from "./SignUpContinueStep";
 import { SocialButtons } from "./SocialButtons";
+import { isResumable, isSocialSignUp } from "./signUpContinue";
 
+/**
+ * Email + password with an emailed code. A social sign-up that `/sso-callback`
+ * sends here with its attempt still open gets the continue step instead.
+ */
 export function SignUpForm({
 	onSuccess,
+	onStartOver,
 	redirect,
+	resumeSocial = false,
 }: {
 	onSuccess: () => void;
+	/** The person left the pending or continue step for the plain form. */
+	onStartOver?: () => void;
+	/** Arrived from `/sso-callback`: carry on with its open social sign-up. */
+	resumeSocial?: boolean;
 	/** Where to land after signing up, carried to social sign-up and sign-in. */
 	redirect?: string;
 }) {
 	const { signUp } = useSignUp();
+	const { isLoaded } = useAuth();
+	// Pending leaves for a form the person did not open: put them in it.
+	const [resumed] = useState(resumeSocial);
 	const { locale, messages } = useI18n();
 	const { auth } = messages;
 	const errorMessage = useClerkErrorMessage();
-	const [step, setStep] = useState<"details" | "verify">("details");
+	const [step, setStep] = useState<
+		"pending" | "continue" | "details" | "verify"
+	>(resumeSocial ? "pending" : "details");
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [code, setCode] = useState("");
 	const [error, setError] = useState<string | null>(null);
 	const [loading, setLoading] = useState(false);
 
+	// Only when sent from `/sso-callback`, and only a social attempt, so one
+	// someone else left in this browser is not picked up. Decided once, after
+	// Clerk loads: before that `signUp` is a placeholder.
+	useEffect(() => {
+		if (step !== "pending" || !isLoaded) return;
+		setStep(isResumable(signUp) ? "continue" : "details");
+	}, [step, isLoaded, signUp]);
+
 	async function submitDetails(e: React.FormEvent) {
 		e.preventDefault();
+		// Until Clerk loads, `signUp` is a placeholder that hides an open attempt
+		// and queues calls, so the check below would pass for any attempt.
+		if (!isLoaded) return;
 		setError(null);
 		setLoading(true);
 		try {
-			await orThrow(signUp.password({ emailAddress: email, password }));
+			// `password()` adds to an open attempt. An abandoned social one may be
+			// someone else's, and its account must not end up on this sign-up, so
+			// `create()` replaces it.
+			await orThrow(
+				isSocialSignUp(signUp)
+					? signUp.create({ emailAddress: email, password })
+					: signUp.password({ emailAddress: email, password }),
+			);
 			await orThrow(signUp.verifications.sendEmailCode());
 			setStep("verify");
 		} catch (err) {
@@ -59,6 +95,31 @@ export function SignUpForm({
 		} finally {
 			setLoading(false);
 		}
+	}
+
+	if (step === "pending") {
+		return (
+			<ResumePending
+				backLabel={auth.signUp.backToSignUp}
+				onBack={() => {
+					setStep("details");
+					onStartOver?.();
+				}}
+			/>
+		);
+	}
+
+	if (step === "continue") {
+		return (
+			<SignUpContinueStep
+				redirect={redirect}
+				onSuccess={onSuccess}
+				onStartOver={() => {
+					setStep("details");
+					onStartOver?.();
+				}}
+			/>
+		);
 	}
 
 	if (step === "verify") {
@@ -89,6 +150,7 @@ export function SignUpForm({
 				label={auth.email}
 				type="email"
 				autoComplete="username"
+				autoFocus={resumed}
 				value={email}
 				onChange={setEmail}
 				required
@@ -114,7 +176,9 @@ export function SignUpForm({
 				data-cl-size="flexible"
 				data-cl-language={locale}
 			/>
-			<AuthButton loading={loading}>{auth.signUp.submit}</AuthButton>
+			<AuthButton loading={loading || !isLoaded}>
+				{auth.signUp.submit}
+			</AuthButton>
 			<div className="mt-1 text-center text-xs text-text-muted">
 				<a
 					href={withRedirect(AUTH_PATHS.signIn, redirect)}

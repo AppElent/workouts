@@ -55,7 +55,8 @@ No Convex change: everything ships as an OTA update.
   white.
 - The set type segment reads "Dropset", the existing copy; the canvas says "Drop".
 - The editor menu keeps Krachtprofiel, which the canvas does not draw.
-- The canvas's note field is not built: notes need a Convex field.
+- The note field (APP-690) also shows in the simple view when the set has a note, so
+  a note is never hidden. Set rows show the note under the load.
 
 ## Limits
 

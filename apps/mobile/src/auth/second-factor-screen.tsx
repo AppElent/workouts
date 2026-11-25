@@ -10,9 +10,10 @@
  *
  * Leaving drops the Clerk attempt, so the sign-in screen starts clean: "Back
  * to sign in", Android back and the back gesture all go through `leave`.
- * Too many wrong codes or an expired attempt end it; then only the way back
- * is left. A verified code signs in; the `(auth)` layout redirects and this
- * screen unmounts.
+ * Too many wrong codes lock only the current method: its field goes, a texted
+ * or emailed code can be sent again, and the other methods stay. An expired
+ * attempt ends it; then only the way back is left. A verified code signs in;
+ * the `(auth)` layout redirects and this screen unmounts.
  */
 import { useAuth } from "@clerk/expo";
 import { usePreventRemove, useRouter } from "expo-router";
@@ -45,6 +46,8 @@ export function SecondFactorScreen({
 		verify,
 		cancel,
 		ended,
+		locked,
+		lockedOut,
 		busy,
 		error,
 	} = useSecondFactor({
@@ -74,7 +77,7 @@ export function SecondFactorScreen({
 	const current = options.find((option) => option.strategy === strategy);
 	const backup = strategy === "backup_code";
 	const ready = backup ? code.trim().length > 0 : code.length === CODE_LENGTH;
-	const locked = busy || sending || leaving;
+	const waiting = busy || sending || leaving;
 
 	function destination(option: SecondFactorOption) {
 		return (
@@ -83,15 +86,30 @@ export function SecondFactorScreen({
 		);
 	}
 
+	const others = options.filter((option) => option.strategy !== strategy);
+	// No code field while the method is locked or the attempt is over.
+	const codeOpen = !ended && !locked;
+
+	function message() {
+		if (ended) return copy.attemptEnded;
+		if (!locked || !current) return error;
+		if (sendsCode(current.strategy)) return error ?? copy.codeLocked;
+		const usable = others.some((option) => !lockedOut.has(option.strategy));
+		return usable ? copy.methodLocked : copy.onlyMethodLocked;
+	}
+
 	function submit() {
-		if (!ready || locked || ended) return;
+		if (!ready || waiting || !codeOpen) return;
 		setNotice(null);
 		void verify(code);
 	}
 
 	async function onResend() {
 		setNotice(null);
-		if (await resend()) setNotice(copy.resent);
+		if (await resend()) {
+			setCode("");
+			setNotice(copy.resent);
+		}
 	}
 
 	async function onSwitch(next: SecondFactorOption) {
@@ -118,37 +136,40 @@ export function SecondFactorScreen({
 	return (
 		<AuthScreen
 			title={copy.title}
-			subtitle={fmt(copy.prompt[current.strategy], {
-				destination: destination(current),
-			})}
+			subtitle={
+				// A locked authenticator app or backup code takes no code here.
+				locked && !sendsCode(current.strategy)
+					? undefined
+					: fmt(copy.prompt[current.strategy], {
+							destination: destination(current),
+						})
+			}
 			footer={
 				<>
 					{!ended && sendsCode(current.strategy) ? (
 						<AuthLink
 							label={copy.resend}
 							onPress={onResend}
-							disabled={locked}
+							disabled={waiting}
 						/>
 					) : null}
 					{ended
 						? null
-						: options
-								.filter((option) => option.strategy !== current.strategy)
-								.map((option) => (
-									<AuthLink
-										key={option.strategy}
-										label={fmt(copy.switchTo[option.strategy], {
-											destination: destination(option),
-										})}
-										onPress={() => onSwitch(option)}
-										disabled={locked}
-									/>
-								))}
+						: others.map((option) => (
+								<AuthLink
+									key={option.strategy}
+									label={fmt(copy.switchTo[option.strategy], {
+										destination: destination(option),
+									})}
+									onPress={() => onSwitch(option)}
+									disabled={waiting}
+								/>
+							))}
 					{back}
 				</>
 			}
 		>
-			{ended ? null : (
+			{codeOpen ? (
 				<AuthInput
 					key={current.strategy}
 					placeholder={backup ? copy.backupCode : copy.code}
@@ -165,12 +186,12 @@ export function SecondFactorScreen({
 					returnKeyType="go"
 					onSubmitEditing={submit}
 				/>
-			)}
+			) : null}
 
-			<AuthMessage message={ended ? copy.attemptEnded : error} />
+			<AuthMessage message={message()} />
 			<AuthMessage message={notice} tone="muted" />
 
-			{ended ? null : (
+			{codeOpen ? (
 				<PrimaryButton
 					label={copy.submit}
 					loading={busy}
@@ -178,7 +199,7 @@ export function SecondFactorScreen({
 					onPress={submit}
 					testID="second-factor-submit"
 				/>
-			)}
+			) : null}
 		</AuthScreen>
 	);
 }

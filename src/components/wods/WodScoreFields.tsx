@@ -77,7 +77,7 @@ export function WodScoreFields({
 					{draft.timeCapped ? (
 						reps
 					) : (
-						<div className="grid grid-cols-2 gap-2">
+						<div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
 							<Stepper
 								value={draft.minutes}
 								onChange={(value) => onChange({ minutes: value })}
@@ -99,7 +99,7 @@ export function WodScoreFields({
 			);
 		case "amrap":
 			return (
-				<div className="grid grid-cols-2 gap-2">
+				<div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
 					<Stepper
 						value={draft.rounds}
 						onChange={(value) => onChange({ rounds: value })}
@@ -113,7 +113,7 @@ export function WodScoreFields({
 			return reps;
 		case "load":
 			return (
-				<div className="grid grid-cols-[1fr_84px] gap-2">
+				<div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_84px]">
 					<Stepper
 						value={draft.load}
 						onChange={(value) => onChange({ load: value })}
@@ -127,7 +127,7 @@ export function WodScoreFields({
 							onChange({ loadUnit: event.target.value as LoadUnit })
 						}
 						aria-label={t.loadUnit}
-						className="h-full rounded-lg border border-border bg-surface-2 px-2 text-sm text-text"
+						className="h-11 rounded-lg border border-border bg-surface-2 px-2 text-sm text-text sm:h-full"
 					>
 						{LOAD_UNITS.map((unit) => (
 							<option key={unit} value={unit}>

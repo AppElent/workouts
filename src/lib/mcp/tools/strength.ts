@@ -5,6 +5,7 @@ import {
 	EXERCISE_CATEGORIES,
 	isTimedExercise,
 	SET_LIMITS,
+	SET_NOTE_LENGTH,
 	validateRecordedTime,
 } from "@foundry/core";
 import type { Exercise } from "@foundry/core/exercises";
@@ -190,6 +191,7 @@ async function sessionWithSets(backend: FoundryBackend, id: string) {
 			weight: set.weight,
 			unit: set.unit,
 			rpe: set.rpe,
+			notes: set.notes,
 			setType: set.setType,
 			loggedAt: isoDate(set.loggedAt),
 		})),
@@ -357,6 +359,90 @@ export const strengthTools = [
 		},
 	}),
 	defineTool({
+		name: "create_routine",
+		title: "Create routine",
+		description:
+			"Save a reusable Routine: a named list of Exercises in order, each with suggested sets, reps, and an optional load in kg. It appears in the user's Routines in the app; start_strength_session can start from it. Check list_routines first to avoid a near-duplicate. Name each Exercise once, as in the app. Returns the Routine as saved, in the shape list_routines uses; a retry returns the same result even if the user has changed or deleted the Routine since.",
+		access: "write",
+		input: {
+			idempotencyKey,
+			name: z.string().trim().min(1).max(100).describe("Routine name"),
+			exercises: z
+				.array(
+					z.object({
+						exerciseId: z
+							.string()
+							.min(1)
+							.describe("Exercise ID from list_exercises or create_exercise"),
+						defaultSets: z
+							.number()
+							.int()
+							.min(1)
+							.max(SET_LIMITS.plannedSets.max)
+							.describe("Suggested number of sets"),
+						defaultReps: z
+							.number()
+							.int()
+							.min(1)
+							.max(SET_LIMITS.plannedReps.max)
+							.describe(
+								"Suggested reps per set, or seconds held when list_exercises gives the Exercise measure seconds",
+							),
+						defaultWeight: z
+							.number()
+							.min(0)
+							.max(SET_LIMITS.plannedWeight.max)
+							.optional()
+							.describe("Suggested load in kg; omit for bodyweight"),
+					}),
+				)
+				.min(1)
+				.max(SET_LIMITS.exercisesPerPrescription.max)
+				.describe("Exercises in training order"),
+		},
+		async run({ idempotencyKey, name, exercises }, { backend }) {
+			// Both apps' Routine editors key rows by Exercise, so a repeat breaks them.
+			const ids = exercises.map((exercise) => exercise.exerciseId);
+			const repeated = ids.find((id, index) => ids.indexOf(id) !== index);
+			if (repeated !== undefined)
+				throw new ToolInputError(
+					`Exercise ${repeated} is listed more than once. List each Exercise once per Routine.`,
+				);
+			let id: Id<"routines">;
+			try {
+				id = await backend.mutation(api.routines.create, {
+					operationId: `mcp:${idempotencyKey}`,
+					name,
+					exercises,
+				});
+			} catch (error) {
+				if (isConvexCode(error, "notFound", "exerciseId"))
+					throw new ToolInputError(
+						"An exerciseId is not one of the user's Exercises. Use IDs from list_exercises, or add the movement with create_exercise.",
+					);
+				throw error;
+			}
+			// The receipt accepts only this input for this key, so a retry replays the
+			// first result even when the Routine changed since.
+			const names = new Map<string, string>(
+				(await allExercises(backend)).map((exercise) => [
+					exercise._id,
+					exercise.name,
+				]),
+			);
+			return {
+				routine: {
+					id,
+					name,
+					exercises: exercises.map((exercise) => ({
+						...exercise,
+						exerciseName: names.get(exercise.exerciseId) ?? "Unknown",
+					})),
+				},
+			};
+		},
+	}),
+	defineTool({
 		name: "get_active_strength_session",
 		title: "Get active strength session",
 		description:
@@ -508,6 +594,12 @@ export const strengthTools = [
 			weight: z.number().min(0).max(2000).describe("Load; 0 for bodyweight"),
 			unit,
 			rpe: z.number().min(1).max(10).optional(),
+			notes: z
+				.string()
+				.trim()
+				.max(SET_NOTE_LENGTH)
+				.optional()
+				.describe("The user's note on this Set, such as narrow grip"),
 			setType: setType.default("working"),
 			loggedAt: pastTime(
 				"When the Set was done, for a session logged afterwards.",
@@ -528,7 +620,8 @@ export const strengthTools = [
 	defineTool({
 		name: "update_set",
 		title: "Update set",
-		description: "Correct the reps, load, RPE, or classification of a Set.",
+		description:
+			"Correct the reps, load, RPE, note, or classification of a Set.",
 		access: "write",
 		annotations: { idempotentHint: true },
 		input: {
@@ -543,6 +636,14 @@ export const strengthTools = [
 			weight: z.number().min(0).max(2000).optional(),
 			unit: unit.optional(),
 			rpe: z.number().min(1).max(10).nullable().optional(),
+			notes: z
+				.string()
+				.trim()
+				.max(SET_NOTE_LENGTH)
+				.optional()
+				.describe(
+					"Replaces the Set's note; an empty string clears it, omitting it keeps it",
+				),
 			setType: setType.optional(),
 		},
 		async run({ setId, ...changes }, { backend }) {
