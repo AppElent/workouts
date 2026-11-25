@@ -83,6 +83,23 @@ export const sessionLiveActivityLayout: LiveActivityComponent<
 		<Image systemName="dumbbell.fill" color={color} />
 	);
 
+	// Two short lines fit the slot beside the camera, also as "Rust voorbij".
+	const compactRestOver = (
+		<Text
+			modifiers={[
+				font({ size: 12, weight: "bold" }),
+				foregroundStyle(scheme.accent),
+				multilineTextAlignment("trailing"),
+				lineLimit(2),
+				minimumScaleFactor(0.75),
+				// Clear of the rounded end, which cuts off the "j".
+				padding({ trailing: 4 }),
+			]}
+		>
+			{props.labels.restOver}
+		</Text>
+	);
+
 	/** Exercise, then set and load; under the countdown while resting. */
 	const body = (colors: typeof scheme) => (
 		<VStack alignment="leading" spacing={2}>
@@ -191,7 +208,7 @@ export const sessionLiveActivityLayout: LiveActivityComponent<
 				{resting
 					? countdown(scheme.accent, 15, "trailing")
 					: restOver
-						? icon(scheme.accent)
+						? compactRestOver
 						: elapsed(scheme.text, 15, 52)}
 			</HStack>
 		),

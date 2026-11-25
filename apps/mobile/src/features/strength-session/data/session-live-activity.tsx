@@ -7,7 +7,11 @@ import { useEffect, useMemo, useState } from "react";
 import { AppState } from "react-native";
 import { useActiveSession } from "../../../data/session-data";
 import { useI18n } from "../../../i18n";
-import { endSessionActivity, showSessionActivity } from "./live-activity";
+import {
+	endSessionActivity,
+	retryFailedEnd,
+	showSessionActivity,
+} from "./live-activity";
 import { liveActivityProps } from "./live-activity-props";
 import { useRestState } from "./rest-timer";
 import { useSessionNow } from "./use-session-now";
@@ -24,6 +28,16 @@ export function useEndActivityWhenSignedOut(
 	useEffect(() => {
 		if (isLoaded && !userId) endSessionActivity();
 	}, [isLoaded, userId]);
+}
+
+/** Retries a failed end on coming back, also with nobody signed in. */
+export function useRetryFailedActivityEnd() {
+	useEffect(() => {
+		const sub = AppState.addEventListener("change", (state) => {
+			if (state === "active") retryFailedEnd();
+		});
+		return () => sub.remove();
+	}, []);
 }
 
 export function SessionLiveActivity() {

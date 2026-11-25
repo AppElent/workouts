@@ -15,7 +15,10 @@ import {
 	type LiveActivityProps,
 	liveActivityProps,
 } from "./live-activity-props";
-import { useEndActivityWhenSignedOut } from "./session-live-activity";
+import {
+	useEndActivityWhenSignedOut,
+	useRetryFailedActivityEnd,
+} from "./session-live-activity";
 import { nextSetOf, type SessionNow } from "./use-session-now";
 
 type FakeState = {
@@ -27,6 +30,7 @@ type FakeState = {
 	}[];
 	enabled: boolean;
 	endGate: Promise<void> | null;
+	endError: Error | null;
 	updateGate: Promise<void> | null;
 };
 const fake = (
@@ -297,6 +301,7 @@ describe("session Live Activity", () => {
 		fake.activities.length = 0;
 		fake.enabled = true;
 		fake.endGate = null;
+		fake.endError = null;
 		fake.updateGate = null;
 		jest.mocked(Sentry.captureException).mockClear();
 	});
@@ -371,6 +376,52 @@ describe("session Live Activity", () => {
 		await hook.rerender({ loaded: true, user: null });
 		await flush();
 		expect(live()).toHaveLength(0);
+	});
+
+	/** Mounts the root's retry; returns what coming to the foreground calls. */
+	async function mountRetry() {
+		await renderHook(() => useRetryFailedActivityEnd());
+		const onChange = jest
+			.mocked(AppState.addEventListener)
+			.mock.calls.at(-1)?.[1];
+		if (!onChange) throw new Error("no AppState listener");
+		return (state: "active" | "background") => onChange(state);
+	}
+
+	it("retries a failed end on every foreground until it succeeds, signed out too", async () => {
+		const change = await mountRetry();
+		showSessionActivity(props());
+		await flush();
+		fake.endError = new Error("ActivityKit failed");
+		await renderHook(() => useEndActivityWhenSignedOut(true, null));
+		await flush();
+		expect(live()).toHaveLength(1);
+		expect(Sentry.captureException).toHaveBeenCalledTimes(1);
+		change("active");
+		await flush();
+		expect(live()).toHaveLength(1);
+		fake.endError = null;
+		change("background");
+		await flush();
+		expect(live()).toHaveLength(1);
+		change("active");
+		await flush();
+		expect(live()).toHaveLength(0);
+	});
+
+	it("leaves the next session's activity alone after a failed end", async () => {
+		const change = await mountRetry();
+		showSessionActivity(props());
+		await flush();
+		fake.endError = new Error("ActivityKit failed");
+		endSessionActivity();
+		await flush();
+		fake.endError = null;
+		showSessionActivity(props({ sessionName: "Leg day", startedAt: T0 + 1 }));
+		await flush();
+		change("active");
+		await flush();
+		expect(live().map((item) => item.props.title)).toEqual(["Leg day"]);
 	});
 
 	it("updates its own activity in place", async () => {
