@@ -77,7 +77,7 @@ export function ExerciseEditorForm({
 	const [equipment, setEquipment] = useState<Equipment>(
 		exercise?.equipment ?? "barbell",
 	);
-	const savedMeasure = exerciseMeasure(exercise);
+	const [savedMeasure] = useState(() => exerciseMeasure(exercise));
 	const [measure, setMeasure] = useState(savedMeasure);
 	const [increment, setIncrement] = useState(
 		exercise?.weightIncrement?.toString() ?? "",

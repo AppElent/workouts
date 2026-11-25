@@ -51,7 +51,13 @@ export async function performanceReference(
 		"exerciseId" | "weight" | "reps" | "unit" | "performanceVerified"
 	>,
 ) {
-	const exercise = await resolveExercise(ctx, set.exerciseId, userId);
+	return setReference(set, await resolveExercise(ctx, set.exerciseId, userId));
+}
+
+function setReference(
+	set: Pick<Doc<"sets">, "weight" | "reps" | "unit" | "performanceVerified">,
+	exercise: Awaited<ReturnType<typeof resolveExercise>>,
+) {
 	if (!isReferenceEligible(set, exercise)) {
 		return { referenceKind: undefined, referenceValueKg: undefined };
 	}
@@ -103,8 +109,15 @@ export async function rebuildSetReferences(
 	userId: string,
 	exerciseId: string,
 ) {
-	for (const set of await exerciseSets(ctx, userId, exerciseId))
-		await ctx.db.patch(set._id, await performanceReference(ctx, userId, set));
+	const exercise = await resolveExercise(ctx, exerciseId, userId);
+	for (const set of await exerciseSets(ctx, userId, exerciseId)) {
+		const reference = setReference(set, exercise);
+		if (
+			reference.referenceKind !== set.referenceKind ||
+			reference.referenceValueKg !== set.referenceValueKg
+		)
+			await ctx.db.patch(set._id, reference);
+	}
 	await recalcStrengthReferences(ctx, userId, exerciseId);
 }
 

@@ -84,7 +84,7 @@ export function ExerciseSection({
 
 	const consumedRepeat = useRef<Doc<"sets"> | null>(null);
 	const valid = validateSetInput({ weight, reps, rpe }).ok;
-	const isBarbell = equipment === "barbell";
+	const isBarbell = equipment === "barbell" && !timed;
 	useEffect(() => {
 		if (!repeated || attempt || consumedRepeat.current === repeated) return;
 		consumedRepeat.current = repeated;

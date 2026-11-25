@@ -558,6 +558,7 @@ export function SetEditorScreen() {
 			: text.levelsNoWeight;
 	const plateLine =
 		exercise?.equipment === "barbell" &&
+		!bodyweight &&
 		row.unit === "kg" &&
 		row.kg >= DEFAULT_BAR.kg
 			? (() => {

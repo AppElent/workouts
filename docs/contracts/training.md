@@ -189,7 +189,7 @@ the app; there is no separate data.
   every earlier exercise keeps counting reps; an edit that leaves the measure out
   keeps it, so an older app never clears one. Shipped holds are fixed by id.
 - A hold reads and logs seconds everywhere, stepped in fives from 30. Its load is
-  optional added weight on any equipment, and it never feeds One-rep Max
+  optional added weight on any equipment, and its Sets never feed One-rep Max
   references, rep maxes, percentages, or work volume.
 - Sets carry no measure of their own: switching an exercise re-reads the Sets
   already logged, which the phone's form says, and drops or restores their
