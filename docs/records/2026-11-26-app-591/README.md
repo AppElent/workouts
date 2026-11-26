@@ -18,7 +18,7 @@ Max and iPad Pro 13-inch (M5) simulators, iOS 27.2), a local development-client
 build, and a local Convex deployment seeded by `scripts/store-screenshots-seed.mjs`
 for the shared test user. The full six-shot set from this run replaced
 `~/Developer/.screenshots/APP-433/foundry/`; the previous set is kept beside it as
-`foundry-2026-11-22/`. Nothing was uploaded to App Store Connect.
+`foundry-2026-11-22/` (both local to Eric's Mac, not in the repo). Nothing was uploaded to App Store Connect.
 
 | Shot | en-US | nl-NL |
 | --- | --- | --- |
@@ -28,6 +28,6 @@ for the shared test user. The full six-shot set from this run replaced
 Checks:
 
 - Before (22 Nov set): [png](before-06-week-iphone-6.9-en-US.png), dots above an empty circle.
-- Dark appearance, iPhone 17 Pro, same build: [png](week-header-dark-iphone.png), dots centred.
+- Dark appearance (iPhone only), iPhone 17 Pro, same build: [png](week-header-dark-iphone.png), dots centred.
 
 The shoot day is a Thursday, so the week shows three full days and today.
