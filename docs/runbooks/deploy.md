@@ -70,8 +70,8 @@ functions. Nothing pushes it from `main` automatically: that would need a dev de
 key in GitHub, and the next branch push would undo it anyway.
 
 Whoever merges a pull request that changes `convex/` or `packages/core/` (Eric,
-the manager, or the agent that merges a `low` pull request) pushes `main` to it
-right after the merge, from a checkout at the new `origin/main`:
+the manager, or the autopilot merge queue) pushes `main` to it right after the
+merge, from a checkout at the new `origin/main`:
 
 ```sh
 pnpm convex:push-dev   # or pnpm deploy:dev to refresh foundry-dev too
@@ -87,7 +87,8 @@ On 25 Nov 2026 dev missed two merged training changes (APP-926): the push was
 written as Eric's step, and the factory merges that day never ran it. An
 `ArgumentValidationError: Object contains extra field …` from dev for a field `main`
 accepts means dev is behind; to compare a function's arguments, run
-`env -u CONVEX_DEPLOY_KEY CONVEX_DEPLOYMENT=dev:colorless-sturgeon-704 pnpm exec convex function-spec`.
+`CONVEX_DEPLOY_KEY= CONVEX_DEPLOYMENT_TOKEN= CONVEX_DEPLOYMENT=dev:colorless-sturgeon-704 pnpm exec convex function-spec`
+(blank, not unset, so a worktree's own key in `.env.local` does not take over).
 
 ## Verify
 

@@ -65,7 +65,6 @@ one command without writing them:
 
 ```sh
 pnpm deploy:dev          # exec dev: convex dev --once, CLOUDFLARE_ENV=dev build, wrangler deploy
-pnpm convex:push-dev     # Convex functions only, to shared dev; no Infisical values
 pnpm deploy:staging      # exec staging: convex deploy, CLOUDFLARE_ENV=staging build, wrangler deploy
 pnpm deploy:production   # exec production: convex deploy, build, wrangler deploy
 pnpm mobile:update:preview   # exec staging: preview channel, EAS preview values
@@ -78,6 +77,8 @@ deployment itself and runs `convex dev --once` directly under
 `scripts/keep-env-local.mjs`, which restores the file once Convex exits and
 fails the run if it was cancelled. A worktree
 with its own backend pushes to it with plain `pnpm exec convex dev --once`.
+`pnpm convex:push-dev` does only the Convex half of `deploy:dev`, without
+Infisical or a Worker deploy: what a merger runs to bring dev up to `main`.
 `deploy:production` targets Convex with the production `CONVEX_DEPLOY_KEY` from
 Infisical `prod`, which wins over any selector or worktree key in `.env.local`, and
 deploys the Worker with the `CLOUDFLARE_API_TOKEN` from the GitHub Environment's
