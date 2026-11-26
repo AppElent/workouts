@@ -1,5 +1,6 @@
 import type { Equipment, LoadUnit, PerformedSet } from "@foundry/core";
 import { exerciseRecords } from "@foundry/core";
+import { useMessages } from "#/lib/i18n";
 import { displayLoad } from "#/lib/load";
 
 export function PersonalRecords({
@@ -11,6 +12,7 @@ export function PersonalRecords({
 	exercise: { equipment: Equipment };
 	unit: LoadUnit;
 }) {
+	const t = useMessages().exercise.records;
 	const { heaviest, bestEstimate, bestSetVolume, repMaxes } = exerciseRecords(
 		history,
 		exercise,
@@ -22,24 +24,24 @@ export function PersonalRecords({
 	return (
 		<div className="rounded-xl bg-surface border border-border p-4">
 			<p className="text-micro tracking-widest text-text-muted uppercase mb-3">
-				Personal records
+				{t.title}
 			</p>
 			<div className="grid grid-cols-2 gap-3">
 				<Stat
-					label="Heaviest set"
+					label={t.heaviest}
 					value={load(heaviest.valueKg)}
 					sub={`× ${heaviest.set.reps}`}
 				/>
-				<Stat label="Best est. 1RM" value={load(bestEstimate.valueKg)} />
+				<Stat label={t.bestEstimate} value={load(bestEstimate.valueKg)} />
 				<Stat
-					label="Best set volume"
+					label={t.bestSetVolume}
 					value={`${Math.round(displayLoad(bestSetVolume.valueKg, unit))} ${unit}`}
 					sub={`${displayLoad(bestSetVolume.valueKg / volumeReps, unit)}×${volumeReps}`}
 				/>
 				{repMaxes.length > 0 && (
 					<div className="col-span-2 sm:col-span-1">
 						<p className="text-micro uppercase tracking-wide text-text-muted mb-1.5">
-							Rep maxes
+							{t.repMaxes}
 						</p>
 						<div className="flex flex-wrap gap-1.5">
 							{repMaxes.map((r) => (

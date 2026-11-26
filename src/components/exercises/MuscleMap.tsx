@@ -1,11 +1,31 @@
+import { fmt, useMessages } from "#/lib/i18n";
+
+export const MUSCLE_ICON_KEYS = [
+	"abs",
+	"arms",
+	"back",
+	"calves",
+	"chest",
+	"forearms",
+	"fullBody",
+	"glutes",
+	"hamstrings",
+	"lowerBack",
+	"neck",
+	"quadriceps",
+	"serratus",
+	"shoulders",
+	"traps",
+] as const;
+export type MuscleIconKey = (typeof MUSCLE_ICON_KEYS)[number];
+
 interface Props {
 	muscleGroups: string[];
 	size?: "sm" | "md";
 }
 
 type MuscleIcon = {
-	key: string;
-	label: string;
+	key: MuscleIconKey;
 	src: string;
 };
 
@@ -15,49 +35,42 @@ const DIMS = {
 };
 
 const ICONS: Record<string, MuscleIcon> = {
-	abs: { key: "abs", label: "Abs", src: "/muscle-icons/abs.png" },
-	arms: { key: "arms", label: "Arms", src: "/muscle-icons/arms.png" },
-	back: { key: "back", label: "Back", src: "/muscle-icons/back.png" },
-	calves: { key: "calves", label: "Calves", src: "/muscle-icons/calves.png" },
-	chest: { key: "chest", label: "Chest", src: "/muscle-icons/chest.png" },
+	abs: { key: "abs", src: "/muscle-icons/abs.png" },
+	arms: { key: "arms", src: "/muscle-icons/arms.png" },
+	back: { key: "back", src: "/muscle-icons/back.png" },
+	calves: { key: "calves", src: "/muscle-icons/calves.png" },
+	chest: { key: "chest", src: "/muscle-icons/chest.png" },
 	forearms: {
 		key: "forearms",
-		label: "Forearms",
 		src: "/muscle-icons/forearms.png",
 	},
 	"full body": {
-		key: "full-body",
-		label: "Full body",
+		key: "fullBody",
 		src: "/muscle-icons/full-body.png",
 	},
-	glutes: { key: "glutes", label: "Glutes", src: "/muscle-icons/glutes.png" },
+	glutes: { key: "glutes", src: "/muscle-icons/glutes.png" },
 	hamstrings: {
 		key: "hamstrings",
-		label: "Hamstrings",
 		src: "/muscle-icons/hamstrings.png",
 	},
 	"lower back": {
-		key: "lower-back",
-		label: "Lower back",
+		key: "lowerBack",
 		src: "/muscle-icons/lower-back.png",
 	},
-	neck: { key: "neck", label: "Neck", src: "/muscle-icons/neck.png" },
+	neck: { key: "neck", src: "/muscle-icons/neck.png" },
 	quadriceps: {
 		key: "quadriceps",
-		label: "Quadriceps",
 		src: "/muscle-icons/quadriceps.png",
 	},
 	serratus: {
 		key: "serratus",
-		label: "Serratus",
 		src: "/muscle-icons/serratus.png",
 	},
 	shoulders: {
 		key: "shoulders",
-		label: "Shoulders",
 		src: "/muscle-icons/shoulders.png",
 	},
-	traps: { key: "traps", label: "Traps", src: "/muscle-icons/traps.png" },
+	traps: { key: "traps", src: "/muscle-icons/traps.png" },
 };
 
 const GROUP_TO_ICON: Record<string, string> = {
@@ -101,34 +114,38 @@ function resolveIcons(muscleGroups: string[]) {
 }
 
 export function MuscleMap({ muscleGroups, size = "sm" }: Props) {
+	const t = useMessages().exercise.muscleMap;
 	const dims = DIMS[size];
 	const icons = resolveIcons(muscleGroups);
 	const visibleIcons = icons.length > 0 ? icons : [ICONS["full body"]];
 
 	return (
 		<fieldset className="flex flex-wrap justify-center gap-3 border-0 p-0">
-			<legend className="sr-only">Targeted muscle groups</legend>
-			{visibleIcons.map((icon) => (
-				<div key={icon.key} className="flex flex-col items-center gap-1.5">
-					<div
-						className="flex items-center justify-center rounded-lg border border-border bg-surface-2 shadow-card"
-						style={{ width: dims.tile, height: dims.tile }}
-					>
-						<img
-							src={icon.src}
-							alt={`${icon.label} muscle group`}
-							width={dims.image}
-							height={dims.image}
-							className="block object-contain"
-							loading="lazy"
-							decoding="async"
-						/>
+			<legend className="sr-only">{t.legend}</legend>
+			{visibleIcons.map((icon) => {
+				const label = t.muscles[icon.key];
+				return (
+					<div key={icon.key} className="flex flex-col items-center gap-1.5">
+						<div
+							className="flex items-center justify-center rounded-lg border border-border bg-surface-2 shadow-card"
+							style={{ width: dims.tile, height: dims.tile }}
+						>
+							<img
+								src={icon.src}
+								alt={fmt(t.alt, { muscle: label })}
+								width={dims.image}
+								height={dims.image}
+								className="block object-contain"
+								loading="lazy"
+								decoding="async"
+							/>
+						</div>
+						<span className="text-micro tracking-widest text-text-muted uppercase">
+							{label}
+						</span>
 					</div>
-					<span className="text-micro tracking-widest text-text-muted uppercase">
-						{icon.label}
-					</span>
-				</div>
-			))}
+				);
+			})}
 		</fieldset>
 	);
 }

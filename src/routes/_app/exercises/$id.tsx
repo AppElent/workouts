@@ -4,11 +4,12 @@ import {
 	calculateOneRepMax,
 	exerciseRecords,
 	isTimedExercise,
+	plural,
+	type StrengthReferenceSource,
 } from "@foundry/core";
 import type { ExerciseId } from "@foundry/core/exercises";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
-import { format } from "date-fns";
 import { ArrowLeft } from "lucide-react";
 import { useState } from "react";
 import {
@@ -24,6 +25,8 @@ import {
 import { MuscleMap } from "#/components/exercises/MuscleMap";
 import { PersonalRecords } from "#/components/exercises/PersonalRecords";
 import { useExercise } from "#/lib/exercises";
+import { fmt, useI18n, useMessages } from "#/lib/i18n";
+import { formatShortDate } from "#/lib/i18n/format";
 import {
 	displayLoad,
 	longestHold,
@@ -42,6 +45,7 @@ export const Route = createFileRoute("/_app/exercises/$id")({
 });
 
 function SignInPrompt({ message }: { message: string }) {
+	const t = useMessages().exercise;
 	return (
 		<div className="rounded-xl bg-surface border border-border p-6 flex flex-col items-center gap-3 text-center">
 			<p className="text-sm text-text-muted">{message}</p>
@@ -49,7 +53,7 @@ function SignInPrompt({ message }: { message: string }) {
 				to="/sign-in"
 				className="rounded-full bg-accent-fill px-5 py-2 text-sm font-bold text-on-accent hover:bg-accent-pressed transition-colors"
 			>
-				Sign In
+				{t.signIn}
 			</Link>
 		</div>
 	);
@@ -58,6 +62,8 @@ function SignInPrompt({ message }: { message: string }) {
 function ExerciseDetailPage() {
 	const { id } = Route.useParams();
 	const [activeTab, setActiveTab] = useState<Tab>("overview");
+	const { locale, messages } = useI18n();
+	const t = messages.exercise;
 
 	const { isSignedIn } = useAuth();
 	const signedIn = Boolean(isSignedIn);
@@ -79,16 +85,16 @@ function ExerciseDetailPage() {
 		) ?? [];
 
 	if (exercise === undefined) {
-		return <div className="p-6 text-text-muted text-sm">Loading…</div>;
+		return <div className="p-6 text-text-muted text-sm">{t.loading}</div>;
 	}
 	if (exercise === null) {
-		return <div className="p-6 text-danger text-sm">Exercise not found.</div>;
+		return <div className="p-6 text-danger text-sm">{t.notFound}</div>;
 	}
 
 	const ormChartData = [...ormHistory]
 		.sort((a, b) => a.date - b.date)
 		.map((r) => ({
-			date: format(new Date(r.date), "MMM d"),
+			date: formatShortDate(locale, r.date),
 			value: r.value,
 			source: r.source,
 		}));
@@ -116,9 +122,9 @@ function ExerciseDetailPage() {
 
 	// A hold has no 1RM, so it has no 1RM progress or strength curve.
 	const tabs: { id: Tab; label: string }[] = [
-		{ id: "overview", label: "Overview" },
-		...(timed ? [] : [{ id: "progress" as const, label: "Progress" }]),
-		{ id: "history", label: "History" },
+		{ id: "overview", label: t.tabs.overview },
+		...(timed ? [] : [{ id: "progress" as const, label: t.tabs.progress }]),
+		{ id: "history", label: t.tabs.history },
 	];
 	const longest = timed ? longestHold(history) : null;
 
@@ -129,7 +135,7 @@ function ExerciseDetailPage() {
 				className="inline-flex items-center gap-1.5 text-xs text-text-muted hover:text-text mb-4 transition-colors"
 			>
 				<ArrowLeft size={14} />
-				Back to exercises
+				{t.back}
 			</Link>
 
 			<div className="rounded-2xl bg-surface border border-border p-5 mb-4 text-center">
@@ -138,10 +144,10 @@ function ExerciseDetailPage() {
 				</h1>
 				<div className="flex gap-1.5 justify-center mb-4">
 					<span className="text-micro px-2 py-0.5 rounded-md bg-surface-2 text-text-muted capitalize">
-						{exercise.category}
+						{t.category[exercise.category]}
 					</span>
 					<span className="text-micro px-2 py-0.5 rounded-md bg-surface-2 text-text-muted capitalize">
-						{exercise.equipment}
+						{t.equipment[exercise.equipment]}
 					</span>
 				</div>
 
@@ -184,7 +190,7 @@ function ExerciseDetailPage() {
 					{currentOrm && !timed && (
 						<div className="rounded-xl bg-surface border border-border p-4">
 							<p className="text-micro tracking-widest text-text-muted uppercase mb-2">
-								Current 1RM
+								{t.overview.currentOrm}
 							</p>
 							<div className="flex items-baseline gap-1.5 mb-2">
 								<span className="text-4xl font-black text-text tracking-tight">
@@ -195,9 +201,7 @@ function ExerciseDetailPage() {
 								</span>
 							</div>
 							<span className="inline-block text-micro px-2 py-0.5 rounded bg-accent-dim text-accent-ink">
-								{currentOrm.source === "calculated"
-									? "estimated"
-									: currentOrm.source}
+								{t.overview.source[currentOrm.source]}
 							</span>
 						</div>
 					)}
@@ -205,13 +209,15 @@ function ExerciseDetailPage() {
 					{longest && (
 						<div className="rounded-xl bg-surface border border-border p-4">
 							<p className="text-micro tracking-widest text-text-muted uppercase mb-2">
-								Longest hold
+								{t.overview.longestHold}
 							</p>
 							<div className="flex items-baseline gap-1.5">
 								<span className="text-4xl font-black text-text tracking-tight tabular-nums">
 									{longest.reps}
 								</span>
-								<span className="text-sm text-text-muted">s</span>
+								<span className="text-sm text-text-muted">
+									{t.overview.secondsUnit}
+								</span>
 								{longest.weight > 0 && (
 									<span className="text-sm text-text-muted">
 										+{longest.weight} {longest.unit}
@@ -232,7 +238,7 @@ function ExerciseDetailPage() {
 					{exercise.notes && (
 						<div className="rounded-xl bg-surface border border-border p-4">
 							<p className="text-micro tracking-widest text-text-muted uppercase mb-2">
-								Notes
+								{t.overview.notes}
 							</p>
 							<p className="text-sm text-text-muted leading-relaxed">
 								{exercise.notes}
@@ -243,9 +249,11 @@ function ExerciseDetailPage() {
 					{!exercise.notes &&
 						hint !== null &&
 						(signedIn ? (
-							<p className="text-sm text-text-muted text-center py-8">{hint}</p>
+							<p className="text-sm text-text-muted text-center py-8">
+								{t.overview.hint[hint]}
+							</p>
 						) : (
-							<SignInPrompt message={hint} />
+							<SignInPrompt message={t.overview.hint[hint]} />
 						))}
 				</div>
 			)}
@@ -254,7 +262,7 @@ function ExerciseDetailPage() {
 				<div className="flex flex-col gap-4">
 					<div className="rounded-xl bg-surface border border-border p-5">
 						<h2 className="text-sm font-semibold text-text mb-4">
-							1RM Progress
+							{t.progress.ormTitle}
 						</h2>
 						{ormChartData.length > 1 ? (
 							<ResponsiveContainer width="100%" height={220}>
@@ -290,7 +298,13 @@ function ExerciseDetailPage() {
 												_: string,
 												entry: { payload: { source: string } },
 											) => [
-												`${value ?? ""} kg (${entry.payload.source})`,
+												fmt(t.progress.ormTooltip, {
+													value: value ?? "",
+													source:
+														t.overview.source[
+															entry.payload.source as StrengthReferenceSource
+														],
+												}),
 												"1RM",
 												// biome-ignore lint/suspicious/noExplicitAny: Recharts formatter type mismatch
 											]) as any
@@ -308,17 +322,17 @@ function ExerciseDetailPage() {
 							</ResponsiveContainer>
 						) : (
 							<p className="text-sm text-text-muted py-6 text-center">
-								Log at least 2 sessions to see the 1RM trend.
+								{t.progress.ormEmpty}
 							</p>
 						)}
 					</div>
 
 					<div className="rounded-xl bg-surface border border-border p-5">
 						<h2 className="text-sm font-semibold text-text mb-1">
-							Strength Curve
+							{t.progress.curveTitle}
 						</h2>
 						<p className="text-xs text-text-muted mb-4">
-							Max weight logged vs. theoretical 1RM per rep count
+							{t.progress.curveNote}
 						</p>
 						{hasRepRangeData ? (
 							<ResponsiveContainer width="100%" height={220}>
@@ -360,7 +374,7 @@ function ExerciseDetailPage() {
 									<Line
 										type="monotone"
 										dataKey="maxWeight"
-										name="Max weight logged"
+										name={t.progress.maxWeight}
 										stroke="var(--accent-ink)"
 										strokeWidth={2}
 										dot={{ fill: "var(--accent-ink)", r: 4, strokeWidth: 0 }}
@@ -370,7 +384,7 @@ function ExerciseDetailPage() {
 									<Line
 										type="monotone"
 										dataKey="theoretical1RM"
-										name="Theoretical 1RM"
+										name={t.progress.theoreticalOrm}
 										stroke="var(--text-muted)"
 										strokeWidth={2}
 										strokeDasharray="4 2"
@@ -382,7 +396,7 @@ function ExerciseDetailPage() {
 							</ResponsiveContainer>
 						) : (
 							<p className="text-sm text-text-muted py-6 text-center">
-								Log sets for this exercise to see the strength curve.
+								{t.progress.curveEmpty}
 							</p>
 						)}
 					</div>
@@ -390,13 +404,13 @@ function ExerciseDetailPage() {
 			)}
 
 			{activeTab === "progress" && !signedIn && !timed && (
-				<SignInPrompt message="Sign in to track your 1RM progress and strength curve." />
+				<SignInPrompt message={t.progress.signIn} />
 			)}
 
 			{activeTab === "history" && signedIn && (
 				<div className="rounded-xl bg-surface border border-border p-5">
 					<h2 className="text-sm font-semibold text-text mb-4">
-						Set History ({history.length} sets)
+						{plural(locale, history.length, t.history.title)}
 					</h2>
 					{history.length > 0 ? (
 						<div className="overflow-x-auto">
@@ -404,13 +418,13 @@ function ExerciseDetailPage() {
 								<thead>
 									<tr className="border-b border-border">
 										{[
-											"Date",
-											"Set",
-											"Type",
-											timed ? "Added load" : "Weight",
-											timed ? "Seconds" : "Reps",
-											"RPE",
-											...(timed ? [] : ["Est. 1RM"]),
+											t.history.date,
+											t.history.set,
+											t.history.type,
+											timed ? t.history.addedLoad : t.history.weight,
+											timed ? t.history.seconds : t.history.reps,
+											t.history.rpe,
+											...(timed ? [] : [t.history.estimate]),
 										].map((h) => (
 											<th
 												key={h}
@@ -430,7 +444,7 @@ function ExerciseDetailPage() {
 												className="border-b border-border last:border-0"
 											>
 												<td className="py-2 pr-4 text-text-muted whitespace-nowrap">
-													{format(new Date(set.sessionDate), "MMM d")}
+													{formatShortDate(locale, set.sessionDate)}
 												</td>
 												<td className="py-2 pr-4 text-text">
 													#{set.setNumber}
@@ -440,8 +454,8 @@ function ExerciseDetailPage() {
 														</p>
 													) : null}
 												</td>
-												<td className="py-2 pr-4 text-text-muted capitalize">
-													{set.setType}
+												<td className="py-2 pr-4 text-text-muted">
+													{t.history.setType[set.setType]}
 												</td>
 												<td className="py-2 pr-4 text-text font-medium">
 													{set.weight > 0 ? (
@@ -453,7 +467,7 @@ function ExerciseDetailPage() {
 														</>
 													) : (
 														<span className="text-text-muted">
-															{timed ? "—" : "BW"}
+															{timed ? "—" : t.history.bodyweight}
 														</span>
 													)}
 												</td>
@@ -467,7 +481,9 @@ function ExerciseDetailPage() {
 													<td className="py-2 text-text-muted text-xs">
 														{orm ? orm.value : "—"}
 														{orm?.kind === "calculated" && (
-															<span className="ml-0.5 text-micro">est.</span>
+															<span className="ml-0.5 text-micro">
+																{t.history.estimated}
+															</span>
 														)}
 													</td>
 												)}
@@ -478,15 +494,13 @@ function ExerciseDetailPage() {
 							</table>
 						</div>
 					) : (
-						<p className="text-sm text-text-muted">
-							No sets logged for this exercise yet.
-						</p>
+						<p className="text-sm text-text-muted">{t.history.empty}</p>
 					)}
 				</div>
 			)}
 
 			{activeTab === "history" && !signedIn && (
-				<SignInPrompt message="Sign in to see your set history for this exercise." />
+				<SignInPrompt message={t.history.signIn} />
 			)}
 		</div>
 	);
