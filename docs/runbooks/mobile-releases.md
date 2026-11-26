@@ -98,6 +98,8 @@ Clerk enables Sign in with Apple, so Expo's local build command requires a
 development signing identity even when selecting a simulator. Add your Apple
 Developer account under Xcode → Settings → Accounts and create an Apple
 Development certificate through Manage Certificates before the first run.
+Without one, build the ad-hoc simulator client described under
+[Store screenshots](#store-screenshots).
 
 ```sh
 export LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8   # pod install crashes without a UTF-8 locale
@@ -314,11 +316,34 @@ sheet per device. The script is synced from developer-home like
 `run-mobile.mjs`; the flow is `apps/mobile/.maestro/store-screenshots.yaml` and
 its labels `store-screenshots.json`. It never uploads to App Store Connect.
 
+The run needs a simulator dev client. Without an Apple Development signing
+identity (an agent's usual case), `pnpm devbuild:ios` cannot make one, and an
+unsigned build (`CODE_SIGNING_ALLOWED=NO`) shows a blank screen: the keychain
+fails with "A required entitlement is not present", so Clerk cannot keep a
+session. Build an ad-hoc signed simulator client instead, from `apps/mobile`:
+
+```sh
+export LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
+pnpm exec expo prebuild --platform ios
+cd ios
+xcodebuild -workspace FoundryDev.xcworkspace -scheme FoundryDev -configuration Debug \
+  -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath <dir> \
+  CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER= build
+```
+
+Then pass it to the script with
+`RUN_MOBILE_APP=<dir>/Build/Products/Debug-iphonesimulator/FoundryDev.app`.
+
+On a worktree, build the shared package before `convex dev`, or it cannot
+bundle: `pnpm --filter @foundry/core build`.
+
 1. Point the dev client at a local or disposable dev Convex deployment, never
    production, with `convex dev` running (`CONVEX_AGENT_MODE=anonymous` for a
    local one). The dev Clerk user is the shared test user.
 2. Fill that user with the demo data (it clears the user first and refuses a
-   production deployment):
+   production deployment). `--user` is the shared test user's Clerk user ID:
+   in the Clerk dashboard, open the development instance, then Users, then
+   `test@test.com`, and copy its `user_...` ID.
 
    ```sh
    CONVEX_AGENT_MODE=anonymous node scripts/store-screenshots-seed.mjs --user user_...
@@ -333,8 +358,7 @@ its labels `store-screenshots.json`. It never uploads to App Store Connect.
    detail, which would show the test email or a third-party data credit.
 
 The Nutrition tab exposes no accessibility tree to Maestro, so its steps tap
-screen points. Check the week header's ... button: its native menu can draw
-offset.
+screen points.
 
 ## Local preflight
 
