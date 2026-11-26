@@ -46,6 +46,30 @@ it("shows a set's note under the set", async () => {
 	expect(screen.getAllByText(/^80 × 8$/)).toHaveLength(2);
 });
 
+it("shows a hold's seconds with its added load, and no estimate", async () => {
+	await renderThemed(
+		<HistoryTab
+			timed
+			sessions={
+				exerciseInsight(
+					[
+						set("a", 1, { weight: 10, reps: 35 }),
+						set("b", 2, { weight: 0, reps: 40 }),
+					],
+					[],
+					NOW,
+					true,
+				).sessions
+			}
+		/>,
+		{ wrapper: LocaleProvider },
+	);
+	expect(screen.getByText("+10 kg × 35 s")).toBeTruthy();
+	expect(screen.getByText("40 s")).toBeTruthy();
+	expect(screen.queryByText("—")).toBeNull();
+	expect(screen.queryByText(/≈/)).toBeNull();
+});
+
 describe.each([
 	{
 		locale: "en",

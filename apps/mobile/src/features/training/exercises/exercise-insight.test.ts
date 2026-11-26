@@ -69,6 +69,19 @@ describe("exerciseInsight", () => {
 		expect(sessions[2]?.rows[0]?.estimate).toBeNull();
 	});
 
+	it("takes a hold's best as its longest time, then most added load", () => {
+		const holds = [
+			set("a", "s1", 3, 1, 20, 30),
+			set("b", "s2", 2, 1, 5, 45),
+			set("c", "s3", 1, 1, 0, 45),
+		];
+		expect(exerciseInsight(holds, [], NOW, true).best).toEqual({
+			kg: 5,
+			reps: 45,
+			date: NOW - 2 * DAY,
+		});
+	});
+
 	it("adds no volume for a hold", () => {
 		expect(exerciseInsight(history, [], NOW, true).volume).toBe(0);
 		expect(exerciseInsight(history, [], NOW).trend).toBeNull();

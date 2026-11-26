@@ -81,8 +81,13 @@ export function exerciseInsight(
 	let best: { kg: number; reps: number; date: number } | null = null;
 	for (const set of working) {
 		const kg = kgOf(set);
-		if (!best || kg > best.kg || (kg === best.kg && set.reps > best.reps))
-			best = { kg, reps: set.reps, date: set.sessionDate };
+		// A hold's best is its longest time, then the most added load.
+		const better = timed
+			? !best ||
+				set.reps > best.reps ||
+				(set.reps === best.reps && kg > best.kg)
+			: !best || kg > best.kg || (kg === best.kg && set.reps > best.reps);
+		if (better) best = { kg, reps: set.reps, date: set.sessionDate };
 	}
 
 	const volumeBetween = (from: number, to: number) =>

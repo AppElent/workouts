@@ -11,6 +11,31 @@ export function setCount(set: Pick<Doc<"sets">, "reps">, timed: boolean) {
 	return timed ? `${set.reps} s` : String(set.reps);
 }
 
+/**
+ * A hold's best set: the longest logged time, then the most added load.
+ * Warm-ups and unconfirmed sets do not count.
+ */
+export function longestHold<
+	T extends Pick<
+		Doc<"sets">,
+		"reps" | "weight" | "unit" | "setType" | "performanceVerified"
+	>,
+>(sets: readonly T[]): T | null {
+	let best: T | null = null;
+	for (const set of sets) {
+		if (set.setType === "warmup" || set.performanceVerified !== true) continue;
+		if (
+			!best ||
+			set.reps > best.reps ||
+			(set.reps === best.reps &&
+				convertLoad(set.weight, set.unit, "kg") >
+					convertLoad(best.weight, best.unit, "kg"))
+		)
+			best = set;
+	}
+	return best;
+}
+
 /** The server-stored 1RM reference of a set, in the set's own unit. */
 export function setReference(set: Doc<"sets">) {
 	if (!set.performanceVerified || !set.referenceKind || !set.referenceValueKg)

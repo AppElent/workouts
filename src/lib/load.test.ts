@@ -1,5 +1,6 @@
+import type { Doc } from "@convex/_generated/dataModel";
 import { describe, expect, it } from "vitest";
-import { overviewHint } from "./load";
+import { longestHold, overviewHint } from "./load";
 
 const empty = { signedIn: true, hasSets: false, hasOneRepMax: false };
 
@@ -45,5 +46,37 @@ describe("overviewHint", () => {
 				signedIn: false,
 			}),
 		).toBe("Sign in to track your 1RM for this exercise.");
+	});
+});
+
+describe("longestHold", () => {
+	const hold = (
+		reps: number,
+		weight: number,
+		extra: Partial<Pick<Doc<"sets">, "setType" | "performanceVerified">> = {},
+	): Pick<
+		Doc<"sets">,
+		"reps" | "weight" | "unit" | "setType" | "performanceVerified"
+	> => ({
+		reps,
+		weight,
+		unit: "kg",
+		setType: "working",
+		performanceVerified: true,
+		...extra,
+	});
+
+	it("picks the longest time, then the most added load", () => {
+		const best = hold(45, 10);
+		expect(longestHold([hold(30, 20), best, hold(45, 5)])).toBe(best);
+	});
+
+	it("skips warm-ups and unconfirmed sets", () => {
+		expect(
+			longestHold([
+				hold(90, 0, { setType: "warmup" }),
+				hold(80, 0, { performanceVerified: undefined }),
+			]),
+		).toBeNull();
 	});
 });

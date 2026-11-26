@@ -24,7 +24,13 @@ import {
 import { MuscleMap } from "#/components/exercises/MuscleMap";
 import { PersonalRecords } from "#/components/exercises/PersonalRecords";
 import { useExercise } from "#/lib/exercises";
-import { displayLoad, overviewHint, setCount, setReference } from "#/lib/load";
+import {
+	displayLoad,
+	longestHold,
+	overviewHint,
+	setCount,
+	setReference,
+} from "#/lib/load";
 import { cn } from "#/lib/utils";
 
 type Tab = "overview" | "progress" | "history";
@@ -108,11 +114,13 @@ function ExerciseDetailPage() {
 		hasOneRepMax: Boolean(currentOrm),
 	});
 
+	// A hold has no 1RM, so it has no 1RM progress or strength curve.
 	const tabs: { id: Tab; label: string }[] = [
 		{ id: "overview", label: "Overview" },
-		{ id: "progress", label: "Progress" },
+		...(timed ? [] : [{ id: "progress" as const, label: "Progress" }]),
 		{ id: "history", label: "History" },
 	];
+	const longest = timed ? longestHold(history) : null;
 
 	return (
 		<div className="p-4 sm:p-6 max-w-2xl mx-auto pb-20 sm:pb-6">
@@ -173,7 +181,7 @@ function ExerciseDetailPage() {
 
 			{activeTab === "overview" && (
 				<div className="flex flex-col gap-3">
-					{currentOrm && (
+					{currentOrm && !timed && (
 						<div className="rounded-xl bg-surface border border-border p-4">
 							<p className="text-micro tracking-widest text-text-muted uppercase mb-2">
 								Current 1RM
@@ -194,7 +202,26 @@ function ExerciseDetailPage() {
 						</div>
 					)}
 
-					{signedIn && history.length > 0 && (
+					{longest && (
+						<div className="rounded-xl bg-surface border border-border p-4">
+							<p className="text-micro tracking-widest text-text-muted uppercase mb-2">
+								Longest hold
+							</p>
+							<div className="flex items-baseline gap-1.5">
+								<span className="text-4xl font-black text-text tracking-tight tabular-nums">
+									{longest.reps}
+								</span>
+								<span className="text-sm text-text-muted">s</span>
+								{longest.weight > 0 && (
+									<span className="text-sm text-text-muted">
+										+{longest.weight} {longest.unit}
+									</span>
+								)}
+							</div>
+						</div>
+					)}
+
+					{signedIn && history.length > 0 && !timed && (
 						<PersonalRecords
 							history={history}
 							exercise={exercise}
@@ -223,7 +250,7 @@ function ExerciseDetailPage() {
 				</div>
 			)}
 
-			{activeTab === "progress" && signedIn && (
+			{activeTab === "progress" && signedIn && !timed && (
 				<div className="flex flex-col gap-4">
 					<div className="rounded-xl bg-surface border border-border p-5">
 						<h2 className="text-sm font-semibold text-text mb-4">
@@ -362,7 +389,7 @@ function ExerciseDetailPage() {
 				</div>
 			)}
 
-			{activeTab === "progress" && !signedIn && (
+			{activeTab === "progress" && !signedIn && !timed && (
 				<SignInPrompt message="Sign in to track your 1RM progress and strength curve." />
 			)}
 
@@ -380,10 +407,10 @@ function ExerciseDetailPage() {
 											"Date",
 											"Set",
 											"Type",
-											"Weight",
+											timed ? "Added load" : "Weight",
 											timed ? "Seconds" : "Reps",
 											"RPE",
-											"Est. 1RM",
+											...(timed ? [] : ["Est. 1RM"]),
 										].map((h) => (
 											<th
 												key={h}
@@ -425,7 +452,9 @@ function ExerciseDetailPage() {
 															</span>
 														</>
 													) : (
-														<span className="text-text-muted">BW</span>
+														<span className="text-text-muted">
+															{timed ? "—" : "BW"}
+														</span>
 													)}
 												</td>
 												<td className="py-2 pr-4 text-text">
@@ -434,12 +463,14 @@ function ExerciseDetailPage() {
 												<td className="py-2 pr-4 text-text-muted">
 													{set.rpe ?? "—"}
 												</td>
-												<td className="py-2 text-text-muted text-xs">
-													{orm ? orm.value : "—"}
-													{orm?.kind === "calculated" && (
-														<span className="ml-0.5 text-micro">est.</span>
-													)}
-												</td>
+												{timed ? null : (
+													<td className="py-2 text-text-muted text-xs">
+														{orm ? orm.value : "—"}
+														{orm?.kind === "calculated" && (
+															<span className="ml-0.5 text-micro">est.</span>
+														)}
+													</td>
+												)}
 											</tr>
 										);
 									})}
