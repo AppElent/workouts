@@ -7,6 +7,8 @@ import {
 	isLoadedEquipment,
 	isLoadedExercise,
 	isTimedExercise,
+	MUSCLE_GROUPS,
+	muscleKey,
 	primaryMuscleGroup,
 	TIMED_DEFAULT_SECONDS,
 	TIMED_LONG_HOLD_SECONDS,
@@ -28,6 +30,27 @@ describe("equipment", () => {
 		expect(EQUIPMENT.filter((item) => !isLoadedEquipment(item))).toEqual([
 			"bodyweight",
 		]);
+	});
+});
+
+describe("muscle vocabulary", () => {
+	it("names every muscle the shipped catalog uses", () => {
+		const unknown = SHIPPED_EXERCISES.flatMap(
+			(item) => item.muscleGroups,
+		).filter((name) => name.trim() && !muscleKey(name));
+		expect(unknown).toEqual([]);
+	});
+	it("names every muscle a muscle group filters on", () => {
+		const unknown = Object.values(MUSCLE_GROUPS)
+			.flat()
+			.filter((name) => !muscleKey(name));
+		expect(unknown).toEqual([]);
+	});
+	it("folds aliases, case and stray spaces onto one key", () => {
+		expect(muscleKey(" Front Delts ")).toBe("frontDelts");
+		expect(muscleKey("Quads")).toBe("quadriceps");
+		expect(muscleKey("Abdominals")).toBe("abs");
+		expect(muscleKey("pinkies")).toBeUndefined();
 	});
 });
 
