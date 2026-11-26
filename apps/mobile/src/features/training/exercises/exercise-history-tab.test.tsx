@@ -24,7 +24,7 @@ const set = (
 	weight: extra.weight ?? 80,
 	unit: "kg" as const,
 	reps: extra.reps ?? 8,
-	setType: "working",
+	setType: "working" as const,
 	...(extra.notes === undefined ? {} : { notes: extra.notes }),
 	...(extra.rpe === undefined ? {} : { rpe: extra.rpe }),
 });

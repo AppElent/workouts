@@ -17,6 +17,7 @@ import {
 	exerciseRecords,
 	isLoadedEquipment,
 	isTimedExercise,
+	longestHold,
 	primaryMuscleGroup,
 	repMaxCurve,
 	roundLoad,
@@ -132,6 +133,8 @@ export function ExerciseDetailScreen() {
 			history?.length ? exerciseRecords(history, exercise, CURVE_REPS) : null,
 		[history, exercise],
 	);
+	// A hold's record counts the same sets as the web (APP-932).
+	const most = timed ? longestHold(history ?? []) : (records?.mostReps ?? null);
 	const ormHistory = useQuery(
 		api.oneRepMaxes.listForExercise,
 		exerciseId ? { exerciseId } : "skip",
@@ -313,8 +316,8 @@ export function ExerciseDetailScreen() {
 									/>
 								)}
 								<StatBox
-									value={records.mostReps ? String(records.mostReps.reps) : "—"}
-									unit={timed && records.mostReps ? "s" : undefined}
+									value={most ? String(most.reps) : "—"}
+									unit={timed && most ? "s" : undefined}
 									label={
 										timed
 											? t.exercises.detail.longestHold
