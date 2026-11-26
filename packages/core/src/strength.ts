@@ -190,6 +190,28 @@ export function workingVolume(
 	);
 }
 
+/**
+ * A hold's best set: the longest logged time, then the most added load.
+ * Warm-ups and unconfirmed sets do not count. Web and phone both read a
+ * hold's best from here, so they agree (APP-932).
+ */
+export function longestHold<T extends PerformedSet>(
+	sets: readonly T[],
+): T | null {
+	let best: T | null = null;
+	for (const set of sets) {
+		if (set.setType === "warmup" || set.performanceVerified !== true) continue;
+		if (
+			!best ||
+			set.reps > best.reps ||
+			(set.reps === best.reps &&
+				toKg(set.weight, set.unit) > toKg(best.weight, best.unit))
+		)
+			best = set;
+	}
+	return best;
+}
+
 type RecordedSet<T> = { set: T; valueKg: number };
 type ExerciseRecords<T> = {
 	/** Heaviest eligible load, ties to more reps. */
