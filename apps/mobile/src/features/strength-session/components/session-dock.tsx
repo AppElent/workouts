@@ -20,7 +20,7 @@ import {
 	useTokens,
 } from "../../../theme";
 import { GlassSurface } from "../../../ui/glass-surface";
-import { AppText } from "../../../ui/text";
+import { AppText, TextScaleCap } from "../../../ui/text";
 import { useRestState, useRestTimer } from "../data/rest-timer";
 import { workspaceStore } from "../data/session-workspace";
 import { formatScore } from "../session-format";
@@ -65,6 +65,12 @@ function closeLabel(
 	if (score.rounds === 0 && score.sets === 0) return copy.closeEmpty;
 	return fmt(copy.close, { score: formatScore(copy, locale, score) });
 }
+
+/**
+ * The dock floats over the set list, so its text stops growing at this scale
+ * (AX5 would otherwise fill the screen, APP-923); the list keeps full size.
+ */
+const DOCK_MAX_TEXT_SCALE = 1.5;
 
 const NOTICE_MS = 6000;
 const NOTICE_VOICEOVER_MS = 20000;
@@ -331,15 +337,17 @@ export function SessionDock({
 				},
 			]}
 		>
-			<Notice />
-			{running ? <ClockPill group={running} /> : null}
-			{empty ? (
-				<SearchCard />
-			) : !running && nowTarget(plan) ? (
-				<NowCard />
-			) : state.running ? (
-				<RestPill />
-			) : null}
+			<TextScaleCap.Provider value={DOCK_MAX_TEXT_SCALE}>
+				<Notice />
+				{running ? <ClockPill group={running} /> : null}
+				{empty ? (
+					<SearchCard />
+				) : !running && nowTarget(plan) ? (
+					<NowCard />
+				) : state.running ? (
+					<RestPill />
+				) : null}
+			</TextScaleCap.Provider>
 		</View>
 	);
 }
