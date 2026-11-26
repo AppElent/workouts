@@ -26,6 +26,7 @@ Before the task, read the matching project doc:
 | Adding or changing an environment variable or secret | [Environment](docs/runbooks/environment.md) |
 | Creating a worktree or its isolated Convex deployment | [Worktree setup](docs/runbooks/worktree-setup.md) |
 | Deploying staging or production, or changing `deploy.yml`, the deploy scripts, or `wrangler.jsonc` | [Deploy](docs/runbooks/deploy.md) |
+| Merging a pull request that changes `convex/` or `packages/core/` | [Shared dev deployment](docs/runbooks/deploy.md#shared-dev-deployment): run `pnpm convex:push-dev` from the new `origin/main` |
 | Changing error reporting, source maps, or the `*_SENTRY_*` variables | [Sentry](docs/runbooks/sentry.md) |
 | Configuring Apple, Google, or Microsoft sign-in | [Social sign-in](docs/runbooks/social-sign-in.md) |
 | Using or changing the Foundry MCP server | [MCP](docs/runbooks/mcp.md) |

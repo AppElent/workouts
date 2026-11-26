@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when deploying Foundry's web app and backend, or changing deploy.yml or the deploy scripts.
-version: 2.1.0
+version: 2.2.0
 ---
 
 # Deploy
@@ -69,15 +69,25 @@ mode, and any `convex dev --once` from a branch overwrites it with that branch's
 functions. Nothing pushes it from `main` automatically: that would need a dev deploy
 key in GitHub, and the next branch push would undo it anyway.
 
-The person who merges a pull request that touches Convex (Eric) pushes `main` to it
-afterwards, from an up-to-date `main` checkout:
+Whoever merges a pull request that changes `convex/` or `packages/core/` (Eric,
+the manager, or the agent that merges a `low` pull request) pushes `main` to it
+right after the merge, from a checkout at the new `origin/main`:
 
 ```sh
-pnpm build:packages && pnpm exec convex dev --once   # or pnpm deploy:dev to refresh foundry-dev too
+pnpm convex:push-dev   # or pnpm deploy:dev to refresh foundry-dev too
 ```
 
-Work that pushes a branch's functions to shared dev puts `main` back when it is done,
-or uses an [isolated backend](worktree-setup.md#isolated-backends) instead.
+`convex:push-dev` names dev itself, blanks any deploy key, and puts `.env.local`
+back afterwards, so it cannot reach production and leaves a worktree's isolated
+backend selected. Work that pushes a branch's functions to shared dev puts `main`
+back when it is done, or uses an
+[isolated backend](worktree-setup.md#isolated-backends) instead.
+
+On 25 Nov 2026 dev missed two merged training changes (APP-926): the push was
+written as Eric's step, and the factory merges that day never ran it. An
+`ArgumentValidationError: Object contains extra field …` from dev for a field `main`
+accepts means dev is behind; to compare a function's arguments, run
+`env -u CONVEX_DEPLOY_KEY CONVEX_DEPLOYMENT=dev:colorless-sturgeon-704 pnpm exec convex function-spec`.
 
 ## Verify
 

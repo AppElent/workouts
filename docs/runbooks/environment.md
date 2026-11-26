@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when changing environment variables, Infisical sources, or generated env files.
-version: 3.0.0
+version: 3.1.0
 ---
 
 # Environment contract
@@ -65,6 +65,7 @@ one command without writing them:
 
 ```sh
 pnpm deploy:dev          # exec dev: convex dev --once, CLOUDFLARE_ENV=dev build, wrangler deploy
+pnpm convex:push-dev     # Convex functions only, to shared dev; no Infisical values
 pnpm deploy:staging      # exec staging: convex deploy, CLOUDFLARE_ENV=staging build, wrangler deploy
 pnpm deploy:production   # exec production: convex deploy, build, wrangler deploy
 pnpm mobile:update:preview   # exec staging: preview channel, EAS preview values
