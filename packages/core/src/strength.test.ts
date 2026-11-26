@@ -3,6 +3,7 @@ import {
 	currentOneRepMax,
 	exerciseRecords,
 	isReferenceEligible,
+	longestHold,
 	type PerformedSet,
 	percentOfOneRepMaxLoad,
 	RECORDED_TIME_TOLERANCE_MS,
@@ -146,6 +147,35 @@ describe("holds", () => {
 		expect(isReferenceEligible(held, { equipment: "dumbbell" })).toBe(true);
 		expect(isReferenceEligible(held, hold)).toBe(false);
 		expect(exerciseRecords([held], hold).heaviest).toBeNull();
+	});
+});
+
+describe("longestHold", () => {
+	const hold = (
+		reps: number,
+		weight: number,
+		extra: Partial<PerformedSet> = {},
+	) =>
+		({
+			reps,
+			weight,
+			unit: "kg",
+			setType: "working",
+			performanceVerified: true,
+			...extra,
+		}) as PerformedSet;
+
+	it("picks the longest time, then the most added load", () => {
+		const best = hold(45, 10);
+		expect(longestHold([hold(30, 20), best, hold(45, 5)])).toBe(best);
+	});
+
+	it("skips warm-ups and unconfirmed sets (APP-932)", () => {
+		const best = hold(40, 0);
+		const warmup = hold(90, 0, { setType: "warmup" });
+		const unconfirmed = hold(80, 0, { performanceVerified: undefined });
+		expect(longestHold([warmup, unconfirmed, best])).toBe(best);
+		expect(longestHold([warmup, unconfirmed])).toBeNull();
 	});
 });
 
