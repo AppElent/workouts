@@ -47,19 +47,25 @@ vi.mock("#/lib/exercises", () => ({
 	useExercise: () => ({
 		_id: "shipped:exercise:barbell-bench-press",
 		name: "Barbell Bench Press",
-		category: "push",
+		category: "compound",
 		equipment: "barbell",
 		muscleGroups: ["chest"],
 	}),
 }));
 
+import { LocaleProvider } from "#/lib/i18n";
 import { Route } from "#/routes/_app/exercises/$id";
 
+const Page = (
+	Route as unknown as { options: { component: () => ReactElement } }
+).options.component;
+
 it("shows a set's note in the exercise's history, only on that set", () => {
-	const Page = (
-		Route as unknown as { options: { component: () => ReactElement } }
-	).options.component;
-	render(<Page />);
+	render(
+		<LocaleProvider initialLocale="en">
+			<Page />
+		</LocaleProvider>,
+	);
 	fireEvent.click(screen.getByRole("button", { name: "History" }));
 	const cell = (number: string) =>
 		screen.getByText((_, node) =>
@@ -67,4 +73,17 @@ it("shows a set's note in the exercise's history, only on that set", () => {
 		);
 	expect(cell("#1").textContent).toBe("#1Narrow grip");
 	expect(cell("#2").textContent).toBe("#2");
+});
+
+it("follows the language setting", () => {
+	render(
+		<LocaleProvider initialLocale="nl">
+			<Page />
+		</LocaleProvider>,
+	);
+	expect(screen.getByText("Terug naar oefeningen")).toBeTruthy();
+	expect(screen.getByText("Samengesteld")).toBeTruthy();
+	fireEvent.click(screen.getByRole("button", { name: "Geschiedenis" }));
+	expect(screen.getByText("Setgeschiedenis (2 sets)")).toBeTruthy();
+	expect(screen.getAllByText("Werkset")).toHaveLength(2);
 });

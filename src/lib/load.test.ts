@@ -1,14 +1,13 @@
 import type { Doc } from "@convex/_generated/dataModel";
 import { describe, expect, it } from "vitest";
+import { MESSAGES } from "./i18n";
 import { longestHold, overviewHint } from "./load";
 
 const empty = { signedIn: true, hasSets: false, hasOneRepMax: false };
 
 describe("overviewHint", () => {
 	it("asks a signed-in hold for a hold, not a 1RM", () => {
-		expect(overviewHint(true, empty)).toBe(
-			"No holds yet. Log a hold to see your best time.",
-		);
+		expect(overviewHint(true, empty)).toBe("noHolds");
 	});
 
 	it("hides the hold hint once the hold has sets", () => {
@@ -16,9 +15,7 @@ describe("overviewHint", () => {
 	});
 
 	it("keeps the 1RM hint for rep exercises with no 1RM", () => {
-		expect(overviewHint(false, empty)).toBe(
-			"No data yet. Log sets for this exercise to see your 1RM.",
-		);
+		expect(overviewHint(false, empty)).toBe("noOneRepMax");
 	});
 
 	it("hides the 1RM hint once a rep exercise has a 1RM", () => {
@@ -35,8 +32,9 @@ describe("overviewHint", () => {
 			...empty,
 			signedIn: false,
 		});
-		expect(hint).toBe("Sign in to track your best time for this exercise.");
-		expect(hint).not.toMatch(/1RM/);
+		expect(hint).toBe("signInHold");
+		for (const messages of Object.values(MESSAGES))
+			expect(messages.exercise.overview.hint.signInHold).not.toMatch(/1RM/);
 	});
 
 	it("keeps the 1RM prompt for signed-out rep exercises", () => {
@@ -45,7 +43,7 @@ describe("overviewHint", () => {
 				...empty,
 				signedIn: false,
 			}),
-		).toBe("Sign in to track your 1RM for this exercise.");
+		).toBe("signInOneRepMax");
 	});
 });
 

@@ -46,6 +46,13 @@ export function setReference(set: Doc<"sets">) {
 	};
 }
 
+/** Which Overview hint an exercise with no notes shows; see `overviewHint`. */
+export type OverviewHint =
+	| "signInHold"
+	| "signInOneRepMax"
+	| "noHolds"
+	| "noOneRepMax";
+
 /**
  * The Overview hint for an exercise with no notes, or null when the Overview
  * already has content. A hold has no 1RM, so it asks for a best time instead.
@@ -53,18 +60,8 @@ export function setReference(set: Doc<"sets">) {
 export function overviewHint(
 	timed: boolean,
 	state: { signedIn: boolean; hasSets: boolean; hasOneRepMax: boolean },
-): string | null {
-	if (!state.signedIn) {
-		return timed
-			? "Sign in to track your best time for this exercise."
-			: "Sign in to track your 1RM for this exercise.";
-	}
-	if (timed) {
-		return state.hasSets
-			? null
-			: "No holds yet. Log a hold to see your best time.";
-	}
-	return state.hasOneRepMax
-		? null
-		: "No data yet. Log sets for this exercise to see your 1RM.";
+): OverviewHint | null {
+	if (!state.signedIn) return timed ? "signInHold" : "signInOneRepMax";
+	if (timed) return state.hasSets ? null : "noHolds";
+	return state.hasOneRepMax ? null : "noOneRepMax";
 }
