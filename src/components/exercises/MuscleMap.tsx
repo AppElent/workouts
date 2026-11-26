@@ -1,3 +1,4 @@
+import { type Muscle, muscleKey } from "@foundry/core";
 import { fmt, useMessages } from "#/lib/i18n";
 
 export const MUSCLE_ICON_KEYS = [
@@ -73,10 +74,10 @@ const ICONS: Record<string, MuscleIcon> = {
 	traps: { key: "traps", src: "/muscle-icons/traps.png" },
 };
 
-const GROUP_TO_ICON: Record<string, string> = {
-	abs: "abs",
-	abdominals: "abs",
+/** The icon for each muscle of the catalog vocabulary. */
+const MUSCLE_TO_ICON: Record<Muscle, string> = {
 	abductors: "glutes",
+	abs: "abs",
 	adductors: "quadriceps",
 	arms: "arms",
 	back: "back",
@@ -85,28 +86,28 @@ const GROUP_TO_ICON: Record<string, string> = {
 	chest: "chest",
 	core: "abs",
 	forearms: "forearms",
-	"front delts": "shoulders",
-	"full body": "full body",
+	frontDelts: "shoulders",
+	fullBody: "full body",
 	glutes: "glutes",
 	hamstrings: "hamstrings",
 	lats: "back",
-	"lower back": "lower back",
+	lowerBack: "lower back",
 	neck: "neck",
 	obliques: "abs",
-	quads: "quadriceps",
 	quadriceps: "quadriceps",
-	"rear delts": "shoulders",
+	rearDelts: "shoulders",
 	serratus: "serratus",
 	shoulders: "shoulders",
-	"side delts": "shoulders",
+	sideDelts: "shoulders",
 	traps: "traps",
 	triceps: "arms",
 };
 
 function resolveIcons(muscleGroups: string[]) {
 	const keys = muscleGroups
-		.map((group) => GROUP_TO_ICON[group.trim().toLowerCase()])
-		.filter(Boolean);
+		.map((group) => muscleKey(group))
+		.filter((muscle) => muscle !== undefined)
+		.map((muscle) => MUSCLE_TO_ICON[muscle]);
 
 	const resolved = keys.includes("full body") ? ["full body"] : keys;
 	const unique = [...new Set(resolved)];

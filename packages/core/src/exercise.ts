@@ -143,6 +143,50 @@ export const MUSCLE_GROUPS = {
 export type MuscleGroup = keyof typeof MUSCLE_GROUPS;
 export const MUSCLE_GROUP_KEYS = Object.keys(MUSCLE_GROUPS) as MuscleGroup[];
 
+/**
+ * The muscle vocabulary: each muscle the catalog names, under one key, with
+ * every spelling the catalog and older saves use. Apps label the keys.
+ */
+export const MUSCLES = {
+	core: ["core"],
+	abs: ["abs", "abdominals"],
+	obliques: ["obliques"],
+	chest: ["chest"],
+	back: ["back"],
+	lats: ["lats"],
+	lowerBack: ["lower back"],
+	traps: ["traps"],
+	neck: ["neck"],
+	shoulders: ["shoulders"],
+	frontDelts: ["front delts"],
+	sideDelts: ["side delts"],
+	rearDelts: ["rear delts"],
+	arms: ["arms"],
+	biceps: ["biceps"],
+	triceps: ["triceps"],
+	forearms: ["forearms"],
+	quadriceps: ["quadriceps", "quads"],
+	hamstrings: ["hamstrings"],
+	glutes: ["glutes"],
+	calves: ["calves"],
+	adductors: ["adductors"],
+	abductors: ["abductors"],
+	serratus: ["serratus"],
+	fullBody: ["full body"],
+} as const satisfies Record<string, readonly string[]>;
+export type Muscle = keyof typeof MUSCLES;
+
+const MUSCLE_BY_NAME = new Map<string, Muscle>(
+	(Object.entries(MUSCLES) as [Muscle, readonly string[]][]).flatMap(
+		([muscle, names]) => names.map((name) => [name, muscle] as const),
+	),
+);
+
+/** The vocabulary key for a stored muscle name, or undefined when unknown. */
+export function muscleKey(name: string): Muscle | undefined {
+	return MUSCLE_BY_NAME.get(name.trim().toLocaleLowerCase());
+}
+
 type Muscled = { readonly muscleGroups: readonly string[] };
 
 function inGroup(muscle: string, group: MuscleGroup) {

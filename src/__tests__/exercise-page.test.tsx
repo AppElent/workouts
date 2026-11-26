@@ -49,7 +49,7 @@ vi.mock("#/lib/exercises", () => ({
 		name: "Barbell Bench Press",
 		category: "compound",
 		equipment: "barbell",
-		muscleGroups: ["chest"],
+		muscleGroups: ["chest", "Front Delts ", "pinkies"],
 	}),
 }));
 
@@ -86,4 +86,16 @@ it("follows the language setting", () => {
 	fireEvent.click(screen.getByRole("button", { name: "Geschiedenis" }));
 	expect(screen.getByText("Setgeschiedenis (2 sets)")).toBeTruthy();
 	expect(screen.getAllByText("Werkset")).toHaveLength(2);
+});
+
+it("names the muscle chips in the current language", () => {
+	render(
+		<LocaleProvider initialLocale="nl">
+			<Page />
+		</LocaleProvider>,
+	);
+	expect(screen.getByText("Voorste schouders")).toBeTruthy();
+	expect(screen.queryByText("Front Delts")).toBeNull();
+	// A muscle outside the catalog vocabulary keeps its stored name.
+	expect(screen.getByText("pinkies")).toBeTruthy();
 });
