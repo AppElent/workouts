@@ -185,8 +185,8 @@ the app; there is no separate data.
 ### Holds
 
 - A Personal Exercise is measured in reps or seconds, chosen when it is created
-  (phone and web) and changeable when it is edited (phone). Quick create inside a session makes a
-  reps exercise. Absent means reps, so
+  and changeable when it is edited (phone and web). Quick create inside a session
+  offers it with weight, on bodyweight, or in seconds (a bodyweight hold). Absent means reps, so
   every earlier exercise keeps counting reps; an edit that leaves the measure out
   keeps it, so an older app never clears one. Shipped holds are fixed by id.
 - A hold reads and logs seconds everywhere, stepped in fives from 30. Its load is

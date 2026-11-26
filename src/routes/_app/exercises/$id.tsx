@@ -12,7 +12,7 @@ import {
 import type { ExerciseId } from "@foundry/core/exercises";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Pencil } from "lucide-react";
 import { useState } from "react";
 import {
 	CartesianGrid,
@@ -24,6 +24,7 @@ import {
 	XAxis,
 	YAxis,
 } from "recharts";
+import { ExerciseFormModal } from "#/components/exercises/ExerciseFormModal";
 import { MuscleMap } from "#/components/exercises/MuscleMap";
 import { PersonalRecords } from "#/components/exercises/PersonalRecords";
 import { useExercise } from "#/lib/exercises";
@@ -70,6 +71,7 @@ function SignInPrompt({ message }: { message: string }) {
 function ExerciseDetailPage() {
 	const { id } = Route.useParams();
 	const [activeTab, setActiveTab] = useState<Tab>("overview");
+	const [editing, setEditing] = useState(false);
 	const { locale, messages } = useI18n();
 	const t = messages.exercise;
 
@@ -138,13 +140,32 @@ function ExerciseDetailPage() {
 
 	return (
 		<div className="p-4 sm:p-6 max-w-2xl mx-auto pb-20 sm:pb-6">
-			<Link
-				to="/exercises"
-				className="inline-flex items-center gap-1.5 text-xs text-text-muted hover:text-text mb-4 transition-colors"
-			>
-				<ArrowLeft size={14} />
-				{t.back}
-			</Link>
+			<div className="flex items-center justify-between gap-3 mb-4">
+				<Link
+					to="/exercises"
+					className="inline-flex items-center gap-1.5 text-xs text-text-muted hover:text-text transition-colors"
+				>
+					<ArrowLeft size={14} />
+					{t.back}
+				</Link>
+				{signedIn && !exercise.isDefault ? (
+					<button
+						type="button"
+						onClick={() => setEditing(true)}
+						className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-text hover:bg-surface-2 transition-colors"
+					>
+						<Pencil size={14} aria-hidden="true" />
+						{t.edit}
+					</button>
+				) : null}
+			</div>
+			{signedIn && !exercise.isDefault ? (
+				<ExerciseFormModal
+					open={editing}
+					onOpenChange={setEditing}
+					exercise={exercise}
+				/>
+			) : null}
 
 			<div className="rounded-2xl bg-surface border border-border p-5 mb-4 text-center">
 				<h1 className="text-2xl font-black text-text tracking-tight mb-2">

@@ -339,9 +339,9 @@ export function SessionGroupScreen() {
 							exercise.name,
 						);
 					}}
-					onCreate={(name, bodyweight) => {
+					onCreate={(name, kind) => {
 						setPicking(false);
-						void actions.createAndAdd(name, bodyweight, undefined, group.id);
+						void actions.createAndAdd(name, kind, undefined, group.id);
 					}}
 				/>
 			) : null}

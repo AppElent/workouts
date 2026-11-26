@@ -652,12 +652,12 @@ export function StrengthSessionScreen() {
 											exercise.name,
 										);
 								}}
-								onCreate={(exerciseName, bodyweight) => {
+								onCreate={(exerciseName, kind) => {
 									const request = picker;
 									setPicker(null);
 									void actions.createAndAdd(
 										exerciseName,
-										bodyweight,
+										kind,
 										request.mode === "swap" ? request.from : undefined,
 										request.mode === "group" ? request.groupId : undefined,
 										openEditor,

@@ -19,12 +19,19 @@ import {
 } from "../../../theme";
 import { Modal } from "../../../ui/modal";
 import { AppText } from "../../../ui/text";
+import type { QuickExerciseKind } from "../data/session-actions";
 import { formatNumber } from "../session-format";
 
 type Line =
 	| { kind: "head"; key: string; title: string }
 	| { kind: "exercise"; key: string; exercise: Exercise }
-	| { kind: "new"; key: string; bodyweight: boolean };
+	| { kind: "new"; key: string; create: QuickExerciseKind };
+const QUICK_KINDS: readonly QuickExerciseKind[] = [
+	"weighted",
+	"bodyweight",
+	"hold",
+];
+
 export function SessionExercisePicker({
 	title,
 	exercises,
@@ -37,7 +44,7 @@ export function SessionExercisePicker({
 	exercises: readonly Exercise[] | undefined;
 	inSession: readonly string[];
 	onPick: (exercise: Exercise) => void;
-	onCreate: (name: string, bodyweight: boolean) => void;
+	onCreate: (name: string, kind: QuickExerciseKind) => void;
 	onClose: () => void;
 }) {
 	const { locale, t } = useI18n();
@@ -76,8 +83,10 @@ export function SessionExercisePicker({
 				...(exact
 					? []
 					: [
-							{ kind: "new", key: "new-weighted", bodyweight: false } as const,
-							{ kind: "new", key: "new-bodyweight", bodyweight: true } as const,
+							...QUICK_KINDS.map(
+								(create) =>
+									({ kind: "new", key: `new-${create}`, create }) as const,
+							),
 						]),
 			];
 		}
@@ -163,16 +172,11 @@ export function SessionExercisePicker({
 							return (
 								<Pressable
 									accessibilityRole="button"
-									onPress={() => onCreate(typed, item.bodyweight)}
+									onPress={() => onCreate(typed, item.create)}
 									style={styles.row}
 								>
 									<AppText variant="row" style={{ color: colors.accent }}>
-										{fmt(
-											item.bodyweight ? copy.newBodyweight : copy.newWeighted,
-											{
-												name: typed,
-											},
-										)}
+										{fmt(copy.newExercise[item.create], { name: typed })}
 									</AppText>
 								</Pressable>
 							);
