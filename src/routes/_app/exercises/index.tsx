@@ -13,7 +13,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation } from "convex/react";
 import { Plus, Search, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
-import { CreateExerciseModal } from "#/components/exercises/CreateExerciseModal";
+import { ExerciseFormModal } from "#/components/exercises/ExerciseFormModal";
 import { Select } from "#/components/ui/Select";
 import { useToast } from "#/components/ui/toast";
 import { useConvexErrorMessage } from "#/lib/convexError";
@@ -207,7 +207,7 @@ function ExercisesPage() {
 					<Plus size={24} strokeWidth={2.5} />
 				</button>
 
-				<CreateExerciseModal open={modalOpen} onOpenChange={setModalOpen} />
+				<ExerciseFormModal open={modalOpen} onOpenChange={setModalOpen} />
 			</Show>
 		</div>
 	);

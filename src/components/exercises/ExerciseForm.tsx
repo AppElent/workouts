@@ -6,18 +6,17 @@ import {
 	EXERCISE_MEASURES,
 	type ExerciseCategory,
 	type ExerciseMeasure,
+	exerciseMeasure,
 	isLoadedEquipment,
 	validateExerciseInput,
 } from "@foundry/core";
+import type { Exercise } from "@foundry/core/exercises";
 import { useForm } from "@tanstack/react-form";
 import { useMutation } from "convex/react";
 import { useState } from "react";
+import { Button } from "#/components/ui/button";
 import { useConvexErrorMessage } from "#/lib/convexError";
-
-const FIELD_ERRORS = {
-	name: "Name is required",
-	weightIncrement: "Weight increment must be more than 0",
-};
+import { useMessages } from "#/lib/i18n";
 
 type Draft = {
 	name: string;
@@ -29,6 +28,9 @@ type Draft = {
 	weightIncrement: number | undefined;
 };
 
+const FIELD_CLASS =
+	"h-9 rounded-md border border-border bg-surface-2 px-3 text-sm text-text placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent-ink";
+
 function checkDraft({ muscleGroupsRaw, ...draft }: Draft) {
 	return validateExerciseInput({
 		...draft,
@@ -36,32 +38,43 @@ function checkDraft({ muscleGroupsRaw, ...draft }: Draft) {
 	});
 }
 
-export function AddExerciseForm({
+function draftOf(exercise: Exercise | undefined): Draft {
+	return {
+		name: exercise?.name ?? "",
+		muscleGroupsRaw: exercise?.muscleGroups.join(", ") ?? "",
+		category: exercise?.category ?? "compound",
+		equipment: exercise?.equipment ?? "barbell",
+		measure: exerciseMeasure(exercise),
+		notes: exercise?.notes ?? "",
+		weightIncrement: exercise?.weightIncrement,
+	};
+}
+
+/** Adds a Personal Exercise, or edits `exercise` in place when given. */
+export function ExerciseForm({
+	exercise,
 	onSuccess,
 }: {
+	exercise?: Exercise;
 	onSuccess?: () => void;
 } = {}) {
+	const t = useMessages().exercise;
+	const copy = t.form;
 	const createExercise = useMutation(api.exercises.create);
+	const updateExercise = useMutation(api.exercises.update);
 	const errorMessage = useConvexErrorMessage();
 	const [submitError, setSubmitError] = useState<string | null>(null);
+	const [savedMeasure] = useState(() => exerciseMeasure(exercise));
 
 	const form = useForm({
-		defaultValues: {
-			name: "",
-			muscleGroupsRaw: "",
-			category: "compound",
-			equipment: "barbell",
-			measure: "reps",
-			notes: "",
-			weightIncrement: undefined,
-		} as Draft,
+		defaultValues: draftOf(exercise),
 		validators: {
 			onSubmit: ({ value }) => {
 				const checked = checkDraft(value);
 				if (checked.ok) return undefined;
 				return {
 					fields: Object.fromEntries(
-						checked.errors.map(({ field }) => [field, FIELD_ERRORS[field]]),
+						checked.errors.map(({ field }) => [field, copy.errors[field]]),
 					),
 				};
 			},
@@ -71,12 +84,16 @@ export function AddExerciseForm({
 			const checked = checkDraft(value);
 			if (!checked.ok) return;
 			try {
-				await createExercise(checked.value);
+				if (exercise)
+					await updateExercise({ id: exercise._id, ...checked.value });
+				else await createExercise(checked.value);
 			} catch (error) {
-				setSubmitError(errorMessage(error, "Couldn't add exercise."));
+				setSubmitError(
+					errorMessage(error, exercise ? copy.saveFailed : copy.addFailed),
+				);
 				return;
 			}
-			form.reset();
+			if (!exercise) form.reset();
 			onSuccess?.();
 		},
 	});
@@ -87,10 +104,8 @@ export function AddExerciseForm({
 				e.preventDefault();
 				void form.handleSubmit();
 			}}
-			className="rounded-xl bg-surface border border-border p-5 flex flex-col gap-4"
+			className="flex flex-col gap-4"
 		>
-			<h2 className="text-sm font-semibold text-text">Add Custom Exercise</h2>
-
 			<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
 				<form.Field name="name">
 					{(field) => (
@@ -99,14 +114,14 @@ export function AddExerciseForm({
 								htmlFor="exercise-name"
 								className="text-xs text-text-muted"
 							>
-								Name
+								{copy.name}
 							</label>
 							<input
 								id="exercise-name"
-								className="h-9 rounded-md border border-border bg-surface-2 px-3 text-sm text-text placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent-ink"
+								className={FIELD_CLASS}
 								value={field.state.value}
 								onChange={(e) => field.handleChange(e.target.value)}
-								placeholder="e.g. Cable Lateral Raise"
+								placeholder={copy.namePlaceholder}
 								required
 							/>
 							<FieldError message={field.state.meta.errors[0]} />
@@ -121,14 +136,14 @@ export function AddExerciseForm({
 								htmlFor="exercise-muscle-groups"
 								className="text-xs text-text-muted"
 							>
-								Muscle Groups (comma-separated)
+								{copy.muscleGroups}
 							</label>
 							<input
 								id="exercise-muscle-groups"
-								className="h-9 rounded-md border border-border bg-surface-2 px-3 text-sm text-text placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent-ink"
+								className={FIELD_CLASS}
 								value={field.state.value}
 								onChange={(e) => field.handleChange(e.target.value)}
-								placeholder="e.g. side delts, traps"
+								placeholder={copy.muscleGroupsPlaceholder}
 							/>
 						</div>
 					)}
@@ -141,11 +156,11 @@ export function AddExerciseForm({
 								htmlFor="exercise-category"
 								className="text-xs text-text-muted"
 							>
-								Category
+								{copy.category}
 							</label>
 							<select
 								id="exercise-category"
-								className="h-9 rounded-md border border-border bg-surface-2 px-3 text-sm text-text focus:outline-none focus:ring-1 focus:ring-accent-ink"
+								className={FIELD_CLASS}
 								value={field.state.value}
 								onChange={(e) =>
 									field.handleChange(e.target.value as ExerciseCategory)
@@ -153,7 +168,7 @@ export function AddExerciseForm({
 							>
 								{EXERCISE_CATEGORIES.map((category) => (
 									<option key={category} value={category}>
-										{category.charAt(0).toUpperCase() + category.slice(1)}
+										{t.category[category]}
 									</option>
 								))}
 							</select>
@@ -168,19 +183,19 @@ export function AddExerciseForm({
 								htmlFor="exercise-equipment"
 								className="text-xs text-text-muted"
 							>
-								Equipment
+								{copy.equipment}
 							</label>
 							<select
 								id="exercise-equipment"
-								className="h-9 rounded-md border border-border bg-surface-2 px-3 text-sm text-text focus:outline-none focus:ring-1 focus:ring-accent-ink"
+								className={FIELD_CLASS}
 								value={field.state.value}
 								onChange={(e) =>
 									field.handleChange(e.target.value as Equipment)
 								}
 							>
 								{EQUIPMENT.map((eq) => (
-									<option key={eq} value={eq} className="capitalize">
-										{eq.charAt(0).toUpperCase() + eq.slice(1)}
+									<option key={eq} value={eq}>
+										{t.equipment[eq]}
 									</option>
 								))}
 							</select>
@@ -195,11 +210,16 @@ export function AddExerciseForm({
 								htmlFor="exercise-measure"
 								className="text-xs text-text-muted"
 							>
-								Measured in
+								{copy.measure}
 							</label>
 							<select
 								id="exercise-measure"
-								className="h-9 rounded-md border border-border bg-surface-2 px-3 text-sm text-text focus:outline-none focus:ring-1 focus:ring-accent-ink"
+								aria-describedby={
+									exercise && field.state.value !== savedMeasure
+										? "exercise-measure-help"
+										: undefined
+								}
+								className={FIELD_CLASS}
 								value={field.state.value}
 								onChange={(e) =>
 									field.handleChange(e.target.value as ExerciseMeasure)
@@ -207,10 +227,18 @@ export function AddExerciseForm({
 							>
 								{EXERCISE_MEASURES.map((measure) => (
 									<option key={measure} value={measure}>
-										{measure.charAt(0).toUpperCase() + measure.slice(1)}
+										{copy.measureNames[measure]}
 									</option>
 								))}
 							</select>
+							{exercise && field.state.value !== savedMeasure ? (
+								<p
+									id="exercise-measure-help"
+									className="text-xs text-text-muted"
+								>
+									{copy.measureChangeHelp}
+								</p>
+							) : null}
 						</div>
 					)}
 				</form.Field>
@@ -225,14 +253,14 @@ export function AddExerciseForm({
 											htmlFor="exercise-weight-increment"
 											className="text-xs text-text-muted"
 										>
-											Weight increment kg (optional)
+											{copy.weightIncrement}
 										</label>
 										<input
 											id="exercise-weight-increment"
 											type="number"
 											min="0.25"
 											step="0.25"
-											className="h-9 rounded-md border border-border bg-surface-2 px-3 text-sm text-text placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent-ink"
+											className={FIELD_CLASS}
 											value={field.state.value ?? ""}
 											onChange={(e) =>
 												field.handleChange(
@@ -241,7 +269,7 @@ export function AddExerciseForm({
 														: undefined,
 												)
 											}
-											placeholder="e.g. 2.5"
+											placeholder={copy.weightIncrementPlaceholder}
 										/>
 										<FieldError message={field.state.meta.errors[0]} />
 									</div>
@@ -258,14 +286,14 @@ export function AddExerciseForm({
 								htmlFor="exercise-notes"
 								className="text-xs text-text-muted"
 							>
-								Notes (optional)
+								{copy.notes}
 							</label>
 							<input
 								id="exercise-notes"
-								className="h-9 rounded-md border border-border bg-surface-2 px-3 text-sm text-text placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent-ink"
+								className={FIELD_CLASS}
 								value={field.state.value}
 								onChange={(e) => field.handleChange(e.target.value)}
-								placeholder="Form cues, tips..."
+								placeholder={copy.notesPlaceholder}
 							/>
 						</div>
 					)}
@@ -280,13 +308,13 @@ export function AddExerciseForm({
 				)}
 				<form.Subscribe selector={(s) => s.isSubmitting}>
 					{(submitting) => (
-						<button
+						<Button
 							type="submit"
-							disabled={submitting}
-							className="px-5 py-2 rounded-full bg-accent-fill text-on-accent text-sm font-bold hover:bg-accent-pressed transition-colors disabled:opacity-50"
+							loading={submitting}
+							className="rounded-full px-5"
 						>
-							Add Exercise
-						</button>
+							{exercise ? copy.save : copy.add}
+						</Button>
 					)}
 				</form.Subscribe>
 			</div>
