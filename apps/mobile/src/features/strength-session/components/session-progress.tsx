@@ -3,7 +3,7 @@
  * ad-hoc session has no plan to measure against, so it shows running totals.
  */
 import { workingVolume } from "@foundry/core";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, useWindowDimensions, View } from "react-native";
 import { fmt, plural, useI18n } from "../../../i18n";
 import { spacing, type Tokens, useThemedStyles } from "../../../theme";
 import { AppText } from "../../../ui/text";
@@ -19,6 +19,9 @@ export function SessionProgress() {
 	const { locale, t } = useI18n();
 	const copy = t.strength.plan.now;
 	const styles = useThemedStyles(createStyles);
+	// At accessibility sizes the count and volume can't share a line (APP-931).
+	const large = useWindowDimensions().fontScale >= 1.35;
+	const labels = [styles.labels, large && styles.stacked];
 	const rows = allRows(plan).filter((row) => row.kind !== "warmup");
 	if (rows.length === 0) return null;
 	const done = rows.filter((row) => row.done);
@@ -45,7 +48,7 @@ export function SessionProgress() {
 		const totals = `${plural(locale, done.length, copy.sets)} · ${plural(locale, exercises, copy.exercises)}`;
 		return (
 			<View
-				style={[styles.wrap, styles.labels]}
+				style={[styles.wrap, labels]}
 				accessible
 				accessibilityLabel={[totals, volumeText].filter(Boolean).join(", ")}
 			>
@@ -92,7 +95,7 @@ export function SessionProgress() {
 					/>
 				</View>
 			)}
-			<View style={styles.labels}>
+			<View style={labels} testID="session-progress-labels">
 				<AppText variant="label" style={styles.muted}>
 					{fmt(copy.progress, values)}
 				</AppText>
@@ -116,5 +119,6 @@ const createStyles = (colors: Tokens) =>
 		next: { backgroundColor: colors.accentDim },
 		open: { backgroundColor: colors.surface2 },
 		labels: { flexDirection: "row", justifyContent: "space-between" },
+		stacked: { flexDirection: "column", justifyContent: "flex-start" },
 		muted: { color: colors.textMuted, fontVariant: ["tabular-nums"] },
 	});
