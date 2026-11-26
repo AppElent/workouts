@@ -4,8 +4,6 @@ import {
 	calculateOneRepMax,
 	exerciseRecords,
 	isTimedExercise,
-	type Muscle,
-	muscleKey,
 	plural,
 	type StrengthReferenceSource,
 } from "@foundry/core";
@@ -37,6 +35,7 @@ import {
 	setCount,
 	setReference,
 } from "#/lib/load";
+import { muscleLabel } from "#/lib/muscles";
 import { cn } from "#/lib/utils";
 
 type Tab = "overview" | "progress" | "history";
@@ -46,12 +45,6 @@ const REP_RANGE = Array.from({ length: 10 }, (_, i) => i + 1);
 export const Route = createFileRoute("/_app/exercises/$id")({
 	component: ExerciseDetailPage,
 });
-
-/** The muscle's name in the current language; unknown names stay as stored. */
-function muscleLabel(name: string, labels: Record<Muscle, string>) {
-	const key = muscleKey(name);
-	return key ? labels[key] : name.trim();
-}
 
 function SignInPrompt({ message }: { message: string }) {
 	const t = useMessages().exercise;
