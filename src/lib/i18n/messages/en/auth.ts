@@ -22,6 +22,8 @@ export const auth = {
 		tooManyRequests: "Too many attempts. Wait a moment and try again.",
 		network: "Can't reach the server. Check your connection.",
 		appleSignInIncomplete: "Apple sign-in didn't finish. Please try again.",
+		botCheckFailed:
+			"We couldn't confirm you're not a bot. Please try again, or turn off a VPN or proxy.",
 	},
 	header: {
 		accountMenu: "Account menu",

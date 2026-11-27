@@ -47,6 +47,15 @@ credentials. Web and mobile share the rule through `socialSignInProviders`;
 add Google to its production list once production has its own Google OAuth
 client.
 
+Bot sign-up protection is Clerk's **Challenge suspicious sign-ups**, not the
+legacy Smart CAPTCHA (APP-125). The switch is a Dashboard step; the config API
+only exposes the legacy `captcha_enabled` flag. ClerkJS shows
+its challenge in a dialog of its own, so the web sign-up forms mount no
+`clerk-captcha` element, and `/sso-callback` must stay on `HandleSSOCallback`,
+which shows the challenge for a social sign-up. A failed challenge reads as
+`botCheckFailed`. Native mobile sign-ups go through the Native API and are not
+challenged. Clerk cannot switch an instance back to the legacy mode.
+
 Email-code sign-in ("Email me a sign-in code") needs **Email verification code**
 enabled as a sign-in option under **User & authentication → Email**; it is on
 for both instances.

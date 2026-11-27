@@ -101,6 +101,16 @@ describe("clerkErrorMessageKey", () => {
 		).toBe("generic");
 	});
 
+	it.each([
+		"protect_check_timed_out",
+		"protect_check_script_load_failed",
+		"protect_check_execution_failed",
+		"protect_check_aborted",
+	])("maps the bot challenge's %s to its own key", (code) => {
+		expect(clerkErrorMessageKey({ code })).toBe("botCheckFailed");
+		expect(clerkErrorMessageKey({ errors: [{ code }] })).toBe("botCheckFailed");
+	});
+
 	it("falls back to the generic key for anything unmapped", () => {
 		expect(clerkErrorMessageKey({ code: "something_new" })).toBe("generic");
 		expect(clerkErrorMessageKey({ code: "toString" })).toBe("generic");

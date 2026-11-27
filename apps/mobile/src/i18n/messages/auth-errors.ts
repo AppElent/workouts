@@ -17,6 +17,8 @@ export const authErrorsEn: Record<ClerkErrorMessageKey, string> = {
 	network: "Network error. Check your connection and try again.",
 	appleSignInIncomplete:
 		"Apple sign-in didn't finish. Check that you're signed in to your Apple Account in Settings.",
+	botCheckFailed:
+		"We couldn't confirm you're not a bot. Try again, or turn off a VPN or proxy.",
 };
 
 export const authErrorsNl: typeof authErrorsEn = {
@@ -37,4 +39,6 @@ export const authErrorsNl: typeof authErrorsEn = {
 	network: "Netwerkfout. Controleer je verbinding en probeer het opnieuw.",
 	appleSignInIncomplete:
 		"Inloggen met Apple is niet afgerond. Controleer of je bij Instellingen bent ingelogd met je Apple-account.",
+	botCheckFailed:
+		"We konden niet bevestigen dat je geen bot bent. Probeer het opnieuw, of zet een vpn of proxy uit.",
 };

@@ -22,7 +22,7 @@ const SOCIAL_PROVIDERS = [
 
 /**
  * One button per social provider. Each redirects to the provider and back to
- * the SSO callback route, where `AuthenticateWithRedirectCallback` finishes
+ * the SSO callback route, where `HandleSSOCallback` finishes
  * the flow. Starting from sign-in is enough for sign-up too: Clerk transfers
  * an unknown account to a sign-up on the callback. That transfer lands on the
  * callback's fallback URL, not `redirectUrl`, so the callback URL carries the

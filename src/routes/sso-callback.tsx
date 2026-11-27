@@ -1,4 +1,4 @@
-import { AuthenticateWithRedirectCallback, useAuth } from "@clerk/react";
+import { HandleSSOCallback, useAuth } from "@clerk/react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { AuthCard } from "#/lib/auth/AuthCard";
@@ -15,7 +15,7 @@ export const Route = createFileRoute("/sso-callback")({
 });
 
 function SsoCallbackPage() {
-	const { locale, messages } = useI18n();
+	const { messages } = useI18n();
 	const { redirect } = Route.useSearch();
 	const { isLoaded } = useAuth();
 	// Latched: `isLoaded` drops again while Clerk activates the finished session
@@ -25,6 +25,12 @@ function SsoCallbackPage() {
 	const activating = hasLoaded && !isLoaded;
 	const navigate = useNavigate();
 	const { auth } = messages;
+	// In-app, so `SignUpForm` still sees the open attempt's `errors`. Clerk's
+	// `decorateUrl` may hand back an absolute URL that has to load in full.
+	const go = (url: string) => {
+		if (/^https?:/.test(url)) window.location.assign(url);
+		else navigate({ href: url, replace: true });
+	};
 	// A social sign-in Clerk transfers to a sign-up (or back) ends on these
 	// fallbacks, so they carry the return path from `SocialButtons`.
 	const afterAuth = redirect ?? AUTH_PATHS.afterAuth;
@@ -66,23 +72,20 @@ function SsoCallbackPage() {
 					}}
 				/>
 			)}
-			<AuthenticateWithRedirectCallback
-				signInUrl={signInUrl}
-				signUpUrl={withRedirect(AUTH_PATHS.signUp, redirect)}
-				signInFallbackRedirectUrl={afterAuth}
-				signUpFallbackRedirectUrl={afterAuth}
-				// Clerk's default is its own `#/factor-two` hash route, which
-				// `SignInForm` does not read; it picks up the open attempt instead.
-				// `needs_client_trust` has no URL of its own and lands on `signInUrl`.
-				secondFactorUrl={signInUrl}
-				// Likewise for a sign-up with missing or unverified fields, instead of
-				// `#/continue`, `#/verify-email-address` and `#/verify-phone-number`.
-				continueSignUpUrl={continueSignUpUrl}
-				verifyEmailAddressUrl={continueSignUpUrl}
-				verifyPhoneNumberUrl={continueSignUpUrl}
+			{/*
+			 * Finishes the social sign-in or sign-up, transferring between the two
+			 * when Clerk asks. A suspicious sign-up gets Clerk's bot challenge in a
+			 * dialog first; one that fails it goes to `navigateToSignUp` with the
+			 * reason on `errors.global`, which `SignUpForm` shows (APP-125).
+			 */}
+			<HandleSSOCallback
+				navigateToApp={({ decorateUrl }) => go(decorateUrl(afterAuth))}
+				// A second factor, or `needs_client_trust`: `SignInForm` picks up the
+				// open attempt.
+				navigateToSignIn={() => go(signInUrl)}
+				// Missing or unverified fields: `SignUpForm` picks up the open attempt.
+				navigateToSignUp={() => go(continueSignUpUrl)}
 			/>
-			{/* A sign-in transferred to a sign-up may need Clerk's bot check. */}
-			<div id="clerk-captcha" data-cl-language={locale} />
 		</AuthCard>
 	);
 }

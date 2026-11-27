@@ -25,6 +25,8 @@ export const auth = {
 		network: "De server is niet bereikbaar. Controleer je verbinding.",
 		appleSignInIncomplete:
 			"Inloggen met Apple is niet afgerond. Probeer het opnieuw.",
+		botCheckFailed:
+			"We konden niet bevestigen dat je geen bot bent. Probeer het opnieuw, of zet een vpn of proxy uit.",
 	},
 	header: {
 		accountMenu: "Accountmenu",

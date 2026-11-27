@@ -32,7 +32,12 @@ const ok = (update: Record<string, unknown> = {}, target = signIn) =>
 const signIn: Record<string, unknown> = {};
 const signUp: Record<string, unknown> = {};
 const sso = vi.fn();
-let callbackProps: Record<string, unknown> | null = null;
+type CallbackProps = {
+	navigateToApp: (params: { decorateUrl: (url: string) => string }) => void;
+	navigateToSignIn: () => void;
+	navigateToSignUp: () => void;
+};
+let callbackProps: CallbackProps | null = null;
 
 function resetClerk() {
 	Object.assign(signIn, {
@@ -61,14 +66,16 @@ function resetClerk() {
 	callbackProps = null;
 }
 
+/** `useSignUp().errors`: Clerk keeps errors without a field on `global`. */
+const signUpErrors: { global: unknown[] | null } = { global: null };
 vi.mock("@clerk/react", () => ({
 	useSignIn: () => ({ signIn }),
-	useSignUp: () => ({ signUp }),
+	useSignUp: () => ({ signUp, errors: signUpErrors }),
 	useAuth: () => ({ isLoaded: true, isSignedIn: false }),
 	useUser: () => ({ user: null }),
 	Show: ({ when, children }: { when: string; children: React.ReactNode }) =>
 		when === "signed-out" ? children : null,
-	AuthenticateWithRedirectCallback: (props: Record<string, unknown>) => {
+	HandleSSOCallback: (props: CallbackProps) => {
 		callbackProps = props;
 		return null;
 	},
@@ -196,6 +203,34 @@ async function landsOn(router: TestRouter, path: string) {
 	await vi.waitFor(() => expect(router.state.location.href).toBe(path));
 }
 
+/** The `/sso-callback` page as Clerk's `HandleSSOCallback` sees it. */
+async function callback() {
+	await vi.waitFor(() => expect(callbackProps).not.toBeNull());
+	return callbackProps as CallbackProps;
+}
+
+/** Where each way out of `/sso-callback` lands, from a fresh visit to `href`. */
+async function callbackTargets(href: string) {
+	const targets: Record<string, string> = {};
+	const ways = {
+		app: (p: CallbackProps) => p.navigateToApp({ decorateUrl: (url) => url }),
+		signIn: (p: CallbackProps) => p.navigateToSignIn(),
+		signUp: (p: CallbackProps) => p.navigateToSignUp(),
+	};
+	for (const [way, take] of Object.entries(ways)) {
+		callbackProps = null;
+		const router = await visit(href);
+		const props = await callback();
+		await act(async () => take(props));
+		await vi.waitFor(() =>
+			expect(router.state.location.pathname).not.toBe("/sso-callback"),
+		);
+		targets[way] = router.state.location.href;
+		cleanup();
+	}
+	return targets;
+}
+
 const JOIN = "/join/tok-1";
 const WITH_JOIN = "?redirect=%2Fjoin%2Ftok-1";
 
@@ -258,17 +293,30 @@ describe("join link through auth", () => {
 
 		// The provider sends the browser back to the callback URL.
 		await act(() => router.navigate({ href: redirectCallbackUrl }));
-		await vi.waitFor(() => expect(callbackProps).not.toBeNull());
-		expect(callbackProps).toMatchObject({
-			signInFallbackRedirectUrl: JOIN,
-			signUpFallbackRedirectUrl: JOIN,
-			signInUrl: `/sign-in${WITH_JOIN}&resume=social`,
-			secondFactorUrl: `/sign-in${WITH_JOIN}&resume=social`,
-			signUpUrl: `/sign-up${WITH_JOIN}`,
-			continueSignUpUrl: `/sign-up${WITH_JOIN}&resume=social`,
-			verifyEmailAddressUrl: `/sign-up${WITH_JOIN}&resume=social`,
-			verifyPhoneNumberUrl: `/sign-up${WITH_JOIN}&resume=social`,
+		const props = await callback();
+		await act(async () => props.navigateToApp({ decorateUrl: (url) => url }));
+		await landsOn(router, JOIN);
+		expect(await callbackTargets(redirectCallbackUrl)).toEqual({
+			app: JOIN,
+			signIn: `/sign-in${WITH_JOIN}&resume=social`,
+			signUp: `/sign-up${WITH_JOIN}&resume=social`,
 		});
+	});
+
+	it("loads an absolute URL that Clerk decorates in full", async () => {
+		const assign = vi.fn();
+		vi.stubGlobal("location", { ...window.location, assign });
+		try {
+			await visit("/sso-callback");
+			const props = await callback();
+			const decorated = "https://clerk.example/v1/client/touch?redirect=x";
+			await act(async () =>
+				props.navigateToApp({ decorateUrl: () => decorated }),
+			);
+			expect(assign).toHaveBeenCalledWith(decorated);
+		} finally {
+			vi.unstubAllGlobals();
+		}
 	});
 
 	it("resets the password to the dashboard without a redirect", async () => {
@@ -279,17 +327,10 @@ describe("join link through auth", () => {
 	});
 
 	it("finishes social sign-in on the dashboard without a redirect", async () => {
-		await visit("/sso-callback");
-		await vi.waitFor(() => expect(callbackProps).not.toBeNull());
-		expect(callbackProps).toMatchObject({
-			signInFallbackRedirectUrl: "/dashboard",
-			signUpFallbackRedirectUrl: "/dashboard",
-			signInUrl: "/sign-in?resume=social",
-			secondFactorUrl: "/sign-in?resume=social",
-			signUpUrl: "/sign-up",
-			continueSignUpUrl: "/sign-up?resume=social",
-			verifyEmailAddressUrl: "/sign-up?resume=social",
-			verifyPhoneNumberUrl: "/sign-up?resume=social",
+		expect(await callbackTargets("/sso-callback")).toEqual({
+			app: "/dashboard",
+			signIn: "/sign-in?resume=social",
+			signUp: "/sign-up?resume=social",
 		});
 	});
 
@@ -352,17 +393,10 @@ describe("join link through auth", () => {
 		});
 
 		it("finishes social sign-in on the dashboard", async () => {
-			await visit(`/sso-callback${query}`);
-			await vi.waitFor(() => expect(callbackProps).not.toBeNull());
-			expect(callbackProps).toMatchObject({
-				signInFallbackRedirectUrl: "/dashboard",
-				signUpFallbackRedirectUrl: "/dashboard",
-				signInUrl: "/sign-in?resume=social",
-				secondFactorUrl: "/sign-in?resume=social",
-				signUpUrl: "/sign-up",
-				continueSignUpUrl: "/sign-up?resume=social",
-				verifyEmailAddressUrl: "/sign-up?resume=social",
-				verifyPhoneNumberUrl: "/sign-up?resume=social",
+			expect(await callbackTargets(`/sso-callback${query}`)).toEqual({
+				app: "/dashboard",
+				signIn: "/sign-in?resume=social",
+				signUp: "/sign-up?resume=social",
 			});
 		});
 	});
@@ -391,21 +425,10 @@ describe("join link through auth", () => {
 		});
 
 		it("finishes social sign-in on a path on this site", async () => {
-			await visit(`/sso-callback${query}`);
-			await vi.waitFor(() => expect(callbackProps).not.toBeNull());
-			const props = callbackProps as Record<string, unknown>;
-			for (const key of [
-				"signInFallbackRedirectUrl",
-				"signUpFallbackRedirectUrl",
-				"signInUrl",
-				"secondFactorUrl",
-				"signUpUrl",
-				"continueSignUpUrl",
-				"verifyEmailAddressUrl",
-				"verifyPhoneNumberUrl",
-			]) {
-				expect(String(props[key])).toMatch(/^\/(?![/\\])/);
-				expect(sameSite(props[key])).toBe(true);
+			const targets = await callbackTargets(`/sso-callback${query}`);
+			for (const href of Object.values(targets)) {
+				expect(href).toMatch(/^\/(?![/\\])/);
+				expect(sameSite(href)).toBe(true);
 			}
 		});
 	});

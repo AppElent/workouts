@@ -63,11 +63,13 @@ const signUp = {
 	},
 };
 
+/** `useSignUp().errors`: Clerk keeps errors without a field on `global`. */
+const signUpErrors: { global: unknown[] | null } = { global: null };
 vi.mock("@clerk/react", async () => {
 	const { useSyncExternalStore } = await import("react");
 	return {
 		useSignIn: () => ({ signIn: {} }),
-		useSignUp: () => ({ signUp }),
+		useSignUp: () => ({ signUp, errors: signUpErrors }),
 		useAuth: () => ({
 			isLoaded: useSyncExternalStore(
 				(listener) => {

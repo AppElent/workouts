@@ -48,6 +48,7 @@ const CLERK_ERROR_MESSAGE_KEYS = [
 	"tooManyRequests",
 	"network",
 	"appleSignInIncomplete",
+	"botCheckFailed",
 ] as const;
 export type ClerkErrorMessageKey = (typeof CLERK_ERROR_MESSAGE_KEYS)[number];
 
@@ -113,9 +114,13 @@ export function clerkErrorCode(error: unknown): string | null {
 /** The message key for a Clerk error; `"generic"` for an unmapped code. */
 export function clerkErrorMessageKey(error: unknown): ClerkErrorMessageKey {
 	const code = clerkErrorCode(error);
-	return code && Object.hasOwn(CLERK_ERROR_CODE_MAP, code)
-		? CLERK_ERROR_CODE_MAP[code]
-		: "generic";
+	if (!code) return "generic";
+	if (Object.hasOwn(CLERK_ERROR_CODE_MAP, code)) {
+		return CLERK_ERROR_CODE_MAP[code];
+	}
+	// Clerk's bot challenge ("Challenge suspicious sign-ups") could not load,
+	// expired, or was not passed. Its codes share this prefix (APP-125).
+	return code.startsWith("protect_check_") ? "botCheckFailed" : "generic";
 }
 
 /**

@@ -47,7 +47,7 @@ export function SignUpContinueStep({
 	redirect?: string;
 }) {
 	const { signUp } = useSignUp();
-	const { locale, messages } = useI18n();
+	const { messages } = useI18n();
 	const { auth } = messages;
 	const copy = auth.signUpContinue;
 	const errorMessage = useClerkErrorMessage();
@@ -238,13 +238,6 @@ export function SignUpContinueStep({
 					/>
 				</>
 			) : null}
-			{/* Clerk's bot check mounts here, as in `SignUpForm`. */}
-			<div
-				id="clerk-captcha"
-				className="empty:-mt-3"
-				data-cl-size="flexible"
-				data-cl-language={locale}
-			/>
 			<AuthButton loading={loading}>
 				{phase.kind === "verify" ? auth.signUp.verify : copy.submit}
 			</AuthButton>
