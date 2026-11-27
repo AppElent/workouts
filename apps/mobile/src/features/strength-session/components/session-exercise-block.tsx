@@ -96,6 +96,36 @@ export function useReferenceLine(exerciseId: string) {
 		hasManual,
 	};
 }
+/**
+ * The Krachtprofiel and manual 1RM items an exercise menu offers, solo or in a
+ * group (APP-232); a bodyweight exercise has none.
+ */
+export function oneRmMenuGroups(
+	copy: {
+		strengthProfile: string;
+		manualChange: string;
+		manualEnter: string;
+		manualClear: string;
+	},
+	bodyweight: boolean,
+	source: "manual" | "measured" | undefined,
+) {
+	if (bodyweight) return [];
+	return [
+		{
+			options: [
+				{ id: "profile", label: copy.strengthProfile },
+				{
+					id: "manual",
+					label: source === "manual" ? copy.manualChange : copy.manualEnter,
+				},
+				...(source === "manual"
+					? [{ id: "clearManual", label: copy.manualClear }]
+					: []),
+			],
+		},
+	];
+}
 function useExerciseMenu(exerciseId: string) {
 	const {
 		actions,
@@ -161,25 +191,7 @@ function useExerciseMenu(exerciseId: string) {
 						: []),
 				],
 			},
-			...(facts.bodyweight
-				? []
-				: [
-						{
-							options: [
-								{ id: "profile", label: copy.strengthProfile },
-								{
-									id: "manual",
-									label:
-										reference?.source === "manual"
-											? copy.manualChange
-											: copy.manualEnter,
-								},
-								...(reference?.source === "manual"
-									? [{ id: "clearManual", label: copy.manualClear }]
-									: []),
-							],
-						},
-					]),
+			...oneRmMenuGroups(copy, facts.bodyweight, reference?.source),
 			{
 				options: [
 					{ id: "remove", label: copy.removeExercise, destructive: true },
