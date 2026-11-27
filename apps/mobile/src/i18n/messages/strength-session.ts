@@ -152,6 +152,7 @@ export const strengthSessionEn = {
 	},
 	checks: {
 		repsHigh: "{reps} reps? Check this before it counts.",
+		holdLong: "{reps} seconds? Check this before it counts.",
 		repsAbovePlan: "{reps} reps, planned {base}. Check this before it counts.",
 		repsAbovePrevious:
 			"{reps} reps, previous set {base}. Check this before it counts.",
@@ -190,7 +191,7 @@ export const strengthSessionEn = {
 		rpeRaise: "Raise RPE",
 		rpeClear: "Clear RPE",
 		weight: "Weight · {unit}",
-		added: "Added weight · kg",
+		added: "Added weight · {unit}",
 		reps: "Reps",
 		seconds: "Seconds",
 		stepUp: "Weight {step} higher",
@@ -206,6 +207,7 @@ export const strengthSessionEn = {
 		saveLoad: "Save · {load}",
 		noChanges: "No changes",
 		confirmReps: "Yes, {reps} reps is right",
+		confirmSeconds: "Yes, {reps} seconds is right",
 		confirmLoad: "Yes, {load} is right",
 		enterReps: "Enter reps",
 		enterSeconds: "Enter seconds",
@@ -238,6 +240,7 @@ export const strengthSessionEn = {
 		noRefPlan: "Plan: {percent}%. Without a 1RM this stays {load}.",
 		noRefPlanEmpty: "Plan: {percent}%. Enter your 1RM to calculate the weight.",
 		bodyweightNote: "Bodyweight: no percentages or 1RM.",
+		holdNote: "Measured in seconds: no percentages or 1RM.",
 		modeSimple: "Simple view",
 		modeAdvanced: "Advanced view",
 		kindTitle: "Set type",
@@ -341,6 +344,7 @@ export const strengthSessionEn = {
 		enterOneRm: "Enter 1RM",
 		empty: "—",
 		bodyweight: "Bodyweight exercises have no 1RM.",
+		hold: "Exercises measured in seconds have no 1RM.",
 	},
 	group: {
 		title: "Repeat group",
@@ -519,8 +523,11 @@ export const strengthSessionEn = {
 		inSession: "In session",
 		measured: "Measured 1RM {value}",
 		manual: "Manual 1RM {value}",
-		newWeighted: "New with weight: {name}",
-		newBodyweight: "New on bodyweight: {name}",
+		newExercise: {
+			weighted: "New with weight: {name}",
+			bodyweight: "New on bodyweight: {name}",
+			hold: "New in seconds: {name}",
+		},
 		noMatches: "Nothing found for “{search}”.",
 		close: "Close",
 		loading: "Loading exercises…",
@@ -693,6 +700,7 @@ export const strengthSessionNl: typeof strengthSessionEn = {
 	},
 	checks: {
 		repsHigh: "{reps} reps? Controleer dit voordat het telt.",
+		holdLong: "{reps} seconden? Controleer dit voordat het telt.",
 		repsAbovePlan:
 			"{reps} reps, gepland {base}. Controleer dit voordat het telt.",
 		repsAbovePrevious:
@@ -732,7 +740,7 @@ export const strengthSessionNl: typeof strengthSessionEn = {
 		rpeRaise: "RPE hoger",
 		rpeClear: "RPE wissen",
 		weight: "Gewicht · {unit}",
-		added: "Extra gewicht · kg",
+		added: "Extra gewicht · {unit}",
 		reps: "Reps",
 		seconds: "Seconden",
 		stepUp: "Gewicht {step} hoger",
@@ -748,6 +756,7 @@ export const strengthSessionNl: typeof strengthSessionEn = {
 		saveLoad: "Opslaan · {load}",
 		noChanges: "Geen wijzigingen",
 		confirmReps: "Ja, {reps} reps klopt",
+		confirmSeconds: "Ja, {reps} seconden klopt",
 		confirmLoad: "Ja, {load} klopt",
 		enterReps: "Vul reps in",
 		enterSeconds: "Vul seconden in",
@@ -781,6 +790,7 @@ export const strengthSessionNl: typeof strengthSessionEn = {
 		noRefPlanEmpty:
 			"Plan: {percent}%. Vul je 1RM in om het gewicht te berekenen.",
 		bodyweightNote: "Lichaamsgewicht: geen percentages of 1RM.",
+		holdNote: "Gemeten in seconden: geen percentages of 1RM.",
 		modeSimple: "Eenvoudige weergave",
 		modeAdvanced: "Geavanceerde weergave",
 		kindTitle: "Soort set",
@@ -887,6 +897,7 @@ export const strengthSessionNl: typeof strengthSessionEn = {
 		enterOneRm: "1RM invoeren",
 		empty: "—",
 		bodyweight: "Oefeningen op lichaamsgewicht hebben geen 1RM.",
+		hold: "Oefeningen gemeten in seconden hebben geen 1RM.",
 	},
 	group: {
 		title: "Groep herhalen",
@@ -1062,8 +1073,11 @@ export const strengthSessionNl: typeof strengthSessionEn = {
 		inSession: "In sessie",
 		measured: "Gemeten 1RM {value}",
 		manual: "Handmatig 1RM {value}",
-		newWeighted: "Nieuw met gewicht: {name}",
-		newBodyweight: "Nieuw op lichaamsgewicht: {name}",
+		newExercise: {
+			weighted: "Nieuw met gewicht: {name}",
+			bodyweight: "Nieuw op lichaamsgewicht: {name}",
+			hold: "Nieuw in seconden: {name}",
+		},
 		noMatches: "Niets gevonden voor “{search}”.",
 		close: "Sluiten",
 		loading: "Oefeningen laden…",

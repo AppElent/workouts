@@ -5,7 +5,8 @@
 import {
 	formatDurationMinutes,
 	formatScore,
-	isTimedExercise,
+	timedLookup,
+	toKg,
 	workingVolume,
 } from "@foundry/core";
 import type { ExerciseId } from "@foundry/core/exercises";
@@ -61,6 +62,8 @@ export function SessionSummaryScreen() {
 		for (const e of exercises ?? []) map.set(e._id, e.name);
 		return map;
 	}, [exercises]);
+
+	const isTimed = useMemo(() => timedLookup(exercises ?? []), [exercises]);
 
 	/** One group per exercise, in the order the session worked through them. */
 	const groups = useMemo(() => {
@@ -119,7 +122,7 @@ export function SessionSummaryScreen() {
 	const duration = session.endTime
 		? formatDurationMinutes(session.endTime - session.startTime)
 		: null;
-	const volume = workingVolume(sets);
+	const volume = workingVolume(sets, isTimed);
 
 	return (
 		<ScrollView
@@ -162,7 +165,7 @@ export function SessionSummaryScreen() {
 								key={group.exerciseId}
 								name={group.name}
 								sets={group.sets}
-								timed={isTimedExercise(group.exerciseId)}
+								timed={isTimed(group.exerciseId)}
 							/>
 						))}
 					</View>
@@ -249,10 +252,10 @@ function ExerciseRecap({
 		kg: strength.plan.editor.unitKg,
 		lbs: strength.plan.editor.unitLbs,
 	};
-	// "Best" is the heaviest set, matching the web. Not the same as the highest
+	// "Best" is the heaviest set in kg, matching the web. Not the same as the highest
 	// estimated 1RM — a heavy double can out-rank a heavier single there.
 	const best = sets.reduce(
-		(top, s) => (s.weight > top.weight ? s : top),
+		(top, s) => (toKg(s.weight, s.unit) > toKg(top.weight, top.unit) ? s : top),
 		sets[0],
 	);
 
@@ -283,6 +286,7 @@ function ExerciseRecap({
 									unit: s.unit,
 									reps: s.reps,
 									setType: s.setType,
+									rpe: s.rpe,
 									note,
 								},
 								strength,

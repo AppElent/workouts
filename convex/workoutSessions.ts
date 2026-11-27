@@ -9,6 +9,7 @@ import {
 	ensureSessionExercise,
 	getActiveSession,
 	planSessionExercise,
+	startExerciseSession,
 	startSession,
 } from "./lib/strengthSession";
 import { exerciseReference, loadUnit, plannedSet } from "./lib/validators";
@@ -40,13 +41,20 @@ export const create = mutation({
 		name: v.optional(v.string()),
 		/** For a session logged afterwards; defaults to now. */
 		startTime: v.optional(v.number()),
+		/**
+		 * Starts the session with this one exercise (Train now): named after it
+		 * unless `name` is given, planned from last time's working Sets.
+		 */
+		exerciseId: v.optional(exerciseReference),
 	},
-	handler: async (ctx, { name, startTime }) =>
-		startSession(ctx, await requireUserId(ctx), {
-			name,
-			startTime,
-			prescriptions: [],
-		}),
+	handler: async (ctx, { name, startTime, exerciseId }) => {
+		const userId = await requireUserId(ctx);
+		if (exerciseId !== undefined) {
+			if (startTime !== undefined) throw appError("invalid", "startTime");
+			return startExerciseSession(ctx, userId, exerciseId, name);
+		}
+		return startSession(ctx, userId, { name, startTime, prescriptions: [] });
+	},
 });
 
 export const addExercise = mutation({

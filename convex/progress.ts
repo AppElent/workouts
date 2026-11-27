@@ -1,10 +1,15 @@
-import { isoDateAt, isoWeekKey, workingVolume } from "@foundry/core";
+import {
+	isoDateAt,
+	isoWeekKey,
+	isTimedExercise,
+	workingVolume,
+} from "@foundry/core";
 import { v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import { query } from "./_generated/server";
 import { requireUserId } from "./lib/auth";
 import { appError } from "./lib/errors";
-import { exerciseSets } from "./lib/exerciseCatalog";
+import { exerciseSets, resolveExercise } from "./lib/exerciseCatalog";
 import { exerciseReference } from "./lib/validators";
 
 /** UTC offsets run from UTC−12:00 to UTC+14:00. */
@@ -28,6 +33,9 @@ export const weeklyVolume = query({
 			Math.abs(utcOffsetMinutes) > MAX_UTC_OFFSET_MINUTES
 		)
 			throw appError("invalid", "utcOffsetMinutes");
+		const timed = isTimedExercise(
+			await resolveExercise(ctx, exerciseId, userId),
+		);
 		const weeks = new Map<string, Doc<"sets">[]>();
 		for (const set of await exerciseSets(ctx, userId, exerciseId)) {
 			const week = isoWeekKey(isoDateAt(set.loggedAt, utcOffsetMinutes));
@@ -39,7 +47,7 @@ export const weeklyVolume = query({
 			.sort(([a], [b]) => a.localeCompare(b))
 			.map(([week, sets]) => ({
 				week,
-				volume: Math.round(workingVolume(sets)),
+				volume: Math.round(workingVolume(sets, () => timed)),
 			}));
 	},
 });

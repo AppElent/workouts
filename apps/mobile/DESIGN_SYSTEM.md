@@ -85,8 +85,10 @@ the [session](src/features/strength-session/strength-session-screen.tsx) and
 - The editor's Log is a bottom pill, not a toolbar item, to
   stay in one-handed reach.
 - At `fontScale` 1.35 and up, rows go to two lines without column heads, the session
-  title moves into the body, percent chips go to two columns, and dock pills become
-  rounded cards. Sheet titles cap their scale at 1.3 and the recap title at 1.5.
+  title moves into the body, the progress line stacks the set count over the volume,
+  percent chips go to two columns, and dock pills become rounded cards. Sheet titles
+  cap their scale at 1.3, and the recap title and the session dock (`TextScaleCap`)
+  at 1.5, so the dock never covers the set list.
 
 Native chrome owns material. The study's CSS glass values (dark chrome
 `rgba(40,44,38,.5)`, strong `rgba(48,52,45,.78)`, hairline .16, blur 22px saturate

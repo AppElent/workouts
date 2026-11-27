@@ -302,6 +302,17 @@ describe("units", () => {
 		const lbs = stepLoad(switchUnit(row(), "lbs", SQUAT), 1, SQUAT);
 		expect(shownLoad(lbs)).toBe(215);
 	});
+	it.each([
+		["bodyweight", PULLUP],
+		["seconds", PLANK],
+	])("switches added load only from lbs to kg on %s (APP-900)", (_, added) => {
+		const lbs = withTypedLoad({ ...row(), unit: "lbs" }, 45);
+		const kg = switchUnit(lbs, "kg", added);
+		expect(kg).toMatchObject({ unit: "kg", kg: lbs.kg });
+		expect(switchUnit(kg, "lbs", added)).toBe(kg);
+		const stepped = switchUnit(stepLoad(lbs, 1, added), "kg", added);
+		expect(stepped).toMatchObject({ unit: "kg", kg: 22.5 });
+	});
 	it("references stay kg whatever the set's unit", () => {
 		const lbs = switchUnit(row(), "lbs", SQUAT);
 		expect(shownPercent(lbs, { value: 120 }, 2.5)).toBe(
@@ -897,6 +908,16 @@ describe("typo guards", () => {
 		expect(
 			typoCheck(plan, { ...row, kg: 200, reps: 60 }, PLANK, row)?.code,
 		).toBe("addedHigh");
+	});
+	it("asks about an implausibly long hold", () => {
+		expect(
+			typoCheck(plan, { ...row, kg: 0, reps: 600 }, PLANK, row),
+		).toBeNull();
+		expect(typoCheck(plan, { ...row, kg: 0, reps: 601 }, PLANK, row)).toEqual({
+			kind: "reps",
+			code: "holdLong",
+			values: { reps: 601 },
+		});
 	});
 	it("asks about implausible load", () => {
 		expect(typoCheck(plan, { ...row, kg: 200 }, SQUAT, row)?.kind).toBe("kg");

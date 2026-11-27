@@ -73,3 +73,18 @@ it("buckets sets by the caller's calendar week", async () => {
 		data: { code: "invalid", field: "utcOffsetMinutes" },
 	});
 });
+
+it("counts no work volume for a Personal Exercise measured in seconds", async () => {
+	const { alice, exerciseId } = await setup();
+	await alice.mutation(api.exercises.update, {
+		id: exerciseId,
+		name: "Press",
+		muscleGroups: ["chest"],
+		category: "compound",
+		equipment: "barbell",
+		measure: "seconds",
+	});
+	expect(await alice.query(api.progress.weeklyVolume, { exerciseId })).toEqual([
+		{ week: "2026-W45", volume: 0 },
+	]);
+});

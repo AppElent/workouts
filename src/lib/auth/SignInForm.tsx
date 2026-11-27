@@ -44,8 +44,9 @@ export function SignInForm({
 }) {
 	const { signIn } = useSignIn();
 	const { isLoaded } = useAuth();
-	// Pending leaves for a form the person did not open: put them in it.
-	const [autoFocus] = useState(resumeSocial || focusFirst);
+	// Pending and the second factor leave for a form the person did not open: put
+	// them in it.
+	const [autoFocus, setAutoFocus] = useState(resumeSocial || focusFirst);
 	const { auth } = useMessages();
 	const errorMessage = useClerkErrorMessage();
 	const [step, setStep] = useState<
@@ -157,6 +158,7 @@ export function SignInForm({
 					setError(null);
 					setNotice(null);
 					setCode("");
+					setAutoFocus(true);
 					setStep("password");
 					onStartOver?.();
 				}}

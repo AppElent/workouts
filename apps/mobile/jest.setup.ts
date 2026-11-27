@@ -492,6 +492,8 @@ jest.mock("expo-widgets", () => {
 		next: 0,
 		/** Set to hold every end() open until it resolves. */
 		endGate: null as Promise<void> | null,
+		/** Set to make every end() fail. */
+		endError: null as Error | null,
 		/** Set to hold every update() open until it resolves. */
 		updateGate: null as Promise<void> | null,
 	};
@@ -508,6 +510,7 @@ jest.mock("expo-widgets", () => {
 		}),
 		end: jest.fn(async () => {
 			await state.endGate;
+			if (state.endError) throw state.endError;
 			fake.ended = true;
 		}),
 	});

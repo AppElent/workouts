@@ -8,6 +8,7 @@ import {
 	radius,
 	spacing,
 	type Tokens,
+	type as typeRamp,
 	useThemedStyles,
 	useTokens,
 } from "../../../theme";
@@ -220,6 +221,8 @@ function rowSpeech(
 	load: string,
 	copy: ReturnType<typeof useRowFacts>["copy"],
 	oneRm: string | null,
+	/** The RPE the row shows, formatted. */
+	rpe: string | null = null,
 ) {
 	const note = noteOf(row);
 	const state = row.failed
@@ -228,6 +231,8 @@ function rowSpeech(
 			? `, ${copy.logged}`
 			: "";
 	return `${setLabel}${state}, ${percent === null ? "" : fmt(copy.rowPercentSpoken, { percent })}${load}${
+		rpe === null ? "" : `, ${fmt(copy.rowRpeSpoken, { value: rpe })}`
+	}${
 		oneRm
 			? fmt(copy.rowOneRmSpoken, {
 					value: oneRm.replace("≈", ""),
@@ -271,10 +276,14 @@ export function SessionSetRow({
 					? copy.markFailure
 					: String(number);
 	const status = pending ? copy.saving : row.failed ? copy.failed : null;
+	const rpe =
+		status === null && row.done && row.rpe !== null
+			? formatNumber(row.rpe, locale, 1)
+			: null;
 	const meta =
 		status ??
-		(row.rpe !== null && row.done
-			? fmt(copy.now.rpe, { value: formatNumber(row.rpe, locale, 1) })
+		(rpe !== null
+			? fmt(copy.now.rpe, { value: rpe })
 			: showPercent && percent !== null
 				? percentText
 				: "");
@@ -283,7 +292,7 @@ export function SessionSetRow({
 		row.kind === "warmup"
 			? `${name}, ${copy.rowSetWarmup}`
 			: `${name}, ${fmt(copy.rowSet, { number })}`;
-	const label = rowSpeech(row, setLabel, percent, loadText, copy, oneRm);
+	const label = rowSpeech(row, setLabel, percent, loadText, copy, oneRm, rpe);
 	const markInk =
 		row.kind === "warmup"
 			? colors.warn
@@ -384,7 +393,11 @@ export function SessionSetRow({
 							</View>
 						) : isNext ? (
 							<View style={styles.nowPill}>
-								<AppText variant="eyebrow" style={{ color: colors.onAccent }}>
+								<AppText
+									variant="eyebrow"
+									numberOfLines={1}
+									style={[styles.nowText, { color: colors.onAccent }]}
+								>
 									{copy.now.nowBadge}
 								</AppText>
 							</View>
@@ -491,12 +504,14 @@ const createStyles = (colors: Tokens) =>
 		mark: { width: 30, fontWeight: "700", fontVariant: ["tabular-nums"] },
 		load: { flex: 1, minWidth: 0, fontVariant: ["tabular-nums"] },
 		meta: { textAlign: "right", fontVariant: ["tabular-nums"] },
+		// Fits the "Now" pill, so the percentages above and below stay aligned;
+		// it grows with larger text. The load and percentage give way to it.
 		stateHit: {
-			width: 52,
+			minWidth: 66,
 			minHeight: 44,
 			alignItems: "flex-end",
 			justifyContent: "center",
-			paddingRight: spacing.sm,
+			paddingHorizontal: spacing.sm,
 		},
 		doneBadge: {
 			width: 28,
@@ -514,13 +529,15 @@ const createStyles = (colors: Tokens) =>
 			borderColor: colors.borderStrong,
 		},
 		nowPill: {
-			height: 24,
+			minHeight: 24,
 			paddingHorizontal: spacing.sm,
 			borderRadius: 12,
 			alignItems: "center",
 			justifyContent: "center",
 			backgroundColor: colors.accentFill,
 		},
+		// Letter spacing also trails the last letter; this keeps the word centred.
+		nowText: { marginRight: -typeRamp.eyebrow.letterSpacing },
 		groupRow: {
 			flexDirection: "row",
 			alignItems: "center",

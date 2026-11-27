@@ -24,7 +24,7 @@ const set = (
 	weight: extra.weight ?? 80,
 	unit: "kg" as const,
 	reps: extra.reps ?? 8,
-	setType: "working",
+	setType: "working" as const,
 	...(extra.notes === undefined ? {} : { notes: extra.notes }),
 	...(extra.rpe === undefined ? {} : { rpe: extra.rpe }),
 });
@@ -46,6 +46,30 @@ it("shows a set's note under the set", async () => {
 	expect(screen.getAllByText(/^80 × 8$/)).toHaveLength(2);
 });
 
+it("shows a hold's seconds with its added load, and no estimate", async () => {
+	await renderThemed(
+		<HistoryTab
+			timed
+			sessions={
+				exerciseInsight(
+					[
+						set("a", 1, { weight: 10, reps: 35 }),
+						set("b", 2, { weight: 0, reps: 40 }),
+					],
+					[],
+					NOW,
+					true,
+				).sessions
+			}
+		/>,
+		{ wrapper: LocaleProvider },
+	);
+	expect(screen.getByText("+10 kg × 35 s")).toBeTruthy();
+	expect(screen.getByText("40 s")).toBeTruthy();
+	expect(screen.queryByText("—")).toBeNull();
+	expect(screen.queryByText(/≈/)).toBeNull();
+});
+
 describe.each([
 	{
 		locale: "en",
@@ -56,6 +80,7 @@ describe.each([
 		bodyweightNote: "set 1, 5 reps, note: narrow grip",
 		single: "set 1, 20 kilograms, 1 rep",
 		withRpe: /^set 1, 20 kilograms, 5 reps, RPE 8\.5, 1RM about \d+ kilograms$/,
+		visibleRpe: "RPE 8.5",
 	},
 	{
 		locale: "nl",
@@ -66,6 +91,7 @@ describe.each([
 		bodyweightNote: "set 1, 5 herhalingen, notitie: narrow grip",
 		single: "set 1, 20 kilo, 1 herhaling",
 		withRpe: /^set 1, 20 kilo, 5 herhalingen, RPE 8,5, 1RM ongeveer \d+ kilo$/,
+		visibleRpe: "RPE 8,5",
 	},
 ])("a history row spoken in $locale", (expected) => {
 	beforeEach(() => writeLocal(PREFERENCE_KEYS.locale, expected.locale));
@@ -90,9 +116,10 @@ describe.each([
 		expect(screen.queryByLabelText(/—/)).toBeNull();
 	});
 
-	it("speaks the RPE from the message catalog", async () => {
+	it("shows and speaks the RPE from the message catalog", async () => {
 		await render(set("a", 1, { weight: 20, reps: 5, rpe: 8.5 }));
 		expect(screen.getByLabelText(expected.withRpe)).toBeTruthy();
+		expect(screen.getByText(expected.visibleRpe)).toBeTruthy();
 	});
 
 	it("speaks one rep in the singular", async () => {

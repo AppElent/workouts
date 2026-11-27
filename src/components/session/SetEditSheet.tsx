@@ -1,11 +1,6 @@
 import { api } from "@convex/_generated/api";
 import type { Doc } from "@convex/_generated/dataModel";
-import {
-	isTimedExercise,
-	SET_LIMITS,
-	SET_TYPES,
-	type SetType,
-} from "@foundry/core";
+import { countStep, SET_LIMITS, SET_TYPES, type SetType } from "@foundry/core";
 import { useMutation } from "convex/react";
 import { Copy, Minus, Plus, Trash2, X } from "lucide-react";
 import {
@@ -24,6 +19,8 @@ type Unit = Doc<"sets">["unit"];
 interface Props {
 	set: Doc<"sets"> | null;
 	exerciseName: string;
+	/** A hold: the count is seconds. */
+	timed: boolean;
 	weightStep: number;
 	onClose: () => void;
 	onRepeat: (set: Doc<"sets">) => void;
@@ -78,6 +75,7 @@ function isDirty(set: Doc<"sets">, d: Draft) {
 export function SetEditSheet({
 	set,
 	exerciseName,
+	timed,
 	weightStep,
 	onClose,
 	onRepeat,
@@ -134,7 +132,6 @@ export function SetEditSheet({
 	const inc = weightStep;
 	const weightJumps = [-inc * 4, -inc * 2, +inc * 2, +inc * 4];
 	// A hold's seconds move in fives; reps move one at a time.
-	const timed = isTimedExercise(set.exerciseId);
 	const repsJumps = timed ? [-10, -5, +5, +10] : [-2, -1, +1, +2];
 
 	const update = (patch: Partial<Draft>) =>
@@ -313,7 +310,7 @@ export function SetEditSheet({
 				</div>
 				<BigStepper
 					value={draft.reps}
-					step={timed ? 5 : SET_LIMITS.reps.step}
+					step={countStep(timed)}
 					min={SET_LIMITS.reps.min}
 					max={SET_LIMITS.reps.max}
 					quickJumps={repsJumps}

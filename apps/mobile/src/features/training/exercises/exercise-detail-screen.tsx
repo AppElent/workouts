@@ -17,6 +17,7 @@ import {
 	exerciseRecords,
 	isLoadedEquipment,
 	isTimedExercise,
+	longestHold,
 	primaryMuscleGroup,
 	repMaxCurve,
 	roundLoad,
@@ -40,6 +41,7 @@ import {
 	useTokens,
 } from "../../../theme";
 import { BackLink } from "../../../ui/back-link";
+import { PrimaryButton } from "../../../ui/button";
 import { TrendChart } from "../../../ui/chart";
 import { Card, Eyebrow, StatBox } from "../../../ui/coach";
 import { useConfirm } from "../../../ui/confirm-dialog";
@@ -59,6 +61,7 @@ import {
 	strengthLevels,
 } from "../../strength-session/strength-levels";
 import { spokenSet } from "../set-speech";
+import { useTrainExercise } from "../use-train-exercise";
 import { dailyBest, dayOf, exerciseInsight } from "./exercise-insight";
 import { MuscleIcon } from "./muscle-icon";
 
@@ -92,6 +95,7 @@ export function ExerciseDetailScreen() {
 	const [tab, setTab] = useState<Tab>("Overview");
 
 	const exercise = useExercise(exerciseId);
+	const trainNow = useTrainExercise();
 	const deleteExercise = async () => {
 		if (!exercise || exercise.isDefault || deleting) return;
 		if (
@@ -123,12 +127,14 @@ export function ExerciseDetailScreen() {
 		exerciseId ? { exerciseId } : "skip",
 	);
 
-	const timed = isTimedExercise(exerciseId);
+	const timed = isTimedExercise(exercise);
 	const records = useMemo(
 		() =>
 			history?.length ? exerciseRecords(history, exercise, CURVE_REPS) : null,
 		[history, exercise],
 	);
+	// A hold's record counts the same sets as the web (APP-932).
+	const most = timed ? longestHold(history ?? []) : (records?.mostReps ?? null);
 	const ormHistory = useQuery(
 		api.oneRepMaxes.listForExercise,
 		exerciseId ? { exerciseId } : "skip",
@@ -264,6 +270,16 @@ export function ExerciseDetailScreen() {
 				</View>
 			</View>
 
+			{/* Inside a session the sheet already belongs to one (APP-871). */}
+			{params.from === "session" ? null : (
+				<PrimaryButton
+					label={t.exercises.trainNow}
+					accessibilityHint={t.exercises.trainNowSpoken}
+					loading={trainNow.pending}
+					onPress={() => void trainNow.train(exercise)}
+					testID="exercise-train-now"
+				/>
+			)}
 			<Segmented
 				value={tab}
 				onChange={setTab}
@@ -288,34 +304,38 @@ export function ExerciseDetailScreen() {
 						<>
 							<Eyebrow>{t.exercises.detail.records}</Eyebrow>
 							<View style={styles.statRow}>
+								{timed ? null : (
+									<StatBox
+										value={
+											records.heaviest
+												? formatKg(records.heaviest.valueKg, locale, 2)
+												: "—"
+										}
+										unit={records.heaviest ? "kg" : undefined}
+										label={t.exercises.detail.heaviest}
+									/>
+								)}
 								<StatBox
-									value={
-										records.heaviest
-											? formatKg(records.heaviest.valueKg, locale, 2)
-											: "—"
-									}
-									unit={records.heaviest ? "kg" : undefined}
-									label={t.exercises.detail.heaviest}
-								/>
-								<StatBox
-									value={records.mostReps ? String(records.mostReps.reps) : "—"}
-									unit={timed && records.mostReps ? "s" : undefined}
+									value={most ? String(most.reps) : "—"}
+									unit={timed && most ? "s" : undefined}
 									label={
 										timed
 											? t.exercises.detail.longestHold
 											: t.exercises.detail.mostReps
 									}
 								/>
-								<StatBox
-									value={
-										records.bestEstimate
-											? formatKg(records.bestEstimate.valueKg, locale)
-											: "—"
-									}
-									unit={records.bestEstimate ? "kg" : undefined}
-									label={t.exercises.detail.bestEstimate}
-									color={colors.accent}
-								/>
+								{timed ? null : (
+									<StatBox
+										value={
+											records.bestEstimate
+												? formatKg(records.bestEstimate.valueKg, locale)
+												: "—"
+										}
+										unit={records.bestEstimate ? "kg" : undefined}
+										label={t.exercises.detail.bestEstimate}
+										color={colors.accent}
+									/>
+								)}
 							</View>
 						</>
 					) : null}
@@ -326,11 +346,13 @@ export function ExerciseDetailScreen() {
 						currentOrm={currentOrm}
 						bodyweightKg={latestBodyweightKg(bodyMetrics)}
 					/>
-					<ProgressTab
-						exerciseId={exerciseId}
-						repMaxes={records?.repMaxes ?? []}
-						currentOrm={currentOrm ?? null}
-					/>
+					{timed ? null : (
+						<ProgressTab
+							exerciseId={exerciseId}
+							repMaxes={records?.repMaxes ?? []}
+							currentOrm={currentOrm ?? null}
+						/>
+					)}
 					{exercise.notes ? (
 						<>
 							<Eyebrow>{t.exercises.detail.notes}</Eyebrow>
@@ -461,6 +483,18 @@ type Orm = {
 	date: number;
 };
 
+/** A hold's set: its seconds, after any added load ("+20 kg × 35 s"). */
+function holdText(
+	weight: number,
+	unit: string,
+	seconds: number,
+	locale: Locale,
+) {
+	return weight > 0
+		? `+${formatKg(weight, locale, 2)} ${unit} × ${seconds} s`
+		: `${seconds} s`;
+}
+
 /** A tile under the 1RM card: a label, a number, and what it is relative to. */
 function Tile({
 	label,
@@ -541,82 +575,95 @@ function OverviewInsight({
 	const first = insight?.sessions.at(-1)?.date ?? null;
 	return (
 		<>
-			<View style={styles.ormCard}>
-				<View style={styles.ormHead}>
-					<View style={styles.flex}>
-						<AppText variant="overline" style={{ color: colors.textMuted }}>
-							{currentOrm?.source === "manual"
-								? copy.manualOrm
-								: currentOrm?.source === "actual"
-									? copy.measuredOrm
-									: copy.estimatedOrm}
+			{timed ? (
+				insight && insight.sessionCount === 0 ? (
+					<View style={styles.empty}>
+						<AppText variant="heading" style={{ color: colors.textMuted }}>
+							{copy.nothingLogged}
 						</AppText>
-						{currentOrm === undefined ? (
-							<SkeletonBlock height={40} />
-						) : currentOrm === null ? (
-							<AppText variant="caption">{copy.noOrm}</AppText>
-						) : (
-							<AppText variant="valueSmall" style={styles.tabular}>
-								{formatKg(currentOrm.value, locale)}
-								<AppText variant="stat" style={{ color: colors.textMuted }}>
-									{` ${currentOrm.unit}`}
-								</AppText>
-							</AppText>
-						)}
+						<AppText variant="caption" style={styles.centeredText}>
+							{copy.nothingLoggedHint}
+						</AppText>
 					</View>
-					{trend && trend.kg !== 0 ? (
-						<View
-							style={[
-								styles.trend,
-								{
-									backgroundColor:
-										trend.kg > 0 ? colors.accentDim : colors.surface2,
-								},
-							]}
-						>
-							<AppText
-								variant="label"
-								style={{
-									fontWeight: "700",
-									color: trend.kg > 0 ? colors.accentInk : colors.textMuted,
-								}}
-							>
-								{fmt(trend.kg > 0 ? copy.trendUp : copy.trendDown, {
-									value: formatKg(Math.abs(trend.kg), locale),
-									weeks: fmt(plural(locale, trend.weeks, copy.weeks), {
-										count: trend.weeks,
-									}),
-								})}
+				) : null
+			) : (
+				<View style={styles.ormCard}>
+					<View style={styles.ormHead}>
+						<View style={styles.flex}>
+							<AppText variant="overline" style={{ color: colors.textMuted }}>
+								{currentOrm?.source === "manual"
+									? copy.manualOrm
+									: currentOrm?.source === "actual"
+										? copy.measuredOrm
+										: copy.estimatedOrm}
 							</AppText>
+							{currentOrm === undefined ? (
+								<SkeletonBlock height={40} />
+							) : currentOrm === null ? (
+								<AppText variant="caption">{copy.noOrm}</AppText>
+							) : (
+								<AppText variant="valueSmall" style={styles.tabular}>
+									{formatKg(currentOrm.value, locale)}
+									<AppText variant="stat" style={{ color: colors.textMuted }}>
+										{` ${currentOrm.unit}`}
+									</AppText>
+								</AppText>
+							)}
 						</View>
+						{trend && trend.kg !== 0 ? (
+							<View
+								style={[
+									styles.trend,
+									{
+										backgroundColor:
+											trend.kg > 0 ? colors.accentDim : colors.surface2,
+									},
+								]}
+							>
+								<AppText
+									variant="label"
+									style={{
+										fontWeight: "700",
+										color: trend.kg > 0 ? colors.accentInk : colors.textMuted,
+									}}
+								>
+									{fmt(trend.kg > 0 ? copy.trendUp : copy.trendDown, {
+										value: formatKg(Math.abs(trend.kg), locale),
+										weeks: fmt(plural(locale, trend.weeks, copy.weeks), {
+											count: trend.weeks,
+										}),
+									})}
+								</AppText>
+							</View>
+						) : null}
+					</View>
+					{points.length >= 2 ? (
+						<TrendLine
+							height={150}
+							summary={fmt(copy.trendSummary, {
+								from: formatKg(points[0]?.kg ?? 0, locale),
+								to: formatKg(points.at(-1)?.kg ?? 0, locale),
+							})}
+							points={points.map((point, index) => ({
+								value: Math.round(point.kg * 10) / 10,
+								label:
+									index === points.length - 1 &&
+									dayOf(point.date) === dayOf(Date.now())
+										? copy.today
+										: shortDate(point.date, locale),
+							}))}
+						/>
+					) : currentOrm ? (
+						<AppText variant="caption" style={{ color: colors.textMuted }}>
+							{currentOrm.source === "calculated"
+								? copy.calculated
+								: currentOrm.source === "actual"
+									? copy.actual
+									: copy.manual}
+						</AppText>
 					) : null}
 				</View>
-				{points.length >= 2 ? (
-					<TrendLine
-						height={150}
-						summary={fmt(copy.trendSummary, {
-							from: formatKg(points[0]?.kg ?? 0, locale),
-							to: formatKg(points.at(-1)?.kg ?? 0, locale),
-						})}
-						points={points.map((point, index) => ({
-							value: Math.round(point.kg * 10) / 10,
-							label:
-								index === points.length - 1 &&
-								dayOf(point.date) === dayOf(Date.now())
-									? copy.today
-									: shortDate(point.date, locale),
-						}))}
-					/>
-				) : currentOrm ? (
-					<AppText variant="caption" style={{ color: colors.textMuted }}>
-						{currentOrm.source === "calculated"
-							? copy.calculated
-							: currentOrm.source === "actual"
-								? copy.actual
-								: copy.manual}
-					</AppText>
-				) : null}
-			</View>
+			)}
 
 			{insight && insight.sessionCount > 0 ? (
 				<View style={styles.statRow}>
@@ -624,7 +671,9 @@ function OverviewInsight({
 						label={copy.bestSet}
 						value={
 							insight.best
-								? `${formatKg(insight.best.kg, locale, 2)} × ${insight.best.reps}`
+								? timed
+									? holdText(insight.best.kg, "kg", insight.best.reps, locale)
+									: `${formatKg(insight.best.kg, locale, 2)} × ${insight.best.reps}`
 								: "—"
 						}
 						caption={
@@ -851,16 +900,22 @@ export function HistoryTab({
 					<View style={styles.sessionCard}>
 						{session.rows.map((row, index) => {
 							const load = timed
-								? `${row.reps} s`
+								? holdText(row.weight, row.unit, row.reps, locale)
 								: `${formatKg(row.weight, locale, 2)}${row.unit === "lbs" ? " lbs" : ""} × ${row.reps}`;
 							const kind =
 								row.setType === "working"
 									? row.rpe !== null
-										? `RPE ${formatKg(row.rpe, locale)}`
+										? fmt(t.strength.plan.editor.rpeValue, {
+												value: formatKg(row.rpe, locale),
+											})
 										: ""
 									: t.strength[row.setType as "warmup" | "drop" | "failure"];
-							const estimate =
-								row.estimate !== null ? `≈ ${Math.round(row.estimate)}` : "—";
+							// A hold has no 1RM, so its rows keep no estimate column.
+							const estimate = timed
+								? null
+								: row.estimate !== null
+									? `≈ ${Math.round(row.estimate)}`
+									: "—";
 							return (
 								<View
 									key={row.id}
@@ -901,16 +956,20 @@ export function HistoryTab({
 										>
 											{kind}
 										</AppText>
-										<AppText
-											variant="row"
-											style={[
-												styles.estimate,
-												styles.tabular,
-												{ color: row.record ? colors.accentInk : colors.text },
-											]}
-										>
-											{estimate}
-										</AppText>
+										{estimate === null ? null : (
+											<AppText
+												variant="row"
+												style={[
+													styles.estimate,
+													styles.tabular,
+													{
+														color: row.record ? colors.accentInk : colors.text,
+													},
+												]}
+											>
+												{estimate}
+											</AppText>
+										)}
 									</View>
 									<RowNote note={row.notes} style={styles.historyNote} />
 								</View>

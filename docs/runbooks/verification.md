@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when running checks, dev servers, or test login for Foundry.
-version: 2.4.0
+version: 2.4.1
 ---
 
 # Verify Foundry
@@ -23,7 +23,7 @@ pnpm env:check                                # env manifest and .env.example
 node scripts/check-project.mjs --strict       # package, CI and Wrangler metadata
 pnpm --filter @foundry/core check:foods       # committed shipped-food files are current
 # verify:types
-pnpm typecheck                                # everything outside apps/ and packages/
+pnpm typecheck                                # everything outside apps/ and packages/; Convex also with its own tsconfig
 pnpm --filter @foundry/core typecheck         # core's scripts and tests, which its build skips
 pnpm --filter @foundry/mobile typecheck
 # verify:tests
@@ -71,6 +71,8 @@ native modules.
 
 Maestro smoke flows in `apps/mobile/.maestro/` drive the development client
 through sign-in, the tabs, and an empty strength session (started, then discarded).
+That flow first cancels any active session on the signed-in account, so a leftover
+cannot block it; don't run it while someone is training on the shared test account.
 Install the CLI once (`brew install mobile-dev-inc/tap/maestro`), start the app
 with `run-mobile`'s `up`, then run from `apps/mobile`:
 `maestro --device <udid> test -e METRO_PORT=<port> .maestro` (`pnpm test:e2e`

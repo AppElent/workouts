@@ -13,9 +13,12 @@ import {
 	type Equipment,
 	isReferenceEligible,
 	type LoadUnit,
+	type MeasuredExercise,
 	roundLoad,
 	type SetType,
 	sessionOneRepMax,
+	TIMED_DEFAULT_SECONDS,
+	TIMED_LONG_HOLD_SECONDS,
 	validateSetInput,
 	workingVolume,
 } from "@foundry/core";
@@ -113,7 +116,8 @@ export interface SessionPlan {
 
 export interface ExerciseFacts {
 	/** Unknown while the catalog loads or after the exercise was deleted. */
-	exercise: { readonly equipment: Equipment } | null;
+	exercise: (MeasuredExercise & { readonly equipment: Equipment }) | null;
+	/** The load is added weight: bodyweight equipment, or a hold on any equipment. */
 	bodyweight: boolean;
 	/** A held time: the set's `reps` counts seconds (see `isTimedExercise`). */
 	timed: boolean;
@@ -198,13 +202,16 @@ export function stepLoad(
 	const kg = round2(row.kg + facts.stepKg * direction);
 	return { ...row, kg: Math.max(floor, kg), typedLbs: undefined };
 }
-/** A unit switch only changes how a set reads. Its load stays what it was. */
+/**
+ * A unit switch only changes how a set reads. Its load stays what it was.
+ * Added load is in kg, so a set already in lbs can only go back.
+ */
 export function switchUnit(
 	row: PlanSet,
 	unit: LoadUnit,
 	facts: ExerciseFacts,
 ): PlanSet {
-	if (row.unit === unit || facts.bodyweight) return row;
+	if (row.unit === unit || (facts.bodyweight && unit === "lbs")) return row;
 	if (unit === "kg" && row.lbStep && !row.done)
 		return {
 			...row,
@@ -805,8 +812,6 @@ export function fillFromLast(
 	};
 }
 
-/** Where a first hold starts, so the ±5 steps land on round numbers. */
-const TIMED_DEFAULT_SECONDS = 30;
 function setBlank(
 	exerciseId: string,
 	facts: Pick<ExerciseFacts, "last" | "timed">,
@@ -1188,8 +1193,11 @@ export function typoCheck(
 	const baseKg = base.kg;
 	const baseReps = base.reps;
 	const free = Boolean(row.free);
-	// A hold's seconds would trip every rep-count check.
-	if (!facts.timed) {
+	// A hold's seconds would trip every rep-count check; only a very long hold asks.
+	if (facts.timed) {
+		if (row.reps > TIMED_LONG_HOLD_SECONDS)
+			return { kind: "reps", code: "holdLong", values: { reps: row.reps } };
+	} else {
 		if (row.reps > 30)
 			return { kind: "reps", code: "repsHigh", values: { reps: row.reps } };
 		if (
@@ -2418,6 +2426,7 @@ export function recapOf(plan: SessionPlan, getFacts: PlanFacts) {
 			reps: row.reps,
 			setType: row.kind,
 		})),
+		(exerciseId) => getFacts(exerciseId).timed,
 	);
 	const names = [...new Set(rows.map((row) => row.exerciseId))];
 	const orderIndex = (id: string) => {

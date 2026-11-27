@@ -3,7 +3,13 @@
  * best set, recent volume, and every session with what each set was worth.
  * Pure, so the overview screen stays a layout.
  */
-import { calculateOneRepMax, convertLoad, type LoadUnit } from "@foundry/core";
+import {
+	calculateOneRepMax,
+	convertLoad,
+	type LoadUnit,
+	longestHold,
+	type SetType,
+} from "@foundry/core";
 
 const DAY = 24 * 60 * 60 * 1000;
 const VOLUME_DAYS = 28;
@@ -20,7 +26,8 @@ type HistorySet = {
 	reps: number;
 	rpe?: number;
 	notes?: string;
-	setType: string;
+	setType: SetType;
+	performanceVerified?: boolean;
 };
 type OneRepMax = { value: number; unit: LoadUnit; date: number };
 
@@ -79,11 +86,17 @@ export function exerciseInsight(
 	const kgOf = (set: HistorySet) => convertLoad(set.weight, set.unit, "kg");
 
 	let best: { kg: number; reps: number; date: number } | null = null;
-	for (const set of working) {
-		const kg = kgOf(set);
-		if (!best || kg > best.kg || (kg === best.kg && set.reps > best.reps))
-			best = { kg, reps: set.reps, date: set.sessionDate };
-	}
+	if (timed) {
+		// The web's rule: warm-ups and unconfirmed sets do not count (APP-932).
+		const hold = longestHold(history);
+		if (hold)
+			best = { kg: kgOf(hold), reps: hold.reps, date: hold.sessionDate };
+	} else
+		for (const set of working) {
+			const kg = kgOf(set);
+			if (!best || kg > best.kg || (kg === best.kg && set.reps > best.reps))
+				best = { kg, reps: set.reps, date: set.sessionDate };
+		}
 
 	const volumeBetween = (from: number, to: number) =>
 		timed

@@ -87,6 +87,7 @@ describe("totalsOf", () => {
 				},
 			],
 			3600,
+			() => false,
 		);
 		expect(totals.workingSets).toBe(3);
 		expect(totals.reps).toBe(27);
@@ -95,6 +96,24 @@ describe("totalsOf", () => {
 		expect(totals.byExercise.bench).toEqual({ sets: 2, volume: 80 * 17 });
 		expect(totals.byExercise.row).toEqual({ sets: 1, volume: 600 });
 		expect(totals.durationSeconds).toBe(3600);
+	});
+
+	it("keeps a hold's seconds out of reps and volume", () => {
+		const totals = totalsOf(
+			[
+				{
+					exerciseId: "hold",
+					weight: 10,
+					unit: "kg",
+					reps: 45,
+					setType: "working",
+				},
+			],
+			null,
+			(exerciseId) => exerciseId === "hold",
+		);
+		expect(totals).toMatchObject({ workingSets: 1, reps: 0, volume: 0 });
+		expect(totals.byExercise.hold).toEqual({ sets: 1, volume: 0 });
 	});
 });
 

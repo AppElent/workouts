@@ -4,9 +4,9 @@ import { AuthError } from "./AuthError";
 import { useStalled } from "./stall";
 
 /**
- * Shown while a social sign-in or sign-up, or its callback, waits for Clerk to
- * load. If Clerk takes too long, offers a reload, which keeps the URL, and the
- * plain form. Clerk loading after all still carries on.
+ * Shown while a social sign-in or sign-up waits for Clerk to load, or for its
+ * callback to finish. If that takes too long, offers a reload, which keeps the
+ * URL, and the plain form. Clerk getting there after all still carries on.
  */
 export function ResumePending({
 	backLabel,

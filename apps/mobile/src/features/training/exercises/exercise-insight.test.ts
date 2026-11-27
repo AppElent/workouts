@@ -1,3 +1,4 @@
+import type { SetType } from "@foundry/core";
 import { dailyBest, exerciseInsight } from "./exercise-insight";
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -10,7 +11,8 @@ const set = (
 	setNumber: number,
 	weight: number,
 	reps: number,
-	setType = "working",
+	setType: SetType = "working",
+	performanceVerified = true,
 ) => ({
 	_id: id,
 	sessionId,
@@ -20,6 +22,7 @@ const set = (
 	unit: "kg" as const,
 	reps,
 	setType,
+	performanceVerified,
 });
 
 describe("dailyBest", () => {
@@ -67,6 +70,33 @@ describe("exerciseInsight", () => {
 		expect(sessions[0]?.rows.map((row) => row.id)).toEqual(["e", "d"]);
 		expect(sessions[0]?.rows[0]?.record).toBe(true);
 		expect(sessions[2]?.rows[0]?.estimate).toBeNull();
+	});
+
+	it("takes a hold's best as its longest time, then most added load", () => {
+		const holds = [
+			set("a", "s1", 3, 1, 20, 30),
+			set("b", "s2", 2, 1, 5, 45),
+			set("c", "s3", 1, 1, 0, 45),
+		];
+		expect(exerciseInsight(holds, [], NOW, true).best).toEqual({
+			kg: 5,
+			reps: 45,
+			date: NOW - 2 * DAY,
+		});
+	});
+
+	it("skips a hold's warm-ups and unconfirmed sets, as the web does (APP-932)", () => {
+		const holds = [
+			set("a", "s1", 3, 1, 0, 90, "warmup"),
+			set("b", "s2", 2, 1, 0, 80, "working", false),
+			set("c", "s3", 1, 1, 0, 40),
+		];
+		expect(exerciseInsight(holds, [], NOW, true).best).toEqual({
+			kg: 0,
+			reps: 40,
+			date: NOW - DAY,
+		});
+		expect(exerciseInsight(holds.slice(0, 2), [], NOW, true).best).toBeNull();
 	});
 
 	it("adds no volume for a hold", () => {

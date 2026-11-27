@@ -31,6 +31,16 @@ const EQUIPMENT_TRAITS: Readonly<
 	other: { loaded: true, step: 2.5 },
 };
 
+/** What a Set's count (`reps`) holds. A Personal Exercise without one counts reps. */
+export const EXERCISE_MEASURES = ["reps", "seconds"] as const;
+export type ExerciseMeasure = (typeof EXERCISE_MEASURES)[number];
+
+/** What tells reps from seconds: the shipped id, or a Personal Exercise's measure. */
+export type MeasuredExercise = {
+	readonly _id?: string;
+	readonly measure?: ExerciseMeasure;
+};
+
 export function isLoadedEquipment(equipment: Equipment): boolean {
 	return EQUIPMENT_TRAITS[equipment].loaded;
 }
@@ -39,7 +49,7 @@ export function isLoadedEquipment(equipment: Equipment): boolean {
  * Shipped exercises measured as a held time. A Set on one of these records
  * seconds in its count (`reps`) field: "45" on a Plank is a 45-second hold.
  * Timed Sets never feed One-rep Max references, rep maxes, or work volume.
- * Personal exercises are always counted in reps.
+ * A Personal Exercise says it with its own `measure`.
  */
 const TIMED_EXERCISE_IDS: ReadonlySet<string> = new Set([
 	"shipped:exercise:plank",
@@ -50,11 +60,54 @@ const TIMED_EXERCISE_IDS: ReadonlySet<string> = new Set([
 /** The shipped exercises measured in seconds, for catalog checks. */
 export const TIMED_EXERCISES: readonly string[] = [...TIMED_EXERCISE_IDS];
 
+/** Where a first hold starts, so the ±5 steps land on round numbers. */
+export const TIMED_DEFAULT_SECONDS = 30;
+
+/** How far one step moves a hold's seconds. */
+export const TIMED_STEP_SECONDS = 5;
+
+/** A hold longer than this is asked about before it counts. */
+export const TIMED_LONG_HOLD_SECONDS = 600;
+
+/** How far one step moves a Set's count: seconds in fives, reps one at a time. */
+export function countStep(timed: boolean): number {
+	return timed ? TIMED_STEP_SECONDS : 1;
+}
+
 /** Whether a Set on this exercise counts seconds held instead of reps. */
 export function isTimedExercise(
-	exerciseId: string | null | undefined,
+	exercise: MeasuredExercise | null | undefined,
 ): boolean {
-	return !!exerciseId && TIMED_EXERCISE_IDS.has(exerciseId);
+	return exerciseMeasure(exercise) === "seconds";
+}
+
+export function exerciseMeasure(
+	exercise: MeasuredExercise | null | undefined,
+): ExerciseMeasure {
+	if (exercise?._id && TIMED_EXERCISE_IDS.has(exercise._id)) return "seconds";
+	return exercise?.measure ?? "reps";
+}
+
+/** Answers `isTimedExercise` by id; shipped holds count even while `exercises` loads. */
+export type TimedLookup = (exerciseId: string) => boolean;
+export function timedLookup(
+	exercises: readonly (MeasuredExercise & { readonly _id: string })[],
+): TimedLookup {
+	const timed = new Set<string>([
+		...TIMED_EXERCISE_IDS,
+		...exercises.filter(isTimedExercise).map((exercise) => exercise._id),
+	]);
+	return (exerciseId) => timed.has(exerciseId);
+}
+
+/**
+ * Whether a Set's load is the weight lifted, so it can feed One-rep Max
+ * references. A hold's load is added weight, as on a bodyweight exercise.
+ */
+export function isLoadedExercise(
+	exercise: MeasuredExercise & { readonly equipment: Equipment },
+): boolean {
+	return isLoadedEquipment(exercise.equipment) && !isTimedExercise(exercise);
 }
 
 export const EXERCISE_CATEGORIES = ["compound", "isolation"] as const;
@@ -89,6 +142,50 @@ export const MUSCLE_GROUPS = {
 } as const satisfies Record<string, readonly string[]>;
 export type MuscleGroup = keyof typeof MUSCLE_GROUPS;
 export const MUSCLE_GROUP_KEYS = Object.keys(MUSCLE_GROUPS) as MuscleGroup[];
+
+/**
+ * The muscle vocabulary: each muscle the catalog names, under one key, with
+ * every spelling the catalog and older saves use. Apps label the keys.
+ */
+export const MUSCLES = {
+	core: ["core"],
+	abs: ["abs", "abdominals"],
+	obliques: ["obliques"],
+	chest: ["chest"],
+	back: ["back"],
+	lats: ["lats"],
+	lowerBack: ["lower back"],
+	traps: ["traps"],
+	neck: ["neck"],
+	shoulders: ["shoulders"],
+	frontDelts: ["front delts"],
+	sideDelts: ["side delts"],
+	rearDelts: ["rear delts"],
+	arms: ["arms"],
+	biceps: ["biceps"],
+	triceps: ["triceps"],
+	forearms: ["forearms"],
+	quadriceps: ["quadriceps", "quads"],
+	hamstrings: ["hamstrings"],
+	glutes: ["glutes"],
+	calves: ["calves"],
+	adductors: ["adductors"],
+	abductors: ["abductors"],
+	serratus: ["serratus"],
+	fullBody: ["full body"],
+} as const satisfies Record<string, readonly string[]>;
+export type Muscle = keyof typeof MUSCLES;
+
+const MUSCLE_BY_NAME = new Map<string, Muscle>(
+	(Object.entries(MUSCLES) as [Muscle, readonly string[]][]).flatMap(
+		([muscle, names]) => names.map((name) => [name, muscle] as const),
+	),
+);
+
+/** The vocabulary key for a stored muscle name, or undefined when unknown. */
+export function muscleKey(name: string): Muscle | undefined {
+	return MUSCLE_BY_NAME.get(name.trim().toLocaleLowerCase());
+}
 
 type Muscled = { readonly muscleGroups: readonly string[] };
 
@@ -151,6 +248,7 @@ export type ExerciseInput = {
 	readonly equipment: Equipment;
 	readonly notes?: string;
 	readonly weightIncrement?: number;
+	readonly measure?: ExerciseMeasure;
 };
 
 type Normalized<T extends ExerciseInput> = Omit<

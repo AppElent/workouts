@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing Training, Start activity, Strength Sessions, the set editor, Set Drafts, or strength references.
-version: 2.1.3
+version: 2.3.0
 status: current
 ---
 
@@ -87,6 +87,24 @@ references. Studies: [training](../../designs/app/training_final.html),
   set writes.
 - Legacy history stays as recorded; never present prefilled targets as measured.
 
+### Train now
+
+- The phone's exercise page offers **Train now** under its header (not in the
+  session's exercise sheet), and the exercise library's row menu offers the
+  same action (APP-871). Mobile only, like the Krachtprofiel outside a session
+  ([ADR 0017](../adr/0017-mobile-leads-web-shares.md)).
+- With no active session it starts a Strength Session for that exercise in one
+  write (`workoutSessions.create` with `exerciseId`): named after the exercise,
+  its references snapshotted, and last time's working Sets of the exercise
+  (every set but warm-ups, from the latest session that logged one, in set
+  order) as its Planned Sets. Without
+  history it starts as an ad hoc exercise. It then opens the session, so the
+  session, set editor, percentages, Krachtprofiel and recap are the ones above.
+- With a session active it offers to add the exercise there and opens it; an
+  exercise already in that session opens it without asking. Cancel writes
+  nothing. Offline it still opens an active session that holds the exercise;
+  adding or starting refuses, as does an unresolved active session.
+
 ### Connected-app setup
 
 An agent can prepare a training through the [MCP](../runbooks/mcp.md) so the
@@ -95,7 +113,7 @@ the app; there is no separate data.
 
 - **Personal Exercises:** `create_exercise` reuses the in-app create path and
   returns the caller's existing Personal Exercise with the same name (ignoring
-  case) instead of a duplicate.
+  case) instead of a duplicate. It takes the measure, reps unless given.
 - **Routines:** `create_routine` uses the in-app create path, with its set, rep,
   and load limits and exercise ownership checks. Like the editors, it requires a
   name and at least one exercise and takes each exercise once. A retry with the
@@ -145,10 +163,13 @@ the app; there is no separate data.
   summary is one accessible element with one spoken label: set number, load and
   reps in words ("20 kilograms, 5 reps"), set type or, for a working set, its
   RPE ("RPE 8"), estimated 1RM, then the note, each only when the row has it.
-  Every spoken phrase, the RPE included, comes from the en/nl message catalog.
+  A session set row speaks its RPE when it shows it. Every spoken phrase, the
+  RPE included, comes from the en/nl message catalog.
   Placeholders such as "—" are never read.
   The session summary's visible chip and its "Best" line name the set's unit
   (`80 kg × 8`, `135 lbs × 5`); a bodyweight set shows none.
+  "Best" is the heaviest set, compared in kg and shown in its own unit; total
+  volume is in kg.
 - Percentage chips use the session's 1RM: Measured unless a newer manual 1RM is
   saved. Choosing one changes the weight; the sheet shows the 1RM this set would
   produce. Missing references are unknown and do not block logging. Never replace
@@ -160,6 +181,20 @@ the app; there is no separate data.
 - In a session it opens from the set editor menu, the exercise menu, and a direct
   Krachtprofiel action on the current exercise card, beside Add set (hidden for
   bodyweight exercises).
+
+### Holds
+
+- A Personal Exercise is measured in reps or seconds, chosen when it is created
+  and changeable when it is edited (phone and web). Quick create inside a session
+  offers it with weight, on bodyweight, or in seconds (a bodyweight hold). Absent means reps, so
+  every earlier exercise keeps counting reps; an edit that leaves the measure out
+  keeps it, so an older app never clears one. Shipped holds are fixed by id.
+- A hold reads and logs seconds everywhere, stepped in fives from 30. Its load is
+  optional added weight on any equipment, and its Sets never feed One-rep Max
+  references, rep maxes, percentages, or work volume.
+- Sets carry no measure of their own: switching an exercise re-reads the Sets
+  already logged, which the phone's form says, and drops or restores their
+  set-derived references. Manual 1RMs and the logged numbers stay.
 
 ### Krachtprofiel outside a session
 

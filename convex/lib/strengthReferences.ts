@@ -7,7 +7,11 @@ import {
 } from "@foundry/core";
 import type { Doc } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
-import { exerciseOneRepMaxes, resolveExercise } from "./exerciseCatalog";
+import {
+	exerciseOneRepMaxes,
+	exerciseSets,
+	resolveExercise,
+} from "./exerciseCatalog";
 
 export async function snapshotStrengthReferences(
 	ctx: MutationCtx,
@@ -47,7 +51,13 @@ export async function performanceReference(
 		"exerciseId" | "weight" | "reps" | "unit" | "performanceVerified"
 	>,
 ) {
-	const exercise = await resolveExercise(ctx, set.exerciseId, userId);
+	return setReference(set, await resolveExercise(ctx, set.exerciseId, userId));
+}
+
+function setReference(
+	set: Pick<Doc<"sets">, "weight" | "reps" | "unit" | "performanceVerified">,
+	exercise: Awaited<ReturnType<typeof resolveExercise>>,
+) {
 	if (!isReferenceEligible(set, exercise)) {
 		return { referenceKind: undefined, referenceValueKg: undefined };
 	}
@@ -91,6 +101,24 @@ export async function recalcStrengthReferences(
 			sourceSetId: best._id,
 		});
 	}
+}
+
+/** Re-derives every logged set's reference after its exercise's measure changed. */
+export async function rebuildSetReferences(
+	ctx: MutationCtx,
+	userId: string,
+	exerciseId: string,
+) {
+	const exercise = await resolveExercise(ctx, exerciseId, userId);
+	for (const set of await exerciseSets(ctx, userId, exerciseId)) {
+		const reference = setReference(set, exercise);
+		if (
+			reference.referenceKind !== set.referenceKind ||
+			reference.referenceValueKg !== set.referenceValueKg
+		)
+			await ctx.db.patch(set._id, reference);
+	}
+	await recalcStrengthReferences(ctx, userId, exerciseId);
 }
 
 export async function readStrengthReferences(

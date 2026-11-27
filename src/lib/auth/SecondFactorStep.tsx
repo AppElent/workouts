@@ -1,6 +1,7 @@
 import { useSignIn } from "@clerk/react";
 import { useEffect, useId, useRef, useState } from "react";
 import { fmt, useMessages } from "#/lib/i18n";
+import { cn } from "#/lib/utils";
 import { AuthButton } from "./AuthButton";
 import { AuthError } from "./AuthError";
 import { AuthField } from "./AuthField";
@@ -8,6 +9,7 @@ import { useClerkErrorMessage } from "./clerkError";
 import {
 	codeExpiry,
 	endsAttempt,
+	expiresCode,
 	locksMethod,
 	type SecondFactorOption,
 	type SecondFactorStrategy,
@@ -63,10 +65,14 @@ export function SecondFactorStep({
 	const [codeExpired, setCodeExpired] = useState(
 		() => !!started && sendsCode(started) && startedCodeExpired(signIn),
 	);
-	// The method an earlier load left locked, until a new code unlocks it.
-	const [locked, setLocked] = useState(() =>
-		startedLocked(signIn) ? started : null,
+	// Methods locked by an earlier load or on this page; a new code unlocks one.
+	const [locked, setLocked] = useState<SecondFactorStrategy[]>(() =>
+		started && startedLocked(signIn) ? [started] : [],
 	);
+	const current = options.find((option) => option.strategy === strategy);
+	const others = options.filter((option) => option !== current);
+	const methodLocked =
+		others.length > 0 ? copy.methodLocked : copy.methodLockedOnly;
 	const promptId = useId();
 	const [code, setCode] = useState("");
 	const [error, setError] = useState<string | null>(null);
@@ -81,7 +87,7 @@ export function SecondFactorStep({
 		}
 		setError(
 			locksMethod(err) && !sendsCode(current)
-				? copy.methodLocked
+				? methodLocked
 				: errorMessage(err),
 		);
 	}
@@ -108,7 +114,7 @@ export function SecondFactorStep({
 		const { error } = await sendSecondFactorCode(signIn, next);
 		if (error) throw error;
 		setCodeExpired(false);
-		if (sendsCode(next)) setLocked((held) => (held === next ? null : held));
+		if (sendsCode(next)) setLocked((held) => held.filter((s) => s !== next));
 		return true;
 	}
 
@@ -161,6 +167,12 @@ export function SecondFactorStep({
 					strategy,
 					code.trim(),
 				);
+				// The prompt says so; a locked method tried again gets an error.
+				if (locksMethod(error) && !locked.includes(strategy)) {
+					setLocked([...locked, strategy]);
+					return false;
+				}
+				if (expiresCode(error) && sendsCode(strategy)) setCodeExpired(true);
 				if (error) throw error;
 			}
 			if (signIn.status !== "complete") {
@@ -202,8 +214,6 @@ export function SecondFactorStep({
 		onBack();
 	}
 
-	const current = options.find((option) => option.strategy === strategy);
-
 	// The form (and its focused field) leaves for the error view: keep focus
 	// on the step so keyboard and screen-reader users land on the message.
 	const errorView = useRef<HTMLDivElement>(null);
@@ -243,11 +253,10 @@ export function SecondFactorStep({
 	}
 
 	const backup = current.strategy === "backup_code";
-	const others = options.filter((o) => o.strategy !== current.strategy);
 
 	function promptFor({ strategy }: SecondFactorOption) {
-		if (locked === strategy) {
-			if (!sendsCode(strategy)) return copy.methodLocked;
+		if (locked.includes(strategy)) {
+			if (!sendsCode(strategy)) return methodLocked;
 			return others.length > 0 ? copy.codeLockedOther : copy.codeLocked;
 		}
 		return codeExpired ? copy.codeExpired : copy.prompt[strategy];
@@ -261,7 +270,17 @@ export function SecondFactorStep({
 			<p className="text-sm text-text empty:hidden" role="status">
 				{notice}
 			</p>
-			<p id={promptId} className="text-sm text-text-muted" aria-live="polite">
+			{/* Announces a change under the same method. A switch brings a new one,
+			    which only the field it describes reads, as it takes focus. */}
+			<p
+				key={`prompt-${current.strategy}`}
+				id={promptId}
+				className={cn(
+					"text-sm",
+					locked.includes(current.strategy) ? "text-danger" : "text-text-muted",
+				)}
+				aria-live="polite"
+			>
 				{fmt(promptFor(current), {
 					destination: destination(current),
 					resend: copy.resend,

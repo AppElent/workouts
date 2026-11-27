@@ -1,7 +1,7 @@
 ---
 type: runbook
 description: Read when changing environment variables, Infisical sources, or generated env files.
-version: 3.0.0
+version: 3.1.0
 ---
 
 # Environment contract
@@ -77,6 +77,8 @@ deployment itself and runs `convex dev --once` directly under
 `scripts/keep-env-local.mjs`, which restores the file once Convex exits and
 fails the run if it was cancelled. A worktree
 with its own backend pushes to it with plain `pnpm exec convex dev --once`.
+`pnpm convex:push-dev` does only the Convex half of `deploy:dev`, without
+Infisical or a Worker deploy: what a merger runs to bring dev up to `main`.
 `deploy:production` targets Convex with the production `CONVEX_DEPLOY_KEY` from
 Infisical `prod`, which wins over any selector or worktree key in `.env.local`, and
 deploys the Worker with the `CLOUDFLARE_API_TOKEN` from the GitHub Environment's

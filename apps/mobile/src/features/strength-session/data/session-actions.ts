@@ -64,6 +64,9 @@ import {
 
 export type EditorRequest = (rowId: string) => void;
 
+/** What a quick-created exercise counts: loaded reps, bodyweight reps, or a hold. */
+export type QuickExerciseKind = "weighted" | "bodyweight" | "hold";
+
 export function useSessionActions(workspace: SessionWorkspace) {
 	const errorMessage = useWriteFailureMessage();
 	const { key, subject, sessionId, getFacts, nameOf, online } = workspace;
@@ -533,7 +536,7 @@ export function useSessionActions(workspace: SessionWorkspace) {
 		}
 		async function createAndAdd(
 			name: string,
-			bodyweight: boolean,
+			kind: QuickExerciseKind,
 			forSwap?: string,
 			groupId?: string,
 			openEditor?: EditorRequest,
@@ -545,7 +548,8 @@ export function useSessionActions(workspace: SessionWorkspace) {
 					name,
 					muscleGroups: [],
 					category: "compound",
-					equipment: bodyweight ? "bodyweight" : "other",
+					equipment: kind === "weighted" ? "other" : "bodyweight",
+					...(kind === "hold" ? { measure: "seconds" as const } : {}),
 				});
 				if (forSwap) return swap(forSwap, id, name);
 				if (groupId) return addExerciseToGroup(groupId, id, name);

@@ -43,21 +43,21 @@ const tables = (sets: unknown[]) => ({
 	sets,
 	workoutSessions: [{ _id: "w1", name: "Push", date: 0 }],
 });
-const names = new Map([["e1", "Bench press"]]);
+const names = [{ _id: "e1", name: "Bench press" }];
 
 it("adds a notes column after rpe, empty when the set has none", () => {
 	const [header, row] = setsToCsv(tables([set({})]), names).split("\n");
 	expect(header).toBe(
-		"date,session,exercise,setNumber,setType,weight,unit,reps,rpe,notes",
+		"date,session,exercise,setNumber,setType,weight,unit,reps,seconds,rpe,notes",
 	);
-	expect(row).toBe("2026-01-02 09:30,Push,Bench press,1,working,100,kg,5,,");
+	expect(row).toBe("2026-01-02 09:30,Push,Bench press,1,working,100,kg,5,,,");
 });
 
 it("writes a note with a comma, quote, newline, carriage return, and leading =", () => {
 	const note = '=hard, "felt" heavy\nsecond\rthird';
 	const csv = setsToCsv(tables([set({ notes: note, rpe: 8 })]), names);
 	expect(csv.split("\n").slice(1).join("\n")).toBe(
-		`2026-01-02 09:30,Push,Bench press,1,working,100,kg,5,8,"'=hard, ""felt"" heavy\nsecond\rthird"`,
+		`2026-01-02 09:30,Push,Bench press,1,working,100,kg,5,,8,"'=hard, ""felt"" heavy\nsecond\rthird"`,
 	);
 });
 
@@ -66,11 +66,40 @@ it("guards a session or exercise name that starts with a trigger character", () 
 		sets: [set({})],
 		workoutSessions: [{ _id: "w1", name: "-Push", date: 0 }],
 	};
-	const [, row] = setsToCsv(t, new Map([["e1", "=Bench"]])).split("\n");
-	expect(row).toBe("2026-01-02 09:30,'-Push,'=Bench,1,working,100,kg,5,,");
+	const [, row] = setsToCsv(t, [{ _id: "e1", name: "=Bench" }]).split("\n");
+	expect(row).toBe("2026-01-02 09:30,'-Push,'=Bench,1,working,100,kg,5,,,");
 });
 
 it("keeps a negative weight numeric", () => {
 	const [, row] = setsToCsv(tables([set({ weight: -20 })]), names).split("\n");
-	expect(row).toBe("2026-01-02 09:30,Push,Bench press,1,working,-20,kg,5,,");
+	expect(row).toBe("2026-01-02 09:30,Push,Bench press,1,working,-20,kg,5,,,");
+});
+
+it("labels a hold's count as seconds and leaves reps empty", () => {
+	const plank = "shipped:exercise:plank";
+	const csv = setsToCsv(
+		tables([
+			set({ loggedAt: 1 }),
+			set({ exerciseId: plank, weight: 0, reps: 45, loggedAt: 2 }),
+		]),
+		[
+			{ _id: "e1", name: "Bench press" },
+			{ _id: plank, name: "Plank" },
+		],
+	);
+	const [header, bench, hold] = csv.split("\n").map((line) => line.split(","));
+	expect(header?.slice(7, 10)).toEqual(["reps", "seconds", "rpe"]);
+	expect(bench?.slice(7, 10)).toEqual(["5", "", ""]);
+	expect(hold?.slice(7, 10)).toEqual(["", "45", ""]);
+});
+
+it("labels a Personal Exercise measured in seconds the same way", () => {
+	const csv = setsToCsv(
+		{
+			...tables([set({ weight: 0, reps: 40 })]),
+			exercises: [{ _id: "e1", measure: "seconds" }],
+		},
+		[],
+	);
+	expect(csv.split("\n")[1]?.split(",").slice(7, 10)).toEqual(["", "40", ""]);
 });

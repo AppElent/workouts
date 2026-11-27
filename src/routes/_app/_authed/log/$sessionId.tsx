@@ -1,6 +1,6 @@
 import { api } from "@convex/_generated/api";
 import type { Doc, Id } from "@convex/_generated/dataModel";
-import { parseConvexError } from "@foundry/core";
+import { isTimedExercise, parseConvexError } from "@foundry/core";
 import type { ExerciseId } from "@foundry/core/exercises";
 import { HOSTED_WORKOUTS_ENABLED } from "@foundry/core/features";
 import { createFileRoute } from "@tanstack/react-router";
@@ -80,6 +80,7 @@ function ActiveSessionPage() {
 	const [editing, setEditing] = useState<{
 		setId: Id<"sets">;
 		exerciseName: string;
+		timed: boolean;
 		weightStep: number;
 	} | null>(null);
 
@@ -254,10 +255,7 @@ function ActiveSessionPage() {
 						return (
 							<ExerciseSection
 								key={exerciseId}
-								exerciseId={exerciseId}
-								exerciseName={exercise.name}
-								equipment={exercise.equipment}
-								weightIncrement={exercise.weightIncrement}
+								exercise={exercise}
 								sessionId={sessionId as Id<"workoutSessions">}
 								sets={exerciseSets}
 								plannedSets={
@@ -268,10 +266,11 @@ function ActiveSessionPage() {
 								repeated={repeated?.exerciseId === exerciseId ? repeated : null}
 								busy={busy}
 								write={write}
-								onEditSet={(s, name, step) =>
+								onEditSet={(s, edited, step) =>
 									setEditing({
 										setId: s._id,
-										exerciseName: name,
+										exerciseName: edited.name,
+										timed: isTimedExercise(edited),
 										weightStep: step,
 									})
 								}
@@ -331,6 +330,7 @@ function ActiveSessionPage() {
 				<SetEditSheet
 					set={editingSet}
 					exerciseName={editing?.exerciseName ?? ""}
+					timed={editing?.timed ?? false}
 					weightStep={editing?.weightStep ?? 2.5}
 					onClose={() => setEditing(null)}
 					onRepeat={(set) => setRepeated({ ...set })}

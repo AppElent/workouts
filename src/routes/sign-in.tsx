@@ -40,6 +40,17 @@ function SignInPage() {
 	const { isSignedIn } = useAuth();
 	const { auth } = useMessages();
 
+	// Used once: history state survives a reload, which must not take focus.
+	useEffect(() => {
+		if (!focusFirst) return;
+		navigate({
+			to: "/sign-in",
+			search: true,
+			state: (prev) => ({ ...prev, focusSignIn: undefined }),
+			replace: true,
+		});
+	}, [focusFirst, navigate]);
+
 	useEffect(() => {
 		if (isSignedIn) {
 			navigate({ href: redirect ?? AUTH_PATHS.afterAuth });

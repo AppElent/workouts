@@ -81,9 +81,10 @@ The shipped food library itself is documented in `src/nutrition/README.md`.
 Product rules these modules encode (change them here, not in an app):
 
 - Set weights are limited in the set's own unit (0–2000), so 2000 lbs is valid.
-- A set feeds One-rep Max references only when it was explicitly logged with a positive load and at least one rep, on an exercise that is not bodyweight (`isReferenceEligible`). Records apply the same rule and compare in kg.
+- A set feeds One-rep Max references only when it was explicitly logged with a positive load and at least one rep, on an exercise that is neither bodyweight nor a timed hold (`isReferenceEligible`). Records apply the same rule and compare in kg.
 - A session's One-rep Max is Measured unless a newer Manual entry exists; the current 1RM falls back to Estimated after that.
-- Work volume excludes warm-ups and is in kg.
+- A hold counts seconds in `reps`: a shipped one by id, a Personal Exercise by its `measure` (`isTimedExercise`, or `timedLookup` across exercises).
+- Work volume excludes warm-ups and holds and is in kg.
 - Hosted leaderboard ties go to the earliest submission.
 - Calendar helpers never read the device or server timezone: pass local date parts (`isoDateFrom`) or an instant with its UTC offset (`isoDateAt`).
 - Anything with words or decimal separators is rendered by the apps; `format.ts` returns strings that read the same in every locale.

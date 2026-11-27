@@ -9,7 +9,7 @@ import {
 import { getFunctionName } from "convex/server";
 import { router } from "expo-router";
 import { act, fireEvent, screen, waitFor } from "expo-router/testing-library";
-import { ActionSheetIOS } from "react-native";
+import { ActionSheetIOS, Dimensions, StyleSheet } from "react-native";
 import * as SessionRoute from "../../../app/(app)/session";
 import * as GroupRoute from "../../../app/(app)/session-group";
 import * as ManualRoute from "../../../app/(app)/session-manual";
@@ -232,6 +232,33 @@ it("shows the plan against the measured 1RM, with what each set would be worth",
 	).toHaveLength(1);
 });
 
+it.each([
+	[
+		"en",
+		"RPE 8.5",
+		/set 1, Logged, 60 percent, 60 × 8, RPE 8\.5, 1RM about 76 kilograms$/,
+	],
+	[
+		"nl",
+		"RPE 8,5",
+		/set 1, Gelogd, 60 procent, 60 × 8, RPE 8,5, 1RM ongeveer 76 kilo$/,
+	],
+])(
+	"speaks the RPE a logged row shows in %s (APP-836)",
+	async (locale, shown, spoken) => {
+		writeLocal(PREFERENCE_KEYS.locale, locale);
+		try {
+			loggedSets = [{ ...serverSet("set-1", 8, 1), rpe: 8.5 }];
+			await mount();
+			expect(await screen.findByText(shown)).toBeTruthy();
+			expect(screen.getAllByLabelText(spoken)).toHaveLength(1);
+			expect(screen.getAllByLabelText(/RPE/)).toHaveLength(1);
+		} finally {
+			writeLocal(PREFERENCE_KEYS.locale, "en");
+		}
+	},
+);
+
 it("says the session ended when it was finished elsewhere and the plan is gone", async () => {
 	await mount();
 	await screen.findByText(/Measured 1RM 100 kg/);
@@ -262,6 +289,35 @@ it("logs a planned set from its check, says what it was worth, and starts rest",
 	expect(
 		screen.getAllByLabelText(/Log Barbell Back Squat 60 × 8/),
 	).toHaveLength(1);
+});
+
+describe("the progress line under the title (APP-931)", () => {
+	const direction = () =>
+		StyleSheet.flatten(
+			screen.getByTestId("session-progress-labels").props.style,
+		).flexDirection;
+	let dimensions: jest.SpyInstance | undefined;
+	const logOne = async (fontScale: number) => {
+		// Jest's React Native reports fontScale 2, so both cases pin it.
+		dimensions = jest
+			.spyOn(Dimensions, "get")
+			.mockReturnValue({ width: 375, height: 812, scale: 3, fontScale });
+		await mount();
+		await fireEvent.press(await firstCheck());
+		expect(await screen.findByText(/^1 of \d+ sets$/)).toBeTruthy();
+	};
+
+	afterEach(() => dimensions?.mockRestore());
+
+	it("puts the set count and the volume on one line", async () => {
+		await logOne(1);
+		expect(direction()).toBe("row");
+	});
+
+	it("stacks them at accessibility text sizes so neither runs off screen", async () => {
+		await logOne(3.1);
+		expect(direction()).toBe("column");
+	});
 });
 
 it("keeps an unfinished edit across closing and a fresh app mount without logging", async () => {

@@ -386,6 +386,32 @@ describe("Foundry MCP endpoint", () => {
 		});
 	});
 
+	it("creates a personal exercise measured in seconds", async () => {
+		const backend = fakeBackend({
+			"exercises:ensurePersonal": () => ({ id: "ex_hold", created: true }),
+			"exercises:getById": () => ({
+				_id: "ex_hold",
+				name: "Side plank",
+				muscleGroups: ["core"],
+				category: "isolation",
+				equipment: "bodyweight",
+				measure: "seconds",
+				isDefault: false,
+			}),
+		});
+		const call = await callTool(backend, "create_exercise", {
+			name: "Side plank",
+			muscleGroups: ["core"],
+			equipment: "bodyweight",
+			category: "isolation",
+			measure: "seconds",
+		});
+		expect(call.structuredContent).toMatchObject({
+			exercise: { id: "ex_hold", measure: "seconds" },
+		});
+		expect(backend.calls[0]).toMatchObject({ args: { measure: "seconds" } });
+	});
+
 	describe("create_routine", () => {
 		const input = {
 			idempotencyKey: "routine-key-1",

@@ -1,5 +1,5 @@
 import { api } from "@convex/_generated/api";
-import { isTimedExercise } from "@foundry/core";
+import type { TimedLookup } from "@foundry/core";
 import { useMutation } from "convex/react";
 import { Pencil, Play, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -14,9 +14,10 @@ import { useConvexErrorMessage } from "#/lib/convexError";
 
 interface Props {
 	routine: RoutineWithNames;
+	isTimed: TimedLookup;
 }
 
-export function RoutineCard({ routine }: Props) {
+export function RoutineCard({ routine, isTimed }: Props) {
 	const { start, starting } = useStartRoutine();
 	const toast = useToast();
 	const errorMessage = useConvexErrorMessage();
@@ -77,7 +78,7 @@ export function RoutineCard({ routine }: Props) {
 						className="text-micro px-2 py-0.5 rounded-full bg-surface-2 text-text-muted"
 					>
 						{ex.exerciseName} {ex.defaultSets}×{ex.defaultReps}
-						{isTimedExercise(ex.exerciseId) ? " s" : ""}
+						{isTimed(ex.exerciseId) ? " s" : ""}
 					</span>
 				))}
 				{routine.exercises.length > 4 && (

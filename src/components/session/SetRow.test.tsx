@@ -20,7 +20,7 @@ function renderRow(value: Doc<"sets">) {
 	render(
 		<table>
 			<tbody>
-				<SetRow set={value} onEdit={vi.fn()} />
+				<SetRow set={value} timed={false} onEdit={vi.fn()} />
 			</tbody>
 		</table>,
 	);
@@ -40,7 +40,13 @@ it("adds nothing to the row of a set without a note", () => {
 });
 
 it("shows and speaks a set's note on its card", () => {
-	render(<SetCard set={{ ...set, notes: "Narrow grip" }} onEdit={vi.fn()} />);
+	render(
+		<SetCard
+			set={{ ...set, notes: "Narrow grip" }}
+			timed={false}
+			onEdit={vi.fn()}
+		/>,
+	);
 	expect(screen.getByText("Narrow grip")).toBeTruthy();
 	expect(
 		screen.getByRole("button", { name: "Edit set 1, note: Narrow grip" }),
@@ -48,7 +54,12 @@ it("shows and speaks a set's note on its card", () => {
 });
 
 it("adds nothing to the card of a set without a note", () => {
-	render(<SetCard set={set} onEdit={vi.fn()} />);
+	render(<SetCard set={set} timed={false} onEdit={vi.fn()} />);
 	const card = screen.getByRole("button", { name: "Edit set 1" });
 	expect(card.querySelector("p")).toBeNull();
+});
+
+it("shows a hold's count in seconds, whichever exercise it is", () => {
+	render(<SetCard set={{ ...set, reps: 45 }} timed onEdit={vi.fn()} />);
+	expect(screen.getByText(/45 ?s/)).toBeTruthy();
 });

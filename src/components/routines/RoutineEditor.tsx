@@ -1,12 +1,19 @@
 import type { api } from "@convex/_generated/api";
 import type { Doc } from "@convex/_generated/dataModel";
-import { isTimedExercise, SET_LIMITS } from "@foundry/core";
+import {
+	countStep,
+	isTimedExercise,
+	SET_LIMITS,
+	TIMED_DEFAULT_SECONDS,
+	timedLookup,
+} from "@foundry/core";
 import type { FunctionReturnType } from "convex/server";
 import { Plus, X } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ExercisePicker } from "#/components/exercises/ExercisePicker";
 import { Stepper } from "#/components/ui/Stepper";
 import { useConvexErrorMessage } from "#/lib/convexError";
+import { useExercises } from "#/lib/exercises";
 
 export type RoutineWithNames = FunctionReturnType<
 	typeof api.routines.list
@@ -27,6 +34,8 @@ export function RoutineEditor({
 	onCancel?: () => void;
 }) {
 	const errorMessage = useConvexErrorMessage();
+	const exercises = useExercises();
+	const isTimed = useMemo(() => timedLookup(exercises), [exercises]);
 	const [name, setName] = useState(initial?.name ?? "");
 	const [entries, setEntries] = useState<Entry[]>(
 		() =>
@@ -104,11 +113,12 @@ export function RoutineEditor({
 						max={SET_LIMITS.plannedSets.max}
 					/>
 					<Stepper
-						label={isTimedExercise(entry.exerciseId) ? "Seconds" : "Reps"}
+						label={isTimed(entry.exerciseId) ? "Seconds" : "Reps"}
 						value={entry.defaultReps}
 						onChange={(value) => updateEntry(index, { defaultReps: value })}
 						min={SET_LIMITS.plannedReps.min}
 						max={SET_LIMITS.plannedReps.max}
+						step={countStep(isTimed(entry.exerciseId))}
 					/>
 					<Stepper
 						label="Weight"
@@ -140,7 +150,9 @@ export function RoutineEditor({
 												exerciseId: exercise._id,
 												name: exercise.name,
 												defaultSets: 3,
-												defaultReps: isTimedExercise(exercise._id) ? 30 : 8,
+												defaultReps: isTimedExercise(exercise)
+													? TIMED_DEFAULT_SECONDS
+													: 8,
 											},
 										],
 							);

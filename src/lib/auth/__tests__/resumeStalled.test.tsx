@@ -22,8 +22,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 let isLoaded = false;
 const listeners = new Set<() => void>();
-function setLoaded() {
-	isLoaded = true;
+function setLoaded(value = true) {
+	isLoaded = value;
 	for (const listener of listeners) listener();
 }
 
@@ -141,7 +141,7 @@ describe.each([
 	{
 		path: "/sign-up",
 		back: "Back to sign up",
-		backNl: "Terug naar aanmelden",
+		backNl: "Terug naar account aanmaken",
 		resumed: "One more step",
 		resumedField: "Username",
 		submit: "Create account",
@@ -330,6 +330,8 @@ describe("/sso-callback while Clerk does not load", () => {
 		expect(router.history.location.href).toBe(`/sign-in?${REDIRECT}`);
 		expect(router.history.length).toBe(2);
 		expect(document.activeElement).toBe(screen.getByLabelText("Email"));
+		// Used up: the state survives a reload, which must not take focus again.
+		expect(router.history.location.state.focusSignIn).toBeUndefined();
 
 		await act(async () => setLoaded());
 		expect(screen.queryByText("Clerk callback")).toBeNull();
@@ -345,7 +347,42 @@ describe("/sso-callback while Clerk does not load", () => {
 		await wait(ms);
 		await act(async () => setLoaded());
 		expect(screen.getByText("Clerk callback")).toBeDefined();
+		await wait(SESSION_STALL_MS - 1);
+		expect(screen.getByRole("status").textContent).toBe("Please wait…");
+		expectNoError();
+	});
+
+	it("shows the stalled error for a callback that hangs or failed", async () => {
+		await visit(callback);
+		await wait(SESSION_STALL_MS - 1);
+		await act(async () => setLoaded());
 		await wait(SESSION_STALL_MS);
+		expect(screen.getByRole("alert").textContent).toBe(
+			"This is taking longer than usual",
+		);
+		expect(screen.getByText("Clerk callback")).toBeDefined();
+
+		// Still running: leaving it takes a page load, which a fresh sign-in
+		// page follows.
+		const replace = vi.fn();
+		vi.stubGlobal("location", { ...window.location, replace });
+		await click("Back to sign in");
+		expect(replace).toHaveBeenCalledExactlyOnceWith(`/sign-in?${REDIRECT}`);
+		expect(screen.queryByLabelText("Email")).toBeNull();
+	});
+
+	it.each([
+		["at once", 0],
+		["from the stalled error", SESSION_STALL_MS],
+	])("shows no error while Clerk activates the session %s", async (_, ms) => {
+		await visit(callback);
+		await act(async () => setLoaded());
+		await wait(ms);
+		// `useAuth` reads as not loaded during `setActive`.
+		await act(async () => setLoaded(false));
+		await wait(SESSION_STALL_MS * 2);
+		expect(screen.getByRole("status").textContent).toBe("Please wait…");
+		expect(screen.getByText("Signing you in…")).toBeDefined();
 		expectNoError();
 	});
 });

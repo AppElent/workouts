@@ -176,3 +176,43 @@ it("clones a personal exercise's exact muscle names and instructions only after 
 	);
 	expect(update).not.toHaveBeenCalled();
 });
+
+it("creates a personal exercise measured in seconds", async () => {
+	const create = jest.fn().mockResolvedValue("new-id");
+	await setup(create);
+	await fireEvent.changeText(screen.getByLabelText("Name"), "Side plank");
+	await fireEvent.press(screen.getByText("Seconds"));
+	await fireEvent.press(screen.getByRole("button", { name: "Save" }));
+	await waitFor(() =>
+		expect(create).toHaveBeenCalledWith(
+			expect.objectContaining({ name: "Side plank", measure: "seconds" }),
+		),
+	);
+});
+
+it("switches a hold back to reps and says logged sets change too", async () => {
+	const update = jest.fn().mockResolvedValue(null);
+	await setup(
+		jest.fn(),
+		"/exercise-new?edit=personal-id&returnTo=library",
+		{
+			"personal-id": {
+				...SHIPPED_EXERCISES[0],
+				_id: "personal-id",
+				isDefault: false,
+				measure: "seconds",
+			},
+		},
+		update,
+	);
+	const help = "Sets you already logged will read this way too.";
+	expect(screen.queryByText(help)).toBeNull();
+	await fireEvent.press(screen.getByText("Reps"));
+	expect(screen.getByText(help)).toBeTruthy();
+	await fireEvent.press(screen.getByRole("button", { name: "Save" }));
+	await waitFor(() =>
+		expect(update).toHaveBeenCalledWith(
+			expect.objectContaining({ id: "personal-id", measure: "reps" }),
+		),
+	);
+});

@@ -3,6 +3,7 @@ import {
 	currentOneRepMax,
 	exerciseRecords,
 	isReferenceEligible,
+	longestHold,
 	type PerformedSet,
 	percentOfOneRepMaxLoad,
 	RECORDED_TIME_TOLERANCE_MS,
@@ -139,23 +140,68 @@ describe("exerciseRecords", () => {
 	});
 });
 
+describe("holds", () => {
+	const hold = { equipment: "dumbbell", measure: "seconds" } as const;
+	it("never feed One-rep Max references or load records", () => {
+		const held = set(20, 1, { performanceVerified: true });
+		expect(isReferenceEligible(held, { equipment: "dumbbell" })).toBe(true);
+		expect(isReferenceEligible(held, hold)).toBe(false);
+		expect(exerciseRecords([held], hold).heaviest).toBeNull();
+	});
+});
+
+describe("longestHold", () => {
+	const hold = (
+		reps: number,
+		weight: number,
+		extra: Partial<PerformedSet> = {},
+	) =>
+		({
+			reps,
+			weight,
+			unit: "kg",
+			setType: "working",
+			performanceVerified: true,
+			...extra,
+		}) as PerformedSet;
+
+	it("picks the longest time, then the most added load", () => {
+		const best = hold(45, 10);
+		expect(longestHold([hold(30, 20), best, hold(45, 5)])).toBe(best);
+	});
+
+	it("skips warm-ups and unconfirmed sets (APP-932)", () => {
+		const best = hold(40, 0);
+		const warmup = hold(90, 0, { setType: "warmup" });
+		const unconfirmed = hold(80, 0, { performanceVerified: undefined });
+		expect(longestHold([warmup, unconfirmed, best])).toBe(best);
+		expect(longestHold([warmup, unconfirmed])).toBeNull();
+	});
+});
+
 describe("workingVolume", () => {
 	it("excludes warm-ups and converts pounds to kg", () => {
 		expect(
-			workingVolume([
-				set(100, 5),
-				set(60, 5, { setType: "warmup" }),
-				set(80, 8, { setType: "drop" }),
-				set(100, 10, { unit: "lbs", setType: "failure" }),
-			]),
+			workingVolume(
+				[
+					set(100, 5),
+					set(60, 5, { setType: "warmup" }),
+					set(80, 8, { setType: "drop" }),
+					set(100, 10, { unit: "lbs", setType: "failure" }),
+				].map((row) => ({ ...row, exerciseId: "row" })),
+				() => false,
+			),
 		).toBeCloseTo(500 + 640 + 453.59237, 5);
 	});
 	it("leaves out timed holds, whose count is seconds", () => {
 		expect(
-			workingVolume([
-				{ ...set(100, 5), exerciseId: "shipped:exercise:barbell-row" },
-				{ ...set(10, 60), exerciseId: "shipped:exercise:plank" },
-			]),
+			workingVolume(
+				[
+					{ ...set(100, 5), exerciseId: "row" },
+					{ ...set(10, 60), exerciseId: "hold" },
+				],
+				(exerciseId) => exerciseId === "hold",
+			),
 		).toBe(500);
 	});
 });

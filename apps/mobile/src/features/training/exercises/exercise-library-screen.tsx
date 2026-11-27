@@ -35,6 +35,7 @@ import { SwipeableRow } from "../../../ui/swipeable-row";
 import { AppText } from "../../../ui/text";
 import { useToast } from "../../../ui/toast";
 import { useWriteFailureMessage } from "../../../ui/use-screen-write";
+import { useTrainExercise } from "../use-train-exercise";
 import {
 	emptyFilters,
 	type Filters,
@@ -108,6 +109,7 @@ export function ExerciseLibraryScreen() {
 		setFilters(emptyFilters());
 	};
 	const add = () => router.push("/exercise-new");
+	const trainNow = useTrainExercise();
 	const open = (exercise: Exercise) =>
 		router.push({ pathname: "/exercise/[id]", params: { id: exercise._id } });
 	const remove = async (exercise: Exercise) => {
@@ -285,8 +287,14 @@ export function ExerciseLibraryScreen() {
 							<SwipeableRow
 								menuTitle={item.name}
 								closeMenuLabel={c.cancel}
-								actions={
-									item.isDefault
+								actions={[
+									{
+										key: "train",
+										label: c.trainNow,
+										swipe: false,
+										onPress: () => void trainNow.train(item),
+									},
+									...(item.isDefault
 										? [
 												{
 													key: "clone",
@@ -315,8 +323,8 @@ export function ExerciseLibraryScreen() {
 													destructive: true,
 													onPress: () => void remove(item),
 												},
-											]
-								}
+											]),
+								]}
 							>
 								{row}
 							</SwipeableRow>

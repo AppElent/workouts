@@ -5,6 +5,7 @@
 import {
 	calcPlates,
 	convertLoad,
+	countStep as countStepFor,
 	DEFAULT_BAR,
 	estimatedMaxReps,
 	formatClock,
@@ -377,7 +378,7 @@ export function SetEditorScreen() {
 	const bodyweight = facts.bodyweight;
 	const timed = facts.timed;
 	/** Seconds move in fives on a hold; reps move one at a time. */
-	const countStep = timed ? 5 : 1;
+	const countStep = countStepFor(facts.timed);
 	const group = groupOfRow(plan, row.id);
 	const roundIndex = group
 		? group.rounds.findIndex((round) =>
@@ -557,6 +558,7 @@ export function SetEditorScreen() {
 			: text.levelsNoWeight;
 	const plateLine =
 		exercise?.equipment === "barbell" &&
+		!bodyweight &&
 		row.unit === "kg" &&
 		row.kg >= DEFAULT_BAR.kg
 			? (() => {
@@ -682,7 +684,9 @@ export function SetEditorScreen() {
 	} else if (check)
 		primary =
 			check.kind === "reps"
-				? fmt(text.confirmReps, { reps: row.reps })
+				? fmt(timed ? text.confirmSeconds : text.confirmReps, {
+						reps: row.reps,
+					})
 				: fmt(text.confirmLoad, { load: loadOnly });
 	else if (logged) {
 		primary = changed ? fmt(text.saveLoad, { load: fullLoad }) : text.noChanges;
@@ -738,6 +742,7 @@ export function SetEditorScreen() {
 			});
 	};
 	const otherUnit = row.unit === "kg" ? "lbs" : "kg";
+	const canSwitchUnit = !bodyweight || row.unit === "lbs";
 	const menuGroups = [
 		{
 			title: text.viewTitle,
@@ -748,7 +753,7 @@ export function SetEditorScreen() {
 		},
 		{
 			options: [
-				...(bodyweight
+				...(!canSwitchUnit
 					? []
 					: [{ id: "unit", label: fmt(text.unitMenu, { unit: row.unit }) }]),
 				...(group
@@ -885,7 +890,7 @@ export function SetEditorScreen() {
 									{text.viewAdvanced}
 								</Stack.Toolbar.MenuAction>
 							</Stack.Toolbar.Menu>
-							{bodyweight ? null : (
+							{!canSwitchUnit ? null : (
 								<Stack.Toolbar.MenuAction
 									disabled={locked}
 									onPress={() => void onMenu("unit")}
@@ -933,9 +938,9 @@ export function SetEditorScreen() {
 					>
 						<View style={styles.values}>
 							<ValueCard
-								label={
-									bodyweight ? text.added : fmt(text.weight, { unit: row.unit })
-								}
+								label={fmt(bodyweight ? text.added : text.weight, {
+									unit: row.unit,
+								})}
 								value={loadShown}
 								decimal
 								size={valueSize}
@@ -1073,7 +1078,7 @@ export function SetEditorScreen() {
 						) : null}
 						{!advanced ? null : bodyweight ? (
 							<AppText variant="secondary" style={{ color: colors.textMuted }}>
-								{text.bodyweightNote}
+								{timed ? text.holdNote : text.bodyweightNote}
 							</AppText>
 						) : (
 							<View style={[styles.insight, highlight && styles.insightOn]}>

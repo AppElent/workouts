@@ -96,6 +96,7 @@ export const auth = {
 		codeMissing: "Vul eerst de code in.",
 		methodLocked:
 			"Te veel foute codes voor deze methode. Gebruik een andere methode, of ga terug en log opnieuw in.",
+		methodLockedOnly: "Te veel foute codes. Ga terug en log opnieuw in.",
 		attemptEnded:
 			"Deze inlogpoging duurde te lang en kan niet verder. Ga terug en log opnieuw in.",
 		notFinished:
@@ -111,7 +112,7 @@ export const auth = {
 		codeSent: "We hebben een code gestuurd naar {email}.",
 		code: "Verificatiecode",
 		verify: "Verifiëren",
-		backToSignUp: "Terug naar aanmelden",
+		backToSignUp: "Terug naar account aanmaken",
 		invalidCode: "Ongeldige of onvolledige verificatie.",
 	},
 	signUpContinue: {

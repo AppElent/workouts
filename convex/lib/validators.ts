@@ -6,6 +6,7 @@ import {
 	ENDURANCE_SPORTS,
 	EQUIPMENT,
 	EXERCISE_CATEGORIES,
+	EXERCISE_MEASURES,
 	FOOD_VISUAL_PRESET_IDS,
 	GOAL_DIRECTIONS,
 	GOAL_PRESET_KEYS,
@@ -54,6 +55,7 @@ export const loadUnit = literals(LOAD_UNITS);
 export const distanceUnit = literals(DISTANCE_UNITS);
 export const equipment = literals(EQUIPMENT);
 export const exerciseCategory = literals(EXERCISE_CATEGORIES);
+export const exerciseMeasure = literals(EXERCISE_MEASURES);
 export const setType = literals(SET_TYPES);
 export const wodType = literals(WOD_TYPES);
 export const hostedLevel = literals(HOSTED_LEVELS);

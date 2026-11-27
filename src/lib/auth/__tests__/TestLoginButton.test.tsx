@@ -5,7 +5,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const password = vi.fn();
 const finalize = vi.fn();
 const signIn = { status: "needs_identifier", password, finalize };
-vi.mock("@clerk/react", () => ({ useSignIn: () => ({ signIn }) }));
+const auth = { isLoaded: true };
+vi.mock("@clerk/react", () => ({
+	useSignIn: () => ({ signIn }),
+	useAuth: () => auth,
+}));
 
 import { LocaleProvider } from "#/lib/i18n";
 import { TestLoginButton } from "../TestLoginButton";
@@ -25,6 +29,19 @@ describe("TestLoginButton", () => {
 		password.mockReset();
 		finalize.mockReset();
 		signIn.status = "needs_identifier";
+		auth.isLoaded = true;
+	});
+
+	it("sends nothing until Clerk has loaded", () => {
+		vi.stubEnv("VITE_CLERK_PUBLISHABLE_KEY", "pk_test_x");
+		vi.stubEnv("VITE_TEST_USER_EMAIL", "test@test.com");
+		vi.stubEnv("VITE_TEST_USER_PASSWORD", "appelent_test");
+		auth.isLoaded = false;
+		render(<TestLoginButton onSuccess={() => {}} />);
+		const button = screen.getByRole("button", { name: /test/i });
+		expect((button as HTMLButtonElement).disabled).toBe(true);
+		button.click();
+		expect(password).not.toHaveBeenCalled();
 	});
 
 	it("renders nothing without a test instance + creds", () => {

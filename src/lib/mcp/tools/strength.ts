@@ -3,7 +3,8 @@ import type { Id } from "@convex/_generated/dataModel";
 import {
 	EQUIPMENT,
 	EXERCISE_CATEGORIES,
-	isTimedExercise,
+	EXERCISE_MEASURES,
+	exerciseMeasure,
 	SET_LIMITS,
 	SET_NOTE_LENGTH,
 	validateRecordedTime,
@@ -230,7 +231,7 @@ export const strengthTools = [
 					category: exercise.category,
 					equipment: exercise.equipment,
 					// A Set's `reps` holds seconds on a timed hold such as Plank.
-					measure: isTimedExercise(exercise._id) ? "seconds" : "reps",
+					measure: exerciseMeasure(exercise),
 					personal: !exercise.isDefault,
 				}));
 			return { exercises };
@@ -265,6 +266,12 @@ export const strengthTools = [
 				.describe(
 					"Smallest load step in kg, when it differs from the equipment's default",
 				),
+			measure: z
+				.enum(EXERCISE_MEASURES)
+				.optional()
+				.describe(
+					"seconds for a held time, such as a side plank; default reps",
+				),
 			notes: z.string().trim().max(500).optional(),
 		},
 		async run(input, { backend }) {
@@ -282,8 +289,7 @@ export const strengthTools = [
 					category: exercise.category,
 					equipment: exercise.equipment,
 					weightIncrement: exercise.weightIncrement,
-					// Personal Exercises are always counted in reps.
-					measure: "reps",
+					measure: exerciseMeasure(exercise),
 					personal: true,
 				},
 			};

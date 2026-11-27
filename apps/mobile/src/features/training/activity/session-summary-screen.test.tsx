@@ -52,8 +52,8 @@ it("shows a set's note under its chip", async () => {
 });
 
 describe.each([
-	{ locale: "en", reps: "8 reps", best: "Best: 135 lbs × 5" },
-	{ locale: "nl", reps: "8 herh.", best: "Beste: 135 lbs × 5" },
+	{ locale: "en", reps: "8 reps", best: "Best: 80 kg × 8" },
+	{ locale: "nl", reps: "8 herh.", best: "Beste: 80 kg × 8" },
 ])("the visible chip in $locale", ({ locale, reps, best }) => {
 	beforeEach(() => writeLocal(PREFERENCE_KEYS.locale, locale));
 
@@ -85,6 +85,26 @@ describe.each([
 	});
 });
 
+it("compares and totals kg and lbs sets in one unit", async () => {
+	mockSets.mockReturnValue([
+		set("a", 1),
+		{ ...set("b", 2), weight: 135, reps: 5, unit: "lbs" },
+	]);
+	await renderScreen(<SessionSummaryScreen />);
+	expect(screen.getByText("Best: 80 kg × 8")).toBeTruthy();
+	// 80 kg × 8 + 135 lbs (61.23 kg) × 5
+	expect(screen.getByText("946 kg")).toBeTruthy();
+});
+
+it("shows the winning set in its own unit", async () => {
+	mockSets.mockReturnValue([
+		set("a", 1),
+		{ ...set("b", 2), weight: 185, reps: 3, unit: "lbs" },
+	]);
+	await renderScreen(<SessionSummaryScreen />);
+	expect(screen.getByText("Best: 185 lbs × 3")).toBeTruthy();
+});
+
 describe.each([
 	{
 		locale: "en",
@@ -93,6 +113,7 @@ describe.each([
 		warmup: "set 3, 20 kilograms, 1 rep, Warm-up",
 		pounds: "set 4, 135 pounds, 5 reps",
 		bodyweight: "set 1, 8 reps",
+		withRpe: "set 1, 80 kilograms, 8 reps, RPE 8.5, note: narrow grip",
 	},
 	{
 		locale: "nl",
@@ -101,6 +122,7 @@ describe.each([
 		warmup: "set 3, 20 kilo, 1 herhaling, Warming-up",
 		pounds: "set 4, 135 pond, 5 herhalingen",
 		bodyweight: "set 1, 8 herhalingen",
+		withRpe: "set 1, 80 kilo, 8 herhalingen, RPE 8,5, notitie: narrow grip",
 	},
 ])("a summary set spoken in $locale", (expected) => {
 	beforeEach(() => writeLocal(PREFERENCE_KEYS.locale, expected.locale));
@@ -118,6 +140,12 @@ describe.each([
 		expect(screen.getByLabelText(expected.warmup)).toBeTruthy();
 		expect(screen.getByLabelText(expected.pounds)).toBeTruthy();
 		expect(screen.getAllByLabelText(/^set \d/)).toHaveLength(4);
+	});
+
+	it("speaks a set's RPE before its note", async () => {
+		mockSets.mockReturnValue([{ ...set("a", 1, "narrow grip"), rpe: 8.5 }]);
+		await renderScreen(<SessionSummaryScreen />);
+		expect(screen.getByLabelText(expected.withRpe)).toBeTruthy();
 	});
 
 	it("says a bodyweight set without a load", async () => {

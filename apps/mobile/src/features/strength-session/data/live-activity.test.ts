@@ -15,7 +15,10 @@ import {
 	type LiveActivityProps,
 	liveActivityProps,
 } from "./live-activity-props";
-import { useEndActivityWhenSignedOut } from "./session-live-activity";
+import {
+	useEndActivityWhenSignedOut,
+	useRetryFailedActivityEnd,
+} from "./session-live-activity";
 import { nextSetOf, type SessionNow } from "./use-session-now";
 
 type FakeState = {
@@ -27,6 +30,7 @@ type FakeState = {
 	}[];
 	enabled: boolean;
 	endGate: Promise<void> | null;
+	endError: Error | null;
 	updateGate: Promise<void> | null;
 };
 const fake = (
@@ -190,7 +194,7 @@ describe("nextSetOf", () => {
 			],
 			facts,
 		);
-		expect(nextSetOf(plan)).toEqual({
+		expect(nextSetOf(plan, false)).toEqual({
 			exerciseId: "squat",
 			setIndex: 2,
 			setCount: 2,
@@ -215,7 +219,7 @@ describe("nextSetOf", () => {
 		plan.sets.squat = (plan.sets.squat ?? []).map((row) =>
 			withTypedLoad(switchUnit(row, "lbs", facts()), 225),
 		);
-		expect(nextSetOf(plan)).toMatchObject({
+		expect(nextSetOf(plan, false)).toMatchObject({
 			unit: "lbs",
 			typedLbs: 225,
 			kg: convertLoad(225, "lbs", "kg"),
@@ -239,9 +243,12 @@ describe("nextSetOf", () => {
 		const [warmup, ...working] = plan.sets.squat ?? [];
 		if (!warmup) throw new Error("no rows");
 		plan.sets.squat = [{ ...warmup, kind: "warmup" }, ...working];
-		expect(nextSetOf(plan)).toMatchObject({ setIndex: null, setCount: null });
+		expect(nextSetOf(plan, false)).toMatchObject({
+			setIndex: null,
+			setCount: null,
+		});
 		plan.sets.squat = [{ ...warmup, kind: "warmup", done: true }, ...working];
-		expect(nextSetOf(plan)).toMatchObject({ setIndex: 1, setCount: 2 });
+		expect(nextSetOf(plan, false)).toMatchObject({ setIndex: 1, setCount: 2 });
 	});
 	it("offers one more set like the last once a free exercise is done", () => {
 		const plan = seedPlan(
@@ -259,7 +266,7 @@ describe("nextSetOf", () => {
 			plan: undefined,
 			done: true,
 		}));
-		expect(nextSetOf(plan)).toEqual({
+		expect(nextSetOf(plan, false)).toEqual({
 			exerciseId: "squat",
 			setIndex: 2,
 			setCount: 2,
@@ -273,15 +280,18 @@ describe("nextSetOf", () => {
 		const plan = seedPlan(
 			[
 				{
-					exerciseId: "shipped:exercise:plank",
+					exerciseId: "personal-hold",
 					plannedSets: [{ reps: 60, weight: 0, unit: "kg" }],
 				},
 			],
 			[],
 			facts,
 		);
-		expect(nextSetOf(plan)).toMatchObject({ reps: null, durationSeconds: 60 });
-		expect(nextSetOf(null)).toBeNull();
+		expect(nextSetOf(plan, true)).toMatchObject({
+			reps: null,
+			durationSeconds: 60,
+		});
+		expect(nextSetOf(null, false)).toBeNull();
 	});
 });
 
@@ -291,6 +301,7 @@ describe("session Live Activity", () => {
 		fake.activities.length = 0;
 		fake.enabled = true;
 		fake.endGate = null;
+		fake.endError = null;
 		fake.updateGate = null;
 		jest.mocked(Sentry.captureException).mockClear();
 	});
@@ -365,6 +376,52 @@ describe("session Live Activity", () => {
 		await hook.rerender({ loaded: true, user: null });
 		await flush();
 		expect(live()).toHaveLength(0);
+	});
+
+	/** Mounts the root's retry; returns what coming to the foreground calls. */
+	async function mountRetry() {
+		await renderHook(() => useRetryFailedActivityEnd());
+		const onChange = jest
+			.mocked(AppState.addEventListener)
+			.mock.calls.at(-1)?.[1];
+		if (!onChange) throw new Error("no AppState listener");
+		return (state: "active" | "background") => onChange(state);
+	}
+
+	it("retries a failed end on every foreground until it succeeds, signed out too", async () => {
+		const change = await mountRetry();
+		showSessionActivity(props());
+		await flush();
+		fake.endError = new Error("ActivityKit failed");
+		await renderHook(() => useEndActivityWhenSignedOut(true, null));
+		await flush();
+		expect(live()).toHaveLength(1);
+		expect(Sentry.captureException).toHaveBeenCalledTimes(1);
+		change("active");
+		await flush();
+		expect(live()).toHaveLength(1);
+		fake.endError = null;
+		change("background");
+		await flush();
+		expect(live()).toHaveLength(1);
+		change("active");
+		await flush();
+		expect(live()).toHaveLength(0);
+	});
+
+	it("leaves the next session's activity alone after a failed end", async () => {
+		const change = await mountRetry();
+		showSessionActivity(props());
+		await flush();
+		fake.endError = new Error("ActivityKit failed");
+		endSessionActivity();
+		await flush();
+		fake.endError = null;
+		showSessionActivity(props({ sessionName: "Leg day", startedAt: T0 + 1 }));
+		await flush();
+		change("active");
+		await flush();
+		expect(live().map((item) => item.props.title)).toEqual(["Leg day"]);
 	});
 
 	it("updates its own activity in place", async () => {

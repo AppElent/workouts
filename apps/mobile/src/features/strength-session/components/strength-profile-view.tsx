@@ -145,7 +145,7 @@ export function StrengthProfileView({
 			>
 				{facts.bodyweight ? (
 					<AppText variant="secondary" style={{ color: colors.textMuted }}>
-						{copy.bodyweight}
+						{facts.timed ? copy.hold : copy.bodyweight}
 					</AppText>
 				) : (
 					<>

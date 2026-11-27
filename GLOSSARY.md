@@ -25,10 +25,13 @@ A named strength movement that can be performed in Sets.
 A read-only Exercise included with the app and available to everyone.
 
 **Personal Exercise**:
-An Exercise created by a person for their own training.
+An Exercise created by a person for their own training, measured in repetitions or seconds held.
 
 **Set**:
-One recorded performance of an Exercise, including its repetitions, load, and optional effort or set classification.
+One recorded performance of an Exercise, including its repetitions (or seconds held), load, and optional effort or set classification.
+
+**Hold**:
+An Exercise measured in seconds held instead of repetitions.
 
 **Planned Set**:
 A target for one performance of an Exercise, such as intended repetitions and load. A Planned Set is not evidence that the performance occurred.

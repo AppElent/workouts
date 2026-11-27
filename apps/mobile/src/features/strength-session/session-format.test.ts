@@ -1,4 +1,9 @@
-import { formatSetFull, formatSetShort, LOADED_FORMAT } from "./session-format";
+import {
+	formatLoadOnly,
+	formatSetFull,
+	formatSetShort,
+	LOADED_FORMAT,
+} from "./session-format";
 
 const HOLD = { bodyweight: true, timed: true };
 const BODYWEIGHT = { bodyweight: true, timed: false };
@@ -14,6 +19,11 @@ describe("set formats", () => {
 		expect(formatSetFull({ kg: 0, unit: "kg", reps: 60 }, HOLD, "nl")).toBe(
 			"60 s",
 		);
+	});
+	it("names pounds on a hold once logged in lbs", () => {
+		const row = { kg: 19.958, unit: "lbs", typedLbs: 44, reps: 45 } as const;
+		expect(formatSetShort(row, HOLD, "en")).toBe("+44 lbs × 45 s");
+		expect(formatLoadOnly(row, HOLD, "en")).toBe("+44 lbs");
 	});
 	it("keeps reps for other exercises", () => {
 		expect(

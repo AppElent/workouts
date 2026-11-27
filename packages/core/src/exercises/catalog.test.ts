@@ -85,8 +85,10 @@ describe("timed exercises", () => {
 		}
 	});
 	it("count Plank in seconds and other exercises in reps", () => {
-		expect(isTimedExercise("shipped:exercise:plank")).toBe(true);
-		expect(isTimedExercise("shipped:exercise:barbell-back-squat")).toBe(false);
+		expect(isTimedExercise({ _id: "shipped:exercise:plank" })).toBe(true);
+		expect(
+			isTimedExercise({ _id: "shipped:exercise:barbell-back-squat" }),
+		).toBe(false);
 		expect(isTimedExercise(undefined)).toBe(false);
 	});
 });
