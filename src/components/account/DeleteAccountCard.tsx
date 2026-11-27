@@ -200,7 +200,13 @@ export function DeleteAccountCard() {
 				const revoked = await revokeAppleSignIn(user, revokeApple, { locale });
 				if (revoked === "popupBlocked")
 					toast.error(c.deletion.applePopupBlocked);
-				if (revoked === "cancelled" || revoked === "popupBlocked") return;
+				if (revoked === "appleMismatch") toast.error(c.deletion.appleMismatch);
+				if (
+					revoked === "cancelled" ||
+					revoked === "popupBlocked" ||
+					revoked === "appleMismatch"
+				)
+					return;
 				apple = revoked;
 				// Apple's step can outlast the sign-in window; check again so the
 				// data is never deleted while Clerk would refuse the account.

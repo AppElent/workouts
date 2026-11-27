@@ -1,7 +1,7 @@
 ---
 type: contract
 description: Read when changing Profile, settings, account actions, or sign-out.
-version: 2.3.0
+version: 2.3.1
 status: current
 ---
 
@@ -106,7 +106,11 @@ tap. Study: [profile](../../designs/app/profile_final.html).
   - *Login deleted elsewhere.* When the AppElent login is deleted from another
     app or the Clerk dashboard, Clerk's signed `user.deleted` webhook
     (`POST /clerk/webhook`) runs the same purge on the server, in batches,
-    without the running-Activity blocker, Hosted Workouts included.
+    without the running-Activity blocker, Hosted Workouts included. The same
+    webhook's `user.created` and `user.updated` mirror the login's verified
+    Apple links (`appleSignInLinks`), which web Apple revocation binds its code
+    to; `user.deleted` drops them. Delete Foundry data only keeps them, as the
+    login stays.
   - *Web.* The web Profile page offers both deletions with the same
     confirmations and blockers. Web keeps no account data outside Convex
     queries, so neither deletion needs a local reset. Delete Foundry data only

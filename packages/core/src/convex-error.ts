@@ -30,6 +30,7 @@ const APP_ERROR_CODES = [
 	"levelsIncomplete",
 	"activeActivity",
 	"hostedWorkout",
+	"appleAccountMismatch",
 	"unavailable",
 	"failed",
 	"limit",

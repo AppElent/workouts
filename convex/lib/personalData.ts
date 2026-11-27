@@ -191,10 +191,16 @@ type SharedTable =
 	| "hostedWorkoutSubmissions";
 /** Tables that hold no account data (finished migration runs). */
 type SystemTable = "exerciseMigrations";
-/** A new table must be personal or shared, so deletion cannot miss it. */
+/**
+ * Mirrors of the AppElent login (Clerk), not Foundry data: Delete Foundry data
+ * only keeps them because the login stays; `purgeDeletedUser` drops them with
+ * the login.
+ */
+type LoginTable = "appleSignInLinks";
+/** A new table must be placed, so deletion cannot miss it. */
 type UnplacedTable = Exclude<
 	TableNames,
-	PersonalTable | SharedTable | SystemTable
+	PersonalTable | SharedTable | SystemTable | LoginTable
 >;
 true satisfies [UnplacedTable] extends [never] ? true : never;
 

@@ -30,6 +30,18 @@ import {
 } from "./lib/validators";
 
 export default defineSchema({
+	/**
+	 * The verified Sign in with Apple users (`sub`) Clerk links to an AppElent
+	 * login, mirrored from Clerk's `user.created`/`user.updated` webhook so web
+	 * Apple revocation can bind a code to the caller without a Clerk admin key.
+	 * Only logins with an Apple link have a row; `clerkUpdatedAt` is the Clerk
+	 * user's `updated_at`, so an older delivery never overwrites a newer one.
+	 */
+	appleSignInLinks: defineTable({
+		userId: v.string(),
+		appleUserIds: v.array(v.string()),
+		clerkUpdatedAt: v.number(),
+	}).index("by_user", ["userId"]),
 	// Holds finished exercise-migration runs only; drop it once those rows are deleted.
 	exerciseMigrations: defineTable({
 		key: v.literal("shipped-v1"),

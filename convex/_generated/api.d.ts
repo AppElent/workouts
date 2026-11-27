@@ -21,6 +21,7 @@ import type * as hostedWorkouts from "../hostedWorkouts.js";
 import type * as http from "../http.js";
 import type * as lib_appleSignIn from "../lib/appleSignIn.js";
 import type * as lib_auth from "../lib/auth.js";
+import type * as lib_clerkUsers from "../lib/clerkUsers.js";
 import type * as lib_connectedApps from "../lib/connectedApps.js";
 import type * as lib_diaryDays from "../lib/diaryDays.js";
 import type * as lib_errors from "../lib/errors.js";
@@ -79,6 +80,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   "lib/appleSignIn": typeof lib_appleSignIn;
   "lib/auth": typeof lib_auth;
+  "lib/clerkUsers": typeof lib_clerkUsers;
   "lib/connectedApps": typeof lib_connectedApps;
   "lib/diaryDays": typeof lib_diaryDays;
   "lib/errors": typeof lib_errors;

@@ -381,6 +381,18 @@ it("stops and asks to allow pop-ups when the browser blocks the Apple window", a
 	expect(mocks.deleteUser).not.toHaveBeenCalled();
 });
 
+it("stops and says so when Apple signed in another Apple account", async () => {
+	mocks.revokeApple.mockResolvedValue("appleMismatch");
+	setup();
+	fireEvent.click(button("Delete my whole AppElent account"));
+	fireEvent.click(
+		dialog().getByRole("button", { name: "Delete my whole AppElent account" }),
+	);
+	await notifications().findByText(/not the one linked to this account/);
+	expect(mocks.deleteData).not.toHaveBeenCalled();
+	expect(mocks.deleteUser).not.toHaveBeenCalled();
+});
+
 it("asks to confirm an old sign-in before deleting anything, then deletes", async () => {
 	mocks.recentSignIn = false;
 	setup();

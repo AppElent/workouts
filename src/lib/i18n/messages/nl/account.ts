@@ -56,6 +56,8 @@ export const account = {
 			"Je bent nu ingelogd op een ander account, dus dat account is niet verwijderd. Laad de pagina opnieuw en controleer in welk account je zit.",
 		applePopupBlocked:
 			"Je browser blokkeerde het Apple-venster. Sta pop-ups toe voor deze site en probeer Mijn hele AppElent-account verwijderen opnieuw.",
+		appleMismatch:
+			"Het Apple-account waarmee je inlogde is niet het account dat aan dit account is gekoppeld, dus er is niets verwijderd. Probeer Mijn hele AppElent-account verwijderen opnieuw en log in met het Apple-account dat je voor AppElent gebruikt.",
 		refusals: {
 			activeActivity:
 				"Rond de actieve activiteit af of annuleer deze voordat je je gegevens verwijdert.",
