@@ -112,6 +112,22 @@ it("stops the deletion when Convex finds another Apple Account", async () => {
 	expect(mocks.report).not.toHaveBeenCalled();
 });
 
+it.each(["activeActivity", "hostedWorkout"] as const)(
+	"stops the deletion without reporting when Convex refuses with %s",
+	async (code) => {
+		const auth = signedIn();
+		const revoke = vi.fn().mockRejectedValue(new ConvexError({ code }));
+		await expect(
+			revokeAppleSignIn(appleUser, revoke, {
+				origin: ORIGIN,
+				returnUrls: [RETURN_URL],
+				loadApple: async () => auth,
+			}),
+		).resolves.toBe(code);
+		expect(mocks.report).not.toHaveBeenCalled();
+	},
+);
+
 it("rejects a response for another request", async () => {
 	const auth = apple(async () => ({
 		authorization: { code: "code", id_token: idToken("apple-sub"), state: "x" },

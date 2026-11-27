@@ -201,10 +201,16 @@ export function DeleteAccountCard() {
 				if (revoked === "popupBlocked")
 					toast.error(c.deletion.applePopupBlocked);
 				if (revoked === "appleMismatch") toast.error(c.deletion.appleMismatch);
+				// A blocker that appeared after the check above; Convex refused
+				// before revoking, so the grant and the data stay.
+				if (revoked === "activeActivity" || revoked === "hostedWorkout")
+					toast.error(c.deletion.refusals[revoked]);
 				if (
 					revoked === "cancelled" ||
 					revoked === "popupBlocked" ||
-					revoked === "appleMismatch"
+					revoked === "appleMismatch" ||
+					revoked === "activeActivity" ||
+					revoked === "hostedWorkout"
 				)
 					return;
 				apple = revoked;

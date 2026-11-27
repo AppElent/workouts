@@ -393,6 +393,21 @@ it("stops and says so when Apple signed in another Apple account", async () => {
 	expect(mocks.deleteUser).not.toHaveBeenCalled();
 });
 
+it("stops with the blocker message when an Activity starts before Apple revokes", async () => {
+	mocks.revokeApple.mockResolvedValue("activeActivity");
+	setup();
+	fireEvent.click(button("Delete my whole AppElent account"));
+	fireEvent.click(
+		dialog().getByRole("button", { name: "Delete my whole AppElent account" }),
+	);
+	await notifications().findByText(
+		/Finish or cancel the running Activity before deleting your data/,
+	);
+	expect(mocks.deleteData).not.toHaveBeenCalled();
+	expect(mocks.deleteUser).not.toHaveBeenCalled();
+	expect(mocks.navigate).not.toHaveBeenCalled();
+});
+
 it("asks to confirm an old sign-in before deleting anything, then deletes", async () => {
 	mocks.recentSignIn = false;
 	setup();

@@ -34,6 +34,18 @@ type AppleLinkedUser = {
  */
 export type AppleRevocation = "notLinked" | "revoked" | "notRevoked";
 
+/**
+ * Deletion blockers Convex refuses the revocation with when one appears after
+ * the card checked (an Activity started in another tab). Expected, so they stop
+ * the deletion with the blocker's message and are not reported.
+ */
+const DELETION_BLOCKERS = ["activeActivity", "hostedWorkout"] as const;
+export type AppleRevocationBlocker = (typeof DELETION_BLOCKERS)[number];
+
+function deletionBlocker(code: string | undefined) {
+	return DELETION_BLOCKERS.find((blocker) => blocker === code);
+}
+
 export type RevokeAppleSignIn = (args: {
 	authorizationCode: string;
 	bundleId: string;
@@ -132,7 +144,8 @@ function popupError(error: unknown) {
  * grant is not revoked, as on Android.
  *
  * The result says whether the grant went, so the confirmation can tell the
- * person; `cancelled`, `popupBlocked` and `appleMismatch` stop the deletion.
+ * person; `cancelled`, `popupBlocked`, `appleMismatch` and a deletion blocker
+ * (`activeActivity`, `hostedWorkout`) stop the deletion.
  */
 export async function revokeAppleSignIn(
 	user: AppleLinkedUser,
@@ -143,7 +156,13 @@ export async function revokeAppleSignIn(
 		returnUrls?: readonly string[];
 		loadApple?: () => Promise<AppleIdAuth>;
 	} = {},
-): Promise<AppleRevocation | "cancelled" | "popupBlocked" | "appleMismatch"> {
+): Promise<
+	| AppleRevocation
+	| AppleRevocationBlocker
+	| "cancelled"
+	| "popupBlocked"
+	| "appleMismatch"
+> {
 	const linked = appleUserIds(user);
 	if (linked.length === 0) return "notLinked";
 	const redirectUri = appleRevocationReturnUrl(
@@ -182,8 +201,10 @@ export async function revokeAppleSignIn(
 		if (code === "popup_closed_by_user" || code === "user_cancelled_authorize")
 			return "cancelled";
 		if (code === "popup_blocked_by_browser") return "popupBlocked";
-		if (parseConvexError(error).code === "appleAccountMismatch")
-			return "appleMismatch";
+		const serverCode = parseConvexError(error).code;
+		if (serverCode === "appleAccountMismatch") return "appleMismatch";
+		const blocker = deletionBlocker(serverCode);
+		if (blocker) return blocker;
 		reportError(error, "account.revokeAppleSignIn");
 		return "notRevoked";
 	}
