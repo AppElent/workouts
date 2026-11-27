@@ -109,8 +109,9 @@ tap. Study: [profile](../../designs/app/profile_final.html).
     without the running-Activity blocker, Hosted Workouts included. The same
     webhook's `user.created` and `user.updated` mirror the login's verified
     Apple links (`appleSignInLinks`), which web Apple revocation binds its code
-    to; `user.deleted` drops them. Delete Foundry data only keeps them, as the
-    login stays.
+    to; `user.deleted` drops them and leaves a week-long tombstone without
+    Apple users, so a late `user.updated` cannot bring them back. Delete
+    Foundry data only keeps them, as the login stays.
   - *Web.* The web Profile page offers both deletions with the same
     confirmations and blockers. Web keeps no account data outside Convex
     queries, so neither deletion needs a local reset. Delete Foundry data only

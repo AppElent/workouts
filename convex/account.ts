@@ -65,9 +65,20 @@ const appleLink = v.object({
 });
 
 /**
+ * `clerkUpdatedAt` of a deleted login's tombstone: newer than any Clerk
+ * delivery, so a late `user.created`/`user.updated` stores nothing.
+ */
+const DELETED_LOGIN = Number.MAX_SAFE_INTEGER;
+/**
+ * How long a tombstone stays. Svix gives up retrying about a day after the
+ * first attempt; a week leaves room for delayed deliveries.
+ */
+const TOMBSTONE_MS = 7 * 24 * 60 * 60 * 1000;
+
+/**
  * Mirrors one login's verified Apple users. A delivery older than the stored
  * one is ignored, so retries and out-of-order events are harmless; no Apple
- * user removes the row.
+ * user removes the row. A deleted login's tombstone is never overwritten.
  */
 async function storeAppleLink(
 	ctx: MutationCtx,
@@ -81,6 +92,7 @@ async function storeAppleLink(
 		.query("appleSignInLinks")
 		.withIndex("by_user", (q) => q.eq("userId", userId))
 		.unique();
+	if (existing?.clerkUpdatedAt === DELETED_LOGIN) return;
 	if (existing && existing.clerkUpdatedAt > clerkUpdatedAt) return;
 	if (appleUserIds.length === 0) {
 		if (existing) await ctx.db.delete(existing._id);
@@ -213,16 +225,41 @@ export const purgeDeletedUser = internalMutation({
 	args: { userId: v.string() },
 	returns: v.null(),
 	handler: async (ctx, { userId }) => {
-		// The login is gone, so its Apple link is too.
+		// The login is gone, so its Apple link is too. A short-lived tombstone
+		// without Apple users takes its place, so a late `user.updated` cannot
+		// bring it back.
 		const link = await ctx.db
 			.query("appleSignInLinks")
 			.withIndex("by_user", (q) => q.eq("userId", userId))
 			.unique();
-		if (link) await ctx.db.delete(link._id);
+		if (link?.clerkUpdatedAt !== DELETED_LOGIN) {
+			const tombstone = { appleUserIds: [], clerkUpdatedAt: DELETED_LOGIN };
+			if (link) await ctx.db.patch(link._id, tombstone);
+			else await ctx.db.insert("appleSignInLinks", { userId, ...tombstone });
+			await ctx.scheduler.runAfter(
+				TOMBSTONE_MS,
+				internal.account.dropLoginTombstone,
+				{ userId },
+			);
+		}
 		if (!(await purgeAccountBatch(ctx, userId)))
 			await ctx.scheduler.runAfter(0, internal.account.purgeDeletedUser, {
 				userId,
 			});
+		return null;
+	},
+});
+
+/** Drops a deleted login's tombstone once late deliveries are over. */
+export const dropLoginTombstone = internalMutation({
+	args: { userId: v.string() },
+	returns: v.null(),
+	handler: async (ctx, { userId }) => {
+		const link = await ctx.db
+			.query("appleSignInLinks")
+			.withIndex("by_user", (q) => q.eq("userId", userId))
+			.unique();
+		if (link?.clerkUpdatedAt === DELETED_LOGIN) await ctx.db.delete(link._id);
 		return null;
 	},
 });
