@@ -40,9 +40,9 @@ While it is off:
   `hostedWorkouts.wipeAll` does it in bounded, self-scheduling batches; a
   dry run (`{"dryRun": true}`) only counts. It ends participants' running
   sessions the way deleting a workout does, and everyone keeps their own
-  sessions, WODs, and WOD Results. Wiped on production on: _pending, filled
-  in after the run_; the counts before and after are on APP-452. This
-  cannot be undone.
+  sessions, WODs, and WOD Results. Wiped on production on: 27 Nov 2026,
+  after a backup; the counts before and after are on APP-452 (production
+  held no Hosted Workout data, so both were 0). This cannot be undone.
 - **Code and tests:** all hosted components, screens, Convex functions, and
   their tests stay and keep running. The feature manifest still lists the
   hosted routes because the route files remain.
