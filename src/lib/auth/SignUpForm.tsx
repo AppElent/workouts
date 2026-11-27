@@ -53,15 +53,16 @@ export function SignUpForm({
 	// Clerk loads: before that `signUp` is a placeholder.
 	useEffect(() => {
 		if (step !== "pending" || !isLoaded) return;
-		if (isResumable(signUp)) {
-			setStep("continue");
+		// A social sign-up whose bot challenge failed also comes back here, with
+		// the reason only on `errors.global`. Its attempt can still look
+		// resumable, so the plain form, whose submit replaces it, comes first.
+		const failed = errors.global?.[0];
+		if (failed) {
+			setError(errorMessage(failed));
+			setStep("details");
 			return;
 		}
-		// A social sign-up whose bot challenge failed also comes back here, with
-		// the reason only on `errors.global`.
-		const failed = errors.global?.[0];
-		if (failed) setError(errorMessage(failed));
-		setStep("details");
+		setStep(isResumable(signUp) ? "continue" : "details");
 	}, [step, isLoaded, signUp, errors, errorMessage]);
 
 	async function submitDetails(e: React.FormEvent) {

@@ -80,6 +80,13 @@ const CLERK_ERROR_CODE_MAP: Readonly<
 	network_error: "network",
 	// Native Apple sheet: no Apple Account on the device, or its prompt closed.
 	ERR_REQUEST_UNKNOWN: "appleSignInIncomplete",
+	// Clerk's bot challenge ("Challenge suspicious sign-ups") could not load,
+	// ran out of time, or was not passed (APP-125).
+	protect_check_timed_out: "botCheckFailed",
+	protect_check_aborted: "botCheckFailed",
+	protect_check_execution_failed: "botCheckFailed",
+	protect_check_script_load_failed: "botCheckFailed",
+	protect_check_invalid_script: "botCheckFailed",
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -114,13 +121,9 @@ export function clerkErrorCode(error: unknown): string | null {
 /** The message key for a Clerk error; `"generic"` for an unmapped code. */
 export function clerkErrorMessageKey(error: unknown): ClerkErrorMessageKey {
 	const code = clerkErrorCode(error);
-	if (!code) return "generic";
-	if (Object.hasOwn(CLERK_ERROR_CODE_MAP, code)) {
-		return CLERK_ERROR_CODE_MAP[code];
-	}
-	// Clerk's bot challenge ("Challenge suspicious sign-ups") could not load,
-	// expired, or was not passed. Its codes share this prefix (APP-125).
-	return code.startsWith("protect_check_") ? "botCheckFailed" : "generic";
+	return code && Object.hasOwn(CLERK_ERROR_CODE_MAP, code)
+		? CLERK_ERROR_CODE_MAP[code]
+		: "generic";
 }
 
 /**

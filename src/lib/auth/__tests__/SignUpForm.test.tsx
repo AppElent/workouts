@@ -144,18 +144,37 @@ describe("SignUpForm", () => {
 		);
 	});
 
-	it("explains a social sign-up that failed the bot challenge on the way back", async () => {
-		signUpErrors.global = [timedOut];
-		try {
-			render(<SignUpForm onSuccess={vi.fn()} resumeSocial />);
-			expect((await screen.findByRole("alert")).textContent).toBe(
-				BOT_CHECK_FAILED,
-			);
-			expect(screen.getByLabelText("Email")).toBeDefined();
-		} finally {
-			signUpErrors.global = null;
-		}
-	});
+	it.each([
+		["an attempt it cannot resume", {}],
+		// The challenge sits on the transferred social sign-up, which otherwise
+		// looks like one the continue step could finish.
+		[
+			"a social attempt it could otherwise resume",
+			{ id: "sua_1", externalAccount: { strategy: "oauth_google" } },
+		],
+	])(
+		"explains a social sign-up that failed the bot challenge on the way back, with %s",
+		async (_, attempt) => {
+			const { id, externalAccount } = attempt as {
+				id?: string;
+				externalAccount?: { strategy: string };
+			};
+			Object.assign(signUp, { id });
+			Object.assign(signUp.verifications, { externalAccount });
+			signUpErrors.global = [timedOut];
+			try {
+				render(<SignUpForm onSuccess={vi.fn()} resumeSocial />);
+				expect((await screen.findByRole("alert")).textContent).toBe(
+					BOT_CHECK_FAILED,
+				);
+				expect(screen.getByLabelText("Email")).toBeDefined();
+			} finally {
+				signUpErrors.global = null;
+				Object.assign(signUp, { id: undefined });
+				Object.assign(signUp.verifications, { externalAccount: undefined });
+			}
+		},
+	);
 
 	it("shows no error when a social sign-up comes back without one", async () => {
 		render(<SignUpForm onSuccess={vi.fn()} resumeSocial />);

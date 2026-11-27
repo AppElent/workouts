@@ -80,7 +80,7 @@ function SsoCallbackPage() {
 			 */}
 			<HandleSSOCallback
 				navigateToApp={({ decorateUrl }) => go(decorateUrl(afterAuth))}
-				// A second factor, or `needs_client_trust`: `SignInForm` picks up the
+				// A second factor or another sign-in step: `SignInForm` picks up the
 				// open attempt.
 				navigateToSignIn={() => go(signInUrl)}
 				// Missing or unverified fields: `SignUpForm` picks up the open attempt.
