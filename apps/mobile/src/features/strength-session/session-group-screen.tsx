@@ -17,16 +17,19 @@ import { Segmented } from "../../ui/segmented";
 import { SelectionMenu } from "../../ui/selection-menu";
 import { AppText } from "../../ui/text";
 import { useChoice } from "../../ui/use-choice";
+import { oneRmMenuGroups } from "./components/session-exercise-block";
 import { SessionExercisePicker } from "./components/session-exercise-picker";
 import { useSessionActions } from "./data/session-actions";
 import { useSessionWorkspace } from "./data/session-workspace";
 import {
+	clearManual,
 	dissolveGroup,
 	type GroupMode,
 	groupExercises,
 	modeLocked,
 	moveEntry,
 	REST_STEP_SECONDS,
+	referenceFor,
 	rowsOf,
 	sessionExercises,
 	setGroupCap,
@@ -97,7 +100,9 @@ export function SessionGroupScreen() {
 	const copy = root.group;
 	const colors = useTokens();
 	const styles = useThemedStyles(createStyles);
-	const [picking, setPicking] = useState(false);
+	const [picker, setPicker] = useState<
+		{ mode: "add" } | { mode: "swap"; from: string } | null
+	>(null);
 	const choose = useChoice();
 	const group = plan?.groups[params.groupId];
 	const gone = Boolean(plan && !group);
@@ -117,8 +122,62 @@ export function SessionGroupScreen() {
 	const entry = { kind: "group", groupId: group.id } as const;
 	const locked = modeLocked(group);
 	const amrap = group.mode === "amrap";
+	// The same items a solo exercise offers, above the two remove items (APP-232).
+	const memberMenu = (exerciseId: string) => {
+		const facts = workspace.getFacts(exerciseId);
+		return [
+			{
+				title: nameOf(exerciseId),
+				options: [{ id: "swap", label: root.swapExercise }],
+			},
+			...oneRmMenuGroups(
+				root,
+				facts.bodyweight,
+				referenceFor(plan, facts, exerciseId)?.source,
+			),
+			{
+				options: [
+					{ id: "takeOut", label: root.takeOutOfGroup },
+					{ id: "remove", label: root.removeExercise, destructive: true },
+				],
+			},
+		];
+	};
 	const onMember = async (exerciseId: string, id: string) => {
 		const name = nameOf(exerciseId);
+		if (id === "swap") {
+			setPicker({ mode: "swap", from: exerciseId });
+			return;
+		}
+		if (id === "profile") {
+			const rowId = rowsOf(actions.plan(), exerciseId).find(
+				(row) => !row.done,
+			)?.id;
+			router.push({
+				pathname: "/set-editor/strength-profile",
+				params: {
+					sessionId: params.sessionId,
+					exerciseId,
+					...(rowId ? { rowId } : {}),
+				},
+			});
+			return;
+		}
+		if (id === "manual") {
+			if (actions.blocked()) return;
+			router.push({
+				pathname: "/session-manual",
+				params: { sessionId: params.sessionId, exerciseId },
+			});
+			return;
+		}
+		if (id === "clearManual") {
+			const facts = workspace.getFacts(exerciseId);
+			void actions.apply(clearManual(actions.plan(), exerciseId, facts), {
+				name,
+			});
+			return;
+		}
 		if (id === "takeOut") {
 			void actions.apply(takeOutOfGroup(actions.plan(), exerciseId), { name });
 			return;
@@ -279,26 +338,14 @@ export function SessionGroupScreen() {
 								accessibilityLabel={fmt(root.exerciseOptions, {
 									name: nameOf(exerciseId),
 								})}
-								groups={[
-									{
-										title: nameOf(exerciseId),
-										options: [
-											{ id: "takeOut", label: root.takeOutOfGroup },
-											{
-												id: "remove",
-												label: root.removeExercise,
-												destructive: true,
-											},
-										],
-									},
-								]}
+								groups={memberMenu(exerciseId)}
 								onSelect={(id) => void onMember(exerciseId, id)}
 							/>
 						</View>
 					))}
 					<Pressable
 						accessibilityRole="button"
-						onPress={() => setPicking(true)}
+						onPress={() => setPicker({ mode: "add" })}
 						style={[styles.row, styles.rowLine]}
 					>
 						<AppText
@@ -325,23 +372,34 @@ export function SessionGroupScreen() {
 					</AppText>
 				</Pressable>
 			</ScrollView>
-			{picking ? (
+			{picker ? (
 				<SessionExercisePicker
-					title={root.picker.titleGroup}
+					title={
+						picker.mode === "swap"
+							? root.picker.titleSwap
+							: root.picker.titleGroup
+					}
 					exercises={catalog}
 					inSession={sessionExercises(plan)}
-					onClose={() => setPicking(false)}
+					onClose={() => setPicker(null)}
 					onPick={(exercise) => {
-						setPicking(false);
-						void actions.addExerciseToGroup(
-							group.id,
-							exercise._id,
-							exercise.name,
-						);
+						const request = picker;
+						setPicker(null);
+						if (request.mode === "swap")
+							void actions.swap(request.from, exercise._id, exercise.name);
+						else
+							void actions.addExerciseToGroup(
+								group.id,
+								exercise._id,
+								exercise.name,
+							);
 					}}
 					onCreate={(name, kind) => {
-						setPicking(false);
-						void actions.createAndAdd(name, kind, undefined, group.id);
+						const request = picker;
+						setPicker(null);
+						if (request.mode === "swap")
+							void actions.createAndAdd(name, kind, request.from);
+						else void actions.createAndAdd(name, kind, undefined, group.id);
 					}}
 				/>
 			) : null}

@@ -877,6 +877,126 @@ it("takes one exercise out of a group from the group sheet (APP-215)", async () 
 	]);
 });
 
+describe("a grouped exercise's menu (APP-232)", () => {
+	const facts = {
+		exercise: { equipment: "barbell" as const },
+		bodyweight: false,
+		timed: false,
+		stepKg: 2.5,
+		measured: 100,
+		estimated: null,
+		savedManual: null,
+		measuredDate: 1,
+		last: null,
+	};
+	const second = "shipped:exercise:barbell-bench-press";
+	const plannedSets = [{ weight: 60, reps: 8, unit: "kg" as const }];
+	async function openBenchMenu(manual?: number) {
+		const exercises = [
+			{ exerciseId, plannedSets },
+			{ exerciseId: second, plannedSets },
+		];
+		currentSession = { ...currentSession, exercises };
+		const grouped = groupWith(
+			seedPlan(exercises, [], () => facts),
+			exerciseId,
+			second,
+		);
+		const id = grouped.groupId as string;
+		workspaceStore.setPlan(
+			planKey(),
+			manual === undefined
+				? grouped.plan
+				: { ...grouped.plan, manual: { [second]: manual } },
+		);
+		await mount();
+		await act(() =>
+			router.push(`/session-group?sessionId=session-1&groupId=${id}`),
+		);
+		await fireEvent.press(
+			await screen.findByLabelText(/^Options for Barbell Bench Press/),
+		);
+		return id;
+	}
+
+	it("offers Swap, Krachtprofiel and manual 1RM above the two remove items", async () => {
+		await openBenchMenu();
+		const labels = screen
+			.getAllByText(
+				/^(Replace exercise|Strength profile|Enter manual 1RM|Remove from group|Remove exercise)$/,
+			)
+			.map((item) => item.props.children);
+		expect(labels).toEqual([
+			"Replace exercise",
+			"Strength profile",
+			"Enter manual 1RM",
+			"Remove from group",
+			"Remove exercise",
+		]);
+		expect(
+			screen.queryByRole("button", { name: "Clear manual 1RM" }),
+		).toBeNull();
+	});
+
+	it("replaces the exercise inside the group", async () => {
+		const id = await openBenchMenu();
+		await fireEvent.press(
+			await screen.findByRole("button", { name: "Replace exercise" }),
+		);
+		await fireEvent.changeText(
+			await screen.findByTestId("session-picker-search"),
+			"Barbell Row",
+		);
+		await fireEvent.press(await screen.findByText("Barbell Row"));
+		await waitFor(() => {
+			const plan = workspaceStore.plan(planKey()) as SessionPlan;
+			expect(
+				plan.groups[id]?.rounds[0]?.items.map((row) => row.exerciseId),
+			).toEqual([exerciseId, "shipped:exercise:barbell-row"]);
+		});
+	});
+
+	it("opens Krachtprofiel for that exercise", async () => {
+		await openBenchMenu();
+		await fireEvent.press(
+			await screen.findByRole("button", { name: "Strength profile" }),
+		);
+		expect(
+			await screen.findByText("Strength profile · Barbell Bench Press"),
+		).toBeTruthy();
+		expect(screen).toHavePathname("/set-editor/strength-profile");
+		expect(screen).toHaveSearchParams(
+			expect.objectContaining({ exerciseId: second }),
+		);
+	});
+
+	it("opens manual 1RM for that exercise", async () => {
+		await openBenchMenu();
+		await fireEvent.press(
+			await screen.findByRole("button", { name: "Enter manual 1RM" }),
+		);
+		expect(screen).toHavePathname("/session-manual");
+		expect(screen).toHaveSearchParams(
+			expect.objectContaining({ exerciseId: second }),
+		);
+	});
+
+	it("changes and clears a manual 1RM", async () => {
+		await openBenchMenu(90);
+		expect(
+			screen.getByRole("button", { name: "Change manual 1RM" }),
+		).toBeTruthy();
+		await fireEvent.press(
+			screen.getByRole("button", { name: "Clear manual 1RM" }),
+		);
+		await waitFor(() =>
+			expect(
+				(workspaceStore.plan(planKey()) as SessionPlan).manual[second],
+			).toBeNull(),
+		);
+	});
+});
+
 it("asks before removing a grouped exercise with logged sets, and keeps it on Keep training (APP-215)", async () => {
 	const facts = {
 		exercise: { equipment: "barbell" as const },
