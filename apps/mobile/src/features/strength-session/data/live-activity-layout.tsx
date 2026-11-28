@@ -5,23 +5,40 @@
  * extension evaluates with `@expo/ui/swift-ui` as globals. It cannot close
  * over anything in this module: copy and colours arrive formatted in props
  * (see `live-activity-props.ts`). Both clocks are system timer texts, so they
- * keep counting while the app is suspended; `isStale` turns true at the end of
- * the rest (the app passes it as the stale date) and swaps in "Rest over";
- * `restOver` keeps it there once the app has seen the rest run out.
+ * keep counting while the app is suspended. At the rest's end a timer mask
+ * swaps the countdown for "Rest over" without an update (`atRestEnd`);
+ * `isStale` (the app passes the rest's end as the stale date) and `restOver`
+ * (the app saw the rest run out) keep it there.
  */
-import { HStack, Image, Spacer, Text, VStack } from "@expo/ui/swift-ui";
+import {
+	HStack,
+	Image,
+	Mask,
+	ProgressView,
+	Spacer,
+	Text,
+	VStack,
+	ZStack,
+} from "@expo/ui/swift-ui";
 import {
 	activityBackgroundTint,
+	background,
+	contrast,
 	font,
 	foregroundStyle,
 	frame,
+	labelsHidden,
 	lineLimit,
+	luminanceToAlpha,
 	minimumScaleFactor,
 	monospacedDigit,
 	multilineTextAlignment,
 	padding,
+	scaleEffect,
+	tint,
 } from "@expo/ui/swift-ui/modifiers";
 import type { LiveActivityComponent } from "expo-widgets";
+import type { ReactNode } from "react";
 import type { LiveActivityProps } from "./live-activity-props";
 
 export const sessionLiveActivityLayout: LiveActivityComponent<
@@ -29,7 +46,8 @@ export const sessionLiveActivityLayout: LiveActivityComponent<
 > = (props, environment) => {
 	"widget";
 	const scheme = props.colors;
-	// The app says so while it runs; the stale date says so while it is suspended.
+	// The app says so while it runs; `atRestEnd` and the stale date say so while
+	// it is suspended.
 	const resting = props.restEndsAt !== null && !environment.isStale;
 	const restOver =
 		props.restOver ||
@@ -83,6 +101,49 @@ export const sessionLiveActivityLayout: LiveActivityComponent<
 		<Image systemName="dumbbell.fill" color={color} />
 	);
 
+	// iOS applies the stale date no sooner than about 2 minutes after the last
+	// update, so a short rest would sit at 0:00 (APP-917). A timer progress bar
+	// over the rest's last 50 ms is empty before the end and full after it;
+	// pushed to black and white and stretched over the slot, it is a mask that
+	// flips at the end on its own.
+	const restEndsAt = props.restEndsAt;
+	const gate = (afterEnd: boolean) =>
+		restEndsAt === null ? null : (
+			<ProgressView
+				timerInterval={{
+					lower: new Date(restEndsAt - 50),
+					upper: new Date(restEndsAt),
+				}}
+				countsDown={!afterEnd}
+				modifiers={[
+					labelsHidden(),
+					tint("#FFFFFF"),
+					foregroundStyle("#000000"),
+					background("#000000"),
+					// The grey track goes clear, the white fill opaque.
+					contrast(100),
+					luminanceToAlpha(),
+					scaleEffect({ x: 1.5, y: 40 }),
+				]}
+			/>
+		);
+	const atRestEnd = (
+		during: ReactNode,
+		after: ReactNode,
+		alignment: "leading" | "center" | "trailing",
+	) => (
+		<ZStack alignment={alignment}>
+			<Mask>
+				{during}
+				<Mask.Content>{gate(false)}</Mask.Content>
+			</Mask>
+			<Mask>
+				{after}
+				<Mask.Content>{gate(true)}</Mask.Content>
+			</Mask>
+		</ZStack>
+	);
+
 	// Two short lines fit the slot beside the camera, also as "Rust voorbij".
 	const compactRestOver = (
 		<Text
@@ -101,61 +162,70 @@ export const sessionLiveActivityLayout: LiveActivityComponent<
 	);
 
 	/** Exercise, then set and load; under the countdown while resting. */
-	const body = (colors: typeof scheme) => (
-		<VStack alignment="leading" spacing={2}>
-			{resting ? (
-				<HStack spacing={8} alignment="firstTextBaseline">
-					{countdown(colors.accent, 34)}
+	const body = (colors: typeof scheme) => {
+		const restOverLine = (
+			<Text
+				modifiers={[
+					font({ size: 28, weight: "bold" }),
+					foregroundStyle(colors.accent),
+				]}
+			>
+				{props.labels.restOver}
+			</Text>
+		);
+		return (
+			<VStack alignment="leading" spacing={2}>
+				{resting
+					? atRestEnd(
+							<HStack spacing={8} alignment="firstTextBaseline">
+								{countdown(colors.accent, 34)}
+								<Text
+									modifiers={[
+										font({ textStyle: "subheadline" }),
+										foregroundStyle(colors.muted),
+									]}
+								>
+									{props.labels.rest}
+								</Text>
+							</HStack>,
+							restOverLine,
+							"leading",
+						)
+					: restOver
+						? restOverLine
+						: null}
+				{props.exercise ? (
+					<Text
+						modifiers={[
+							font(
+								resting || restOver
+									? { textStyle: "subheadline", weight: "semibold" }
+									: { size: 22, weight: "bold" },
+							),
+							foregroundStyle(colors.text),
+							lineLimit(1),
+						]}
+					>
+						{resting || restOver
+							? `${props.labels.next} · ${props.exercise}`
+							: props.exercise}
+					</Text>
+				) : null}
+				{detail ? (
 					<Text
 						modifiers={[
 							font({ textStyle: "subheadline" }),
+							monospacedDigit(),
 							foregroundStyle(colors.muted),
+							lineLimit(1),
 						]}
 					>
-						{props.labels.rest}
+						{detail}
 					</Text>
-				</HStack>
-			) : restOver ? (
-				<Text
-					modifiers={[
-						font({ size: 28, weight: "bold" }),
-						foregroundStyle(colors.accent),
-					]}
-				>
-					{props.labels.restOver}
-				</Text>
-			) : null}
-			{props.exercise ? (
-				<Text
-					modifiers={[
-						font(
-							resting || restOver
-								? { textStyle: "subheadline", weight: "semibold" }
-								: { size: 22, weight: "bold" },
-						),
-						foregroundStyle(colors.text),
-						lineLimit(1),
-					]}
-				>
-					{resting || restOver
-						? `${props.labels.next} · ${props.exercise}`
-						: props.exercise}
-				</Text>
-			) : null}
-			{detail ? (
-				<Text
-					modifiers={[
-						font({ textStyle: "subheadline" }),
-						monospacedDigit(),
-						foregroundStyle(colors.muted),
-						lineLimit(1),
-					]}
-				>
-					{detail}
-				</Text>
-			) : null}
-		</VStack>
-	);
+				) : null}
+			</VStack>
+		);
+	};
 
 	return {
 		banner: (
@@ -206,14 +276,22 @@ export const sessionLiveActivityLayout: LiveActivityComponent<
 		compactTrailing: (
 			<HStack modifiers={[frame({ width: 52, alignment: "trailing" })]}>
 				{resting
-					? countdown(scheme.accent, 15, "trailing")
+					? atRestEnd(
+							countdown(scheme.accent, 15, "trailing"),
+							compactRestOver,
+							"trailing",
+						)
 					: restOver
 						? compactRestOver
 						: elapsed(scheme.text, 15, 52)}
 			</HStack>
 		),
 		minimal: resting
-			? countdown(scheme.accent, 13, "center")
+			? atRestEnd(
+					countdown(scheme.accent, 13, "center"),
+					icon(scheme.accent),
+					"center",
+				)
 			: icon(scheme.accent),
 		expandedLeading: (
 			<HStack spacing={6} modifiers={[padding({ leading: 4 })]}>

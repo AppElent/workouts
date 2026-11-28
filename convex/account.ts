@@ -4,11 +4,13 @@ import { internal } from "./_generated/api";
 import {
 	action,
 	internalMutation,
+	internalQuery,
 	type MutationCtx,
 	mutation,
 	query,
 } from "./_generated/server";
 import {
+	AppleAccountMismatch,
 	appleCredentials,
 	isAppleClientId,
 	revokeAppleAuthorization,
@@ -34,6 +36,100 @@ export const deletionBlocker = query({
 	handler: async (ctx) => {
 		const userId = await getOptionalUserId(ctx);
 		return userId ? await accountDeletionBlocker(ctx, userId) : null;
+	},
+});
+
+/**
+ * What web Apple revocation needs to know about an account, for the action,
+ * which cannot read: its deletion blocker and its mirrored Apple users.
+ */
+export const appleRevocationCheck = internalQuery({
+	args: { userId: v.string() },
+	returns: v.object({ blocker, appleUserIds: v.array(v.string()) }),
+	handler: async (ctx, { userId }) => {
+		const link = await ctx.db
+			.query("appleSignInLinks")
+			.withIndex("by_user", (q) => q.eq("userId", userId))
+			.unique();
+		return {
+			blocker: await accountDeletionBlocker(ctx, userId),
+			appleUserIds: link?.appleUserIds ?? [],
+		};
+	},
+});
+
+const appleLink = v.object({
+	userId: v.string(),
+	appleUserIds: v.array(v.string()),
+	clerkUpdatedAt: v.number(),
+});
+
+/**
+ * `clerkUpdatedAt` of a deleted login's tombstone: newer than any Clerk
+ * delivery, so a late `user.created`/`user.updated` stores nothing.
+ */
+const DELETED_LOGIN = Number.MAX_SAFE_INTEGER;
+/**
+ * How long a tombstone stays. Svix gives up retrying about a day after the
+ * first attempt; a week leaves room for delayed deliveries.
+ */
+const TOMBSTONE_MS = 7 * 24 * 60 * 60 * 1000;
+
+/**
+ * Mirrors one login's verified Apple users. A delivery older than the stored
+ * one is ignored, so retries and out-of-order events are harmless; no Apple
+ * user removes the row. A deleted login's tombstone is never overwritten.
+ */
+async function storeAppleLink(
+	ctx: MutationCtx,
+	{
+		userId,
+		appleUserIds,
+		clerkUpdatedAt,
+	}: { userId: string; appleUserIds: string[]; clerkUpdatedAt: number },
+) {
+	const existing = await ctx.db
+		.query("appleSignInLinks")
+		.withIndex("by_user", (q) => q.eq("userId", userId))
+		.unique();
+	if (existing?.clerkUpdatedAt === DELETED_LOGIN) return;
+	if (existing && existing.clerkUpdatedAt > clerkUpdatedAt) return;
+	if (appleUserIds.length === 0) {
+		if (existing) await ctx.db.delete(existing._id);
+		return;
+	}
+	if (existing)
+		await ctx.db.patch(existing._id, { appleUserIds, clerkUpdatedAt });
+	else
+		await ctx.db.insert("appleSignInLinks", {
+			userId,
+			appleUserIds,
+			clerkUpdatedAt,
+		});
+}
+
+/** Clerk `user.created` / `user.updated` (`POST /clerk/webhook`). */
+export const syncAppleLink = internalMutation({
+	args: appleLink.fields,
+	returns: v.null(),
+	handler: async (ctx, link) => {
+		await storeAppleLink(ctx, link);
+		return null;
+	},
+});
+
+/**
+ * One-off backfill for logins whose Apple link predates the webhook
+ * subscription (`scripts/backfill-apple-links.mjs`, run locally). Same rules
+ * as the webhook, so a newer delivery always wins.
+ */
+export const backfillAppleLinks = internalMutation({
+	args: { links: v.array(appleLink) },
+	returns: v.null(),
+	handler: async (ctx, { links }) => {
+		if (links.length > 100) throw appError("tooLarge", "links");
+		for (const link of links) await storeAppleLink(ctx, link);
+		return null;
 	},
 });
 
@@ -129,6 +225,23 @@ export const purgeDeletedUser = internalMutation({
 	args: { userId: v.string() },
 	returns: v.null(),
 	handler: async (ctx, { userId }) => {
+		// The login is gone, so its Apple link is too. A short-lived tombstone
+		// without Apple users takes its place, so a late `user.updated` cannot
+		// bring it back.
+		const link = await ctx.db
+			.query("appleSignInLinks")
+			.withIndex("by_user", (q) => q.eq("userId", userId))
+			.unique();
+		if (link?.clerkUpdatedAt !== DELETED_LOGIN) {
+			const tombstone = { appleUserIds: [], clerkUpdatedAt: DELETED_LOGIN };
+			if (link) await ctx.db.patch(link._id, tombstone);
+			else await ctx.db.insert("appleSignInLinks", { userId, ...tombstone });
+			await ctx.scheduler.runAfter(
+				TOMBSTONE_MS,
+				internal.account.dropLoginTombstone,
+				{ userId },
+			);
+		}
 		if (!(await purgeAccountBatch(ctx, userId)))
 			await ctx.scheduler.runAfter(0, internal.account.purgeDeletedUser, {
 				userId,
@@ -137,16 +250,34 @@ export const purgeDeletedUser = internalMutation({
 	},
 });
 
+/** Drops a deleted login's tombstone once late deliveries are over. */
+export const dropLoginTombstone = internalMutation({
+	args: { userId: v.string() },
+	returns: v.null(),
+	handler: async (ctx, { userId }) => {
+		const link = await ctx.db
+			.query("appleSignInLinks")
+			.withIndex("by_user", (q) => q.eq("userId", userId))
+			.unique();
+		if (link?.clerkUpdatedAt === DELETED_LOGIN) await ctx.db.delete(link._id);
+		return null;
+	},
+});
+
 /** Apple authorization codes are opaque strings of a few hundred characters. */
 const MAX_AUTHORIZATION_CODE = 2000;
 
 /**
- * Revokes the signed-in account's Sign in with Apple grant before the account
- * is deleted. The code comes from a fresh native Apple sheet on iOS, together
- * with the bundle ID of the build that showed it, or from an Apple JS popup on
- * the web, with the web Services ID as `bundleId` and the registered return URL
- * it was requested with. Failures are one stable code; callers still delete
- * the account.
+ * Revokes the signed-in account's Sign in with Apple grant before the whole
+ * AppElent account is deleted (never for Delete Foundry data). The code comes
+ * from a fresh native Apple sheet on iOS, together with the bundle ID of the
+ * build that showed it, or from an Apple JS popup on the web, with the web
+ * Services ID as `bundleId` and the registered return URL it was requested
+ * with. A grant can't be restored, so a web code is only exchanged once the
+ * account may be deleted, and only revoked when its Apple user is one Clerk
+ * links to this account, as mirrored by the Clerk webhook
+ * (`appleAccountMismatch` otherwise, including when nothing is mirrored).
+ * Other failures are one stable code; callers still delete the account.
  */
 export const revokeAppleSignIn = action({
 	args: {
@@ -156,7 +287,9 @@ export const revokeAppleSignIn = action({
 	},
 	returns: v.null(),
 	handler: async (ctx, { authorizationCode, bundleId, redirectUri }) => {
-		await requireUserId(ctx);
+		// Part of deleting the account, which stays in the Foundry app.
+		await rejectConnectedApps(ctx);
+		const userId = await requireUserId(ctx);
 		if (!authorizationCode || authorizationCode.length > MAX_AUTHORIZATION_CODE)
 			throw appError("invalid", "authorizationCode");
 		if (!isAppleClientId(bundleId)) throw appError("invalid", "bundleId");
@@ -170,14 +303,28 @@ export const revokeAppleSignIn = action({
 			throw appError("invalid", "redirectUri");
 		const credentials = appleCredentials();
 		if (!credentials) throw appError("unavailable");
+		// Native revocation is not bound yet (APP-242 leftover): installed apps
+		// would refuse every account whose Apple link is not mirrored yet.
+		let appleUserIds: string[] | undefined;
+		if (web) {
+			const check = await ctx.runQuery(internal.account.appleRevocationCheck, {
+				userId,
+			});
+			if (check.blocker) throw appError(check.blocker);
+			appleUserIds = check.appleUserIds;
+			if (appleUserIds.length === 0) throw appError("appleAccountMismatch");
+		}
 		try {
 			await revokeAppleAuthorization(
 				credentials,
 				authorizationCode,
 				bundleId,
 				redirectUri,
+				appleUserIds,
 			);
 		} catch (error) {
+			if (error instanceof AppleAccountMismatch)
+				throw appError("appleAccountMismatch");
 			console.error("account.revokeAppleSignIn failed", error);
 			throw appError("failed");
 		}

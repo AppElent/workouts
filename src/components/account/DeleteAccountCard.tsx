@@ -200,7 +200,19 @@ export function DeleteAccountCard() {
 				const revoked = await revokeAppleSignIn(user, revokeApple, { locale });
 				if (revoked === "popupBlocked")
 					toast.error(c.deletion.applePopupBlocked);
-				if (revoked === "cancelled" || revoked === "popupBlocked") return;
+				if (revoked === "appleMismatch") toast.error(c.deletion.appleMismatch);
+				// A blocker that appeared after the check above; Convex refused
+				// before revoking, so the grant and the data stay.
+				if (revoked === "activeActivity" || revoked === "hostedWorkout")
+					toast.error(c.deletion.refusals[revoked]);
+				if (
+					revoked === "cancelled" ||
+					revoked === "popupBlocked" ||
+					revoked === "appleMismatch" ||
+					revoked === "activeActivity" ||
+					revoked === "hostedWorkout"
+				)
+					return;
 				apple = revoked;
 				// Apple's step can outlast the sign-in window; check again so the
 				// data is never deleted while Clerk would refuse the account.

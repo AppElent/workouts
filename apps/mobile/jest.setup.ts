@@ -234,6 +234,12 @@ jest.mock("@expo/ui/swift-ui", () => {
 		ContextMenu,
 		HStack: Stack,
 		List: Stack,
+		Mask: Object.assign(
+			({ children }: { children?: React.ReactNode }) =>
+				React.createElement(View, null, children),
+			{ Content: () => null },
+		),
+		ProgressView: () => null,
 		RoundedRectangle: Container,
 		Section: ({
 			title,

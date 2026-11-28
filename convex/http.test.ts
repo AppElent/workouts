@@ -3,7 +3,7 @@ import { HOSTED_LEVELS } from "@foundry/core";
 import { convexTest } from "convex-test";
 import { Webhook } from "svix";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import type { Id, TableNames } from "./_generated/dataModel";
 import { loadTestDataBaseline } from "./lib/testDataBaseline";
 import schema from "./schema";
@@ -120,8 +120,17 @@ async function snapshot(t: ReturnType<typeof convexTest>) {
 	});
 }
 
+/**
+ * `snapshot` without the Clerk login mirror (`appleSignInLinks`), which only
+ * the webhook drops, leaving a tombstone. Tests check that table themselves.
+ */
+async function foundryData(t: ReturnType<typeof convexTest>) {
+	const { appleSignInLinks: _, ...tables } = await snapshot(t);
+	return tables;
+}
+
 async function rowsOf(t: ReturnType<typeof convexTest>, userId: string) {
-	const tables = await snapshot(t);
+	const tables = await foundryData(t);
 	return Object.values(tables)
 		.flat()
 		.filter((row) => (row as string).includes(`"userId":"${userId}"`));
@@ -231,7 +240,7 @@ describe("POST /clerk/webhook purge", () => {
 		const body = event("user.deleted");
 		expect((await post(webhook, body, signed(body))).status).toBe(200);
 
-		expect(await snapshot(webhook)).toEqual(await snapshot(inApp));
+		expect(await foundryData(webhook)).toEqual(await foundryData(inApp));
 	});
 
 	it("is idempotent: a repeated delivery and an unknown user are no-ops", async () => {
@@ -242,9 +251,12 @@ describe("POST /clerk/webhook purge", () => {
 		expect((await post(t, body, signed(body, SECRET, "msg_2"))).status).toBe(
 			200,
 		);
+		expect(await snapshot(t)).toEqual(after);
+		// An unknown user only gets a tombstone.
 		const stranger = event("user.deleted", "user_never_used_foundry");
 		expect((await post(t, stranger, signed(stranger))).status).toBe(200);
-		expect(await snapshot(t)).toEqual(after);
+		const { appleSignInLinks: _, ...foundry } = after;
+		expect(await foundryData(t)).toEqual(foundry);
 	});
 
 	it("acknowledges other events without doing anything", async () => {
@@ -271,7 +283,22 @@ describe("POST /clerk/webhook purge", () => {
 
 	it("deletes Hosted Workouts exactly as in-app deletion does", async () => {
 		vi.useFakeTimers({ toFake: ["Date"], now: new Date("2026-11-19T10:00Z") });
-		const inApp = await withHostedWorkouts();
+		const withAppleLink = async () => {
+			const t = await withHostedWorkouts();
+			await t.mutation(internal.account.syncAppleLink, {
+				userId: "alice",
+				appleUserIds: ["apple-alice"],
+				clerkUpdatedAt: 10,
+			});
+			return t;
+		};
+		const appleUsers = (t: ReturnType<typeof convexTest>) =>
+			t.run(async (ctx) =>
+				(await ctx.db.query("appleSignInLinks").collect()).flatMap(
+					(link) => link.appleUserIds,
+				),
+			);
+		const inApp = await withAppleLink();
 		const alice = inApp.withIdentity({ subject: "alice" });
 		while (
 			!(
@@ -281,13 +308,16 @@ describe("POST /clerk/webhook purge", () => {
 			).done
 		);
 
-		const webhook = await withHostedWorkouts();
+		const webhook = await withAppleLink();
 		const body = event("user.deleted");
 		expect((await post(webhook, body, signed(body))).status).toBe(200);
 
-		const after = await snapshot(webhook);
-		expect(after).toEqual(await snapshot(inApp));
+		const after = await foundryData(webhook);
+		expect(after).toEqual(await foundryData(inApp));
 		expect(await rowsOf(webhook, "alice")).toEqual([]);
+		// The login stays after in-app deletion; the webhook drops its Apple link.
+		expect(await appleUsers(inApp)).toEqual(["apple-alice"]);
+		expect(await appleUsers(webhook)).toEqual([]);
 		// Alice's own event is gone with its guest; Carol's keeps Bob only.
 		expect(after.hostedWorkouts).toHaveLength(1);
 		expect(after.hostedWorkoutParticipants).toHaveLength(1);
@@ -313,5 +343,113 @@ describe("POST /clerk/webhook purge", () => {
 		expect((await rowsOf(t, "alice")).length).toBe(502);
 		await t.finishAllScheduledFunctions(vi.runAllTimers);
 		expect(await rowsOf(t, "alice")).toEqual([]);
+	});
+});
+
+describe("POST /clerk/webhook Apple links", () => {
+	function userEvent(
+		type: "user.created" | "user.updated",
+		updatedAt: number,
+		externalAccounts: unknown[],
+		id = "alice",
+	) {
+		return JSON.stringify({
+			type,
+			object: "event",
+			data: {
+				id,
+				object: "user",
+				updated_at: updatedAt,
+				external_accounts: externalAccounts,
+			},
+		});
+	}
+	const apple = (sub: string, status = "verified") => ({
+		object: "external_account",
+		provider: "oauth_apple",
+		provider_user_id: sub,
+		verification: { status },
+	});
+	const links = (t: ReturnType<typeof convexTest>) =>
+		t.run(async (ctx) =>
+			(await ctx.db.query("appleSignInLinks").collect()).map(
+				({ userId, appleUserIds }) => ({ userId, appleUserIds }),
+			),
+		);
+
+	it("mirrors verified Apple links from user.created and user.updated", async () => {
+		const t = convexTest(schema, modules);
+		const created = userEvent("user.created", 10, [
+			apple("apple-alice"),
+			apple("apple-pending", "unverified"),
+		]);
+		expect((await post(t, created, signed(created))).status).toBe(200);
+		expect(await links(t)).toEqual([
+			{ userId: "alice", appleUserIds: ["apple-alice"] },
+		]);
+
+		const relinked = userEvent("user.updated", 20, [apple("apple-new")]);
+		await post(t, relinked, signed(relinked, SECRET, "msg_2"));
+		// A retried older delivery does not roll it back.
+		await post(t, created, signed(created, SECRET, "msg_3"));
+		expect(await links(t)).toEqual([
+			{ userId: "alice", appleUserIds: ["apple-new"] },
+		]);
+
+		const unlinked = userEvent("user.updated", 30, []);
+		await post(t, unlinked, signed(unlinked, SECRET, "msg_4"));
+		expect(await links(t)).toEqual([]);
+	});
+
+	it("never stores a link from an unsigned or forged event", async () => {
+		const t = convexTest(schema, modules);
+		const body = userEvent("user.updated", 10, [apple("apple-attacker")]);
+		expect((await post(t, body, {})).status).toBe(400);
+		expect((await post(t, body, signed(body, OTHER_SECRET))).status).toBe(401);
+		expect(await links(t)).toEqual([]);
+	});
+
+	it("drops the link when the login is deleted", async () => {
+		vi.useFakeTimers();
+		const t = convexTest(schema, modules);
+		const created = userEvent("user.created", 10, [apple("apple-alice")]);
+		await post(t, created, signed(created));
+		const deleted = event("user.deleted");
+		expect(
+			(await post(t, deleted, signed(deleted, SECRET, "msg_2"))).status,
+		).toBe(200);
+		// Only a tombstone without Apple users is left, and only for a week.
+		expect(await links(t)).toEqual([{ userId: "alice", appleUserIds: [] }]);
+		await t.finishAllScheduledFunctions(vi.runAllTimers);
+		expect(await links(t)).toEqual([]);
+	});
+
+	it("stores nothing from a late delivery after the login is deleted", async () => {
+		vi.useFakeTimers();
+		const t = convexTest(schema, modules);
+		const created = userEvent("user.created", 10, [apple("apple-alice")]);
+		await post(t, created, signed(created));
+		const deleted = event("user.deleted");
+		await post(t, deleted, signed(deleted, SECRET, "msg_2"));
+		// A retry of an update Clerk sent before the deletion, and a newer one.
+		for (const [updatedAt, msgId] of [
+			[20, "msg_3"],
+			[Date.now(), "msg_4"],
+		] as const) {
+			const late = userEvent("user.updated", updatedAt, [apple("apple-alice")]);
+			expect((await post(t, late, signed(late, SECRET, msgId))).status).toBe(
+				200,
+			);
+		}
+		expect(await links(t)).toEqual([{ userId: "alice", appleUserIds: [] }]);
+		// A login deleted before Foundry stored its link is covered too.
+		const bobDeleted = event("user.deleted", "bob");
+		await post(t, bobDeleted, signed(bobDeleted, SECRET, "msg_5"));
+		const late = userEvent("user.created", 10, [apple("apple-bob")], "bob");
+		await post(t, late, signed(late, SECRET, "msg_6"));
+		expect(await links(t)).toEqual([
+			{ userId: "alice", appleUserIds: [] },
+			{ userId: "bob", appleUserIds: [] },
+		]);
 	});
 });
