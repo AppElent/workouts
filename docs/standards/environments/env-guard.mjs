@@ -2,9 +2,11 @@
 // PreToolUse guard for `pnpm env:*` (developer-home standards/environments.md).
 // The allow rules in .claude/settings.json cover `env:check`, `env:plan`,
 // `env:generate` and `env:apply <environment>`. This hook keeps them to plain,
-// non-destructive shapes in this repository: anything else (--prune, --yes,
-// --path, which would run another folder's manifest, ...) goes back to a
-// normal permission prompt. `env:exec` is never covered by an allow rule.
+// non-destructive shapes in this repository. Anything else (--prune, --yes,
+// --path, which would run another folder's manifest, ...) is denied at once
+// with the reason, so an unattended agent (a T3 thread) sees why and asks Eric
+// instead of stalling on a prompt nobody watches (APP-1004, 28 Nov 2026).
+// `env:exec` is never covered by an allow rule.
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -14,6 +16,12 @@ const ENV_SCRIPT = /^\s*pnpm\s+(?:run\s+)?env:(apply|plan|check|generate)(?=\s|$
 // start, a separator, a wrapper or a subshell. Quotes in between (`pnpm
 // "env:apply"`) still count.
 const RUNS_ENV_SCRIPT = /\b(?:pnpm|npm|yarn|bun|corepack|npx)\b[^;&|\n]*?\benv:(?:apply|plan|check|generate)\b/;
+// `pnpm --dir <path>` / `-C <path>` in front of the script: the same as
+// running it from <path>. A plain path only, without `..`.
+const DIR_FLAG = /^(\s*pnpm\s+)(?:--dir(?:\s+|=)|-C\s*)([A-Za-z0-9_./@+][A-Za-z0-9_./@+-]*)\s+(?=(?:run\s+)?env:)/;
+// Commands that only read: a pattern or file name that mentions env is not a run.
+const READERS = new Set(["cat", "grep", "egrep", "fgrep", "rg", "head", "tail", "wc", "ls", "less", "jq", "cd", "true"]);
+const GIT_READS = new Set(["grep", "log", "show", "diff", "status", "blame"]);
 const ENVIRONMENTS = new Set(["local", "dev", "preview", "staging", "production"]);
 const KINDS = new Set(["infisical", "file", "convex", "worker", "github", "eas"]);
 // The read-only `env:check` may keep the wrappers agents put around it: one
@@ -52,10 +60,72 @@ function unwrapCheck(command) {
   return ENV_SCRIPT.exec(inner)?.[1] === "check" ? inner : command;
 }
 
-// Returns the reason to ask for a prompt, or null to leave the decision to the
-// allow rules.
+// Splits a command on ; & | and newlines outside quotes.
+function segments(command) {
+  const parts = [];
+  let current = "";
+  let quote = null;
+  for (let i = 0; i < command.length; i += 1) {
+    const char = command[i];
+    if (quote) {
+      if (char === "\\" && quote === '"') { current += char + (command[i + 1] ?? ""); i += 1; continue; }
+      if (char === quote) quote = null;
+      current += char;
+    } else if (char === "'" || char === '"') {
+      quote = char;
+      current += char;
+    } else if (char === "\\") {
+      current += char + (command[i + 1] ?? "");
+      i += 1;
+    } else if (/[;&|\n]/.test(char)) {
+      parts.push(current);
+      current = "";
+    } else current += char;
+  }
+  parts.push(current);
+  return { parts: parts.map((part) => part.trim()).filter(Boolean), closed: quote === null };
+}
+
+// True when every part of the command only reads (grep, cat, rg, git log, ...),
+// so env words in its patterns and file names cannot run anything. Command
+// substitution, process substitution and rg's --pre run code, so they never count.
+function onlyReads(command) {
+  if (/\$\(|`|<\(|>\(|--pre\b/.test(command)) return false;
+  const { parts, closed } = segments(command);
+  if (!closed || parts.length === 0) return false;
+  return parts.every((part) => {
+    const [first, second] = part.split(/\s+/);
+    if (first === "git") return GIT_READS.has(second);
+    return READERS.has(first);
+  });
+}
+
+// Decides a Bash command: "deny" with the reason, "allow" for a `--dir`/`-C`
+// run that no allow rule matches but the bare command would, or null to leave
+// it to the allow rules and the normal permission flow.
+export function decide(rawCommand) {
+  if (typeof rawCommand !== "string") return null;
+  const dir = DIR_FLAG.exec(rawCommand);
+  if (dir) {
+    const path = dir[2];
+    const bare = rawCommand.replace(DIR_FLAG, "$1");
+    if (path.split("/").includes("..")) return { action: "deny", reason: "pnpm --dir with `..` is not auto-allowed; run the env script from the app folder itself." };
+    const reason = evaluate(bare);
+    if (reason) return { action: "deny", reason };
+    const script = ENV_SCRIPT.exec(unwrapCheck(bare))?.[1];
+    // apply writes to the providers: it stays a plain `pnpm env:apply <env>`
+    // run from the app folder, where the allow rules already cover it.
+    if (script === "apply") return { action: "deny", reason: `run env:apply without --dir/-C: \`cd ${path}\` first, then \`pnpm env:apply ...\` on its own.` };
+    return { action: "allow", reason: `env:${script} in ${path}, the same as the bare command.` };
+  }
+  const reason = evaluate(rawCommand);
+  return reason ? { action: "deny", reason } : null;
+}
+
+// Returns the reason the command is refused, or null when it passes.
 export function evaluate(rawCommand) {
   if (typeof rawCommand !== "string") return null;
+  if (DIR_FLAG.test(rawCommand)) return decide(rawCommand)?.action === "deny" ? decide(rawCommand).reason : null;
   const command = unwrapCheck(rawCommand);
   const match = ENV_SCRIPT.exec(command);
   // The allow rules also match subcommands of a compound command (`a && b`) or a
@@ -65,8 +135,8 @@ export function evaluate(rawCommand) {
     // env script. A read that merely names one (`grep "env:generate"
     // package.json`, `cat env.manifest.ts`) is left to the other checks
     // (28 Nov 2026: such reads stopped T3 threads on a prompt).
-    if (RUNS_ENV_SCRIPT.test(command)) return "env commands are auto-allowed only as a standalone command.";
-    return null;
+    if (!RUNS_ENV_SCRIPT.test(command) || onlyReads(command)) return null;
+    return "env scripts run only as a standalone `pnpm env:<script> ...` command (optionally `pnpm --dir <path> env:check|plan|generate`); run it on its own, or ask Eric.";
   }
   if (/[;&|`<>'"\\$(){}*?[\]~!#\n]/.test(command)) return "only plain, unquoted env commands are auto-allowed.";
   const words = command.slice(match[0].length).trim().split(/\s+/).filter(Boolean);
@@ -74,12 +144,12 @@ export function evaluate(rawCommand) {
   return null;
 }
 
-function ask(reason) {
+function answer(action, reason) {
   process.stdout.write(
     JSON.stringify({
       hookSpecificOutput: {
         hookEventName: "PreToolUse",
-        permissionDecision: "ask",
+        permissionDecision: action,
         permissionDecisionReason: `env-guard: ${reason}`,
       },
     }),
@@ -92,9 +162,9 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   try {
     input = JSON.parse(readFileSync(0, "utf8"));
   } catch {
-    ask("could not read the tool input."); // fail closed
+    answer("deny", "could not read the tool input."); // fail closed
   }
-  const reason = evaluate(input?.tool_input?.command);
-  if (reason) ask(reason);
+  const result = decide(input?.tool_input?.command);
+  if (result) answer(result.action, result.reason);
   process.exit(0);
 }
