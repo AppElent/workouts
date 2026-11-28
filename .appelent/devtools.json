@@ -3,8 +3,8 @@
   "repository": "AppElent/developer-home",
   "scope": "project",
   "ref": "main",
-  "commit": "520f8f652a47c0adec57121209cf6770a6a9a585",
-  "manifestHash": "c74974bbfb2d55cdd88d43b688d1e828c4196e50472bb0d7083f4d687f909130",
+  "commit": "d5d177521e3d6973109a5604c018f90fe58b77f1",
+  "manifestHash": "dcd312e85417cb214ea54bbac5675e303ad081dfb5528a73076148ab0ffbc122",
   "files": {
     "scripts/baseline-mobile.mjs": {
       "sha256": "2ca4cd7d820efda7ad5b902c0c987b724d87197e2c1a4e15d446e39a1085aedf"
@@ -150,8 +150,8 @@
       "version": "1.3.0"
     },
     "docs/standards/environments.md": {
-      "sha256": "d31047f65c1095893e9a1ea13726d66ec2be7254c5d3d28d84afbaae87364041",
-      "version": "4.1.1"
+      "sha256": "d1601fcec185a1b7ac2469ca5c7df18a3e63b8b25c183227f34a4a646d8e9209",
+      "version": "4.2.0"
     },
     "docs/standards/environments/examples/env.manifest.ts": {
       "sha256": "d3d0dec4caa63413f4029734624632b4586e7b68751d543a7b4ccca50c0ab8ac"
@@ -477,7 +477,7 @@
       "sha256": "3b63fdb9cdc037a4e08f781cc6517d94281aec6cf017dbe5e5a9bb080d3d8c3f"
     },
     "docs/standards/environments/env-guard.mjs": {
-      "sha256": "d9e2b65160218239669390cc22750ee47b34af109a38b679d0f6be7810880df4"
+      "sha256": "7ec341d0a14e62d41d1604d927463b2c442697c6a03ffcbd9f2989e2998aa77c"
     },
     "docs/standards/platform-parity.md": {
       "sha256": "b369ad5740b8e4e644e6a2661f517aa937cf3184f7ac8dc3c35e3497cc784131",

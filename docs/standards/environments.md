@@ -2,7 +2,7 @@
 type: standard
 kind: platform
 description: Read when adding, routing, or checking environment variables and secrets.
-version: 4.1.1
+version: 4.2.0
 applies_to: [all]
 ---
 
@@ -120,13 +120,22 @@ lands each value in the same destination, from one data-only manifest.
   with matcher `Bash`, keeps those rules to plain shapes: an environment name plus
   `--only <kind>`, `--pr <n>`, `--json`, `--dry-run` (apply) or `--ci` (check), and
   `generate` with `--dry-run`/`--json`. Anything else (`--prune`, `--yes`, `--path`,
-  `apply --ci`, `--`, quoting, chaining, unreadable input) goes back to a normal
-  permission prompt, and so does an `env:` script anywhere but at the start of the
+  `apply --ci`, `--`, quoting, chaining, unreadable input) is denied at once with
+  the reason, and so is an `env:` script run anywhere but at the start of the
   command (a compound command or a wrapper such as `timeout`, whose subcommands the
-  allow rules also match). The one exception is the read-only `env:check`: it may keep
-  one leading `cd <plain path>;` (or `&&`), a trailing `2>&1`, and one `| tail` or
-  `| head` with at most a line count, the shape agents use from a worktree. The allow rules are only safe together with this hook; add both or
-  neither.
+  allow rules also match). A deny, not a prompt, so an unattended agent sees why and
+  asks the owner instead of waiting on a prompt nobody watches (APP-1004). Three
+  shapes pass on top of that:
+  - the read-only `env:check` may keep one leading `cd <plain path>;` (or `&&`), a
+    trailing `2>&1`, and one `| tail` or `| head` with at most a line count, the
+    shape agents use from a worktree;
+  - `pnpm --dir <plain path>` or `-C <plain path>` (no `..`) in front of `check`,
+    `plan` or `generate` is the bare command run from that folder, and the hook
+    allows it; `apply` stays a bare command;
+  - a command made only of reads (`grep`, `rg`, `cat`, `head`, `tail`, `jq`, `ls`,
+    `wc`, `cd`, `git grep|log|show|diff`) passes when an env script appears only in
+    its patterns or file names, unless it uses `$(...)`, backticks or `rg --pre`.
+  The allow rules are only safe together with this hook; add both or neither.
 - `env:exec` is never allowed: it runs an arbitrary command with the secrets in its
   environment.
 
