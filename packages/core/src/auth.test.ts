@@ -101,6 +101,26 @@ describe("clerkErrorMessageKey", () => {
 		).toBe("generic");
 	});
 
+	it.each([
+		"protect_check_timed_out",
+		"protect_check_script_load_failed",
+		"protect_check_execution_failed",
+		"protect_check_aborted",
+		"protect_check_invalid_script",
+	])("maps the bot challenge's %s to its own key", (code) => {
+		expect(clerkErrorMessageKey({ code })).toBe("botCheckFailed");
+		expect(clerkErrorMessageKey({ errors: [{ code }] })).toBe("botCheckFailed");
+	});
+
+	it("keeps bot-challenge setup errors generic", () => {
+		for (const code of [
+			"protect_check_already_resolved",
+			"protect_check_unsupported_environment",
+		]) {
+			expect(clerkErrorMessageKey({ code })).toBe("generic");
+		}
+	});
+
 	it("falls back to the generic key for anything unmapped", () => {
 		expect(clerkErrorMessageKey({ code: "something_new" })).toBe("generic");
 		expect(clerkErrorMessageKey({ code: "toString" })).toBe("generic");

@@ -14,6 +14,9 @@ import { isResumable, isSocialSignUp } from "./signUpContinue";
 /**
  * Email + password with an emailed code. A social sign-up that `/sso-callback`
  * sends here with its attempt still open gets the continue step instead.
+ *
+ * Clerk's "Challenge suspicious sign-ups" shows its bot check in a dialog of
+ * its own while a `signUp` call waits, so nothing mounts here for it (APP-125).
  */
 export function SignUpForm({
 	onSuccess,
@@ -29,11 +32,11 @@ export function SignUpForm({
 	/** Where to land after signing up, carried to social sign-up and sign-in. */
 	redirect?: string;
 }) {
-	const { signUp } = useSignUp();
+	const { signUp, errors } = useSignUp();
 	const { isLoaded } = useAuth();
 	// Pending leaves for a form the person did not open: put them in it.
 	const [resumed] = useState(resumeSocial);
-	const { locale, messages } = useI18n();
+	const { messages } = useI18n();
 	const { auth } = messages;
 	const errorMessage = useClerkErrorMessage();
 	const [step, setStep] = useState<
@@ -50,8 +53,17 @@ export function SignUpForm({
 	// Clerk loads: before that `signUp` is a placeholder.
 	useEffect(() => {
 		if (step !== "pending" || !isLoaded) return;
+		// A social sign-up whose bot challenge failed also comes back here, with
+		// the reason only on `errors.global`. Its attempt can still look
+		// resumable, so the plain form, whose submit replaces it, comes first.
+		const failed = errors.global?.[0];
+		if (failed) {
+			setError(errorMessage(failed));
+			setStep("details");
+			return;
+		}
 		setStep(isResumable(signUp) ? "continue" : "details");
-	}, [step, isLoaded, signUp]);
+	}, [step, isLoaded, signUp, errors, errorMessage]);
 
 	async function submitDetails(e: React.FormEvent) {
 		e.preventDefault();
@@ -162,19 +174,6 @@ export function SignUpForm({
 				value={password}
 				onChange={setPassword}
 				required
-			/>
-			{/*
-			 * Clerk's legacy bot sign-up protection mounts its Turnstile widget here
-			 * when `signUp.password()` runs; it shows a checkbox only to visitors it
-			 * suspects are bots. Without this element Clerk falls back to an
-			 * invisible widget that blocks them with no way to prove otherwise.
-			 * `empty:-mt-3` cancels the form's gap while nothing is mounted.
-			 */}
-			<div
-				id="clerk-captcha"
-				className="empty:-mt-3"
-				data-cl-size="flexible"
-				data-cl-language={locale}
 			/>
 			<AuthButton loading={loading || !isLoaded}>
 				{auth.signUp.submit}

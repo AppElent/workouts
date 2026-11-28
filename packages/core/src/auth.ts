@@ -48,6 +48,7 @@ const CLERK_ERROR_MESSAGE_KEYS = [
 	"tooManyRequests",
 	"network",
 	"appleSignInIncomplete",
+	"botCheckFailed",
 ] as const;
 export type ClerkErrorMessageKey = (typeof CLERK_ERROR_MESSAGE_KEYS)[number];
 
@@ -79,6 +80,13 @@ const CLERK_ERROR_CODE_MAP: Readonly<
 	network_error: "network",
 	// Native Apple sheet: no Apple Account on the device, or its prompt closed.
 	ERR_REQUEST_UNKNOWN: "appleSignInIncomplete",
+	// Clerk's bot challenge ("Challenge suspicious sign-ups") could not load,
+	// ran out of time, or was not passed (APP-125).
+	protect_check_timed_out: "botCheckFailed",
+	protect_check_aborted: "botCheckFailed",
+	protect_check_execution_failed: "botCheckFailed",
+	protect_check_script_load_failed: "botCheckFailed",
+	protect_check_invalid_script: "botCheckFailed",
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {

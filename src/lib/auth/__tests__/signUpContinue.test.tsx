@@ -58,9 +58,11 @@ const verifyEmailCode = { current: ok() };
 const sendPhoneCode = vi.fn();
 const verifyPhoneCode = { current: ok() };
 
+/** `useSignUp().errors`: Clerk keeps errors without a field on `global`. */
+const signUpErrors: { global: unknown[] | null } = { global: null };
 vi.mock("@clerk/react", () => ({
 	useSignIn: () => ({ signIn: {} }),
-	useSignUp: () => ({ signUp }),
+	useSignUp: () => ({ signUp, errors: signUpErrors }),
 	useAuth: () => auth,
 }));
 
@@ -174,7 +176,8 @@ describe("sign-up continue step", () => {
 			expect(router.state.location.href).toBe(RESUME);
 			expect(inputLabels()).toEqual(["Username", "First name"]);
 			expect(screen.queryByRole("button", { name: /google/i })).toBeNull();
-			expect(document.querySelector("form #clerk-captcha")).not.toBeNull();
+			// Clerk shows a bot challenge in a dialog of its own.
+			expect(document.querySelector("#clerk-captcha")).toBeNull();
 		});
 
 		it("shows the plain form without the marker, whatever attempt is open", async () => {

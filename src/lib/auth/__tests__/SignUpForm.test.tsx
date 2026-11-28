@@ -18,9 +18,11 @@ const signUp = {
 	verifications: { sendEmailCode, verifyEmailCode },
 	finalize,
 };
+/** `useSignUp().errors`: Clerk keeps errors without a field on `global`. */
+const signUpErrors: { global: unknown[] | null } = { global: null };
 vi.mock("@clerk/react", () => ({
 	useSignIn: () => ({ signIn: {} }),
-	useSignUp: () => ({ signUp }),
+	useSignUp: () => ({ signUp, errors: signUpErrors }),
 	useAuth: () => ({ isLoaded: true }),
 }));
 
@@ -100,58 +102,84 @@ describe("SignUpForm", () => {
 		);
 	}
 
-	function captchaInForm() {
-		return document.querySelector("form #clerk-captcha");
-	}
+	const BOT_CHECK_FAILED =
+		"We couldn't confirm you're not a bot. Please try again, or turn off a VPN or proxy.";
+	/** What Clerk returns when its bot challenge expires before it is passed. */
+	const timedOut = {
+		code: "protect_check_timed_out",
+		message: "The challenge timed out.",
+	};
 
-	it("keeps Clerk's CAPTCHA element in the form while creating the account", async () => {
-		let connectedAtStart = false;
-		let connectedAtEnd = false;
-		password.mockImplementation(async () => {
-			connectedAtStart = captchaInForm()?.isConnected ?? false;
-			await Promise.resolve();
-			connectedAtEnd = captchaInForm()?.isConnected ?? false;
-			return { error: null };
-		});
-		sendEmailCode.mockImplementation(async () => {
-			expect(captchaInForm()).not.toBeNull();
-			return { error: null };
-		});
+	it("mounts no CAPTCHA element: Clerk shows its challenge in a dialog", () => {
 		renderForm();
-		const captcha = captchaInForm();
-		expect(captcha?.getAttribute("data-cl-language")).toBe("en");
-		expect(captcha?.getAttribute("data-cl-size")).toBe("flexible");
-		fillAndSubmit();
-		await screen.findByLabelText(/verification code/i);
-		expect(connectedAtStart).toBe(true);
-		expect(connectedAtEnd).toBe(true);
-		expect(sendEmailCode).toHaveBeenCalled();
+		expect(document.querySelector("#clerk-captcha")).toBeNull();
 	});
 
-	it("keeps the CAPTCHA element after a rejected attempt so a retry can use it", async () => {
-		password.mockImplementationOnce(async () => ({
-			error: { message: "Try again", errors: [] },
-		}));
+	it("explains a failed bot challenge, and the retry goes through", async () => {
+		password.mockImplementationOnce(async () => ({ error: timedOut }));
 		renderForm();
-		const captcha = captchaInForm();
 		fillAndSubmit();
-		await vi.waitFor(() => expect(password).toHaveBeenCalledTimes(1));
-		await vi.waitFor(() =>
-			expect(
-				screen.getByRole("button", { name: /create account/i }),
-			).toBeDefined(),
+		expect((await screen.findByRole("alert")).textContent).toBe(
+			BOT_CHECK_FAILED,
 		);
 		expect(sendEmailCode).not.toHaveBeenCalled();
-		expect(captchaInForm()).toBe(captcha);
+
+		fillAndSubmit();
+		expect(await screen.findByLabelText(/verification code/i)).toBeDefined();
+		expect(password).toHaveBeenCalledTimes(2);
+		expect(sendEmailCode).toHaveBeenCalledTimes(1);
+		expect(screen.queryByRole("alert")).toBeNull();
 	});
 
-	it("asks for the CAPTCHA in Dutch when the app is in Dutch", () => {
+	it("explains a failed bot challenge in Dutch when the app is in Dutch", async () => {
+		password.mockImplementationOnce(async () => ({ error: timedOut }));
 		rtlRender(<SignUpForm onSuccess={vi.fn()} />, {
 			wrapper: ({ children }) => (
 				<LocaleProvider initialLocale="nl">{children}</LocaleProvider>
 			),
 		});
-		expect(captchaInForm()?.getAttribute("data-cl-language")).toBe("nl");
+		fillAndSubmit();
+		expect((await screen.findByRole("alert")).textContent).toBe(
+			"We konden niet bevestigen dat je geen bot bent. Probeer het opnieuw, of zet een vpn of proxy uit.",
+		);
+	});
+
+	it.each([
+		["an attempt it cannot resume", {}],
+		// The challenge sits on the transferred social sign-up, which otherwise
+		// looks like one the continue step could finish.
+		[
+			"a social attempt it could otherwise resume",
+			{ id: "sua_1", externalAccount: { strategy: "oauth_google" } },
+		],
+	])(
+		"explains a social sign-up that failed the bot challenge on the way back, with %s",
+		async (_, attempt) => {
+			const { id, externalAccount } = attempt as {
+				id?: string;
+				externalAccount?: { strategy: string };
+			};
+			Object.assign(signUp, { id });
+			Object.assign(signUp.verifications, { externalAccount });
+			signUpErrors.global = [timedOut];
+			try {
+				render(<SignUpForm onSuccess={vi.fn()} resumeSocial />);
+				expect((await screen.findByRole("alert")).textContent).toBe(
+					BOT_CHECK_FAILED,
+				);
+				expect(screen.getByLabelText("Email")).toBeDefined();
+			} finally {
+				signUpErrors.global = null;
+				Object.assign(signUp, { id: undefined });
+				Object.assign(signUp.verifications, { externalAccount: undefined });
+			}
+		},
+	);
+
+	it("shows no error when a social sign-up comes back without one", async () => {
+		render(<SignUpForm onSuccess={vi.fn()} resumeSocial />);
+		expect(await screen.findByLabelText("Email")).toBeDefined();
+		expect(screen.queryByRole("alert")).toBeNull();
 	});
 
 	it("verifies the code and completes sign-up", async () => {

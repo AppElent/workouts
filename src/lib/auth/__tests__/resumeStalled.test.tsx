@@ -45,14 +45,15 @@ const signUp: Record<string, unknown> = {
 	},
 };
 
+/** `useSignUp().errors`: Clerk keeps errors without a field on `global`. */
+const signUpErrors: { global: unknown[] | null } = { global: null };
 vi.mock("@clerk/react", async () => {
 	const { useSyncExternalStore } = await import("react");
 	return {
-		// Like Clerk's: mounts, and so handles the callback, only once loaded.
-		AuthenticateWithRedirectCallback: () =>
-			isLoaded ? <p>Clerk callback</p> : null,
+		// Like Clerk's: handles the callback only once loaded.
+		HandleSSOCallback: () => (isLoaded ? <p>Clerk callback</p> : null),
 		useSignIn: () => ({ signIn }),
-		useSignUp: () => ({ signUp }),
+		useSignUp: () => ({ signUp, errors: signUpErrors }),
 		useAuth: () => ({
 			isLoaded: useSyncExternalStore(
 				(listener) => {
